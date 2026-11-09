@@ -14,6 +14,12 @@ namespace MorzaBogow.Presentation
     public static class TreeModels
     {
         const int Variants = 4;
+
+        /// <summary>
+        /// Groves are placed in model units where a stone pine of scale 1 is 7.5-10 m. Every grove is multiplied by this
+        /// on top, so trees stand at their real size beside 12-26 m hulls: a stone pine 11-18 m, a cypress 14-22 m.
+        /// </summary>
+        public const float LifeSize = 2.2f;
         static readonly Dictionary<(TreeKind, int), Mesh> cache = new Dictionary<(TreeKind, int), Mesh>();
         static Mesh sphere, cylinder, capsule;
 
@@ -132,7 +138,7 @@ namespace MorzaBogow.Presentation
             public void Add(TreeKind kind, int variant, Vector3 position, float yaw, float scale)
             {
                 var mesh = Get(kind, variant);
-                var placement = Matrix4x4.TRS(position, Quaternion.Euler(0f, yaw, 0f), Vector3.one * scale);
+                var placement = Matrix4x4.TRS(position, Quaternion.Euler(0f, yaw, 0f), Vector3.one * (scale * LifeSize));
                 bark.Add(new CombineInstance { mesh = mesh, subMeshIndex = 0, transform = placement });
                 leaves.Add(new CombineInstance { mesh = mesh, subMeshIndex = 1, transform = placement });
                 Count++;

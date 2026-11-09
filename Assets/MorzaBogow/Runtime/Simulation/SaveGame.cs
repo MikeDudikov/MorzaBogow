@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 8;
+        public const int Version = 9;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -65,6 +65,7 @@ namespace MorzaBogow.Simulation
                 writer.Write(world.LostWood); writer.Write(world.LostSilver);
                 writer.Write(world.ReturnedWood); writer.Write(world.ReturnedSilver);
                 writer.Write(world.Explored);
+                writer.Write((int)world.Length);
 
                 writer.Write(world.Islands.Count);
                 foreach (var island in world.Islands)
@@ -94,7 +95,7 @@ namespace MorzaBogow.Simulation
                     WriteQueue(writer, settlement.PortQueue);
                     WriteIds(writer, settlement.DockedShips);
                     WriteIds(writer, settlement.PortWaiting);
-                    writer.Write(settlement.IsOutpost); writer.Write(settlement.HasShipyard);
+                    writer.Write(settlement.IsOutpost); writer.Write(settlement.HasShipyard); writer.Write(settlement.Walls);
                     var yard = new List<BuildOrder>();
                     if (settlement.ShipyardBuild != null) yard.Add(settlement.ShipyardBuild);
                     WriteQueue(writer, yard);
@@ -169,6 +170,8 @@ namespace MorzaBogow.Simulation
                 world.ReturnedWood = reader.ReadInt64(); world.ReturnedSilver = reader.ReadInt64();
                 world.Explored = reader.ReadBytes(World.FogCells * World.FogCells);
                 if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
+                world.Length = (MatchLength)reader.ReadInt32();
+                if (world.Length < MatchLength.Short || world.Length > MatchLength.Long) throw new InvalidDataException("Damaged match length.");
 
                 var count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
@@ -212,6 +215,8 @@ namespace MorzaBogow.Simulation
                     ReadIds(reader, settlement.PortWaiting);
                     settlement.IsOutpost = reader.ReadBoolean();
                     settlement.HasShipyard = reader.ReadBoolean();
+                    settlement.Walls = reader.ReadDouble();
+                    if (!(settlement.Walls > 0)) throw new InvalidDataException("Damaged walls.");
                     var yard = new List<BuildOrder>();
                     ReadQueue(reader, yard);
                     if (yard.Count > 0) settlement.ShipyardBuild = yard[0];

@@ -335,6 +335,17 @@ namespace MorzaBogow.Simulation
             }
         }
 
+        /// <summary>
+        /// How fast one hull works a point, in units per second, and how much the point yields at most to all its
+        /// workers together. Both scale with the scenario's yield (MatchProfile): felling and smelting take as long
+        /// as the scenario's length asks for.
+        /// </summary>
+        public double WorkRate(ResourceNode node, Ship ship) =>
+            node.Type == ResourceType.Wood ? ship.Definition.WoodWork * Profile.WoodYield : ship.Definition.SilverWork * Profile.SilverYield;
+
+        public double NodeCap(ResourceNode node) =>
+            node.Type == ResourceType.Wood ? Rules.WoodNodeCap * Profile.WoodYield : Rules.SilverNodeCap * Profile.SilverYield;
+
         void StepWorkers()
         {
             foreach (var node in Nodes)
@@ -343,9 +354,9 @@ namespace MorzaBogow.Simulation
                 var workers = node.Workers.Select(FindShip).Where(ship => ship != null && ship.Harvest == HarvestPhase.Working).OrderBy(ship => ship.Id).ToList();
                 if (workers.Count == 0) continue;
 
-                double Rate(Ship ship) => node.Type == ResourceType.Wood ? ship.Definition.WoodWork : ship.Definition.SilverWork;
+                double Rate(Ship ship) => WorkRate(node, ship);
                 var total = workers.Sum(Rate);
-                var cap = node.Type == ResourceType.Wood ? Rules.WoodNodeCap : Rules.SilverNodeCap;
+                var cap = NodeCap(node);
                 var share = total > cap ? cap / total : 1.0;
 
                 foreach (var ship in workers)

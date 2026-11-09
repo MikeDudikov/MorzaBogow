@@ -12,25 +12,33 @@ namespace MorzaBogow.Simulation
     {
         const int StrategyPeriod = 3 * Rules.TickRate;
         const int TacticsPeriod = Rules.TickRate;
-        const int CutterTarget = 6;
+
         const int CuttersPerOutpost = 2;
         const int MaxOutposts = 2;
         static readonly ShipClass[] BuildCycle = { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder };
 
         readonly int faction;
-        readonly int minimumAttackGroup;
+        readonly int? fixedAttackGroup;
+        int minimumAttackGroup = 2;
+        int CutterTarget = 6;
         int buildIndex;
 
-        public Opponent(int faction, int minimumAttackGroup = 2)
+        /// <summary>Without a fixed group size the opponent waits for the attack group its scenario's profile names.</summary>
+        public Opponent(int faction, int? minimumAttackGroup = null)
         {
             this.faction = faction;
-            this.minimumAttackGroup = minimumAttackGroup;
+            fixedAttackGroup = minimumAttackGroup;
         }
 
         public int BuildIndex { get => buildIndex; set => buildIndex = value; }
 
+        /// <summary>Keeps every warship at home unless the base is threatened. Balance probes measure the economy's ceiling with it.</summary>
+        public bool Passive { get; set; }
+
         public void Think(World world)
         {
+            minimumAttackGroup = fixedAttackGroup ?? world.Profile.AttackGroup;
+            CutterTarget = world.Profile.CutterTarget;
             if (world.Tick % StrategyPeriod == 0)
             {
                 ManageEconomy(world);
@@ -237,7 +245,7 @@ namespace MorzaBogow.Simulation
             }
 
             var threatened = visibleEnemies.Any(enemy => World.Distance(enemy.X, enemy.Y, home.X, home.Y) < 250);
-            if (active.Count < minimumAttackGroup && !threatened) return;
+            if ((Passive || active.Count < minimumAttackGroup) && !threatened) return;
 
             foreach (var ship in active)
             {

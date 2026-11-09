@@ -174,7 +174,7 @@ namespace MorzaBogow.Presentation
                 var orientation = surface.largeOrientationValue * Mathf.Deg2Rad;
                 waveTravel = new Vector3(Mathf.Cos(orientation), 0f, Mathf.Sin(orientation));
             }
-            StartMatch(MapFactory.CreateSkirmish(seed), 0);
+            StartMatch(MapFactory.CreateSkirmish(seed, LengthFromArguments(Environment.GetCommandLineArgs())), 0);
             if (surface != null)
             {
                 water = new WaterSampler(surface);
@@ -578,14 +578,14 @@ namespace MorzaBogow.Presentation
 
             var node = World.FindNode(ship.NodeId);
             if (node == null) return 0;
-            double Rate(Ship worker) => node.Type == ResourceType.Wood ? worker.Definition.WoodWork : worker.Definition.SilverWork;
+            double Rate(Ship worker) => World.WorkRate(node, worker);
             var total = 0.0;
             foreach (var id in node.Workers)
             {
                 var worker = World.FindShip(id);
                 if (worker != null && worker.Harvest == HarvestPhase.Working) total += Rate(worker);
             }
-            var cap = node.Type == ResourceType.Wood ? Rules.WoodNodeCap : Rules.SilverNodeCap;
+            var cap = World.NodeCap(node);
             var share = total > cap ? cap / total : 1.0;
             var own = Rate(ship) * share * Rules.Centi;
             if (own <= 0) return double.MaxValue;
@@ -669,6 +669,7 @@ namespace MorzaBogow.Presentation
         {
             // Land under sites and settlements is drawn by their own models.
             foreach (var island in World.Islands.Where(item => item.Kind == IslandKind.Coast)) mapObjects.Add(CreateIsland(island));
+            foreach (var island in World.Islands.Where(item => item.Kind == IslandKind.Hinterland)) mapObjects.Add(CreateHinterland(island));
 
             // Every shore follows the outline of its own land: the rocky coast's real waterline, an islet's ellipse.
             // Its seabed falls away along that outline, and surf breaks along it, not in a circle.
@@ -699,7 +700,8 @@ namespace MorzaBogow.Presentation
                 ScatterBoulders(holder.transform, outline, island.X * 1.31 + island.Y * 0.77, coast);
 
                 // High rock throws breaking waves up as spray; low beaches only foam.
-                var spray = coast ? ShorelineSpray(holder.transform) : null;
+                var high = coast || island.Kind == IslandKind.Hinterland;
+                var spray = high ? ShorelineSpray(holder.transform) : null;
                 foreach (var (point, along) in ShoreShape.SurfPoints(outline, ShoreShape.SurfSpacing))
                 {
                     var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, point, new Vector2(ShoreShape.SurfSize, ShoreShape.SurfSize));
@@ -715,7 +717,7 @@ namespace MorzaBogow.Presentation
                         Outward = point.normalized,
                     });
                 }
-                holder.SetActive(island.Kind == IslandKind.Coast);
+                holder.SetActive(high);
                 mapObjects.Add(holder);
             }
 
@@ -923,20 +925,20 @@ namespace MorzaBogow.Presentation
         /// A grove of stone pines with a few cypresses on an islet's plateau, on the open side away from the port,
         /// clear of whatever stands there. Seeded, so the same land always gets the same grove.
         /// </summary>
-        void PlantGrove(Transform parent, float[] outline, float[] lift, double seed, float shelteredAngle, float minAway, float nearFraction, float farFraction, Func<float, float, bool> blocked)
+        void PlantGrove(Transform parent, float[] outline, float[] lift, double seed, float shelteredAngle, float minAway, float nearFraction, float farFraction, Func<float, float, bool> blocked, int maxTrees = 14, float spacing = 6f)
         {
             var random = new System.Random((int)(seed * 100.0) ^ 0x2F6A1D3);
             float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
             var grove = new TreeModels.Grove();
             var planted = new List<Vector2>();
-            for (var attempt = 0; attempt < 90 && planted.Count < 16; attempt++)
+            for (var attempt = 0; attempt < maxTrees * 6 && planted.Count < maxTrees; attempt++)
             {
                 var angle = Next(0f, Mathf.PI * 2f);
                 if (Mathf.Abs(Mathf.DeltaAngle(angle * Mathf.Rad2Deg, shelteredAngle * Mathf.Rad2Deg)) < minAway) continue;
                 var radius = ShoreShape.At(outline, angle) * Next(nearFraction, farFraction);
                 var spot = new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
                 if (blocked != null && blocked(spot.x, spot.y)) continue;
-                if (planted.Exists(other => (other - spot).sqrMagnitude < 3.4f * 3.4f)) continue;
+                if (planted.Exists(other => (other - spot).sqrMagnitude < spacing * spacing)) continue;
                 planted.Add(spot);
                 var kind = random.NextDouble() < 0.3 ? TreeKind.Cypress : TreeKind.StonePine;
                 var ground = ShoreShape.GroundAt(outline, lift, spot.x, spot.y) - 0.15f;
@@ -955,6 +957,30 @@ namespace MorzaBogow.Presentation
             trees.AddComponent<MeshFilter>().sharedMesh = mesh;
             trees.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
             TreesPlanted += grove.Count;
+        }
+
+        /// <summary>
+        /// The large island behind a port or a work point: a limestone plateau on the game's own waterline, falling in
+        /// cliffs to the open sea and gently toward the islet it joins, wooded with stone pines and cypresses.
+        /// Always drawn, like the rocky coasts: it is the lie of the land, not something scouted.
+        /// </summary>
+        GameObject CreateHinterland(Island island)
+        {
+            var root = new GameObject("Hinterland");
+            root.transform.position = new Vector3((float)island.X, 0f, (float)island.Y);
+            var outline = OutlineOf(island);
+            var joined = World.Islands.Where(item => item.Kind == IslandKind.Settlement || item.Kind == IslandKind.ResourceSite)
+                .OrderBy(item => World.Distance(item.X, item.Y, island.X, island.Y)).FirstOrDefault();
+            var toward = joined != null ? Mathf.Atan2((float)(joined.Y - island.Y), (float)(joined.X - island.X)) : 0f;
+            var lift = ShoreShape.Cliffs(toward, 60f, 110f, (float)(island.X * 0.29 + island.Y * 0.17));
+            var land = new GameObject("Plateau");
+            land.transform.SetParent(root.transform, false);
+            land.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline, lift);
+            land.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
+            // Woods thicken with the island's size, within a budget a whole archipelago can afford to draw.
+            var trees = Mathf.Clamp(Mathf.RoundToInt((float)island.Radius * 0.28f), 10, 32);
+            PlantGrove(root.transform, outline, lift, island.X * 2.3 + island.Y * 1.1, toward, 25f, 0.1f, 0.8f, null, trees, 9f);
+            return root;
         }
 
         /// <summary>A port's islet as drawn: the game's waterline and the cliffs on its open side, away from the port.</summary>
@@ -1262,7 +1288,7 @@ namespace MorzaBogow.Presentation
 
                 // Surf would reveal small land under the fog, so it shows only where the player has explored.
                 var holder = patch.Decal.transform.parent.gameObject;
-                var shown = patch.Island.Kind == IslandKind.Coast || World.IsExplored(PlayerFaction, patch.Island.X, patch.Island.Y);
+                var shown = patch.Island.Kind == IslandKind.Coast || patch.Island.Kind == IslandKind.Hinterland || World.IsExplored(PlayerFaction, patch.Island.X, patch.Island.Y);
                 if (holder.activeSelf != shown) holder.SetActive(shown);
                 if (!shown) continue;
 
@@ -1408,14 +1434,16 @@ namespace MorzaBogow.Presentation
                 tilt = ObliqueCamera.DefaultTilt;
             }
             tilt = ObliqueCamera.ClampTilt(tilt);
-            if (free && !PointerOverHud()) height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f);
+            // A larger scenario's map is spread wider; the camera may rise and roam in proportion.
+            var spread = (float)World.Profile.Spread;
+            if (free && !PointerOverHud()) height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f * Mathf.Max(1f, spread * 0.85f));
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             var scroll = move.normalized;
             scroll.z *= ObliqueCamera.GroundDepthScale(tilt);
             pivot += rotation * scroll * (height * 0.8f * delta);
-            pivot.x = Mathf.Clamp(pivot.x, -520f, 520f);
-            pivot.z = Mathf.Clamp(pivot.z, -420f, 420f);
+            pivot.x = Mathf.Clamp(pivot.x, -520f * spread, 520f * spread);
+            pivot.z = Mathf.Clamp(pivot.z, -420f * spread, 420f * spread);
 
             ObliqueCamera.Apply(strategicCamera, pivot, yaw, tilt, height);
             if (sun != null) sun.transform.rotation = ObliqueCamera.SunRotation(yaw, tilt);
@@ -1858,9 +1886,18 @@ namespace MorzaBogow.Presentation
         public void RepairSelected() => Send(CommandKind.Repair, selected.ToArray());
         public void ScrapSelected() => Send(CommandKind.Scrap, selected.ToArray());
 
-        public void NewGame()
+        /// <summary>A new skirmish of the given length, or of the current one's length.</summary>
+        public void NewGame(MatchLength? length = null)
         {
-            StartMatch(MapFactory.CreateSkirmish(seed + (ulong)Time.frameCount), 0);
+            StartMatch(MapFactory.CreateSkirmish(seed + (ulong)Time.frameCount, length ?? World.Length), 0);
+        }
+
+        /// <summary>-morzaLength Short|Standard|Long picks the scenario length at start; Standard otherwise.</summary>
+        public static MatchLength LengthFromArguments(string[] arguments)
+        {
+            var index = Array.IndexOf(arguments, "-morzaLength");
+            if (index >= 0 && index + 1 < arguments.Length && Enum.TryParse<MatchLength>(arguments[index + 1], true, out var length)) return length;
+            return MatchLength.Standard;
         }
 
         /// <summary>

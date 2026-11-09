@@ -94,7 +94,7 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
-        public void Node_WoodLimitIsTwelvePerSecond()
+        public void Node_WoodLimitIsTwelvePerSecondTimesTheScenarioYield()
         {
             var world = Empty();
             var node = AddNode(world, ResourceType.Wood, 0, 0, 3000);
@@ -104,7 +104,7 @@ namespace MorzaBogow.Tests
             var before = node.Stock;
             Run(world, 4);
             var perSecond = (before - node.Stock) / (double)Rules.Centi / 4.0;
-            Assert.That(perSecond, Is.EqualTo(Rules.WoodNodeCap).Within(0.1));
+            Assert.That(perSecond, Is.EqualTo(Rules.WoodNodeCap * world.Profile.WoodYield).Within(0.1));
         }
 
         [Test]
@@ -117,7 +117,7 @@ namespace MorzaBogow.Tests
             Run(world, 1 + Rules.LandCrewSeconds);
             var before = node.Stock;
             Run(world, 5);
-            Assert.That((before - node.Stock) / (double)Rules.Centi / 5.0, Is.EqualTo(Rules.SilverNodeCap).Within(0.1));
+            Assert.That((before - node.Stock) / (double)Rules.Centi / 5.0, Is.EqualTo(Rules.SilverNodeCap * world.Profile.SilverYield).Within(0.1));
             Assert.That(ships[0].Cargo, Is.EqualTo(ships[1].Cargo).Within(5));
         }
 
@@ -131,7 +131,8 @@ namespace MorzaBogow.Tests
             Harvest(world, first, node);
             Harvest(world, second, node);
             var total = node.Stock;
-            Run(world, 6);
+            // Landing, then 25 units at the scenario's yield shared by two hulls.
+            Run(world, Rules.LandCrewSeconds + 25 / world.NodeCap(node) + 2);
             Assert.That(node.Stock, Is.EqualTo(0));
             Assert.That(first.Cargo + second.Cargo, Is.EqualTo(total));
             Assert.That(first.Harvest, Is.Not.EqualTo(HarvestPhase.Working));
@@ -636,13 +637,13 @@ namespace MorzaBogow.Tests
         {
             var world = MapFactory.CreateSkirmish(1);
             var again = MapFactory.CreateSkirmish(2);
-            var islets = world.Islands.Where(island => island.Kind != IslandKind.Coast).ToList();
+            var islets = world.Islands.Where(island => island.Kind != IslandKind.Coast && island.Kind != IslandKind.Hinterland).ToList();
             Assert.That(islets.Count, Is.GreaterThan(10));
             for (var n = 0; n < islets.Count; n++)
             {
                 var island = islets[n];
                 Assert.That(island.Outline, Is.Not.Null, $"{island.Kind} at {island.X},{island.Y} has a real waterline.");
-                Assert.That(again.Islands.Where(item => item.Kind != IslandKind.Coast).ElementAt(n).Outline, Is.EqualTo(island.Outline), "The same place always gets the same shore.");
+                Assert.That(again.Islands.Where(item => item.Kind != IslandKind.Coast && item.Kind != IslandKind.Hinterland).ElementAt(n).Outline, Is.EqualTo(island.Outline), "The same place always gets the same shore.");
 
                 var plain = island.Kind == IslandKind.ResourceSite ? LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth) : Enumerable.Repeat(Rules.SettlementLandRadius, LandShape.Samples).ToArray();
                 var ratios = island.Outline.Select((radius, i) => radius / plain[i]).ToArray();
@@ -1229,13 +1230,85 @@ namespace MorzaBogow.Tests
                 Assert.That(cutters.Count, Is.EqualTo(4));
                 Assert.That(cutters.Count(ship => world.FindNode(ship.NodeId).Type == ResourceType.Wood), Is.EqualTo(3));
                 Assert.That(cutters.Count(ship => world.FindNode(ship.NodeId).Type == ResourceType.Silver), Is.EqualTo(1));
-                foreach (var node in world.Nodes.Where(item => item.KnownMask == 1 << settlement.Owner && World.Distance(item.X, item.Y, settlement.X, settlement.Y) < 150))
+                // E04's 70-110 m to the home resources, stretched with the scenario's map (MatchProfile.Spread).
+                var spread = world.Profile.Spread;
+                foreach (var node in world.Nodes.Where(item => item.KnownMask == 1 << settlement.Owner && World.Distance(item.X, item.Y, settlement.X, settlement.Y) < 150 * spread))
                 {
-                    Assert.That(World.Distance(node.X, node.Y, settlement.X, settlement.Y), Is.InRange(70.0, 110.0));
+                    Assert.That(World.Distance(node.X, node.Y, settlement.X, settlement.Y), Is.InRange(70.0 * spread, 110.0 * spread));
                 }
             }
-            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Wood).Sum(node => node.Stock), Is.EqualTo(34000 * Rules.Centi), "E08 wood budget.");
-            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Silver).Sum(node => node.Stock), Is.EqualTo(12400 * Rules.Centi), "E08 silver budget.");
+            // The pattern of E08 with the Standard scenario's deposits (docs/BALANS_I_SKALA.md).
+            var profile = world.Profile;
+            Assert.That(world.Length, Is.EqualTo(MatchLength.Standard));
+            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Wood).Sum(node => node.Stock),
+                Is.EqualTo((2 * profile.HomeWood + 4 * profile.PairWood + 2 * profile.CentreWood) * Rules.Centi), "Wood budget.");
+            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Silver).Sum(node => node.Stock),
+                Is.EqualTo((2 * profile.HomeSilver + 4 * profile.PairSilver + 2 * profile.CentreSilver) * Rules.Centi), "Silver budget.");
+        }
+
+        [Test]
+        public void Scale_LongerScenariosSpreadWiderAndHoldMoreAndYieldSlower()
+        {
+            var worlds = new[] { MatchLength.Short, MatchLength.Standard, MatchLength.Long }.Select(length => MapFactory.CreateSkirmish(1, length)).ToArray();
+            double Span(World world) => World.Distance(world.Settlements[0].X, 0, world.Settlements[1].X, 0);
+            long Silver(World world) => world.Nodes.Where(node => node.Type == ResourceType.Silver).Sum(node => node.Stock);
+            for (var i = 1; i < worlds.Length; i++)
+            {
+                Assert.That(Span(worlds[i]), Is.GreaterThan(Span(worlds[i - 1])), "A longer scenario's bases lie farther apart.");
+                Assert.That(Silver(worlds[i]), Is.GreaterThan(Silver(worlds[i - 1])), "A longer scenario holds more silver.");
+                Assert.That(worlds[i].Profile.SilverYield, Is.LessThanOrEqualTo(worlds[i - 1].Profile.SilverYield), "A longer scenario's mines yield no faster.");
+                Assert.That(worlds[i].SettlementOf(0).MaxHull, Is.GreaterThan(worlds[i - 1].SettlementOf(0).MaxHull), "A longer scenario's home port holds out longer.");
+            }
+            foreach (var world in worlds)
+            {
+                Assert.That(world.Profile.TargetMinutes, Is.InRange(30, 90));
+                Assert.That(world.Profile.TargetFleet, Is.InRange(30, 55));
+                Assert.That(world.SettlementOf(0).Hull, Is.EqualTo(world.SettlementOf(0).MaxHull), "Ports start whole.");
+            }
+        }
+
+        [Test]
+        public void Scale_YieldSlowsWorkAndTheNodeCapAlike()
+        {
+            var world = MapFactory.CreateSkirmish(1, MatchLength.Long);
+            var node = world.Nodes.First(item => item.Type == ResourceType.Silver);
+            var cutter = world.Ships.First(ship => ship.Class == ShipClass.Cutter);
+            Assert.That(world.WorkRate(node, cutter), Is.EqualTo(cutter.Definition.SilverWork * world.Profile.SilverYield).Within(1e-9));
+            Assert.That(world.NodeCap(node), Is.EqualTo(Rules.SilverNodeCap * world.Profile.SilverYield).Within(1e-9));
+        }
+
+        [Test]
+        public void Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen()
+        {
+            foreach (var length in new[] { MatchLength.Short, MatchLength.Standard, MatchLength.Long })
+            {
+                var world = MapFactory.CreateSkirmish(1, length);
+                var hinterlands = world.Islands.Where(item => item.Kind == IslandKind.Hinterland).ToList();
+                Assert.That(hinterlands.Count, Is.GreaterThanOrEqualTo(6), $"{length}: large islands behind ports and work points.");
+                foreach (var land in hinterlands)
+                {
+                    Assert.That(land.Radius, Is.GreaterThan(Rules.SettlementLandRadius * 1.5), "Larger than the islet it backs.");
+                    var islet = world.Islands.Where(item => item.Kind == IslandKind.Settlement || item.Kind == IslandKind.ResourceSite)
+                        .OrderBy(item => World.Distance(item.X, item.Y, land.X, land.Y)).First();
+                    Assert.That(LandShape.SignedDistance(land, islet.X, islet.Y), Is.LessThan(islet.Radius), "Joined to its islet, not a separate rock.");
+                    foreach (var settlement in world.Settlements)
+                        Assert.That(LandShape.SignedDistance(land, settlement.X, settlement.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                    foreach (var site in world.Sites)
+                        Assert.That(LandShape.SignedDistance(land, site.X, site.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                    foreach (var node in world.Nodes)
+                        Assert.That(LandShape.SignedDistance(land, node.X, node.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                }
+
+                // The slipways still run from the port's islet into open water.
+                foreach (var settlement in world.Settlements)
+                {
+                    var landX = Rules.SettlementLandX(settlement);
+                    var toward = Math.Sign(settlement.X - landX);
+                    foreach (var side in new[] { -1, 1 })
+                        foreach (var island in world.Islands.Where(item => item.Kind != IslandKind.Settlement))
+                            Assert.That(LandShape.SignedDistance(island, landX + toward * Rules.SlipAlong, settlement.Y + side * 30), Is.GreaterThan(0), $"{length}: slipway end clear of {island.Kind}.");
+                }
+            }
         }
 
         [Test]

@@ -190,7 +190,9 @@ namespace MorzaBogow.Tests
                     .Where(decal =>
                     {
                         var centre = decal.transform.parent.position;
+                        // Coasts and hinterlands are the known lie of the land and always drawn; islets are scouted.
                         return !battle.World.IsExplored(0, centre.x, centre.z) && battle.World.Islands.Any(island => island.Kind != IslandKind.Coast
+                            && island.Kind != IslandKind.Hinterland
                             && Mathf.Approximately((float)island.X, centre.x) && Mathf.Approximately((float)island.Y, centre.z));
                     })
                     .ToList();

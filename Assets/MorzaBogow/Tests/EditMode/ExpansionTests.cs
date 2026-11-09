@@ -612,7 +612,8 @@ namespace MorzaBogow.Tests
             var woodTotal = world.LedgerTotal(ResourceType.Wood);
             var silverTotal = world.LedgerTotal(ResourceType.Silver);
             var merchants = 0;
-            for (var tick = 0; tick < 18000 && world.Outcome == OutcomeKind.InProgress; tick++)
+            // The Standard scenario: the first bridgehead gets its shipyard after about 23 minutes (seed 9).
+            for (var tick = 0; tick < 45000 && world.Outcome == OutcomeKind.InProgress && !world.Settlements.Any(item => item.IsOutpost && item.HasShipyard); tick++)
             {
                 first.Think(world);
                 second.Think(world);

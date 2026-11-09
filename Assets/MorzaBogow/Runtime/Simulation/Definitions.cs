@@ -92,6 +92,44 @@ namespace MorzaBogow.Simulation
             definition.CostSilver * Rules.Centi - CrewSilver(definition) - ConstructionSilver(definition);
     }
 
+    /// <summary>How long a scenario is meant to last; it sets the map's size, its deposits and the opponent's pace.</summary>
+    public enum MatchLength { Short, Standard, Long }
+
+    /// <summary>
+    /// Scale of one scenario (user decision of 2026-11-09, docs/BALANS_I_SKALA.md): a game lasts 30-90 minutes and the
+    /// map's deposits pay for 30-55 balanced warships per side before they run dry. Spread multiplies every distance on
+    /// the map; deposits are in units; the opponent waits for an attack group of this many warships.
+    /// </summary>
+    public sealed class MatchProfile
+    {
+        public MatchLength Length;
+        public int TargetMinutes, TargetFleet;
+        public double Spread, WoodYield = 1, SilverYield = 1, HomeWalls = 1;
+        public long HomeWood, HomeSilver, PairWood, PairSilver, CentreWood, CentreSilver, StartWood, StartSilver;
+        public int AttackGroup, CutterTarget;
+
+        static readonly MatchProfile[] All =
+        {
+            // Calibrated with the opponent playing both sides without attacking (economy ceiling), seeds 9 and 23, on
+            // the map with hinterlands: silver below 10% at 39 / 66 / 91 min; warships built a side 23-29 / 29-49 /
+            // 49-59. Yield slows felling and smelting so the deposits last the scenario. docs/BALANS_I_SKALA.md.
+            new MatchProfile { Length = MatchLength.Short, TargetMinutes = 30, TargetFleet = 30, Spread = 1.0,
+                HomeWood = 3000, HomeSilver = 1600, PairWood = 1700, PairSilver = 850, CentreWood = 2250, CentreSilver = 1100,
+                StartWood = 900, StartSilver = 450, WoodYield = 0.7, SilverYield = 0.7, HomeWalls = 2.5, AttackGroup = 5, CutterTarget = 8 },
+            new MatchProfile { Length = MatchLength.Standard, TargetMinutes = 60, TargetFleet = 42, Spread = 1.3,
+                HomeWood = 3300, HomeSilver = 1650, PairWood = 2550, PairSilver = 1400, CentreWood = 3400, CentreSilver = 1750,
+                StartWood = 360, StartSilver = 160, WoodYield = 0.53, SilverYield = 0.53, HomeWalls = 3, AttackGroup = 6, CutterTarget = 7 },
+            new MatchProfile { Length = MatchLength.Long, TargetMinutes = 90, TargetFleet = 55, Spread = 1.6,
+                HomeWood = 3700, HomeSilver = 1750, PairWood = 3400, PairSilver = 1700, CentreWood = 4800, CentreSilver = 2300,
+                StartWood = 360, StartSilver = 160, WoodYield = 0.42, SilverYield = 0.42, HomeWalls = 4.5, AttackGroup = 8, CutterTarget = 7 },
+        };
+
+        public static MatchProfile Of(MatchLength length) => All[(int)length];
+
+        public static string Name(MatchLength length) =>
+            length == MatchLength.Short ? "Krótka" : length == MatchLength.Long ? "Długa" : "Standardowa";
+    }
+
     public static class Rules
     {
         public const int TickRate = 30;

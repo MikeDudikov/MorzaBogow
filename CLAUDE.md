@@ -16,6 +16,10 @@ Decyzje wdrożeniowe oceniaj według GAME_VISION.md. Pierwszeństwo mają grywal
 
 Wykonuj rutynową pracę w projekcie, edycję plików, uruchamianie narzędzi, testów i buildów oraz instalację potrzebnych bezpłatnych zależności w ramach dostępnych uprawnień. Najpierw sprawdź obecne instalacje. Nie pytaj ponownie o te czynności. Publikacja, zakupy i usuwanie cudzej pracy wymagają odrębnego upoważnienia. Przy konieczności logowania lub działania użytkownika opisz konkretną blokadę i kontynuuj niezależne prace.
 
+## Weryfikacja kompilacji
+
+Po każdej modyfikacji lub utworzeniu plików `.cs` uruchom `python check_unity_errors.py` (Windows; na macOS/Linux `python3 check_unity_errors.py`). Bez argumentu skrypt czyta domyślny `Editor.log` edytora; po kompilacji w trybie batch podaj ścieżkę jej `-logFile`, np. `python check_unity_errors.py artifacts-log\compile.log`. Jeśli skrypt zwróci błędy (exit code 1), natychmiast przeanalizuj komunikaty, popraw kod C# i ponawiaj sprawdzanie aż do exit code 0. Exit code 2 oznacza brak logu, nie czystą kompilację. Dopóki na Windows nie ma Pythona, uruchamiaj skrypt przez WSL: `wsl.exe -e python3 /mnt/c/Users/noirp/MorzaBogow/check_unity_errors.py <log w /mnt/c/...>`.
+
 ## Kontrola jakości
 
 Koordynator dzieli zadania i integruje wynik. Implementer przygotowuje zmianę, niezależny QA dobiera przypadki graniczne, a reviewer ocenia kod i testy. Korzystaj z dostępnych subagentów. Przy braku niezależnego wykonawcy ujawnij ograniczenie odbioru. Integruj zmiany do jednego zamrożonego snapshotu przed testami.

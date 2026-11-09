@@ -8,9 +8,10 @@ namespace MorzaBogow.Simulation
     public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked, Landing, Embarking }
     public enum RamPhase { Approach, Recoil, Cooldown }
 
-    public enum IslandKind { Coast, ResourceSite, Settlement }
+    /// <summary>Hinterland: the large island behind a port or a work point's islet, joined to it, as the land a town or a forest stands on.</summary>
+    public enum IslandKind { Coast, ResourceSite, Settlement, Hinterland }
 
-    /// <summary>Land ships cannot enter. Only a coast also stops shots; a quay or a settlement is too low for that.</summary>
+    /// <summary>Land ships cannot enter. Only a coast or a hinterland's high ground also stops shots; a quay or a settlement is too low for that.</summary>
     public sealed class Island
     {
         /// <summary>Radius is the largest distance from the centre to the waterline.</summary>
@@ -27,7 +28,7 @@ namespace MorzaBogow.Simulation
         // Polygon derived from the outline; not saved.
         internal double[] PolygonX, PolygonY;
 
-        public bool BlocksShots => Kind == IslandKind.Coast;
+        public bool BlocksShots => Kind == IslandKind.Coast || Kind == IslandKind.Hinterland;
     }
 
     /// <summary>A finite coastal work point with two berths and a FIFO queue (E02).</summary>
@@ -88,7 +89,10 @@ namespace MorzaBogow.Simulation
         public bool HasShipyard = true;
         public BuildOrder ShipyardBuild;
 
-        public double MaxHull => IsOutpost ? Rules.OutpostHull : Rules.SettlementHull;
+        /// <summary>How strong the walls are against the base value: a longer scenario's home port is built to hold out longer (MatchProfile.HomeWalls).</summary>
+        public double Walls = 1;
+
+        public double MaxHull => (IsOutpost ? Rules.OutpostHull : Rules.SettlementHull) * Walls;
         public bool Destroyed => Hull <= 0;
 
         public long Stock(ResourceType type) => type == ResourceType.Wood ? Wood : Silver;

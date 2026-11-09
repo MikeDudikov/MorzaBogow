@@ -10,9 +10,10 @@ namespace MorzaBogow.Simulation
     /// </summary>
     public sealed partial class World
     {
-        public const int FogCells = 64;
+        // Large enough for the longest scenario's map (MatchProfile.Spread 1.6): 2.6 km square.
+        public const int FogCells = 104;
         public const double FogCellSize = 25;
-        public const double FogOrigin = -800;
+        public const double FogOrigin = -1300;
 
         /// <summary>One bit per faction for each cell.</summary>
         public byte[] Explored = new byte[FogCells * FogCells];

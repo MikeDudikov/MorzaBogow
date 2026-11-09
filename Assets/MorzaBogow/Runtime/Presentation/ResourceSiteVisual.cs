@@ -136,7 +136,7 @@ namespace MorzaBogow.Presentation
                 var shape = new GameObject("Shape").transform;
                 shape.SetParent(tree, false);
                 shape.localRotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f);
-                shape.localScale = Vector3.one * (cypress ? 0.75f + (float)random.NextDouble() * 0.2f : 0.55f + (float)random.NextDouble() * 0.15f);
+                shape.localScale = Vector3.one * (TreeModels.LifeSize * 0.85f) * (cypress ? 0.75f + (float)random.NextDouble() * 0.2f : 0.55f + (float)random.NextDouble() * 0.15f);
                 shape.gameObject.AddComponent<MeshFilter>().sharedMesh = TreeModels.Get(cypress ? TreeKind.Cypress : TreeKind.StonePine, i);
                 shape.gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
                 trees.Add(tree);

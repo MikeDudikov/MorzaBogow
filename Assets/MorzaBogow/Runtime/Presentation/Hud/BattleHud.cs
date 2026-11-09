@@ -1629,8 +1629,34 @@ namespace MorzaBogow.Presentation
             MenuItem(column, "save", "Zapisz", KeyBindings.Label(KeyBindings.Key(GameAction.Save)), () => { battle.QuickSave(BattleController.DefaultSavePath); CloseModal(); });
             MenuItem(column, "load", "Wczytaj", KeyBindings.Label(KeyBindings.Key(GameAction.Load)), () => { CloseModal(); battle.QuickLoad(BattleController.DefaultSavePath); });
             MenuItem(column, "settings", "Ustawienia", null, () => OpenSettings("Obraz"));
-            MenuItem(column, "undo", "Nowa bitwa", null, () => OpenConfirm("Nowa bitwa", "Zakończyć tę potyczkę i rozpocząć nową? Niezapisany postęp przepadnie.", null, "Nowa bitwa", () => battle.NewGame(), true));
+            MenuItem(column, "undo", "Nowa bitwa", null, OpenNewBattle);
             resume.schedule.Execute(() => resume.Focus()).StartingIn(0);
+        }
+
+        /// <summary>A new skirmish of a chosen length: map size, deposits and the opponent's pace follow MatchProfile.</summary>
+        void OpenNewBattle()
+        {
+            var keepPause = menuPaused;
+            var before = pausedBeforeMenu;
+            var panel = OpenModal("Nowa bitwa");
+            menuPaused = keepPause;
+            pausedBeforeMenu = before;
+            Text("Zakończyć tę potyczkę i rozpocząć nową? Niezapisany postęp przepadnie. Wybierz długość: większa mapa, bogatsze złoża i wolniejsze wydobycie.", "modal-text", panel);
+            foreach (var length in new[] { MatchLength.Short, MatchLength.Standard, MatchLength.Long })
+            {
+                var profile = MatchProfile.Of(length);
+                PopoverRow(panel, MatchProfile.Name(length), $"ok. {profile.TargetMinutes} min, ok. {profile.TargetFleet} okrętów");
+            }
+            var buttons = Element("button-row", panel);
+            ModalButton(buttons, "Wróć", CloseModal);
+            Button first = null;
+            foreach (var length in new[] { MatchLength.Short, MatchLength.Standard, MatchLength.Long })
+            {
+                var chosen = length;
+                var button = ModalButton(buttons, MatchProfile.Name(length), () => { CloseModal(); battle.NewGame(chosen); }, length == battle.World.Length ? "primary" : null);
+                if (length == battle.World.Length) first = button;
+            }
+            first?.schedule.Execute(() => first.Focus()).StartingIn(0);
         }
 
         void OpenSettings(string tab)

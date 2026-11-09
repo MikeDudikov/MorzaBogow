@@ -105,7 +105,7 @@ namespace MorzaBogow.Presentation.Hud
             var painter = context.painter2D;
             foreach (var island in battle.World.Islands)
             {
-                painter.fillColor = island.Kind == IslandKind.Coast ? HudPalette.Land : HudPalette.LandDark;
+                painter.fillColor = island.Kind == IslandKind.Coast || island.Kind == IslandKind.Hinterland ? HudPalette.Land : HudPalette.LandDark;
                 painter.strokeColor = HudPalette.WithAlpha(HudPalette.SurfaceDeep, 0.7f);
                 painter.lineWidth = 1f;
                 painter.BeginPath();

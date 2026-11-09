@@ -10,6 +10,11 @@
         "MorzaBogow.Tests.SimulationTests.Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargoAndPaidCost",
         "MorzaBogow.Tests.SimulationTests.Save_RoundTripContinuesIdenticallyDuringTransfers",
         "MorzaBogow.Tests.SimulationTests.Match_OpponentsBuildFleetsAndFight",
+        "MorzaBogow.Tests.SimulationTests.Match_StartMatchesTheDocumentedSetup",
+        "MorzaBogow.Tests.SimulationTests.Scale_LongerScenariosSpreadWiderAndHoldMoreAndYieldSlower",
+        "MorzaBogow.Tests.SimulationTests.Scale_YieldSlowsWorkAndTheNodeCapAlike",
+        "MorzaBogow.Tests.SimulationTests.Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen",
+        "MorzaBogow.Tests.SimulationTests.Land_EveryIsletHasAnIrregularNaturalShoreThatKeepsItsQuays",
         "MorzaBogow.Tests.ResolutionCatalogTests.Build_KeepsOnlyModesInRange"
       ]
     },

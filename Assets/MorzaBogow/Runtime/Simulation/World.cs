@@ -11,6 +11,11 @@ namespace MorzaBogow.Simulation
     public sealed partial class World
     {
         public int Tick;
+
+        /// <summary>The scenario's intended length; MapFactory laid the map out for it and the opponent paces itself by it.</summary>
+        public MatchLength Length = MatchLength.Standard;
+        public MatchProfile Profile => MatchProfile.Of(Length);
+
         public int NextId = 1;
         public int NextEventId = 1;
         public DeterministicRandom Random;
