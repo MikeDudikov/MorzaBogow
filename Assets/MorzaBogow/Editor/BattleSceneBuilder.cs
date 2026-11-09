@@ -34,6 +34,12 @@ namespace MorzaBogow.Editor
                 WoodNode = Material("Placeholder_Node_Wood", new Color(0.45f, 0.3f, 0.12f), 0f, 0.3f),
                 SilverNode = Material("Placeholder_Node_Silver", new Color(0.78f, 0.8f, 0.85f), 0.9f, 0.7f),
                 Selection = Material("Placeholder_Selection", new Color(0.3f, 1f, 0.35f), 0f, 0.1f),
+                Foam = Material("Placeholder_Foam", new Color(0.9f, 0.95f, 0.97f), 0f, 0.3f),
+                Arrow = Material("Placeholder_Arrow", new Color(0.12f, 0.1f, 0.08f), 0f, 0.2f),
+                Flash = Material("Placeholder_Flash", new Color(1f, 0.6f, 0.2f), 0f, 0.1f),
+                Rope = Material("Placeholder_Rope", new Color(0.72f, 0.6f, 0.38f), 0f, 0.1f),
+                OrderLine = Material("Placeholder_OrderLine", new Color(0.3f, 1f, 0.45f), 0f, 0.1f),
+                WreckMarker = Material("Placeholder_Wreck", new Color(0.16f, 0.12f, 0.1f), 0f, 0.2f),
             };
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);

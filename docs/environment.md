@@ -69,6 +69,8 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 Coast Rocks 02: 4 siatki, 2363290 trójkątów LOD0, Mesh LOD do 64 trójkątów na siatkę, FBX zaimportowany bez zmian, jeden materiał HDRP Lit. Na mapie wyspa ma około 102 × 7 × 110 m. Modele okrętów, osad i węzłów to oznaczone modele zastępcze.
 
+Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Dodane animacje i efekty to prezentacja na modelach zastępczych; nie obejmują mgły wojny dla odległych zdarzeń.
+
 Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 2.
 
 Budżety kampanii M01–M14 i ładunek misji (E12) są tylko w dokumentach i danych. Sceny misji nie istnieją.
@@ -91,7 +93,7 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 
 ## Nieuruchomione
 
-- Rozgrywka człowieka i sterowanie myszą w buildzie: NOT_RUN.
+- Dłuższa rozgrywka człowieka: użytkownik zagrał krótko, zaznaczanie i rozkazy działały, bez błędów. Paski HP, animacje i efekty dodane po tej próbie: NOT_RUN w ręcznej ocenie.
 - Ocena obrazu, w tym wizualne potwierdzenie działania RTGI i odbić RT: NOT_RUN.
 - Fizyczne wyświetlanie 2560×1440 i pozostałych trybów powyżej 1080p: BLOCKED, brak monitora.
 - Pełne przełączanie rozdzielczości i profili w buildzie, 20 cykli bez wycieków: NOT_RUN.
