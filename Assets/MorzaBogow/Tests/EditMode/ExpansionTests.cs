@@ -549,6 +549,61 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Opponent_SuppliesABridgeheadWithRealCargoUntilItHasAShipyard()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            var outpost = AddOutpost(world, -300);
+            outpost.Silver = 40 * Rules.Centi;
+            world.SpawnShip(0, ShipClass.Merchant, -480, 0);
+            world.SpawnShip(0, ShipClass.Ram, -460, 60);
+            world.SpawnShip(0, ShipClass.Ram, -460, -60);
+            world.SpawnShip(1, ShipClass.Cutter, 480, 0);
+            var ai = new Opponent(0);
+            var woodTotal = world.LedgerTotal(ResourceType.Wood);
+            var silverTotal = world.LedgerTotal(ResourceType.Silver);
+
+            var transfers = 0;
+            var sawCargo = false;
+            for (var i = 0; i < 300 * Rules.TickRate && !outpost.HasShipyard; i++)
+            {
+                ai.Think(world);
+                transfers += world.Pending.Count(item => item.Kind == CommandKind.Transfer);
+                world.Step();
+                sawCargo |= world.Ships.Any(ship => ship.Class == ShipClass.Merchant && ship.HoldWood > 0);
+                Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(woodTotal));
+                Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silverTotal));
+            }
+
+            Assert.That(outpost.HasShipyard, Is.True);
+            Assert.That(sawCargo, Is.True, "The goods really sailed.");
+            Assert.That(transfers, Is.EqualTo(1), "One trip delivers what is missing; goods on their way are not ordered twice.");
+            Assert.That(home.Wood, Is.LessThan(2000 * Rules.Centi), "The main store paid for it.");
+        }
+
+        [Test]
+        public void Opponent_DoesNotDrainTheReserveToSupplyABridgehead()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            home.Wood = 200 * Rules.Centi;
+            home.Silver = 50 * Rules.Centi;
+            AddOutpost(world, -300);
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, -480, 0);
+            world.SpawnShip(1, ShipClass.Cutter, 480, 0);
+            var ai = new Opponent(0);
+            for (var i = 0; i < 30 * Rules.TickRate; i++)
+            {
+                ai.Think(world);
+                world.Step();
+
+                // 200 D is the whole need, and the 60 D reserve would not remain. Cutters may still be built.
+                Assert.That(merchant.Order, Is.EqualTo(OrderKind.Idle));
+                Assert.That(merchant.WantWood + merchant.WantSilver + merchant.HoldWood + merchant.HoldSilver, Is.Zero);
+            }
+        }
+
+        [Test]
         public void Opponent_ExpandsWithRealCostsAndKeepsTheLedger()
         {
             var world = MapFactory.CreateSkirmish(9);
@@ -557,7 +612,7 @@ namespace MorzaBogow.Tests
             var woodTotal = world.LedgerTotal(ResourceType.Wood);
             var silverTotal = world.LedgerTotal(ResourceType.Silver);
             var merchants = 0;
-            for (var tick = 0; tick < 12000 && world.Outcome == OutcomeKind.InProgress; tick++)
+            for (var tick = 0; tick < 18000 && world.Outcome == OutcomeKind.InProgress; tick++)
             {
                 first.Think(world);
                 second.Think(world);
@@ -570,9 +625,11 @@ namespace MorzaBogow.Tests
                     if (port.Wood < 0 || port.Silver < 0 || port.Available(ResourceType.Wood) < 0 || port.Available(ResourceType.Silver) < 0) Assert.Fail($"Negative store at tick {tick}.");
                 }
             }
-            TestContext.WriteLine($"Merchants {merchants}, outposts {world.Settlements.Count(item => item.IsOutpost)}, tick {world.Tick}, outcome {world.Outcome}");
+            var yards = world.Settlements.Count(item => item.IsOutpost && item.HasShipyard);
+            TestContext.WriteLine($"Merchants {merchants}, outposts {world.Settlements.Count(item => item.IsOutpost)}, outpost yards {yards}, tick {world.Tick}, outcome {world.Outcome}");
             Assert.That(merchants, Is.GreaterThan(0), "The opponent builds a merchant.");
             Assert.That(world.Settlements.Count(item => item.IsOutpost), Is.GreaterThan(0), "The opponent founds a bridgehead.");
+            Assert.That(yards, Is.GreaterThan(0), "The opponent supplies a bridgehead until it has a shipyard.");
         }
     }
 }

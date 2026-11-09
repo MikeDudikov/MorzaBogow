@@ -104,9 +104,10 @@ namespace MorzaBogow.Simulation
             {
                 var next = ShipCatalog.Get(BuildCycle[buildIndex % BuildCycle.Length]);
 
-                // A waiting expedition is paid for first; otherwise warships would spend every saving.
-                var savedWood = port == settlement && SavesForExpedition(world, settlement) ? Rules.OutpostWood : 0;
-                var savedSilver = port == settlement && SavesForExpedition(world, settlement) ? Rules.OutpostSilver : 0;
+                // A waiting merchant's cargo is paid for first; otherwise warships would spend every saving.
+                var saved = port == settlement ? Saving(world, settlement) : (wood: 0L, silver: 0L);
+                var savedWood = saved.wood;
+                var savedSilver = saved.silver;
 
                 // E04: automatic military orders keep the reserve that protects rebuilding a cutter. Each port pays locally.
                 if (port.Available(ResourceType.Wood) < next.CostWood * Rules.Centi + Rules.ReserveWood + savedWood) continue;
@@ -116,13 +117,36 @@ namespace MorzaBogow.Simulation
             }
         }
 
-        /// <summary>True when an idle merchant waits for its cargo, the fleet minimum exists and the base is not under threat.</summary>
-        bool SavesForExpedition(World world, Settlement home)
+        /// <summary>What to keep for an idle merchant's next cargo, unless the fleet is too small or the base is under threat.</summary>
+        (long wood, long silver) Saving(World world, Settlement home)
         {
-            if (world.PortsOf(faction).Count(port => port.IsOutpost) >= MaxOutposts) return false;
-            if (!world.Ships.Any(ship => ship.Owner == faction && ship.Class == ShipClass.Merchant && ship.Order == OrderKind.Idle)) return false;
-            if (world.Ships.Count(ship => ship.Owner == faction && !ship.Definition.IsEconomic) < minimumAttackGroup) return false;
-            return !world.Ships.Any(ship => ship.Owner != faction && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250);
+            if (!world.Ships.Any(ship => ship.Owner == faction && ship.Class == ShipClass.Merchant && ship.Order == OrderKind.Idle)) return (0, 0);
+            if (world.Ships.Count(ship => ship.Owner == faction && !ship.Definition.IsEconomic) < minimumAttackGroup) return (0, 0);
+            if (world.Ships.Any(ship => ship.Owner != faction && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
+
+            var outposts = world.PortsOf(faction).Where(port => port.IsOutpost).OrderBy(port => port.Id).ToList();
+            foreach (var outpost in outposts)
+            {
+                var need = SupplyNeed(world, outpost);
+                if (need.wood + need.silver > 0) return need;
+            }
+            return outposts.Count < MaxOutposts ? (Rules.OutpostWood, Rules.OutpostSilver) : (0, 0);
+        }
+
+        /// <summary>What a bridgehead still lacks for its shipyard, counting goods already on their way to it.</summary>
+        (long wood, long silver) SupplyNeed(World world, Settlement outpost)
+        {
+            if (outpost.HasShipyard || outpost.ShipyardBuild != null) return (0, 0);
+            var inboundWood = 0L;
+            var inboundSilver = 0L;
+            foreach (var ship in world.Ships)
+            {
+                if (ship.Owner != faction || ship.Order != OrderKind.Transfer || ship.DestinationId != outpost.Id) continue;
+                inboundWood += ship.HoldWood + ship.WantWood;
+                inboundSilver += ship.HoldSilver + ship.WantSilver;
+            }
+            return (System.Math.Max(0, Rules.ShipyardWood - outpost.Available(ResourceType.Wood) - inboundWood),
+                System.Math.Max(0, Rules.ShipyardSilver - outpost.Available(ResourceType.Silver) - inboundSilver));
         }
 
         /// <summary>E05 with normal costs: one merchant after the first warships, then a bridgehead on a discovered free shore.</summary>
@@ -140,7 +164,10 @@ namespace MorzaBogow.Simulation
                     world.Issue(new Command { Faction = faction, Kind = CommandKind.BuildShipyard, TargetId = outpost.Id });
                 }
             }
-            if (outposts.Count >= MaxOutposts) return;
+
+            // A bridgehead that lacks goods for its shipyard comes before founding another one.
+            var needy = outposts.Where(outpost => { var need = SupplyNeed(world, outpost); return need.wood + need.silver > 0; }).ToList();
+            if (outposts.Count >= MaxOutposts && needy.Count == 0) return;
 
             var merchants = world.Ships.Where(ship => ship.Owner == faction && ship.Class == ShipClass.Merchant).OrderBy(ship => ship.Id).ToList();
             var warships = world.Ships.Count(ship => ship.Owner == faction && !ship.Definition.IsEconomic);
@@ -155,6 +182,23 @@ namespace MorzaBogow.Simulation
 
             foreach (var ship in merchants.Where(item => item.Order == OrderKind.Idle))
             {
+                if (needy.Count > 0)
+                {
+                    var outpost = needy[0];
+                    needy.RemoveAt(0);
+                    var need = SupplyNeed(world, outpost);
+                    if (ship.HoldWood + ship.HoldSilver > 0)
+                    {
+                        world.Issue(new Command { Faction = faction, Kind = CommandKind.Transfer, ShipIds = new[] { ship.Id }, TargetId = outpost.Id });
+                    }
+                    else if (home.Available(ResourceType.Wood) >= need.wood + Rules.ReserveWood && home.Available(ResourceType.Silver) >= need.silver + Rules.ReserveSilver)
+                    {
+                        world.Issue(new Command { Faction = faction, Kind = CommandKind.Transfer, ShipIds = new[] { ship.Id }, TargetId = outpost.Id, SourceId = home.Id, Wood = need.wood, Silver = need.silver });
+                    }
+                    continue;
+                }
+                if (outposts.Count >= MaxOutposts) continue;
+
                 var free = world.Sites.Where(site => world.IsSiteFree(site) && site.BuilderShipId < 0)
                     .OrderBy(site => World.Distance(ship.X, ship.Y, site.X, site.Y)).ThenBy(site => site.Id).ToList();
                 var known = free.FirstOrDefault(site => world.IsExplored(faction, site.X, site.Y));
