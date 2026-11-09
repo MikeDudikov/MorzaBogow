@@ -64,6 +64,9 @@ namespace MorzaBogow.Presentation.Hud
         public void Refresh() => live.MarkDirtyRepaint();
         public void RefreshView() => view.MarkDirtyRepaint();
 
+        /// <summary>Set by the interface options: no pulsing on the chart.</summary>
+        public static bool ReducedMotion;
+
         public void Alarm(Vector3 at)
         {
             alarmAt = new Vector2(at.x, at.z);
@@ -102,8 +105,8 @@ namespace MorzaBogow.Presentation.Hud
             var painter = context.painter2D;
             foreach (var island in battle.World.Islands)
             {
-                painter.fillColor = island.Kind == IslandKind.Coast ? HudPalette.Sand : HudPalette.ParchmentDark;
-                painter.strokeColor = HudPalette.WithAlpha(HudPalette.Glaze, 0.7f);
+                painter.fillColor = island.Kind == IslandKind.Coast ? HudPalette.Land : HudPalette.LandDark;
+                painter.strokeColor = HudPalette.WithAlpha(HudPalette.SurfaceDeep, 0.7f);
                 painter.lineWidth = 1f;
                 painter.BeginPath();
                 var count = LandShape.VertexCount(island);
@@ -160,15 +163,15 @@ namespace MorzaBogow.Presentation.Hud
             {
                 if (!world.IsSiteFree(site) || !world.IsExplored(player, site.X, site.Y)) continue;
                 var at = ToChart(chart, site.X, site.Y);
-                HudDraw.Ring(painter, at, 3.2f, 1.2f, HudPalette.OchreLight);
+                HudDraw.Ring(painter, at, 3.2f, 1.2f, HudPalette.Text);
             }
 
             foreach (var node in world.Nodes)
             {
                 if ((node.KnownMask & (1 << player)) == 0 || node.Stock <= 0) continue;
                 var at = ToChart(chart, node.X, node.Y);
-                HudDraw.Disc(painter, at, 3.4f, HudPalette.Glaze);
-                HudDraw.Disc(painter, at, 2.4f, node.Type == ResourceType.Wood ? HudPalette.OliveLight : HudPalette.Silver);
+                HudDraw.Disc(painter, at, 3.4f, HudPalette.SurfaceDeep);
+                HudDraw.Disc(painter, at, 2.4f, node.Type == ResourceType.Wood ? HudPalette.Healthy : HudPalette.Silver);
             }
 
             foreach (var settlement in world.Settlements)
@@ -178,9 +181,9 @@ namespace MorzaBogow.Presentation.Hud
                 var at = ToChart(chart, Rules.SettlementLandX(settlement), settlement.Y);
                 var size = settlement.IsOutpost ? 3.5f : 5f;
                 var rect = new Rect(at.x - size - 1f, at.y - size - 1f, size * 2f + 2f, size * 2f + 2f);
-                HudDraw.Gradient(context, rect, HudPalette.Glaze, HudPalette.Glaze);
+                HudDraw.Gradient(context, rect, HudPalette.SurfaceDeep, HudPalette.SurfaceDeep);
                 rect = new Rect(at.x - size, at.y - size, size * 2f, size * 2f);
-                var color = HudPalette.OwnerLight(settlement.Owner, player);
+                var color = HudPalette.Owner(settlement.Owner, player);
                 HudDraw.Gradient(context, rect, color, HudPalette.Owner(settlement.Owner, player));
             }
 
@@ -190,12 +193,12 @@ namespace MorzaBogow.Presentation.Hud
                 var at = ToChart(chart, ship.X, ship.Y);
                 var radius = Mathf.Clamp((float)ship.Definition.Radius * 0.22f, 1.6f, 3.2f);
                 var own = ship.Owner == player;
-                HudDraw.Disc(painter, at, radius + 1f, HudPalette.Glaze);
-                if (own) HudDraw.Disc(painter, at, radius, battle.Selected.Contains(ship.Id) ? HudPalette.OchreLight : HudPalette.AegeanLight);
+                HudDraw.Disc(painter, at, radius + 1f, HudPalette.SurfaceDeep);
+                if (own) HudDraw.Disc(painter, at, radius, battle.Selected.Contains(ship.Id) ? HudPalette.Text : HudPalette.Ally);
                 else
                 {
                     // Enemies as small diamonds, so the two owners differ by shape as well as colour.
-                    painter.fillColor = HudPalette.CinnabarLight;
+                    painter.fillColor = HudPalette.Enemy;
                     painter.BeginPath();
                     painter.MoveTo(at + new Vector2(0f, -radius - 0.6f));
                     painter.LineTo(at + new Vector2(radius + 0.6f, 0f));
@@ -208,8 +211,17 @@ namespace MorzaBogow.Presentation.Hud
 
             if (Time.unscaledTime < alarmUntil)
             {
-                var pulse = (alarmUntil - Time.unscaledTime) % 1f;
-                HudDraw.Ring(painter, ToChart(chart, alarmAt.x, alarmAt.y), 4f + (1f - pulse) * 12f, 2f, HudPalette.WithAlpha(HudPalette.CinnabarLight, pulse));
+                // With reduced motion the alarm is a still double ring instead of a pulse.
+                if (ReducedMotion)
+                {
+                    HudDraw.Ring(painter, ToChart(chart, alarmAt.x, alarmAt.y), 6f, 2f, HudPalette.Enemy);
+                    HudDraw.Ring(painter, ToChart(chart, alarmAt.x, alarmAt.y), 10f, 1.5f, HudPalette.Enemy);
+                }
+                else
+                {
+                    var pulse = (alarmUntil - Time.unscaledTime) % 1f;
+                    HudDraw.Ring(painter, ToChart(chart, alarmAt.x, alarmAt.y), 4f + (1f - pulse) * 12f, 2f, HudPalette.WithAlpha(HudPalette.Enemy, pulse));
+                }
             }
         }
 
@@ -222,7 +234,7 @@ namespace MorzaBogow.Presentation.Hud
             var plane = new Plane(Vector3.up, Vector3.zero);
             var corners = new[] { new Vector2(0f, 0f), new Vector2(Screen.width, 0f), new Vector2(Screen.width, Screen.height), new Vector2(0f, Screen.height) };
             var painter = context.painter2D;
-            painter.strokeColor = HudPalette.OchreLight;
+            painter.strokeColor = HudPalette.Text;
             painter.lineWidth = 1.5f;
             painter.lineJoin = LineJoin.Round;
             painter.BeginPath();

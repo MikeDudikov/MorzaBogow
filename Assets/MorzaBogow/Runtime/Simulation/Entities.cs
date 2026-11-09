@@ -51,6 +51,19 @@ namespace MorzaBogow.Simulation
         public int BuilderShipId = -1;
     }
 
+    /// <summary>
+    /// The settlement of cancelling a build order: reservation released, and what is lost if work had begun.
+    /// Amounts in 0.01 units. Returned (released minus lost) becomes free stock again.
+    /// </summary>
+    public struct CancelQuote
+    {
+        public bool Valid, Started;
+        public double Progress;
+        public long ReleasedWood, ReleasedSilver, LostWood, LostSilver;
+        public long ReturnedWood => ReleasedWood - LostWood;
+        public long ReturnedSilver => ReleasedSilver - LostSilver;
+    }
+
     public sealed class BuildOrder
     {
         public ShipClass Class;

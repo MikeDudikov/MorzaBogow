@@ -147,6 +147,8 @@ namespace MorzaBogow.Editor
 
         public static void BuildWindows()
         {
+            // CPU and GPU frame times for the smoke report's performance figures.
+            PlayerSettings.enableFrameTimingStats = true;
             var options = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },

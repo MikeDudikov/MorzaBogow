@@ -3,44 +3,38 @@ using UnityEngine;
 namespace MorzaBogow.Presentation.Hud
 {
     /// <summary>
-    /// Colours of the battle interface: fired clay, black-figure glaze, bronze, marble and parchment, the Aegean
-    /// blue of the player and the cinnabar of the enemy. Owners always also differ by shape (round hoplon shield
-    /// for the player, crescent pelta for the enemy), so the colours are never the only cue.
+    /// Colours of the battle interface, from the design tokens: dark sea-glazed ceramic, patinated bronze, calm
+    /// light lettering and sparing terracotta. Silver stays cool and apart from the bronze. Owners always differ
+    /// by shape too (round shield for the player, pelta/diamond for the enemy), never by colour alone.
     /// </summary>
     public static class HudPalette
     {
-        public static readonly Color Terracotta = Hex(0xA4522E);
-        public static readonly Color TerracottaDeep = Hex(0x7A3A20);
-        public static readonly Color Clay = Hex(0x4A2416);
-        public static readonly Color ClayNight = Hex(0x2A150D);
-        public static readonly Color Glaze = Hex(0x1C1512);
-        public static readonly Color Ochre = Hex(0xD9A441);
-        public static readonly Color OchreLight = Hex(0xF0C978);
-        public static readonly Color Bronze = Hex(0x8C6A3B);
-        public static readonly Color BronzeLight = Hex(0xC79B5A);
-        public static readonly Color Patina = Hex(0x4F8A7A);
-        public static readonly Color Marble = Hex(0xEDE6D6);
-        public static readonly Color Parchment = Hex(0xE6D3A8);
-        public static readonly Color ParchmentDark = Hex(0xC9B07A);
-        public static readonly Color Aegean = Hex(0x2F6DB5);
-        public static readonly Color AegeanLight = Hex(0x6FA3E0);
-        public static readonly Color Cinnabar = Hex(0xB8322A);
-        public static readonly Color CinnabarLight = Hex(0xE0574C);
-        public static readonly Color Olive = Hex(0x6E8B3D);
-        public static readonly Color OliveLight = Hex(0x9DBB5C);
-        public static readonly Color Silver = Hex(0xC9C3B4);
-        public static readonly Color SilverDark = Hex(0x7D776B);
-        public static readonly Color Timber = Hex(0x9A6B3C);
-        public static readonly Color Sea = Hex(0x123A5C);
-        public static readonly Color SeaDeep = Hex(0x0B2238);
-        public static readonly Color Sand = Hex(0xCDB27A);
-        public static readonly Color Fog = new Color(0.10f, 0.07f, 0.05f, 0.9f);
+        public static readonly Color Surface = Hex(0x101e23);
+        public static readonly Color SurfaceDeep = Hex(0x0b1418);
+        public static readonly Color SurfaceRaised = Hex(0x23363b);
+        public static readonly Color Text = Hex(0xf3ead6);
+        public static readonly Color Muted = Hex(0xc7c7b7);
+        public static readonly Color Bronze = Hex(0xbea16c);
+        public static readonly Color Terracotta = Hex(0x9d553d);
+        public static readonly Color Silver = Hex(0xd9d8cf);
+        public static readonly Color Ally = Hex(0x66c8d2);
+        public static readonly Color Enemy = Hex(0xf1846c);
+        public static readonly Color Healthy = Hex(0x9ab86a);
+        public static readonly Color Warning = Hex(0xe4b969);
+        public static readonly Color Critical = Hex(0xf1846c);
+        public static readonly Color Timber = Hex(0xb98a55);
 
-        public static Color Owner(int owner, int player) => owner == player ? Aegean : Cinnabar;
-        public static Color OwnerLight(int owner, int player) => owner == player ? AegeanLight : CinnabarLight;
+        // Chart colours: calm navy water, ochre land.
+        public static readonly Color Sea = Hex(0x163940);
+        public static readonly Color SeaDeep = Hex(0x0f2a31);
+        public static readonly Color Land = Hex(0xc9a66b);
+        public static readonly Color LandDark = Hex(0x8f7447);
+        public static readonly Color Fog = new Color(0.04f, 0.07f, 0.08f, 0.92f);
 
-        /// <summary>Hull colour by remaining share: olive while sound, ochre when hurt, cinnabar when failing.</summary>
-        public static Color Hull(float fraction) => fraction > 0.6f ? OliveLight : fraction > 0.3f ? Ochre : CinnabarLight;
+        public static Color Owner(int owner, int player) => owner == player ? Ally : Enemy;
+
+        /// <summary>Hull colour by remaining share: healthy, warning, critical.</summary>
+        public static Color Hull(float fraction) => fraction > 0.6f ? Healthy : fraction > 0.3f ? Warning : Critical;
 
         public static Color WithAlpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
 

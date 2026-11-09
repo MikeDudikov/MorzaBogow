@@ -45,7 +45,8 @@ namespace MorzaBogow.Presentation
 
         public void Flash(Vector3 at, float size) => Add(Kind.Flash, at + Vector3.up * 2f, at, 0.6f, size);
         public void Rope(Vector3 from, Vector3 to, float life) => Add(Kind.Rope, from + Vector3.up * 2f, to + Vector3.up * 2f, life, 1f);
-        public void Ping(Vector3 at) => Add(Kind.Ping, at + Vector3.up * 0.5f, at, 0.8f, 18f);
+        /// <summary>A single ring where an order was given, gone after 0.6 s; no lasting order lines.</summary>
+        public void Ping(Vector3 at) => Add(Kind.Ping, at + Vector3.up * 0.5f, at, 0.6f, 18f);
 
         /// <summary>Takes over a sunk ship's visual; the ship no longer exists in the simulation.</summary>
         public void Sink(Transform visual) => sinking.Add((visual, 0f));

@@ -1,0 +1,92 @@
+{
+  "move": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "attack": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "ram": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "wood": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "silver": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "deliver": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "outpost": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "escort": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  },
+  "blocked": {
+    "hotspot": [
+      16,
+      16
+    ],
+    "sizes": [
+      32,
+      48
+    ]
+  }
+}

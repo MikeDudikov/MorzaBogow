@@ -297,6 +297,40 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Queue_CancelQuoteIsExactlyWhatCancellingDoes()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            Run(world, 22);
+
+            var waiting = world.QuoteCancel(settlement, false, 1);
+            Assert.That(waiting.Started, Is.False);
+            Assert.That(waiting.LostWood + waiting.LostSilver, Is.EqualTo(0), "Nothing is lost before work starts.");
+
+            var quote = world.QuoteCancel(settlement, false, 0);
+            Assert.That(quote.Valid && quote.Started, Is.True);
+            Assert.That(quote.Progress, Is.GreaterThan(0.5), "The advanced case that needs a confirmation.");
+            Assert.That(quote.LostWood, Is.GreaterThan(0));
+            var wood = settlement.Wood;
+            var silver = settlement.Silver;
+            var reservedWood = settlement.ReservedWood;
+            var reservedSilver = settlement.ReservedSilver;
+            var quoteAgain = world.QuoteCancel(settlement, false, 0);
+            Assert.That(quoteAgain.ReleasedWood, Is.EqualTo(quote.ReleasedWood), "A quote changes nothing.");
+
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 0, PortQueue = false, TargetId = settlement.Id });
+            world.Step();
+            // One more tick of work on the next order may follow the cancel; compare with what that tick used.
+            var next = settlement.WarQueue[0];
+            Assert.That(reservedWood - settlement.ReservedWood - next.UsedWood, Is.EqualTo(quote.ReleasedWood).Within(0));
+            Assert.That(wood - settlement.Wood - next.UsedWood, Is.EqualTo(quote.LostWood));
+            Assert.That(silver - settlement.Silver - next.UsedSilver, Is.EqualTo(quote.LostSilver));
+            Assert.That(reservedSilver - settlement.ReservedSilver - next.UsedSilver, Is.EqualTo(quote.ReleasedSilver));
+        }
+
+        [Test]
         public void Queue_CompetingOrdersCannotReserveTheSameResource()
         {
             var world = Empty();

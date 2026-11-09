@@ -152,25 +152,87 @@ namespace MorzaBogow.Tests
             Assert.That(hud, Is.Not.Null);
             var port = battle.ActivePort;
             Assert.That(hud.WoodText, Is.EqualTo((port.Available(ResourceType.Wood) / Rules.Centi).ToString()), "The bar shows the active port's free wood.");
-            Assert.That(hud.ShowsProduction, Is.True, "With nothing selected the order panel orders ships.");
-            Assert.That(hud.SlotCount, Is.GreaterThanOrEqualTo(5));
+            Assert.That(hud.VisibleCommands, Is.EqualTo(0), "Without a selection no order is offered.");
 
             // The bars are placed through the battle camera, which the test scene does not have by itself.
             var view = new GameObject("Test camera").AddComponent<Camera>();
             try
             {
                 battle.Configure(null, null, view);
-                var own = battle.World.Ships.First(ship => ship.Owner == 0);
+                var own = battle.World.Ships.First(ship => ship.Owner == 0 && ship.Class == ShipClass.Cutter);
                 battle.SelectForTest(own.Id);
                 yield return WaitForInterface();
-                Assert.That(hud.ShowsProduction, Is.False, "With a ship selected it gives orders.");
-                Assert.That(hud.SlotCount, Is.EqualTo(12));
+                Assert.That(hud.VisibleCommands, Is.EqualTo(5), "A cutter: move, stop, harvest, repair, scrap – the rest are hidden.");
                 Assert.That(hud.VisibleHealthBars, Is.GreaterThanOrEqualTo(1), "The selected ship shows its bar.");
             }
             finally
             {
                 Object.DestroyImmediate(view.gameObject);
             }
+        }
+
+        [Test]
+        public void Keys_DefaultBindingsFollowTheContractWithoutConflicts()
+        {
+            KeyBindings.ResetAll();
+            Assert.That(KeyBindings.AllConflicts(), Is.Empty);
+            Assert.That(KeyBindings.Key(GameAction.Move), Is.EqualTo(KeyCode.M));
+            Assert.That(KeyBindings.Key(GameAction.Stop), Is.EqualTo(KeyCode.S));
+            Assert.That(KeyBindings.Key(GameAction.Repair), Is.EqualTo(KeyCode.P));
+            Assert.That(KeyBindings.Key(GameAction.Pause), Is.EqualTo(KeyCode.Pause));
+            Assert.That(KeyBindings.Key(GameAction.FocusAlert), Is.EqualTo(KeyCode.Space));
+            var conflicts = KeyBindings.Bind(GameAction.Move, KeyCode.S);
+            Assert.That(conflicts, Does.Contain(GameAction.Stop), "A clash is reported, not hidden.");
+            KeyBindings.ResetAll();
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_HeraldShowsAtMostFourAndTabFoldsThePanels()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var raise = typeof(BattleController).GetMethod("Announce", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            for (var i = 0; i < 7; i++)
+                raise.Invoke(battle, new object[] { $"Wiadomość {i}", HeraldLevel.Info, null, HeraldTopic.General, -1, $"test{i}" });
+            Assert.That(hud.VisibleHeralds, Is.LessThanOrEqualTo(4));
+
+            var before = hud.VisibleHeralds;
+            raise.Invoke(battle, new object[] { "Atak!", HeraldLevel.Critical, Vector3.zero, HeraldTopic.Alarm, -1, "alarm:x" });
+            raise.Invoke(battle, new object[] { "Atak!", HeraldLevel.Critical, Vector3.zero, HeraldTopic.Alarm, -1, "alarm:x" });
+            Assert.That(hud.VisibleHeralds, Is.LessThanOrEqualTo(4), "Repeated alarms of one group join one entry.");
+
+            Assert.That(hud.Collapsed, Is.False);
+            var collapse = typeof(BattleHud).GetMethod("ToggleCollapse", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            collapse.Invoke(hud, null);
+            Assert.That(hud.Collapsed, Is.True);
+            Assert.That(hud.IsPointerOverInterface(new Vector2(Screen.width * 0.5f, Screen.height * 0.04f)), Is.False, "Folded panels free the sea.");
+            collapse.Invoke(hud, null);
+            Assert.That(hud.Collapsed, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_CancellingAnAdvancedOrderAsksWithTheSimulationsSettlement()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var port = battle.ActivePort;
+            port.Wood = port.Silver = 3000 * Rules.Centi;
+            battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram, TargetId = port.Id });
+            battle.RunTicks(22 * Rules.TickRate);
+            var queued = port.WarQueue.Count;
+            Assert.That(queued, Is.GreaterThan(0));
+
+            hud.RequestCancel(true, 0);
+            Assert.That(hud.ModalOpen, Is.True, "Past half way a confirmation comes first.");
+            Assert.That(hud.HoldsInput, Is.True, "The dialog holds the input.");
+            battle.RunTicks(1);
+            Assert.That(port.WarQueue.Count, Is.EqualTo(queued), "Nothing is cancelled before confirming.");
+
+            var confirm = typeof(BattleHud).GetMethod("ConfirmModal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            confirm.Invoke(hud, null);
+            battle.RunTicks(1);
+            Assert.That(hud.ModalOpen, Is.False);
+            Assert.That(port.WarQueue.Count, Is.EqualTo(queued - 1));
         }
 
         [UnityTest]

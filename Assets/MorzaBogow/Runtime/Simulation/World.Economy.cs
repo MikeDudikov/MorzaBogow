@@ -50,21 +50,42 @@ namespace MorzaBogow.Simulation
             var queue = portQueue ? settlement.PortQueue : settlement.WarQueue;
             if (index < 0 || index >= queue.Count) return;
 
-            var order = queue[index];
+            var quote = QuoteCancel(settlement, portQueue, index);
             queue.RemoveAt(index);
+            settlement.ReservedWood -= quote.ReleasedWood;
+            settlement.ReservedSilver -= quote.ReleasedSilver;
+            settlement.Wood -= quote.LostWood;
+            settlement.Silver -= quote.LostSilver;
+            LostWood += quote.LostWood;
+            LostSilver += quote.LostSilver;
+        }
+
+        /// <summary>
+        /// What cancelling an order would settle, by the same rule the cancel applies (E04): the unused part of its
+        /// reservation is released; once work has started, 80% of that part comes back and the rest is lost. For
+        /// the interface's confirmation; it changes nothing.
+        /// </summary>
+        public CancelQuote QuoteCancel(Settlement settlement, bool portQueue, int index)
+        {
+            var queue = settlement == null ? null : portQueue ? settlement.PortQueue : settlement.WarQueue;
+            if (queue == null || index < 0 || index >= queue.Count) return default;
+            var order = queue[index];
             var unusedWood = order.PaidWood - order.UsedWood;
             var unusedSilver = order.PaidSilver - order.UsedSilver;
-            settlement.ReservedWood -= unusedWood;
-            settlement.ReservedSilver -= unusedSilver;
-            if (!order.Started) return;
-
-            // E04: 80% of the unused part returns; the rest is an organisational loss.
-            var lostWood = unusedWood - (long)(unusedWood * Rules.RefundAfterStart);
-            var lostSilver = unusedSilver - (long)(unusedSilver * Rules.RefundAfterStart);
-            settlement.Wood -= lostWood;
-            settlement.Silver -= lostSilver;
-            LostWood += lostWood;
-            LostSilver += lostSilver;
+            var quote = new CancelQuote
+            {
+                Valid = true,
+                Started = order.Started,
+                Progress = order.TotalTicks > 0 ? (double)order.DoneTicks / order.TotalTicks : 0,
+                ReleasedWood = unusedWood,
+                ReleasedSilver = unusedSilver,
+            };
+            if (order.Started)
+            {
+                quote.LostWood = unusedWood - (long)(unusedWood * Rules.RefundAfterStart);
+                quote.LostSilver = unusedSilver - (long)(unusedSilver * Rules.RefundAfterStart);
+            }
+            return quote;
         }
 
         void StepProduction()

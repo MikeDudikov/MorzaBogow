@@ -231,12 +231,42 @@ namespace MorzaBogow.Presentation
 
         void Update()
         {
+            if (smokeReport == null)
+            {
+                HandleInput();
+                if (!paused) Advance(Time.unscaledDeltaTime * Speed);
+                PresentFrame();
+                UpdateCamera();
+                return;
+            }
+
+            // The smoke run also times each part of the frame, and the CPU and GPU behind it.
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             HandleInput();
             if (!paused) Advance(Time.unscaledDeltaTime * Speed);
+            var simulated = watch.Elapsed.TotalMilliseconds;
             PresentFrame();
+            var presented = watch.Elapsed.TotalMilliseconds;
             UpdateCamera();
-            if (smokeReport != null) UpdateSmoke();
+            if (smokeElapsed > 5f)
+            {
+                smokeSimMs += simulated;
+                smokePresentMs += presented - simulated;
+                FrameTimingManager.CaptureFrameTimings();
+                if (FrameTimingManager.GetLatestTimings(1, frameTiming) > 0)
+                {
+                    smokeTimed++;
+                    smokeCpuMs += frameTiming[0].cpuMainThreadFrameTime;
+                    smokeRenderMs += frameTiming[0].cpuRenderThreadFrameTime;
+                    smokeGpuMs += frameTiming[0].gpuFrameTime;
+                }
+            }
+            UpdateSmoke();
         }
+
+        readonly FrameTiming[] frameTiming = new FrameTiming[1];
+        double smokeSimMs, smokePresentMs, smokeCpuMs, smokeRenderMs, smokeGpuMs;
+        int smokeTimed;
 
         void Advance(double seconds)
         {
@@ -285,7 +315,7 @@ namespace MorzaBogow.Presentation
                     case "ship_built":
                         if (seen || World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) BeginLaunch(item.SubjectId, item.OtherId, item.Amount == 1);
                         var launched = World.FindShip(item.SubjectId);
-                        if (launched != null && launched.Owner == PlayerFaction) Announce($"Zwodowano: {ClassName(launched.Class)}.", HeraldLevel.Important, at, HeraldTopic.Launch);
+                        if (launched != null && launched.Owner == PlayerFaction) Announce($"Zwodowano: {ClassName(launched.Class)}.", HeraldLevel.Important, at, HeraldTopic.Launch, launched.Id, $"launch:{item.OtherId}");
                         break;
                     case "shipyard_built":
                         if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce("Stocznia na przyczółku gotowa.", HeraldLevel.Important, at);
@@ -1355,28 +1385,30 @@ namespace MorzaBogow.Presentation
             var move = Vector3.zero;
             // Edge scrolling needs a focused game and a cursor inside the screen; the automatic test never scrolls.
             var mouse = Input.mousePosition;
-            var edgeScroll = Application.isFocused && autoPlayer == null
+            // A dialog holds the input: the view stays put, the world keeps running.
+            var free = !InputHeldByInterface;
+            var edgeScroll = free && Application.isFocused && autoPlayer == null
                              && mouse.x >= 0f && mouse.y >= 0f && mouse.x <= Screen.width && mouse.y <= Screen.height;
-            if (Input.GetKey(KeyCode.W) || (edgeScroll && mouse.y >= Screen.height - 4)) move += Vector3.forward;
-            if (Input.GetKey(KeyCode.S) || (edgeScroll && mouse.y <= 4)) move += Vector3.back;
-            if (Input.GetKey(KeyCode.A) || (edgeScroll && mouse.x <= 4)) move += Vector3.left;
-            if (Input.GetKey(KeyCode.D) || (edgeScroll && mouse.x >= Screen.width - 4)) move += Vector3.right;
-            if (Input.GetKey(KeyCode.Q)) yaw -= 70f * delta;
-            if (Input.GetKey(KeyCode.E)) yaw += 70f * delta;
-            if (Input.GetKey(KeyCode.PageUp)) tilt += 40f * delta;
-            if (Input.GetKey(KeyCode.PageDown)) tilt -= 40f * delta;
-            if (Input.GetMouseButton(2))
+            if (free && KeyBindings.Held(GameAction.CameraUp) || (edgeScroll && mouse.y >= Screen.height - 4)) move += Vector3.forward;
+            if (free && KeyBindings.Held(GameAction.CameraDown) || (edgeScroll && mouse.y <= 4)) move += Vector3.back;
+            if (free && KeyBindings.Held(GameAction.CameraLeft) || (edgeScroll && mouse.x <= 4)) move += Vector3.left;
+            if (free && KeyBindings.Held(GameAction.CameraRight) || (edgeScroll && mouse.x >= Screen.width - 4)) move += Vector3.right;
+            if (free && KeyBindings.Held(GameAction.RotateLeft)) yaw -= 70f * delta;
+            if (free && KeyBindings.Held(GameAction.RotateRight)) yaw += 70f * delta;
+            if (free && KeyBindings.Held(GameAction.TiltUp)) tilt += 40f * delta;
+            if (free && KeyBindings.Held(GameAction.TiltDown)) tilt -= 40f * delta;
+            if (free && Input.GetMouseButton(2))
             {
                 yaw += Input.GetAxisRaw("Mouse X") * 3f;
                 tilt -= Input.GetAxisRaw("Mouse Y") * 2f;
             }
-            if (Input.GetKeyDown(KeyCode.Home))
+            if (free && KeyBindings.Down(GameAction.CameraReset))
             {
                 yaw = ObliqueCamera.DefaultYaw;
                 tilt = ObliqueCamera.DefaultTilt;
             }
             tilt = ObliqueCamera.ClampTilt(tilt);
-            height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f);
+            if (free && !PointerOverHud()) height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f);
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             var scroll = move.normalized;
@@ -1392,20 +1424,28 @@ namespace MorzaBogow.Presentation
 
         // ---------- Orders ----------
 
+        /// <summary>True while a dialog holds the input: the world and the camera ignore keys and clicks.</summary>
+        bool InputHeldByInterface => hud != null && hud.HoldsInput;
+
+        /// <summary>
+        /// The single place input is read each frame. Keys come from KeyBindings; the interface's own keys (orders,
+        /// Tab, alarm, dialogs) are handled by it from here, so no key is checked in two places.
+        /// </summary>
         void HandleInput()
         {
-            if (Input.GetKeyDown(KeyCode.Space)) paused = !paused;
-            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) SpeedUp();
-            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) SpeedDown();
-            if (Input.GetKeyDown(KeyCode.F5)) QuickSave(DefaultSavePath);
-            if (Input.GetKeyDown(KeyCode.F8)) QuickLoad(DefaultSavePath);
+            if (hud != null) hud.HandleKeys();
+            if (InputHeldByInterface || KeyBindings.Capturing) { dragging = false; return; }
+            if (KeyBindings.Down(GameAction.Pause)) paused = !paused;
+            if (KeyBindings.Down(GameAction.Faster) || Input.GetKeyDown(KeyCode.KeypadPlus)) SpeedUp();
+            if (KeyBindings.Down(GameAction.Slower) || Input.GetKeyDown(KeyCode.KeypadMinus)) SpeedDown();
+            if (KeyBindings.Down(GameAction.Save)) QuickSave(DefaultSavePath);
+            if (KeyBindings.Down(GameAction.Load)) QuickLoad(DefaultSavePath);
             HandleGroups();
-            if (Input.GetKeyDown(KeyCode.R)) RepairSelected();
 
             // A targeted order waits for its target: left click places it, right click or Escape cancels it.
             if (PendingOrder != HudOrder.None)
             {
-                if (selected.Count == 0 || Input.GetKeyDown(KeyCode.Escape) || (Input.GetMouseButtonDown(1) && !PointerOverHud())) { PendingOrder = HudOrder.None; return; }
+                if (selected.Count == 0 || KeyBindings.Down(GameAction.Cancel) || (Input.GetMouseButtonDown(1) && !PointerOverHud())) { PendingOrder = HudOrder.None; return; }
                 if (Input.GetMouseButtonDown(0) && !PointerOverHud() && TryGround(Input.mousePosition, out var target))
                 {
                     var order = PendingOrder;
@@ -1414,7 +1454,7 @@ namespace MorzaBogow.Presentation
                 }
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.Escape)) ClearSelection();
+            if (KeyBindings.Down(GameAction.Cancel) && !(hud != null && hud.ConsumedCancel)) ClearSelection();
 
             if (PointerOverHud()) { if (Input.GetMouseButtonUp(0)) dragging = false; return; }
             if (Input.GetMouseButtonDown(0)) { dragging = true; dragStart = Input.mousePosition; }
@@ -1469,6 +1509,15 @@ namespace MorzaBogow.Presentation
             selected.Clear();
             inspectedEnemies.Clear();
             inspectedSettlementId = -1;
+            InspectedWreckId = -1;
+        }
+
+        /// <summary>Clears the selection without touching the active port; the interface's × button.</summary>
+        public void ClearSelectionKeepPort()
+        {
+            selected.Clear();
+            inspectedEnemies.Clear();
+            InspectedWreckId = -1;
         }
 
         /// <summary>A left click on a visible enemy shows its state. Hidden ships can never be inspected.</summary>
@@ -1481,6 +1530,73 @@ namespace MorzaBogow.Presentation
                 if (settlement.Destroyed || !IsOnSettlement(point, settlement)) continue;
                 if (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y)) inspectedSettlementId = settlement.Id;
             }
+            // A wreck in sight can be inspected for what it still holds.
+            var wreck = World.Wrecks.FirstOrDefault(item => World.CanSee(PlayerFaction, item.X, item.Y) && World.Distance(point.x, point.z, item.X, item.Y) < 15);
+            if (wreck != null && selected.Count == 0) InspectedWreckId = wreck.Id;
+        }
+
+        /// <summary>
+        /// What a right click would do here with the current selection, as a cursor name from the interface
+        /// package; null for the plain cursor. Only a preview: the order itself is checked again when given.
+        /// </summary>
+        public string ContextCursor(Vector2 screen)
+        {
+            if (selected.Count == 0 || !TryGround(screen, out var point)) return null;
+            var ships = selected.Select(World.FindShip).Where(ship => ship != null && ship.Owner == PlayerFaction).ToList();
+            if (ships.Count == 0) return null;
+            var enemy = NearestShip(point, ship => ship.Owner != PlayerFaction);
+            if (enemy != null)
+            {
+                if (ships.All(ship => ship.Class == ShipClass.Ram)) return "ram";
+                return ships.Any(ship => ship.Definition.LightSlots > 0 || ship.Class == ShipClass.Ram || ship.Class == ShipClass.Boarder) ? "attack" : "blocked";
+            }
+            var warships = ships.Any(ship => !ship.Definition.IsEconomic);
+            var ids = selected.ToArray();
+            if (warships && NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id)) != null) return "escort";
+            if (World.Settlements.Any(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item)))
+                return ships.Any(ship => ship.Definition.LightSlots > 0) ? "attack" : "blocked";
+            if (ships.Any(ship => ship.Class == ShipClass.Merchant))
+            {
+                if (World.Sites.Any(item => World.IsSiteFree(item) && World.IsExplored(PlayerFaction, item.X, item.Y)
+                    && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, Rules.LandX(item.X), item.Y) < 25))) return "outpost";
+                if (World.PortsOf(PlayerFaction).Any(item => IsOnSettlement(point, item))) return "deliver";
+            }
+            if (ships.Any(ship => ship.Definition.CanHarvest))
+            {
+                var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0
+                    && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, item.X, item.Y + Rules.SiteLandOffset) < Rules.SiteLandRadius));
+                if (node != null) return node.Type == ResourceType.Wood ? "wood" : "silver";
+            }
+            foreach (var island in World.Islands)
+            {
+                if (World.Distance(point.x, point.z, island.X, island.Y) > island.Radius) continue;
+                if (LandShape.SignedDistance(island, point.x, point.z) < 0) return "blocked";
+            }
+            return "move";
+        }
+
+        /// <summary>The wreck clicked last while it is in sight, or -1.</summary>
+        public int InspectedWreckId { get; private set; } = -1;
+
+        /// <summary>How a port is named on the interface: the home port, numbered bridgeheads, the enemy's ports.</summary>
+        public string PortName(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            if (settlement.Owner != PlayerFaction) return settlement.IsOutpost ? "Przyczółek wroga" : "Port wroga";
+            if (!settlement.IsOutpost) return "Port macierzysty";
+            var number = 1 + World.Settlements.Count(item => item.Owner == PlayerFaction && item.IsOutpost && item.Id < settlement.Id);
+            return $"Przyczółek {number}";
+        }
+
+        /// <summary>Saved ship groups: number and the ships still in them, for the group chips.</summary>
+        public IEnumerable<(int number, int[] ids)> Groups => groups.OrderBy(pair => pair.Key).Select(pair => (pair.Key, pair.Value.Where(id => World.FindShip(id)?.Owner == PlayerFaction).ToArray()));
+
+        public void SelectGroup(int number)
+        {
+            if (!groups.TryGetValue(number, out var ids)) return;
+            selected.Clear();
+            inspectedEnemies.Clear();
+            foreach (var id in ids) if (World.FindShip(id)?.Owner == PlayerFaction) selected.Add(id);
         }
 
         /// <summary>A click counts on the settlement's model as well as on its port.</summary>
@@ -1643,10 +1759,23 @@ namespace MorzaBogow.Presentation
         public event Action<HeraldMessage> Herald;
         readonly Dictionary<int, float> lastAlarm = new Dictionary<int, float>();
 
-        void Announce(string text, HeraldLevel level, Vector3? at, HeraldTopic topic = HeraldTopic.General)
+        void Announce(string text, HeraldLevel level, Vector3? at, HeraldTopic topic = HeraldTopic.General, int entityId = -1, string groupKey = null)
         {
             LastNotice = text;
-            Herald?.Invoke(new HeraldMessage(text, level, at, topic));
+            Herald?.Invoke(new HeraldMessage(text, level, at, topic, entityId, groupKey));
+        }
+
+        /// <summary>The port a position belongs to, as a grouping key for the herald: the nearest own port.</summary>
+        string NearPort(Vector3 at)
+        {
+            Settlement best = null;
+            var bestDistance = double.MaxValue;
+            foreach (var port in World.PortsOf(PlayerFaction))
+            {
+                var distance = World.Distance(at.x, at.z, port.X, port.Y);
+                if (distance < bestDistance) { bestDistance = distance; best = port; }
+            }
+            return best != null && bestDistance < 200 ? $"port{best.Id}" : "sea";
         }
 
         /// <summary>An own ship or port under fire raises an alarm, at most once in a while for each of them.</summary>
@@ -1658,7 +1787,9 @@ namespace MorzaBogow.Presentation
             if (lastAlarm.TryGetValue(targetId, out var last) && Time.unscaledTime - last < 15f) return;
             lastAlarm[targetId] = Time.unscaledTime;
             var text = ship != null ? $"Atak na {ClassName(ship.Class).ToLowerInvariant()}!" : settlement.IsOutpost ? "Przyczółek pod ostrzałem!" : "Osada pod ostrzałem!";
-            Announce(text, HeraldLevel.Critical, at, HeraldTopic.Alarm);
+            // Escorted transports raise one alarm per convoy; the rest per port waters.
+            var convoy = ship != null && ship.Order == OrderKind.Escort ? ship.EscortId : ship != null && ship.Class == ShipClass.Merchant ? ship.Id : -1;
+            Announce(text, HeraldLevel.Critical, at, HeraldTopic.Alarm, targetId, convoy >= 0 ? $"alarm:convoy{convoy}" : $"alarm:{NearPort(at)}");
         }
 
         /// <summary>A targeted order chosen on the order panel, waiting for a left click on the map.</summary>
@@ -2014,7 +2145,16 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"combatEvents\": {combatEvents},\n");
             report.Append($"  \"boulders\": {BouldersPlaced},\n");
             report.Append($"  \"averageFrameMs\": {(smokeFrames > 0 ? smokeFrameTime / smokeFrames * 1000f : 0f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
-            report.Append($"  \"worstFrameMs\": {(smokeWorstFrame * 1000f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}\n}}\n");
+            string Ms(double total, int count) => (count > 0 ? total / count : 0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            report.Append($"  \"worstFrameMs\": {(smokeWorstFrame * 1000f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
+            report.Append($"  \"simulationMs\": {Ms(smokeSimMs, smokeFrames)},\n");
+            report.Append($"  \"presentationMs\": {Ms(smokePresentMs, smokeFrames)},\n");
+            report.Append($"  \"interfaceMs\": {(hud != null ? hud.AverageUpdateMs : 0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)},\n");
+            report.Append($"  \"cpuMainMs\": {Ms(smokeCpuMs, smokeTimed)},\n");
+            report.Append($"  \"cpuRenderMs\": {Ms(smokeRenderMs, smokeTimed)},\n");
+            report.Append($"  \"gpuMs\": {Ms(smokeGpuMs, smokeTimed)},\n");
+            report.Append($"  \"vSyncCount\": {QualitySettings.vSyncCount},\n");
+            report.Append($"  \"qualityLevel\": \"{QualitySettings.names[QualitySettings.GetQualityLevel()]}\"\n}}\n");
             File.WriteAllText(smokeReport, report.ToString());
             smokeReport = null;
         }
