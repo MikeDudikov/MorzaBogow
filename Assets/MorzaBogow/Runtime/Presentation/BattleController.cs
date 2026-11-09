@@ -58,7 +58,9 @@ namespace MorzaBogow.Presentation
         string notice = string.Empty;
         float noticeUntil;
         Vector3 pivot;
-        float yaw;
+        float yaw = ObliqueCamera.DefaultYaw;
+        float tilt = ObliqueCamera.DefaultTilt;
+        Light sun;
         float height = 130f;
         bool dragging;
         Vector2 dragStart;
@@ -105,6 +107,7 @@ namespace MorzaBogow.Presentation
             StartMatch(MapFactory.CreateSkirmish(seed), 0);
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
             if (surface != null) water = new WaterSampler(surface);
+            sun = FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(light => light.type == LightType.Directional);
             ReadSmokeArguments();
         }
 
@@ -576,15 +579,30 @@ namespace MorzaBogow.Presentation
             if (Input.GetKey(KeyCode.D) || (edgeScroll && mouse.x >= Screen.width - 4)) move += Vector3.right;
             if (Input.GetKey(KeyCode.Q)) yaw -= 70f * delta;
             if (Input.GetKey(KeyCode.E)) yaw += 70f * delta;
+            if (Input.GetKey(KeyCode.PageUp)) tilt += 40f * delta;
+            if (Input.GetKey(KeyCode.PageDown)) tilt -= 40f * delta;
+            if (Input.GetMouseButton(2))
+            {
+                yaw += Input.GetAxisRaw("Mouse X") * 3f;
+                tilt -= Input.GetAxisRaw("Mouse Y") * 2f;
+            }
+            if (Input.GetKeyDown(KeyCode.Home))
+            {
+                yaw = ObliqueCamera.DefaultYaw;
+                tilt = ObliqueCamera.DefaultTilt;
+            }
+            tilt = ObliqueCamera.ClampTilt(tilt);
             height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f);
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
-            pivot += rotation * move.normalized * (height * 0.8f * delta);
+            var scroll = move.normalized;
+            scroll.z *= ObliqueCamera.GroundDepthScale(tilt);
+            pivot += rotation * scroll * (height * 0.8f * delta);
             pivot.x = Mathf.Clamp(pivot.x, -520f, 520f);
             pivot.z = Mathf.Clamp(pivot.z, -420f, 420f);
 
-            var view = rotation * Quaternion.Euler(52f, 0f, 0f);
-            strategicCamera.transform.SetPositionAndRotation(pivot - view * Vector3.forward * (height / Mathf.Sin(52f * Mathf.Deg2Rad)), view);
+            ObliqueCamera.Apply(strategicCamera, pivot, yaw, tilt, height);
+            if (sun != null) sun.transform.rotation = ObliqueCamera.SunRotation(yaw, tilt);
         }
 
         // ---------- Orders ----------
@@ -991,10 +1009,15 @@ namespace MorzaBogow.Presentation
                     var silver = World.Nodes.First(node => node.Type == ResourceType.Silver && (node.KnownMask & (1 << PlayerFaction)) != 0);
                     pivot = new Vector3((float)silver.X, 0f, (float)silver.Y + 22f);
                     height = 55f;
+                    // A changed view angle, so this picture also covers rotation and tilt.
+                    yaw = -40f;
+                    tilt = ObliqueCamera.MaxTilt;
                     break;
                 case 2:
                     pivot = Vector3.zero;
                     height = 300f;
+                    yaw = ObliqueCamera.DefaultYaw;
+                    tilt = ObliqueCamera.DefaultTilt;
                     break;
                 default:
                     var focus = World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Order == OrderKind.Ram)

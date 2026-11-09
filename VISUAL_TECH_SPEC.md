@@ -54,7 +54,7 @@ Osobne limity świateł widocznych, świateł z cieniem i świateł wpływający
 
 Cienie kaskadowe dla światła kierunkowego: liczba kaskad według V10, odległość dobrana do kadru, a nie całych 5 km mapy. Ustaw bias testem liny, burty, masztu i styku portu. Zbyt duży bias daje pływanie cienia, za mały acne. Contact shadows dla najbliższych istotnych obiektów; SSAO wzmacnia styk, nie zastępuje cienia kierunkowego i nie powinno czernić całej burty.
 
-Pośrednie światło: niebo + sondy/reflection probes oraz opcjonalne dane pieczone dla statycznych portów w wariantach oświetlenia. Ruchomy statek nie może odziedziczyć wypalonego na stałe cienia w miejscu startu. Zmianę pory dnia i sond uzgodnij; nie pozostawiaj jaskrawej dziennej sondy w środku nocy. RTGI jest częścią profilu Ultra, po potwierdzeniu w V00. Ich brak na niższym profilu nie może ujawniać przeciwników ani zmieniać czytelności zagrożeń.
+Pośrednie światło: niebo + sondy/reflection probes oraz opcjonalne dane pieczone dla statycznych portów w wariantach oświetlenia. Ruchomy statek nie może odziedziczyć wypalonego na stałe cienia w miejscu startu. Zmianę pory dnia i sond uzgodnij; nie pozostawiaj jaskrawej dziennej sondy w środku nocy. RTGI nie jest obecnie używane: pod ortogonalną kamerą gry pozostawia plamki na powierzchniach, więc Ultra stosuje SSGI, a promienie śledzi w odbiciach. Powrót do RTGI wymaga potwierdzenia w V00 bez tych artefaktów. Brak tych technik na niższym profilu nie może ujawniać przeciwników ani zmieniać czytelności zagrożeń.
 
 Nie wygaszaj fizycznie całego ambientu poza światłem statku jako zamiennika mgły wojny. Ukrywanie wroga musi nastąpić przed renderowaniem jego geometrii, odbicia, cienia, światła i VFX. Wiele kamer i wspólne mapy cieni wymagają osobnej kontroli per obserwator — globalne wyłączenie renderera może zepsuć widok drugiego gracza/obserwatora.
 
@@ -124,7 +124,7 @@ Wartości są startowe i podlegają ocenie obrazu:
 | Cienie kierunkowe | 2 kaskady | 2 kaskady | 3 kaskady | 4 kaskady | 4 kaskady, cienie kontaktowe |
 | Woda | czytelna, prosty detal | ograniczony detal i piana | pełny kilwater, średni detal | gęsty detal i piana | najgęstszy detal, pełne próbkowanie |
 | Odbicia | niebo i sondy | niebo i sondy | SSR i sondy | SSR, sondy, wybrane planar | ray tracing, SSR i sondy jako fallback, wybrane planar |
-| Oświetlenie pośrednie | sondy | sondy | sondy i SSAO | SSGI | RTGI |
+| Oświetlenie pośrednie | sondy | sondy | sondy i SSAO | SSGI | SSGI (RTGI wyłączone, zob. oświetlenie pośrednie) |
 | Mgła i VFX | prosta mgła, mniej cząsteczek, markery zachowane | niska wolumetria, markery zachowane | średnia wolumetria, markery zachowane | wysoka wolumetria, markery zachowane | pełna wolumetria, najwyższa rozdzielczość, markery zachowane |
 | Bohaterowie | Lit | Lit | SSS w zbliżeniach | SSS i Hair w zbliżeniach | SSS i Hair w zbliżeniach, najwyższa jakość |
 | Rendering | natywny | natywny | natywny | natywny | natywny |

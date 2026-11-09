@@ -55,11 +55,12 @@ namespace MorzaBogow.Editor
             camera.tag = "MainCamera";
             camera.gameObject.AddComponent<HDAdditionalCameraData>();
             camera.farClipPlane = 6000f;
+            camera.orthographic = true;
             camera.transform.SetPositionAndRotation(new Vector3(-500f, 130f, -100f), Quaternion.Euler(52f, 0f, 0f));
 
             var sun = new GameObject("Sun");
             sun.AddHDLight(LightType.Directional);
-            sun.transform.rotation = Quaternion.Euler(40f, 30f, 0f);
+            sun.transform.rotation = ObliqueCamera.SunRotation(ObliqueCamera.DefaultYaw, ObliqueCamera.DefaultTilt);
             var light = sun.GetComponent<Light>();
             light.lightUnit = LightUnit.Lux;
             light.intensity = 100000f;
@@ -73,6 +74,22 @@ namespace MorzaBogow.Editor
 
             var ocean = new GameObject("Ocean").AddComponent<WaterSurface>();
             ocean.scriptInteractions = true;
+
+            // These fades follow camera distance, which means nothing in an orthographic view. Beyond every
+            // camera position, they keep waves and gloss the same at each zoom level.
+            ocean.ripplesFadeStart = 3000f;
+            ocean.largeBand1FadeStart = 3000f;
+            ocean.smoothnessFadeStart = 3000f;
+            ocean.tessellationFactorFadeStart = 3000f;
+
+            // From this view the sky reflects weakly, so the water's own color has to carry the sea and its waves.
+            // Lower gloss turns sun glints into a soft shimmer instead of white flashes.
+            ocean.scatteringColor = new Color(0.045f, 0.125f, 0.155f);
+            ocean.ambientScattering = 0.25f;
+            ocean.heightScattering = 0.5f;
+            ocean.displacementScattering = 0.6f;
+            ocean.startSmoothness = 0.8f;
+            ocean.endSmoothness = 0.8f;
 
             var services = new GameObject("Services");
             services.AddComponent<GraphicsProfileController>().Configure(volume, profiles);

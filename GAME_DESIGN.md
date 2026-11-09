@@ -7,7 +7,7 @@ GAME_VISION.md określa doświadczenie gracza, priorytety i cele balansu. Dokume
 **Gatunek:** strategia czasu rzeczywistego skoncentrowana na bitwach morskich / mitologia grecka  
 **Platforma:** Windows 11, komputery PC  
 **Silnik:** Unity 6.3 LTS, High Definition Render Pipeline (HDRP)  
-**Perspektywa:** strategiczna izometryczna kamera 3D z możliwością płynnej zmiany oddalenia i kąta  
+**Perspektywa:** strategiczna ukośna kamera ortogonalna 3D z możliwością płynnej zmiany oddalenia i kąta  
 **Tryby:** kampania, potyczka, scenariusze specjalne, docelowo multiplayer i edytor map  
 **Języki:** polski i angielski  
 **Charakter:** pełnoprawna produkcja premium, bez mikropłatności i mechanizmów pay-to-win
@@ -528,7 +528,7 @@ Cykl dobowy konfigurowany per mapa, domyślnie 24 minuty. Deszcz i mgła oddzia�
 
 ## C10. Kamera, sterowanie i UI
 
-Kamera 3D: przesuwanie WSAD/krawędzie, obrót Q/E, zoom kółkiem, opcjonalny tilt; zakres wysokości 20–300 m, ograniczenia mapy, bez wejścia pod wodę i klify. Płynność zależna od czasu rzeczywistego, nie prędkości symulacji. Zaznaczenie kliknięciem/ramką, Shift dodaje, Ctrl+1–9 zapisuje grupy, 1–9 przywołuje, podwójne przywołanie centruje. PPM rozkaz kontekstowy z podglądem trasy, Shift kolejkuje, Escape anuluje tryb. Klawisze remapowalne. Menu zatrzymuje single player zgodnie z ustawieniem.
+Kamera 3D w rzucie ortogonalnym, patrząca na mapę pod kątem: przesuwanie WSAD/krawędzie, obrót Q/E, zoom kółkiem, nachylenie 25–80° PageUp/PageDown, obrót i nachylenie także środkowym przyciskiem myszy, Home przywraca widok domyślny (nachylenie 45°, obrót 30°); zakres oddalenia 20–300, ograniczenia mapy. Słońce obraca się z widokiem, żeby obrót kamery nie zamieniał morza w białe odbicie. Płynność zależna od czasu rzeczywistego, nie prędkości symulacji. Zaznaczenie kliknięciem/ramką, Shift dodaje, Ctrl+1–9 zapisuje grupy, 1–9 przywołuje, podwójne przywołanie centruje. PPM rozkaz kontekstowy z podglądem trasy, Shift kolejkuje, Escape anuluje tryb. Klawisze remapowalne. Menu zatrzymuje single player zgodnie z ustawieniem.
 
 HUD: dostępne D/S, transport i rezerwacje oddzielnie, limit floty, minimapa z mgłą, panel zaznaczenia, cztery wskaźniki statku (kadłub, załoga, napęd, gotowość), zakładka wyposażenia i aktywnych statusów. Tooltip pokazuje koszt, cooldown, sektor, przyczynę braku dostępności. Ostrzeżenia grupowane i ograniczone częstotliwością. Kolor nie jest jedynym nośnikiem informacji. Skalowanie interfejsu 80–150%, PL/EN, brak tekstu zaszytego w obrazach. Ustawienia oferują pełną gamę rozdzielczości od 1920×1080 do 2560×1440 według V13 w VISUAL_TECH_SPEC.md; rozdzielczość nie zmienia reguł ani informacji taktycznej.
 

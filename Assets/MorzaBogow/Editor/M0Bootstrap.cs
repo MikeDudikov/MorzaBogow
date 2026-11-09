@@ -149,7 +149,7 @@ namespace MorzaBogow.Editor
             // V05: fixed exposure, so dark fog on screen never brightens the visible part of the battle.
             var exposure = profile.Add<Exposure>(true);
             exposure.mode.Override(ExposureMode.Fixed);
-            exposure.fixedExposure.Override(12f);
+            exposure.fixedExposure.Override(12.25f);
 
             // Compresses highlights, so sunlit sand and light models keep their shape at this exposure.
             var tonemapping = profile.Add<Tonemapping>(true);
@@ -164,11 +164,16 @@ namespace MorzaBogow.Editor
 
             var fog = profile.Add<Fog>(true);
             fog.enabled.Override(true);
+
+            // An orthographic camera distance is arbitrary, so thick distance fog would change the picture with zoom.
+            fog.meanFreePath.Override(6000f);
             fog.enableVolumetricFog.Override(tier >= GraphicsProfile.Medium);
 
             var indirect = profile.Add<GlobalIllumination>(true);
             indirect.enable.Override(tier >= GraphicsProfile.ExtraHigh);
-            indirect.tracing.Override(tier == GraphicsProfile.Ultra ? RayCastingMode.RayTracing : RayCastingMode.RayMarching);
+
+            // Ray traced indirect light leaves speckles under the orthographic game camera, so Ultra uses SSGI too.
+            indirect.tracing.Override(RayCastingMode.RayMarching);
 
             var reflections = profile.Add<ScreenSpaceReflection>(true);
             reflections.enabled.Override(tier >= GraphicsProfile.High);

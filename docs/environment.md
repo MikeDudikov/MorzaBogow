@@ -60,18 +60,21 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 | Kontrola | Wynik | Zakres |
 |---|---|---|
-| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 91/91, PlayMode 29/29 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 91/91, PlayMode 35/35 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
 | Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
-| Build Windows64 Mono, scena M1_Battle | Success, 261872052 B, 0 błędów, 0 ostrzeżeń | |
-| Build, 130 s rozgrywki SI z próbkowaniem wody | 136445 odczytów, 8 błędów, przechył do 12°, wznoszenie do 1,07 m | odczyty liczbowe, ruch na ekranie nie był oceniany |
-| Kolor wody w buildzie, profil Ultra | RGB 34 68 75, wzorzec z wcześniejszego buildu 31 65 81 | średnia z wycinka zrzutu, inna wysokość kamery niż we wzorcu |
+| Build Windows64 Mono, scena M1_Battle | Success, 261873816 B, 0 błędów, 0 ostrzeżeń | |
+| Build, 130 s rozgrywki SI z próbkowaniem wody | 118645 odczytów, 8 błędów, przechył do 11,96°, wznoszenie do 0,98 m | odczyty liczbowe, ruch na ekranie nie był oceniany |
+| Kolor wody w buildzie, profil Ultra, widok domyślny | RGB 42 71 84, 0% przepaleń; zaakceptowana wersja perspektywiczna 34 68 75 | średnia z wycinka zrzutu, inny kadr niż we wzorcu |
+| Nachylenie 80°, obrót −40°, profil Ultra | 0% przepaleń | jeden zrzut, pozostałe kąty policzone, nie zmierzone |
 | Pojedynczy kuter, trasa 70 m | 108 D/min | model: do 124 D/min przy pełnym wykorzystaniu trasy |
 | Mecz SI kontra SI, seed 9 | Rozstrzygnięty po 20 min, pierwsza walka po 148 s | jeden przebieg, nie dowód balansu |
 | docs/economy-model/economy-model.py | Wykonany ponownie, CSV zgodne z pakietem | model nie obejmuje walki ani Unity |
 
 Coast Rocks 02: 4 siatki, 2363290 trójkątów LOD0, Mesh LOD do 64 trójkątów na siatkę, FBX zaimportowany bez zmian, jeden materiał HDRP Lit. Na mapie wyspa ma około 102 × 7 × 110 m. Modele okrętów, osad i węzłów to oznaczone modele zastępcze.
 
-Obraz: stała ekspozycja EV 12, mapowanie tonów Neutral, nasycenie +35, słońce 100000 lx. Słabsze słońce nie poprawiało proporcji wody do lądu, bo niebo fizyczne ciemnieje razem z nim. Fale są wyłącznie prezentacją: kadłub odczytuje wysokość prawdziwej powierzchni wody, a pozycja logiczna, zasięgi i kolizje pozostają bez zmian.
+Kamera: rzut ortogonalny patrzący na mapę pod kątem, domyślnie nachylenie 45° i obrót 30°. Zoom kółkiem, obrót Q/E, nachylenie 25–80° PageUp/PageDown, obrót i nachylenie także środkowym przyciskiem myszy, Home przywraca widok. Sterowanie klawiszami i myszą nie było uruchamiane; zrzuty ustawiają kąt z kodu.
+
+Obraz: stała ekspozycja EV 12,25, mapowanie tonów Neutral, nasycenie +35, słońce 100000 lx. Słońce obraca się z widokiem (przesunięcie 120°) i obniża się z 60° do 45° przy nachyleniu od 45° do 80°, bo inaczej obrót kamery zamienia morze w białe odbicie. Cienie obracają się więc razem z kamerą, co trzeba będzie rozwiązać przy cyklu dobowym z C09. Na Ultra oświetlenie pośrednie używa SSGI zamiast RTGI, które pod kamerą ortogonalną dawało plamki; odbicia nadal używają ray tracingu. Mgła atmosferyczna jest bardzo rzadka, a wygaszanie fal z odległością wyłączone, bo odległość kamery ortogonalnej nie ma znaczenia dla obrazu. Fale są wyłącznie prezentacją: kadłub odczytuje wysokość prawdziwej powierzchni wody, a pozycja logiczna, zasięgi i kolizje pozostają bez zmian.
 
 Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Znaczniki to cienkie, półprzezroczyste okręgi z lekko zmiękczoną krawędzią: zaznaczenie i cel ruchu mają krycie 42%, atakowany wróg czerwony okrąg o kryciu 70%. Mgła wojny jest widoczna w trzech stanach, a odkrycie należy do zapisu gry. Animacje, efekty oraz modele składu drewna i kopalni srebra to prezentacja zbudowana z prostych brył, do zastąpienia docelową grafiką.
 
@@ -94,13 +97,16 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - PreToolUse reaguje na narzędzie TaskUpdate, którego ta aplikacja nie używa. Automatyczne wywołanie hooków: NOT_RUN.
 - Profile różnią się na razie funkcjami HDRP, kaskadami i ustawieniami objętości. Limity świateł, detal wody i gęstość VFX z V10 nie są wdrożone.
 - Menu rozdzielczości (F10) i profili (F9) to robocze panele IMGUI.
+- Jeden przebieg na 11 wystartował na Intel Iris Xe z Direct3D 11. HDRP nie uruchomił się wtedy (`Kernel 'KDepthDownsample8DualUav' not found`), obraz był czarny, a gra działała dalej. Powtórka na RTX 3050 Ti przeszła. Przyczyny wyboru karty nie ustalono.
+- Pierwsze uruchomienie po przebudowie bywa bardzo wolne: 68 kroków w 16 s przy drugiej działającej kopii gry. Przyczyny nie potwierdzono.
+- Modele składu drewna, kopalni i osady nie mają kolizji w symulacji, więc statki potrafią przez nie przepływać.
 
 ## Nieuruchomione
 
 - Dłuższa rozgrywka człowieka: użytkownik zagrał krótko, zaznaczanie i rozkazy działały, bez błędów. Paski HP, animacje i efekty dodane po tej próbie: NOT_RUN w ręcznej ocenie.
 - Ocena obrazu przez człowieka dla obecnej wody, okręgów, mgły i modeli: NOT_RUN. Sprawdzono je tylko na zrzutach z profilu Ultra w 1920×1080.
-- Wizualne potwierdzenie działania RTGI i odbić RT: NOT_RUN.
-- Kolor wody i ekspozycja w profilach Low, Medium, High i Extra High w buildzie: NOT_RUN.
+- Wizualne potwierdzenie działania odbić RT: NOT_RUN.
+- Kolor wody i ekspozycja końcowych ustawień w profilach Low, Medium, High i Extra High w buildzie: NOT_RUN.
 - Fizyczne wyświetlanie 2560×1440 i pozostałych trybów powyżej 1080p: BLOCKED, brak monitora.
 - Pełne przełączanie rozdzielczości i profili w buildzie, 20 cykli bez wycieków: NOT_RUN.
 - Pomiary GPU, VRAM oraz scen 100/200/400 statków: NOT_RUN.
