@@ -12,8 +12,19 @@ namespace MorzaBogow.Simulation
     /// <summary>Land ships cannot enter. Only a coast also stops shots; a quay or a settlement is too low for that.</summary>
     public sealed class Island
     {
+        /// <summary>Radius is the largest distance from the centre to the waterline.</summary>
         public double X, Y, Radius;
         public IslandKind Kind;
+
+        /// <summary>
+        /// The waterline as distances from the centre at LandShape.Samples evenly spaced angles, counted from +X
+        /// toward +Y. Null means a circle of Radius. The model of the land is turned by Yaw degrees to match.
+        /// </summary>
+        public double[] Outline;
+        public double Yaw;
+
+        // Polygon derived from the outline; not saved.
+        internal double[] PolygonX, PolygonY;
 
         public bool BlocksShots => Kind == IslandKind.Coast;
     }

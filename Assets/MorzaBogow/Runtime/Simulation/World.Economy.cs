@@ -140,7 +140,7 @@ namespace MorzaBogow.Simulation
                 if (ship.Harvest == HarvestPhase.ToNode)
                 {
                     if (ship.Cargo > 0 && ship.CargoType != node.Type) ship.Harvest = HarvestPhase.ToPort;
-                    else if (Distance(ship.X, ship.Y, node.X, node.Y) <= Rules.NodeWorkRange)
+                    else if (Distance(ship.X, ship.Y, node.X, node.Y) <= NodeReach(ship))
                     {
                         ship.CargoType = node.Type;
                         node.Waiting.Add(ship.Id);
@@ -175,7 +175,7 @@ namespace MorzaBogow.Simulation
             if (ship.Harvest == HarvestPhase.ToPort)
             {
                 if (settlement == null || settlement.Destroyed) { ship.Order = OrderKind.Idle; StopShip(ship); return; }
-                if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) <= Rules.PortRange)
+                if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) <= PortReach(ship))
                 {
                     StopShip(ship);
                     settlement.PortWaiting.Add(ship.Id);

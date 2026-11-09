@@ -492,14 +492,102 @@ namespace MorzaBogow.Tests
             Assert.That(world.Islands.Count(item => item.Kind == IslandKind.ResourceSite), Is.EqualTo(world.Nodes.Count));
             Assert.That(world.Islands.Count(item => item.Kind == IslandKind.Settlement), Is.EqualTo(world.Settlements.Count + world.Sites.Count));
 
-            var cutter = ShipCatalog.Get(ShipClass.Cutter).Radius;
+            // A loaded cutter must fit at every berth, clear of land and of water too shallow for it.
+            var probe = new World(1).SpawnShip(0, ShipClass.Cutter, 0, 0);
+            probe.Cargo = probe.Definition.Capacity * Rules.Centi;
+            var clearance = World.LandClearance(probe);
             foreach (var node in world.Nodes)
             {
                 foreach (var island in world.Islands)
                 {
-                    Assert.That(World.Distance(node.X, node.Y, island.X, island.Y), Is.GreaterThanOrEqualTo(island.Radius + cutter), $"Node {node.Id}");
+                    Assert.That(LandShape.SignedDistance(island, node.X, node.Y), Is.GreaterThanOrEqualTo(clearance), $"Node {node.Id} vs {island.Kind}");
                 }
             }
+        }
+
+        [Test]
+        public void Land_IsTheExactWaterlineNotACircle()
+        {
+            var coast = new Island { X = 0, Y = 0, Outline = LandShape.Place(MapFactory.CoastOutline, 50, false), Kind = IslandKind.Coast };
+            coast.Radius = LandShape.MaxRadius(coast.Outline);
+            var narrow = MapFactory.CoastOutline[0] * 50;
+            var wide = MapFactory.CoastOutline[40] * 50;
+            // 1 m out along the ray; the neighbouring edges of the tip may lie a little closer than that.
+            Assert.That(LandShape.SignedDistance(coast, narrow + 1, 0), Is.GreaterThan(0.2).And.LessThanOrEqualTo(1 + 1e-9), "Just off the narrow tip.");
+            Assert.That(LandShape.SignedDistance(coast, narrow - 3, 0), Is.LessThan(0), "Inside the land.");
+            var far = LandShape.Angle(40);
+            Assert.That(LandShape.SignedDistance(coast, Math.Cos(far) * (wide - 2), Math.Sin(far) * (wide - 2)), Is.LessThan(0), "The wide lobe reaches past where the narrow side ends.");
+
+            // A cutter can moor off the narrow tip, well inside the old circle of the land's largest radius.
+            var world = Empty();
+            world.Islands.Add(coast);
+            var ship = world.SpawnShip(0, ShipClass.Cutter, 150, 0);
+            var clearance = World.LandClearance(ship);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = narrow + clearance + 6, Y = 0 });
+            for (var i = 0; i < 1500; i++)
+            {
+                world.Step();
+                Assert.That(LandShape.SignedDistance(coast, ship.X, ship.Y), Is.GreaterThanOrEqualTo(clearance - 1e-6));
+            }
+            Assert.That(World.Distance(ship.X, ship.Y, 0, 0), Is.LessThan(coast.Radius), "Closer than the old circle allowed.");
+        }
+
+        [Test]
+        public void Land_DeeperHullsKeepFurtherFromTheShore()
+        {
+            var cutter = new World(1).SpawnShip(0, ShipClass.Cutter, 0, 0);
+            var merchant = new World(1).SpawnShip(0, ShipClass.Merchant, 0, 0);
+            Assert.That(Seabed.ShoalWidth(World.DraftOf(merchant)), Is.GreaterThan(Seabed.ShoalWidth(World.DraftOf(cutter))));
+
+            var emptyDraft = World.DraftOf(merchant);
+            merchant.HoldWood = 480 * Rules.Centi;
+            Assert.That(World.DraftOf(merchant), Is.EqualTo(emptyDraft * (1 + Rules.DraftPerLoad)).Within(1e-9), "A full hold sits deeper.");
+            Assert.That(Seabed.ShoalWidth(World.DraftOf(merchant)), Is.GreaterThan(Seabed.ShoalWidth(emptyDraft)));
+            Assert.That(Seabed.DepthAt(Seabed.ShoalWidth(World.DraftOf(merchant))), Is.EqualTo(World.DraftOf(merchant) + Seabed.KeelClearance).Within(1e-9));
+
+            foreach (var shipClass in new[] { ShipClass.Cutter, ShipClass.Boarder })
+            {
+                var world = Empty();
+                var island = new Island { X = 0, Y = 0, Radius = 30 };
+                world.Islands.Add(island);
+                var ship = world.SpawnShip(0, shipClass, -150, 0);
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = 0, Y = 0 });
+                for (var i = 0; i < 1500; i++) world.Step();
+                var keep = LandShape.SignedDistance(island, ship.X, ship.Y);
+                Assert.That(keep, Is.GreaterThanOrEqualTo(World.LandClearance(ship) - 1e-6), $"{shipClass} stays out of its shallows.");
+                Assert.That(keep, Is.LessThan(World.LandClearance(ship) + 8), $"{shipClass} still comes as close as it safely can.");
+            }
+        }
+
+        [Test]
+        public void Hulls_NeverOverlapAndPushEachOtherAside()
+        {
+            var world = Empty();
+            var ships = new[]
+            {
+                world.SpawnShip(0, ShipClass.Cutter, -100, 0), world.SpawnShip(0, ShipClass.Merchant, -100, 30),
+                world.SpawnShip(0, ShipClass.Ram, -100, -30), world.SpawnShip(1, ShipClass.Boarder, 100, 0),
+            };
+            foreach (var ship in ships) world.Issue(new Command { Faction = ship.Owner, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = 0, Y = 0 });
+            var worst = double.MaxValue;
+            for (var i = 0; i < 1200; i++)
+            {
+                world.Step();
+                for (var a = 0; a < world.Ships.Count; a++)
+                {
+                    for (var b = a + 1; b < world.Ships.Count; b++) worst = Math.Min(worst, World.HullGap(world.Ships[a], world.Ships[b]));
+                }
+            }
+            Assert.That(worst, Is.GreaterThan(World.HullSpacing * 0.5), "Hulls keep water between them, so on screen none sits on another.");
+            Assert.That(ships.Count(ship => World.Distance(ship.X, ship.Y, 0, 0) < 30), Is.GreaterThan(1), "They crowd round the point side by side.");
+
+            // A light hull is shoved further than a heavy one.
+            var pair = Empty();
+            var light = pair.SpawnShip(0, ShipClass.Cutter, 0, 0);
+            var heavy = pair.SpawnShip(0, ShipClass.Boarder, 0, 2);
+            light.Heading = heavy.Heading = 0;
+            pair.Step();
+            Assert.That(Math.Abs(light.Y), Is.GreaterThan(Math.Abs(heavy.Y - 2)));
         }
 
         [Test]
@@ -509,6 +597,7 @@ namespace MorzaBogow.Tests
             var first = new Opponent(0);
             var second = new Opponent(1);
             var startStock = world.Nodes.Sum(node => node.Stock);
+            var worstGap = 0.0;
             for (var tick = 0; tick < 6000 && world.Outcome == OutcomeKind.InProgress; tick++)
             {
                 first.Think(world);
@@ -517,13 +606,20 @@ namespace MorzaBogow.Tests
                 world.Events.Clear();
                 foreach (var ship in world.Ships)
                 {
+                    var keep = World.LandClearance(ship);
                     foreach (var island in world.Islands)
                     {
-                        var distance = World.Distance(ship.X, ship.Y, island.X, island.Y);
-                        if (distance < island.Radius + ship.Definition.Radius - 1e-6) Assert.Fail($"Tick {tick}: ship {ship.Id} is {distance:0.00} m from {island.Kind} land.");
+                        var distance = LandShape.SignedDistance(island, ship.X, ship.Y);
+                        if (distance < keep - 1e-6) Assert.Fail($"Tick {tick}: {ship.Class} {ship.Id} is {distance:0.00} m from {island.Kind} land, needs {keep:0.00}.");
                     }
                 }
+                for (var a = 0; a < world.Ships.Count; a++)
+                {
+                    for (var b = a + 1; b < world.Ships.Count; b++) worstGap = Math.Min(worstGap, World.HullGap(world.Ships[a], world.Ships[b]));
+                }
             }
+            TestContext.WriteLine($"Deepest hull overlap {worstGap:0.00} m");
+            Assert.That(worstGap, Is.GreaterThan(-1.0), "Hulls never sail through each other.");
             Assert.That(world.Nodes.Sum(node => node.Stock), Is.LessThan(startStock), "Work points stay usable next to their land.");
         }
 
@@ -539,7 +635,7 @@ namespace MorzaBogow.Tests
             Assert.That(ship.Order, Is.EqualTo(OrderKind.Move), "The command takes effect on the first step.");
             for (var i = 0; i < 3000 && ship.Order != OrderKind.Idle; i++) world.Step();
             Assert.That(ship.Order, Is.EqualTo(OrderKind.Idle), "The ship must not circle the land forever.");
-            Assert.That(World.Distance(ship.X, ship.Y, 0, 0), Is.LessThan(island.Radius + ship.Definition.Radius * 2 + 8));
+            Assert.That(World.Distance(ship.X, ship.Y, 0, 0), Is.LessThan(island.Radius + World.LandClearance(ship) * 2 + 8));
         }
 
         [Test]
@@ -551,8 +647,13 @@ namespace MorzaBogow.Tests
             world.Islands.Add(new Island { X = 0, Y = 100, Radius = 20, Kind = IslandKind.Coast });
             Assert.That(world.HasIslandBetween(-50, 100, 50, 100), Is.True);
 
+            world.Islands[1].Outline = LandShape.Place(MapFactory.CoastOutline, 15, true);
+            world.Islands[1].Yaw = 180;
             var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
             Assert.That(loaded.Islands.Select(item => item.Kind), Is.EqualTo(new[] { IslandKind.ResourceSite, IslandKind.Coast }));
+            Assert.That(loaded.Islands[1].Outline, Is.EqualTo(world.Islands[1].Outline), "The waterline is saved.");
+            Assert.That(loaded.Islands[1].Yaw, Is.EqualTo(180));
+            Assert.That(loaded.Islands[0].Outline, Is.Null);
         }
 
         // ---------- Ram ----------

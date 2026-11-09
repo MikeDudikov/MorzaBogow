@@ -457,10 +457,10 @@ namespace MorzaBogow.Tests
             {
                 Assert.That(world.Sites.Any(other => other.X == -site.X && other.Y == site.Y), Is.True, "Mirrored for the other side.");
                 Assert.That(world.Sites.Any(other => other.X == site.X && other.Y == -site.Y), Is.True);
+                // The port point lies on open water; reaching it is checked by sailing there in the tests below.
                 foreach (var island in world.Islands)
                 {
-                    var reach = island.Radius + ShipCatalog.Get(ShipClass.Merchant).Radius - Rules.PortRange;
-                    Assert.That(World.Distance(site.X, site.Y, island.X, island.Y), Is.GreaterThanOrEqualTo(reach), $"Site {site.Id} vs {island.Kind} land.");
+                    Assert.That(LandShape.SignedDistance(island, site.X, site.Y), Is.GreaterThan(4), $"Site {site.Id} vs {island.Kind} land.");
                 }
             }
         }

@@ -39,7 +39,8 @@ namespace MorzaBogow.Tests
                 Assert.That(view.transform.position.x, Is.EqualTo((float)Rules.SettlementLandX(settlement)).Within(1e-3f));
 
                 var islet = view.transform.Find("Islet").GetComponent<Renderer>().bounds;
-                Assert.That(islet.extents.x, Is.EqualTo((float)Rules.SettlementLandRadius).Within(0.01f), "The islet matches the collision circle.");
+                // The beach runs out under the water just past the waterline; at the water it matches the land circle.
+                Assert.That(islet.extents.x, Is.EqualTo((float)Rules.SettlementLandRadius * 1.1f).Within(0.05f), "The islet matches the collision circle.");
 
                 // The nearest point a cutter's hull can reach is the land edge plus nothing more than the jetty tip.
                 var jetty = view.transform.Find("Jetty").GetComponent<Renderer>().bounds;

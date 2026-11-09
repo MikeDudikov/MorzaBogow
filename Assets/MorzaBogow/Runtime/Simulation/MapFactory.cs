@@ -36,11 +36,30 @@ namespace MorzaBogow.Simulation
                 AddSite(world, 70, y);
             }
 
-            world.Islands.Add(new Island { X = 0, Y = 0, Radius = 60 });
-            world.Islands.Add(new Island { X = -150, Y = 130, Radius = 35 });
-            world.Islands.Add(new Island { X = 150, Y = -130, Radius = 35 });
+            AddCoast(world, 0, 0, 60, false);
+            AddCoast(world, -150, 130, 35, false);
+            AddCoast(world, 150, -130, 35, true);
             world.RefreshExplored();
             return world;
+        }
+
+        /// <summary>
+        /// Waterline of the rocky coast model in units of the land's radius, read from its mesh (BattleSceneBuilder.
+        /// CoastWaterline; a test keeps the two in step). Coasts on the second side are turned half a turn, so the
+        /// map stays point-symmetric for both players.
+        /// </summary>
+        public static readonly double[] CoastOutline =
+        {
+            0.2659, 0.2365, 0.2224, 0.2216, 0.2266, 0.2348, 0.2424, 0.2543, 0.2787, 0.3071, 0.3367, 0.3696, 0.3930, 0.4065, 0.4269, 0.4589,
+            0.5151, 0.6241, 0.8072, 0.9977, 1.0906, 1.1082, 1.0762, 1.0013, 0.9337, 0.8752, 0.8151, 0.7609, 0.7324, 0.7304, 0.7241, 0.7066,
+            0.7269, 0.7946, 0.8591, 0.9183, 0.9713, 1.0380, 1.1429, 1.2473, 1.3155, 1.3120, 1.2503, 1.1909, 1.1314, 1.0665, 1.0275, 1.0110,
+            1.0044, 1.0101, 1.0267, 1.0551, 1.0984, 1.1547, 1.2014, 1.2199, 1.2244, 1.2081, 1.1516, 1.0511, 0.8786, 0.6697, 0.4858, 0.3421,
+        };
+
+        static void AddCoast(World world, double x, double y, double scale, bool halfTurn)
+        {
+            var outline = LandShape.Place(CoastOutline, scale, halfTurn);
+            world.Islands.Add(new Island { X = x, Y = y, Radius = LandShape.MaxRadius(outline), Outline = outline, Yaw = halfTurn ? 180 : 0, Kind = IslandKind.Coast });
         }
 
         static void AddSite(World world, double x, double y)
@@ -57,7 +76,7 @@ namespace MorzaBogow.Simulation
                 Wood = Rules.StartWood, Silver = Rules.StartSilver,
             };
             world.Settlements.Add(settlement);
-            world.Islands.Add(new Island { X = x - direction * 75, Y = 0, Radius = 50 });
+            AddCoast(world, x - direction * 75, 0, 50, direction < 0);
             world.Islands.Add(new Island { X = Rules.SettlementLandX(settlement), Y = settlement.Y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
 
             var mask = 1 << owner;
@@ -84,7 +103,8 @@ namespace MorzaBogow.Simulation
         {
             var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, KnownMask = knownMask };
             world.Nodes.Add(node);
-            world.Islands.Add(new Island { X = x, Y = y + Rules.SiteLandOffset, Radius = Rules.SiteLandRadius, Kind = IslandKind.ResourceSite });
+            var islet = LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth);
+            world.Islands.Add(new Island { X = x, Y = y + Rules.SiteLandOffset, Radius = LandShape.MaxRadius(islet), Outline = islet, Kind = IslandKind.ResourceSite });
             return node.Id;
         }
     }

@@ -79,12 +79,13 @@ namespace MorzaBogow.Presentation
         public float Beam => beam;
         public HullPose CurrentPose => smoothed;
         public float HullHeight => beam * 0.6f;
-        public float Draft => DraftFor(HullHeight, smoothedLoad);
+        public float Draft => DraftFor(emptyDraft, smoothedLoad);
+        float emptyDraft;
         public float BowWaveHeight => bowWave != null ? bowWave.amplitude : 0f;
         public float HullFoam => hullFoam != null ? hullFoam.surfaceFoamDimmer : 0f;
 
-        /// <summary>Depth of the hull below the waterline: a third of its height empty, more as the hold fills.</summary>
-        public static float DraftFor(float hullHeight, float loadFraction) => hullHeight * (0.34f + 0.22f * Mathf.Clamp01(loadFraction));
+        /// <summary>The simulation's draft: the empty draft, deeper as the hold fills. Shallows are judged by the same value.</summary>
+        public static float DraftFor(float emptyDraft, float loadFraction) => emptyDraft * (1f + (float)Rules.DraftPerLoad * Mathf.Clamp01(loadFraction));
 
         /// <summary>A hull pushes up water in front of it; a longer, faster hull a higher wave. None at rest.</summary>
         public static float BowWaveFor(float length, float speedFraction)
@@ -112,8 +113,10 @@ namespace MorzaBogow.Presentation
 
             var length = (float)definition.Radius * 2f;
             visual.size = length;
-            var beam = Mathf.Max(2f, length * (ship.Class == ShipClass.Boarder || ship.Class == ShipClass.Merchant ? 0.42f : 0.28f));
+            // The simulation's beam: hulls touch on screen exactly where they collide in the game.
+            var beam = (float)definition.Beam;
             visual.beam = beam;
+            visual.emptyDraft = (float)definition.Draft;
             var hull = Part(visual.model, PrimitiveType.Capsule, "Hull", materials?.Wood);
             hull.localRotation = Quaternion.Euler(90f, 0f, 0f);
             hull.localScale = new Vector3(beam, length * 0.5f, beam * 0.6f);
@@ -234,6 +237,19 @@ namespace MorzaBogow.Presentation
             decal.updateMode = CustomRenderTextureUpdateMode.OnLoad;
             decal.material = material;
             return decal;
+        }
+
+        /// <summary>
+        /// Where a crew member steps on or off: the deck at the gunwale on the side facing a point ashore, following
+        /// the hull as it rides the waves.
+        /// </summary>
+        public Vector3 DeckToward(Vector3 target)
+        {
+            var centre = model.position + model.up * (0.6f + HullHeight * 0.5f);
+            var away = target - centre;
+            var side = Vector3.Dot(away, transform.right) >= 0f ? 1f : -1f;
+            var along = Mathf.Clamp(Vector3.Dot(away, transform.forward), -size * 0.3f, size * 0.3f);
+            return centre + transform.right * side * beam * 0.4f + transform.forward * along;
         }
 
         /// <summary>Fraction of the hold in use, 0 to 1. A loaded transport sits lower in the water.</summary>

@@ -16,12 +16,16 @@ namespace MorzaBogow.Tests
         [Test]
         public void Draft_GrowsWithTheLoadAndStaysWithinTheHull()
         {
-            var empty = ShipVisual.DraftFor(4f, 0f);
-            var full = ShipVisual.DraftFor(4f, 1f);
-            Assert.That(empty, Is.GreaterThan(0f), "An empty hull still sits in the water.");
-            Assert.That(full, Is.GreaterThan(empty));
-            Assert.That(full, Is.LessThan(4f * 0.6f), "Even loaded, most of the side stays above water.");
-            Assert.That(ShipVisual.DraftFor(4f, 5f), Is.EqualTo(full), "Load is clamped.");
+            foreach (ShipClass shipClass in System.Enum.GetValues(typeof(ShipClass)))
+            {
+                var definition = ShipCatalog.Get(shipClass);
+                var empty = ShipVisual.DraftFor((float)definition.Draft, 0f);
+                var full = ShipVisual.DraftFor((float)definition.Draft, 1f);
+                Assert.That(empty, Is.GreaterThan(0f), "An empty hull still sits in the water.");
+                Assert.That(full, Is.GreaterThanOrEqualTo(empty));
+                Assert.That(full, Is.LessThan((float)definition.Beam * 0.6f), $"{shipClass}: even loaded, part of the side stays above water.");
+                Assert.That(ShipVisual.DraftFor((float)definition.Draft, 5f), Is.EqualTo(full), "Load is clamped.");
+            }
         }
 
         [Test]

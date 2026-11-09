@@ -44,7 +44,15 @@ namespace MorzaBogow.Simulation
         /// beside it, so its reach grows with the hull. A cutter keeps the plain range the income model assumes.
         /// </summary>
         static double PortReach(Ship ship) =>
-            Rules.PortRange + Math.Max(0, ship.Definition.Radius - ShipCatalog.Get(ShipClass.Cutter).Radius);
+            Rules.PortRange + Math.Max(0, LandClearance(ship) - EmptyCutterClearance) + ship.Definition.Beam * BerthSpread;
+
+        /// <summary>Hulls cannot share one point any more: berths and the queue spread out by about this many beams.</summary>
+        const double BerthSpread = 1.5;
+
+        static readonly double EmptyCutterClearance = ShipCatalog.Get(ShipClass.Cutter).Radius + Seabed.ShoalWidth(ShipCatalog.Get(ShipClass.Cutter).Draft);
+
+        /// <summary>A work point is reached within this distance; the second berth and the queue lie beside the first.</summary>
+        static double NodeReach(Ship ship) => Rules.NodeWorkRange + ship.Definition.Beam * BerthSpread;
 
         // ---------- Orders ----------
 
@@ -350,11 +358,15 @@ namespace MorzaBogow.Simulation
                 return;
             }
 
-            // On station: sail along, no faster than the transport.
+            // On station: sail abeam of the transport on the side the escort already keeps, never across its bow.
             if (escorted.Speed < 0.5) { StopShip(ship); return; }
-            var aheadX = escorted.X + Math.Cos(escorted.Heading) * Rules.EscortStation;
-            var aheadY = escorted.Y + Math.Sin(escorted.Heading) * Rules.EscortStation;
-            Steer(ship, aheadX, aheadY, Math.Min(ship.Definition.Speed, escorted.Speed), 0);
+            var cos = Math.Cos(escorted.Heading);
+            var sin = Math.Sin(escorted.Heading);
+            var side = -(ship.X - escorted.X) * sin + (ship.Y - escorted.Y) * cos >= 0 ? 1 : -1;
+            var abeam = Rules.EscortStation * 0.8;
+            var stationX = escorted.X - sin * abeam * side + cos * abeam * 0.5;
+            var stationY = escorted.Y + cos * abeam * side + sin * abeam * 0.5;
+            Steer(ship, stationX, stationY, Math.Min(ship.Definition.Speed, escorted.Speed * 1.15), 0);
         }
     }
 }

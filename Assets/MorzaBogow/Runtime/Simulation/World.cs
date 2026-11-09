@@ -256,22 +256,23 @@ namespace MorzaBogow.Simulation
 
                 Integrate(ship);
             }
+            ResolveShipContacts();
             StepWorkers();
+            // Loading just deepened some hulls: they ease off the shallows they no longer clear.
+            foreach (var ship in Ships) ResolveLand(ship);
         }
 
         /// <summary>A target on land moves to the nearest water, so the ship stops at the shore instead of circling.</summary>
         void MoveTargetToWater(Ship ship)
         {
+            var minimum = LandClearance(ship) + 1;
             foreach (var island in Islands)
             {
-                var minimum = island.Radius + ship.Definition.Radius + 1;
-                var distance = Distance(ship.TargetX, ship.TargetY, island.X, island.Y);
+                if (Distance(ship.TargetX, ship.TargetY, island.X, island.Y) > island.Radius + minimum) continue;
+                var distance = LandShape.SignedDistance(island, ship.TargetX, ship.TargetY, out var nx, out var ny);
                 if (distance >= minimum) continue;
-                var awayX = distance > 1e-6 ? ship.TargetX - island.X : ship.X - island.X;
-                var awayY = distance > 1e-6 ? ship.TargetY - island.Y : ship.Y - island.Y;
-                var length = Math.Max(Math.Sqrt(awayX * awayX + awayY * awayY), 1e-6);
-                ship.TargetX = island.X + awayX / length * minimum;
-                ship.TargetY = island.Y + awayY / length * minimum;
+                ship.TargetX += nx * (minimum - distance);
+                ship.TargetY += ny * (minimum - distance);
             }
         }
 
@@ -287,6 +288,7 @@ namespace MorzaBogow.Simulation
         {
             var aim = AvoidIslands(ship, x, y);
             var desired = Math.Atan2(aim.y - ship.Y, aim.x - ship.X);
+            desired = AvoidHulls(ship, desired, Distance(ship.X, ship.Y, aim.x, aim.y));
             var difference = NormalizeAngle(desired - ship.Heading);
             var turn = ship.Definition.TurnRadiansPerSecond * Rules.Dt;
             ship.Heading = NormalizeAngle(ship.Heading + Math.Max(-turn, Math.Min(turn, difference)));
@@ -297,6 +299,45 @@ namespace MorzaBogow.Simulation
             var target = wantedSpeed * Math.Min(turningFactor, arrivalFactor) * CrewSpeedFactor(ship);
             var acceleration = ship.Definition.Speed / 4 * Rules.Dt;
             ship.Speed = ship.Speed < target ? Math.Min(target, ship.Speed + acceleration) : Math.Max(target, ship.Speed - acceleration);
+        }
+
+        /// <summary>
+        /// Turns the course past the nearest hull lying across it within a few seconds' sailing, so ships go round
+        /// one another instead of running into each other. A ram's or boarder's own target is not avoided, and a
+        /// ship moving away as fast is no obstacle. Ships are taken in list order, so it is deterministic.
+        /// </summary>
+        double AvoidHulls(Ship ship, double desired, double reach)
+        {
+            var definition = ship.Definition;
+            var look = Math.Min(reach, definition.Radius * 2 + Math.Max(0, ship.Speed) * 3 + 10);
+            if (look <= 0) return desired;
+            var dx = Math.Cos(desired);
+            var dy = Math.Sin(desired);
+            var closest = double.MaxValue;
+            var turn = 0.0;
+            foreach (var other in Ships)
+            {
+                if (other == ship) continue;
+                if ((ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board) && other.Id == ship.TargetId) continue;
+                var rx = other.X - ship.X;
+                var ry = other.Y - ship.Y;
+                var along = rx * dx + ry * dy;
+                var otherDefinition = other.Definition;
+                if (along <= 0 || along - otherDefinition.Radius > look || along >= closest) continue;
+                if (other.Speed * Math.Cos(other.Heading - desired) >= Math.Max(0, ship.Speed) * 0.9 && other.Speed > 0.5) continue;
+
+                var across = -rx * dy + ry * dx;
+                var otherHalf = Math.Max(0, otherDefinition.Radius - otherDefinition.Beam / 2);
+                var need = (definition.Beam + otherDefinition.Beam) / 2 + Math.Abs(Math.Sin(other.Heading - desired)) * otherHalf + 2;
+                if (Math.Abs(across) >= need) continue;
+                closest = along;
+                // Pass with the other hull on the side it already lies, clearing its nearer end, so a ship close
+                // behind a long hull turns hard enough to slide past it.
+                var ownHalf = Math.Max(0, definition.Radius - definition.Beam / 2);
+                var nearEnd = Math.Max(1, along - Math.Abs(Math.Cos(other.Heading - desired)) * otherHalf - ownHalf);
+                turn = Math.Atan2(across >= 0 ? across - need : across + need, nearEnd);
+            }
+            return closest == double.MaxValue ? desired : NormalizeAngle(desired + turn);
         }
 
         static double CrewSpeedFactor(Ship ship)
@@ -310,19 +351,7 @@ namespace MorzaBogow.Simulation
         {
             ship.X += Math.Cos(ship.Heading) * ship.Speed * Rules.Dt;
             ship.Y += Math.Sin(ship.Heading) * ship.Speed * Rules.Dt;
-
-            foreach (var island in Islands)
-            {
-                var minimum = island.Radius + ship.Definition.Radius;
-                var distance = Distance(ship.X, ship.Y, island.X, island.Y);
-                if (distance >= minimum || distance < 1e-6) continue;
-                ship.X = island.X + (ship.X - island.X) / distance * minimum;
-                ship.Y = island.Y + (ship.Y - island.Y) / distance * minimum;
-
-                // Only heading into the land costs speed; a ship sliding along the shore keeps moving.
-                var inward = (Math.Cos(ship.Heading) * (island.X - ship.X) + Math.Sin(ship.Heading) * (island.Y - ship.Y)) / minimum;
-                if (inward > 0.5) ship.Speed *= 0.5;
-            }
+            ResolveLand(ship);
         }
 
         // ---------- Ram (C05): one resolution per charge ----------
@@ -471,8 +500,8 @@ namespace MorzaBogow.Simulation
             foreach (var island in Islands)
             {
                 if (!island.BlocksShots) continue;
-                var along = Math.Max(0, Math.Min(1, ((island.X - ax) * dx + (island.Y - ay) * dy) / length2));
-                if (Distance(ax + along * dx, ay + along * dy, island.X, island.Y) < island.Radius) return true;
+                if (LandShape.PointSegmentDistance(island.X, island.Y, ax, ay, bx, by) > island.Radius) continue;
+                if (LandShape.SegmentNear(island, ax, ay, bx, by, 0)) return true;
             }
             return false;
         }

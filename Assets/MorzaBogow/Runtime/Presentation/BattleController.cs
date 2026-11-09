@@ -19,9 +19,6 @@ namespace MorzaBogow.Presentation
         static readonly float[] Speeds = { 0.5f, 1f, 1.5f, 2f };
 
         [SerializeField] GameObject coastPrefab;
-
-        /// <summary>The coast model's waterline in units of the land radius, baked when the scene is built.</summary>
-        [SerializeField] float[] coastOutline;
         [SerializeField] PlaceholderMaterials materials = new PlaceholderMaterials();
         [SerializeField] Camera strategicCamera;
         [SerializeField] ulong seed = 20261109;
@@ -66,8 +63,58 @@ namespace MorzaBogow.Presentation
         float tilt = ObliqueCamera.DefaultTilt;
         Light sun;
         Transform decalAnchor;
-        readonly List<(UnityEngine.Rendering.HighDefinition.WaterDecal decal, float strength, float phase, Island island)> surf =
-            new List<(UnityEngine.Rendering.HighDefinition.WaterDecal, float, float, Island)>();
+        sealed class SurfPatch
+        {
+            public UnityEngine.Rendering.HighDefinition.WaterDecal Decal;
+            public Island Island;
+            public ParticleSystem Spray;
+            public float Strength, Phase, Exposure, LastSet;
+            public Vector3 Outward;
+        }
+
+        readonly List<SurfPatch> surf = new List<SurfPatch>();
+
+        // Shore parties of ships, and dock gangs of ports, keyed by ship or settlement id.
+        readonly Dictionary<int, ShipCrew> crews = new Dictionary<int, ShipCrew>();
+        readonly Dictionary<int, ShipCrew> dockGangs = new Dictionary<int, ShipCrew>();
+        readonly HashSet<int> docked = new HashSet<int>();
+        Transform crewRoot;
+
+        public IReadOnlyDictionary<int, ShipCrew> Crews => crews;
+        public IReadOnlyDictionary<int, ShipCrew> DockGangs => dockGangs;
+
+        /// <summary>
+        /// Direction the large waves travel, from the water surface's own orientation. Shores facing into them take the
+        /// full surf; sheltered sides get a gentle wash.
+        /// </summary>
+        Vector3 waveTravel = Vector3.right;
+
+        float WaveExposure(Vector3 outward) => Mathf.Clamp01(Vector3.Dot(outward, -waveTravel));
+
+        /// <summary>One emitter per rocky coast; it throws spray where a set of waves breaks on an exposed face.</summary>
+        ParticleSystem ShorelineSpray(Transform parent)
+        {
+            var item = new GameObject("Breaking spray");
+            item.transform.SetParent(parent, false);
+            var system = item.AddComponent<ParticleSystem>();
+            system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = system.main;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = 1f;
+            main.maxParticles = 400;
+            main.startSpeed = 0f;
+            var emission = system.emission;
+            emission.enabled = false;
+            var size = system.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.5f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0.15f)));
+            var renderer = item.GetComponent<ParticleSystemRenderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (materials?.Spray != null) renderer.sharedMaterial = materials.Spray;
+            system.Play();
+            return system;
+        }
 
         public int SurfCount => surf.Count;
         float height = 130f;
@@ -108,18 +155,22 @@ namespace MorzaBogow.Presentation
 
         public static string DefaultSavePath => Path.Combine(Application.persistentDataPath, "quicksave.mbsave");
 
-        public void Configure(GameObject coast, PlaceholderMaterials placeholderMaterials, Camera mainCamera, float[] coastWaterline = null)
+        public void Configure(GameObject coast, PlaceholderMaterials placeholderMaterials, Camera mainCamera)
         {
             coastPrefab = coast;
-            coastOutline = coastWaterline;
             materials = placeholderMaterials;
             strategicCamera = mainCamera;
         }
 
         void Awake()
         {
-            StartMatch(MapFactory.CreateSkirmish(seed), 0);
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
+            if (surface != null)
+            {
+                var orientation = surface.largeOrientationValue * Mathf.Deg2Rad;
+                waveTravel = new Vector3(Mathf.Cos(orientation), 0f, Mathf.Sin(orientation));
+            }
+            StartMatch(MapFactory.CreateSkirmish(seed), 0);
             if (surface != null)
             {
                 water = new WaterSampler(surface);
@@ -281,6 +332,128 @@ namespace MorzaBogow.Presentation
             sinkingShips.Clear();
             inspectedEnemies.Clear();
             inspectedSettlementId = -1;
+            foreach (var crew in crews.Values) crew.Destroy();
+            foreach (var gang in dockGangs.Values) gang.Destroy();
+            crews.Clear();
+            dockGangs.Clear();
+            docked.Clear();
+            siteWorkplaces.Clear();
+            portWorkplaces.Clear();
+        }
+
+        // ---------- Shore parties ----------
+
+        Workplace PortWorkplace(Settlement settlement, CrewLoad goods)
+        {
+            PortPlaces(settlement, out var jetty, out var landing, out var store);
+            return new Workplace { JettyEnd = jetty, Landing = landing, Pile = store, Goods = goods };
+        }
+
+        static CrewLoad GoodsOf(ResourceType type) => type == ResourceType.Wood ? CrewLoad.Log : CrewLoad.Chest;
+
+        readonly Dictionary<int, Workplace> siteWorkplaces = new Dictionary<int, Workplace>();
+        readonly Dictionary<int, Workplace> portWorkplaces = new Dictionary<int, Workplace>();
+
+        Workplace SiteWorkplace(ResourceNode node)
+        {
+            if (siteWorkplaces.TryGetValue(node.Id, out var place)) return place;
+            if (!siteViews.TryGetValue(node.Id, out var site)) return null;
+            place = new Workplace { JettyEnd = site.JettyEnd, Landing = site.Landing, Pile = site.StackSpot, Site = site, Goods = GoodsOf(node.Type) };
+            siteWorkplaces[node.Id] = place;
+            return place;
+        }
+
+        Workplace CachedPort(Settlement settlement, CrewLoad goods)
+        {
+            var key = settlement.Id * 4 + (int)goods;
+            if (!portWorkplaces.TryGetValue(key, out var place)) portWorkplaces[key] = place = PortWorkplace(settlement, goods);
+            return place;
+        }
+
+        /// <summary>What a ship's crew does ashore now, read from its order. Nothing here feeds back into the game.</summary>
+        (CrewJob job, Workplace place) CrewJobOf(Ship ship)
+        {
+            if (ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Working)
+            {
+                var node = World.FindNode(ship.NodeId);
+                if (node != null) return (node.Type == ResourceType.Wood ? CrewJob.Wood : CrewJob.Silver, SiteWorkplace(node));
+            }
+            if (ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition)
+            {
+                if (ship.Transport == TransportPhase.Loading)
+                {
+                    var source = World.FindSettlement(ship.SourceId);
+                    if (source != null) return (CrewJob.Load, CachedPort(source, CrewLoad.Crate));
+                }
+                if (ship.Transport == TransportPhase.Unloading)
+                {
+                    var target = World.FindSettlement(ship.DestinationId);
+                    if (target != null) return (CrewJob.Unload, CachedPort(target, CrewLoad.Crate));
+                }
+            }
+            return (CrewJob.None, null);
+        }
+
+        void UpdateCrews(float delta)
+        {
+            if (crewRoot == null) crewRoot = new GameObject("Shore parties").transform;
+            foreach (var site in siteViews.Values) if (site != null) site.Tick(delta);
+
+            foreach (var ship in World.Ships)
+            {
+                if (!views.TryGetValue(ship.Id, out var view)) continue;
+                var (job, place) = CrewJobOf(ship);
+                if (!crews.TryGetValue(ship.Id, out var crew))
+                {
+                    if (job == CrewJob.None || place == null) continue;
+                    crew = new ShipCrew(crewRoot, materials, ship.Owner, ship.Class == ShipClass.Merchant ? 6 : 4, ship.Id);
+                    crews[ship.Id] = crew;
+                }
+                crew.Assign(job, place);
+                var visible = view.gameObject.activeSelf;
+                crew.Update(view.DeckToward(crew.JettyEnd), delta, visible);
+                if (job == CrewJob.None && crew.AllAboard)
+                {
+                    crew.Destroy();
+                    crews.Remove(ship.Id);
+                }
+
+                // A cutter moored in port hands its cargo over the gunwale; the port's dock gang carries it to the store.
+                var inPort = ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Docked && ship.Cargo > 0;
+                if (inPort && docked.Add(ship.Id))
+                {
+                    var port = World.FindSettlement(ship.PortId);
+                    if (port != null) Deliver(port, GoodsOf(ship.CargoType), (int)Mathf.Clamp(ship.Cargo / (20 * Rules.Centi), 1, 4));
+                }
+                else if (!inPort) docked.Remove(ship.Id);
+            }
+
+            foreach (var id in crews.Keys.Where(id => World.FindShip(id) == null).ToList())
+            {
+                crews[id].Destroy();
+                crews.Remove(id);
+            }
+
+            foreach (var pair in dockGangs)
+            {
+                var settlement = World.FindSettlement(pair.Key);
+                var visible = settlement != null && !settlement.Destroyed && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
+                pair.Value.Update(pair.Value.JettyEnd, delta, visible);
+            }
+        }
+
+        void Deliver(Settlement port, CrewLoad goods, int trips)
+        {
+            if (!dockGangs.TryGetValue(port.Id, out var gang))
+            {
+                gang = new ShipCrew(crewRoot, materials, port.Owner, 2, port.Id);
+                dockGangs[port.Id] = gang;
+            }
+            var place = CachedPort(port, goods);
+            if (gang.Job == CrewJob.Unload && gang.TripsLeft > 0) { gang.TripsLeft += trips; return; }
+            gang.Assign(CrewJob.None, null);
+            gang.TripsLeft = trips;
+            gang.Assign(CrewJob.Unload, place);
         }
 
         void BuildStaticViews()
@@ -304,13 +477,33 @@ namespace MorzaBogow.Presentation
                 shelfRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 if (materials?.Sand != null) shelfRenderer.sharedMaterial = materials.Sand;
 
+                var coast = island.Kind == IslandKind.Coast;
+                if (coast)
+                {
+                    // A sandy foreshore at the foot of the rock, so the land runs down into the water.
+                    var beach = new GameObject("Beach");
+                    beach.transform.SetParent(holder.transform, false);
+                    beach.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Beach(outline);
+                    var beachRenderer = beach.AddComponent<MeshRenderer>();
+                    if (materials?.Sand != null) beachRenderer.sharedMaterial = materials.Sand;
+                }
+
+                // High rock throws breaking waves up as spray; low beaches only foam.
+                var spray = coast ? ShorelineSpray(holder.transform) : null;
                 foreach (var (point, along) in ShoreShape.SurfPoints(outline, ShoreShape.SurfSpacing))
                 {
                     var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, point, new Vector2(ShoreShape.SurfSize, ShoreShape.SurfSize));
                     decal.amplitude = 0f;
 
                     // Phase grows along the shore, so each set of waves runs along the coast instead of flashing at once.
-                    surf.Add((decal, island.Kind == IslandKind.Coast ? 0.55f : 0.6f, along * 0.08f + (float)(island.X * 0.013 + island.Y * 0.021), island));
+                    surf.Add(new SurfPatch
+                    {
+                        Decal = decal, Island = island, Spray = spray,
+                        Strength = coast ? 0.75f : 0.65f,
+                        Phase = along * 0.08f + (float)(island.X * 0.013 + island.Y * 0.021),
+                        Exposure = WaveExposure(point.normalized),
+                        Outward = point.normalized,
+                    });
                 }
                 holder.SetActive(island.Kind == IslandKind.Coast);
                 mapObjects.Add(holder);
@@ -344,11 +537,25 @@ namespace MorzaBogow.Presentation
         GameObject CreateSettlementView(Settlement settlement)
         {
             var root = CreateShore(settlement.X, settlement.Y, $"Settlement {settlement.Owner} [PLACEHOLDER]");
-            var size = settlement.IsOutpost ? 16f : 26f;
+            var size = settlement.IsOutpost ? 16f : 22f;
             var tall = settlement.IsOutpost ? 4f : 6f;
-            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 0.5f + tall * 0.5f, 0f), new Vector3(size, tall, size));
+            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 1.9f + tall * 0.5f, 0f), new Vector3(size, tall, size));
             return root;
         }
+
+        /// <summary>Points a crew walks between at a port, in world space: jetty end, foot of the jetty, store door.</summary>
+        public static void PortPlaces(Settlement settlement, out Vector3 jettyEnd, out Vector3 landing, out Vector3 store)
+        {
+            var landX = (float)Rules.SettlementLandX(settlement);
+            var toward = Mathf.Sign((float)settlement.X - landX);
+            var y = (float)settlement.Y;
+            jettyEnd = new Vector3(landX + toward * (JettyReach - 0.6f), 1.4f, y);
+            landing = new Vector3(landX + toward * 15.5f, 1.4f, y);
+            store = new Vector3(landX + toward * 12.5f, ShoreShape.MoundHeight(12.5f / (float)Rules.SettlementLandRadius) + 0.1f, y + 3f);
+        }
+
+        /// <summary>How far from the land's centre the port jetty reaches, close to a moored hull.</summary>
+        const float JettyReach = 23.5f;
 
         /// <summary>The islet exactly matches the land's collision circle. A free shore shows only this.</summary>
         GameObject CreateShore(double portX, double portY, string name)
@@ -357,16 +564,23 @@ namespace MorzaBogow.Presentation
             var root = new GameObject(name);
             root.transform.position = new Vector3(landX, 0f, (float)portY);
 
-            var diameter = (float)Rules.SettlementLandRadius * 2f;
-            AddViewPart(root, PrimitiveType.Sphere, "Islet", materials?.Rock, new Vector3(0f, 0.4f, 0f), new Vector3(diameter, 3f, diameter));
-            AddViewPart(root, PrimitiveType.Sphere, "Islet grass", materials?.Foliage, new Vector3(0f, 0.5f, 0f), new Vector3(diameter - 4f, 3.2f, diameter - 4f));
+            // The same gentle mound with a beach as every islet, on the land's exact circle.
+            var islet = new GameObject("Islet");
+            islet.transform.SetParent(root.transform, false);
+            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius));
+            islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Sand, materials?.Foliage };
 
-            // The jetty points from the land toward the port on the water.
+            // The jetty runs from the beach toward the port, ending beside a moored hull.
             var towardPort = Mathf.Sign((float)portX - landX);
-            AddViewPart(root, PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * 17f, 1.4f, 0f), new Vector3(8f, 0.4f, 5f));
+            const float Start = 14f;
+            AddViewPart(root, PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * (Start + JettyReach) * 0.5f, 1.2f, 0f), new Vector3(JettyReach - Start, 0.35f, 4f));
             for (var side = -1; side <= 1; side += 2)
             {
-                AddViewPart(root, PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * 20.5f, 0.8f, side * 2.4f), new Vector3(0.45f, 1.5f, 0.45f));
+                for (var post = 0; post < 3; post++)
+                {
+                    var along = Mathf.Lerp(Start + 2f, JettyReach - 0.5f, post / 2f);
+                    AddViewPart(root, PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * along, 0f, side * 1.9f), new Vector3(0.4f, 1.6f, 0.4f));
+                }
             }
             return root;
         }
@@ -382,18 +596,9 @@ namespace MorzaBogow.Presentation
         /// <summary>The waterline of each land, as the radius around its centre at evenly spaced angles.</summary>
         float[] OutlineOf(Island island)
         {
-            switch (island.Kind)
-            {
-                case IslandKind.Coast:
-                    // Read from the rock model at scene build time and scaled like the model itself.
-                    return coastOutline != null && coastOutline.Length == ShoreShape.Samples && coastPrefab != null
-                        ? ShoreShape.Scaled(coastOutline, (float)island.Radius)
-                        : ShoreShape.Ellipse((float)island.Radius, (float)island.Radius);
-                case IslandKind.ResourceSite:
-                    return ShoreShape.Ellipse(ResourceSiteVisual.IsletHalfWidth, ResourceSiteVisual.IsletHalfDepth);
-                default:
-                    return ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius);
-            }
+            // The same waterline the simulation steers and collides against, so what looks like shore is shore.
+            if (island.Outline == null) return ShoreShape.Ellipse((float)island.Radius, (float)island.Radius);
+            return island.Outline.Select(radius => (float)radius).ToArray();
         }
 
         GameObject CreateIsland(Island island)
@@ -412,13 +617,19 @@ namespace MorzaBogow.Presentation
             var coast = Instantiate(coastPrefab, root.transform);
             coast.name = "Coast_Rocks_02";
             var bounds = WorldBounds(coast);
-            var scale = (float)island.Radius * 2f / Mathf.Max(bounds.size.x, bounds.size.z, 0.01f);
+
+            // The land's radius reaches its farthest point; the model was measured against half its footprint.
+            var footprintHalf = (float)(island.Radius / LandShape.MaxRadius(MapFactory.CoastOutline));
+            var scale = footprintHalf * 2f / Mathf.Max(bounds.size.x, bounds.size.z, 0.01f);
             coast.transform.localScale *= scale;
             bounds = WorldBounds(coast);
             coast.transform.position += center - new Vector3(bounds.center.x, bounds.min.y + bounds.size.y * 0.15f, bounds.center.z);
             coastScaleNote = $"unscaled footprint scale factor {scale:0.##}, placed size {bounds.size.x:0.#} x {bounds.size.y:0.#} x {bounds.size.z:0.#} m";
 
             foreach (var blocker in coast.GetComponentsInChildren<Collider>()) blocker.enabled = false;
+
+            // Coasts on the second side are turned half a turn, like their waterline in the simulation.
+            root.transform.rotation = Quaternion.Euler(0f, (float)island.Yaw, 0f);
             return root;
         }
 
@@ -646,21 +857,30 @@ namespace MorzaBogow.Presentation
                 return inspected == null || inspected.Owner == PlayerFaction || !World.CanSee(PlayerFaction, inspected);
             });
             UpdateWaterPoses();
+            UpdateCrews(paused ? 0f : delta * Speed);
 
             // Surf rises and falls as sets of waves reach each shore, never all shores at once.
             var now = Time.unscaledTime;
-            foreach (var (decal, strength, phase, island) in surf)
+            foreach (var patch in surf)
             {
-                if (decal == null) continue;
+                if (patch.Decal == null) continue;
 
                 // Surf would reveal small land under the fog, so it shows only where the player has explored.
-                var holder = decal.transform.parent.gameObject;
-                if (!holder.activeSelf && island.Kind == IslandKind.Coast) continue;
-                var shown = island.Kind == IslandKind.Coast || World.IsExplored(PlayerFaction, island.X, island.Y);
+                var holder = patch.Decal.transform.parent.gameObject;
+                var shown = patch.Island.Kind == IslandKind.Coast || World.IsExplored(PlayerFaction, patch.Island.X, patch.Island.Y);
                 if (holder.activeSelf != shown) holder.SetActive(shown);
-                var set = 0.55f + 0.45f * Mathf.Sin(now * 0.9f + phase);
-                decal.surfaceFoamDimmer = strength * set;
-                decal.deepFoamDimmer = strength * set * 0.6f;
+                if (!shown) continue;
+
+                // Exposed shores take the full sets; sheltered ones only wash. The water never fully calms at the line.
+                var set = Mathf.Sin(now * 0.9f + patch.Phase);
+                var wave = 0.5f + 0.5f * set;
+                var reach = 0.25f + 0.75f * patch.Exposure;
+                patch.Decal.surfaceFoamDimmer = patch.Strength * (0.3f + 0.7f * wave) * reach;
+                patch.Decal.deepFoamDimmer = patch.Decal.surfaceFoamDimmer * 0.7f;
+
+                // As a set crests on an exposed rock face, it bursts upward and falls back.
+                if (patch.Spray != null && patch.Exposure > 0.35f && patch.LastSet < 0.85f && set >= 0.85f) BreakOnRock(patch);
+                patch.LastSet = set;
             }
 
             foreach (var ship in World.Ships)
@@ -709,6 +929,25 @@ namespace MorzaBogow.Presentation
                 if (!freeShoreViews.TryGetValue(shore.Id, out var view)) continue;
                 var shown = World.IsSiteFree(shore) && World.IsExplored(PlayerFaction, shore.X, shore.Y);
                 if (view.activeSelf != shown) view.SetActive(shown);
+            }
+        }
+
+        void BreakOnRock(SurfPatch patch)
+        {
+            var at = patch.Decal.transform.position;
+            var count = Mathf.RoundToInt(6f + 14f * patch.Exposure);
+            for (var i = 0; i < count; i++)
+            {
+                var emit = new ParticleSystem.EmitParams
+                {
+                    position = at - patch.Outward * UnityEngine.Random.Range(0.5f, 2.5f) + new Vector3(UnityEngine.Random.Range(-2.5f, 2.5f), 0.3f, UnityEngine.Random.Range(-2.5f, 2.5f)),
+                    velocity = Vector3.up * UnityEngine.Random.Range(3f, 7.5f) * patch.Exposure + patch.Outward * UnityEngine.Random.Range(-0.5f, 1.2f)
+                               + new Vector3(UnityEngine.Random.Range(-1f, 1f), 0f, UnityEngine.Random.Range(-1f, 1f)),
+                    startSize = UnityEngine.Random.Range(0.9f, 2.2f),
+                    startLifetime = UnityEngine.Random.Range(0.8f, 1.6f),
+                    applyShapeToPosition = false,
+                };
+                patch.Spray.Emit(emit, 1);
             }
         }
 

@@ -115,7 +115,7 @@ namespace MorzaBogow.Editor
             services.AddComponent<GraphicsProfileController>().Configure(volume, profiles);
             services.AddComponent<DisplaySettingsController>();
             var coast = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Coast/Coast_Rocks_02.prefab");
-            new GameObject("Battle").AddComponent<BattleController>().Configure(coast, materials, camera, CoastWaterline(coast));
+            new GameObject("Battle").AddComponent<BattleController>().Configure(coast, materials, camera);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -204,7 +204,15 @@ namespace MorzaBogow.Editor
         /// BattleController.CreateIsland: footprint scaled to the land diameter, 15% of its height under water.
         /// The editor can read the mesh even though the player cannot, so this runs here.
         /// </summary>
-        static float[] CoastWaterline(GameObject prefab)
+        /// <summary>Prints the coast waterline so it can be stored as map data in the simulation.</summary>
+        public static void PrintCoastWaterline()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Coast/Coast_Rocks_02.prefab");
+            var outline = CoastWaterline(prefab);
+            Debug.Log("[M1] CoastOutline = { " + string.Join(", ", outline.Select(value => value.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture))) + " }");
+        }
+
+        public static float[] CoastWaterline(GameObject prefab)
         {
             if (prefab == null) return null;
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
@@ -224,7 +232,8 @@ namespace MorzaBogow.Editor
                     foreach (var vertex in filter.sharedMesh.vertices)
                     {
                         var world = matrix.MultiplyPoint3x4(vertex);
-                        if (world.y < water - bounds.size.y * 0.15f || world.y > water + bounds.size.y * 0.08f) continue;
+                        // A steep wall has vertices only at its foot and top, so the band reaches well above the water.
+                        if (world.y < water - bounds.size.y * 0.1f || world.y > water + bounds.size.y * 0.45f) continue;
                         points.Add(new Vector2((world.x - bounds.center.x) / half, (world.z - bounds.center.z) / half));
                     }
                 }

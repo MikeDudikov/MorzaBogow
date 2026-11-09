@@ -4,22 +4,126 @@ using UnityEngine;
 namespace MorzaBogow.Presentation
 {
     /// <summary>
-    /// The waterline of a piece of land as radii around its centre, and the seabed and surf built from it, so the
-    /// shallows follow the land's real shape. Presentation only: collisions still use the land's circle.
+    /// The waterline of a piece of land as radii around its centre (the simulation's own outline), and the seabed,
+    /// beach, islet mound and surf built from it, so what the player sees is the shore ships steer by.
     /// </summary>
     public static class ShoreShape
     {
-        public const int Samples = 64;
+        public const int Samples = Simulation.LandShape.Samples;
         // Patches overlap by more than half, so the surf reads as one band along the shore, not separate puffs.
         public const float SurfSpacing = 6f;
         public const float SurfSize = 15f;
 
+        /// <summary>The simulation's seabed profile: what is too shallow for a hull looks shallow.</summary>
+        static readonly float[] RingOffset = System.Array.ConvertAll(Simulation.Seabed.Offset, value => (float)value);
+        static readonly float[] RingDepth = System.Array.ConvertAll(Simulation.Seabed.Depth, value => -(float)value);
+
         /// <summary>
-        /// Distance from the waterline outward and the seabed depth there. The first ring sits under the land's
-        /// edge, so no gap opens at the shore; the last lies where the water has absorbed the floor.
+        /// An islet rises gently: a wet beach from below the water to the dry sand, then grass or rock to a low
+        /// crown. Fractions of the waterline radius, inner first; the land material starts at ring LandRings.
         /// </summary>
-        static readonly float[] RingOffset = { -3f, 0f, 3f, 7f, 13f, 21f, 31f, 44f };
-        static readonly float[] RingDepth = { -0.5f, -0.8f, -1.4f, -2.6f, -4.4f, -6.8f, -9.6f, -13f };
+        static readonly float[] MoundFraction = { 0.18f, 0.4f, 0.62f, 0.78f, 0.86f, 0.93f, 1.0f, 1.1f };
+        static readonly float[] MoundHeightAt = { 2.1f, 1.9f, 1.4f, 0.75f, 0.5f, 0.25f, -0.05f, -0.7f };
+        const int LandRings = 3;
+        const float CrownHeight = 2.15f;
+
+        /// <summary>A beach skirt around a rocky coast: it rises inland under the rock and runs out under the water.</summary>
+        static readonly float[] BeachOffset = { -10f, -5f, -1.5f, 0f, 2.5f };
+        static readonly float[] BeachHeight = { 0.6f, 0.35f, 0.08f, -0.1f, -0.7f };
+
+        /// <summary>Ground height of an islet at a fraction of the waterline radius from its centre.</summary>
+        public static float MoundHeight(float fraction)
+        {
+            if (fraction <= MoundFraction[0]) return Mathf.Lerp(CrownHeight, MoundHeightAt[0], fraction / MoundFraction[0]);
+            for (var i = 1; i < MoundFraction.Length; i++)
+            {
+                if (fraction > MoundFraction[i]) continue;
+                return Mathf.Lerp(MoundHeightAt[i - 1], MoundHeightAt[i], (fraction - MoundFraction[i - 1]) / (MoundFraction[i] - MoundFraction[i - 1]));
+            }
+            return MoundHeightAt[MoundHeightAt.Length - 1];
+        }
+
+        /// <summary>Ground height of an islet at a point relative to its centre.</summary>
+        public static float GroundAt(float[] outline, float x, float z)
+        {
+            var reach = At(outline, Mathf.Atan2(z, x));
+            return MoundHeight(Mathf.Sqrt(x * x + z * z) / Mathf.Max(reach, 0.1f));
+        }
+
+        /// <summary>The islet itself: submesh 0 is the beach, submesh 1 the land on top.</summary>
+        public static Mesh Mound(float[] outline)
+        {
+            var rings = MoundFraction.Length;
+            var vertices = new Vector3[1 + rings * Samples];
+            vertices[0] = new Vector3(0f, CrownHeight, 0f);
+            for (var ring = 0; ring < rings; ring++)
+            {
+                for (var i = 0; i < Samples; i++)
+                {
+                    var angle = Angle(i);
+                    var radius = outline[i] * MoundFraction[ring];
+                    vertices[1 + ring * Samples + i] = new Vector3(Mathf.Cos(angle) * radius, MoundHeightAt[ring], Mathf.Sin(angle) * radius);
+                }
+            }
+
+            var land = new List<int>();
+            var beach = new List<int>();
+            AddCap(land);
+            for (var ring = 0; ring < rings - 1; ring++) AddRing(ring < LandRings ? land : beach, ring);
+
+            var mesh = new Mesh { name = "Islet", vertices = vertices, subMeshCount = 2 };
+            mesh.SetTriangles(beach, 0);
+            mesh.SetTriangles(land, 1);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        /// <summary>A sandy foreshore under a rocky coast, so the rock does not end in a sheer edge at the water.</summary>
+        public static Mesh Beach(float[] outline)
+        {
+            var rings = BeachOffset.Length;
+            var vertices = new Vector3[1 + rings * Samples];
+            vertices[0] = new Vector3(0f, BeachHeight[0] - 0.5f, 0f);
+            for (var ring = 0; ring < rings; ring++)
+            {
+                for (var i = 0; i < Samples; i++)
+                {
+                    var angle = Angle(i);
+                    var radius = Mathf.Max(0.5f, outline[i] + BeachOffset[ring]);
+                    vertices[1 + ring * Samples + i] = new Vector3(Mathf.Cos(angle) * radius, BeachHeight[ring], Mathf.Sin(angle) * radius);
+                }
+            }
+            var triangles = new List<int>();
+            for (var ring = 0; ring < rings - 1; ring++) AddRing(triangles, ring);
+            var mesh = new Mesh { name = "Beach", vertices = vertices, triangles = triangles.ToArray() };
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        // Triangles wind clockwise seen from above, so surfaces face up toward the camera.
+        static void AddCap(List<int> triangles)
+        {
+            for (var i = 0; i < Samples; i++)
+            {
+                triangles.Add(0); triangles.Add(1 + (i + 1) % Samples); triangles.Add(1 + i);
+            }
+        }
+
+        static void AddRing(List<int> triangles, int ring)
+        {
+            for (var i = 0; i < Samples; i++)
+            {
+                var next = (i + 1) % Samples;
+                var a = 1 + ring * Samples + i;
+                var b = 1 + ring * Samples + next;
+                var c = 1 + (ring + 1) * Samples + i;
+                var d = 1 + (ring + 1) * Samples + next;
+                triangles.Add(a); triangles.Add(b); triangles.Add(c);
+                triangles.Add(b); triangles.Add(d); triangles.Add(c);
+            }
+        }
 
         public static float Angle(int index) => index * 2f * Mathf.PI / Samples;
 
@@ -64,18 +168,29 @@ namespace MorzaBogow.Presentation
                 radii[index] = Mathf.Max(radii[index], point.magnitude);
             }
 
-            for (var pass = 0; pass < Samples; pass++)
+            // Gaps are bridged by a straight line between the known directions on both sides.
+            for (var i = 0; i < Samples; i++)
             {
-                var filled = true;
-                for (var i = 0; i < Samples; i++)
-                {
-                    if (radii[i] > 0f) continue;
-                    var left = radii[(i + Samples - 1) % Samples];
-                    var right = radii[(i + 1) % Samples];
-                    if (left > 0f || right > 0f) radii[i] = left > 0f && right > 0f ? (left + right) * 0.5f : Mathf.Max(left, right);
-                    else filled = false;
-                }
-                if (filled) break;
+                if (radii[i] > 0f) continue;
+                var left = i;
+                while (radii[(left + Samples - 1) % Samples] <= 0f && left - i > -Samples) left--;
+                left = (left + Samples - 1) % Samples;
+                var right = i;
+                while (radii[(right + 1) % Samples] <= 0f && right - i < Samples) right++;
+                right = (right + 1) % Samples;
+                if (radii[left] <= 0f || radii[right] <= 0f) continue;
+                var span = (right - left + Samples) % Samples;
+                var step = (i - left + Samples) % Samples;
+                radii[i] = Mathf.Lerp(radii[left], radii[right], span > 0 ? (float)step / span : 0f);
+            }
+
+            // A notch one or two directions wide comes from missing vertices, not from a real bay: bridge it.
+            var raw = (float[])radii.Clone();
+            for (var i = 0; i < Samples; i++)
+            {
+                var left = Mathf.Max(raw[(i + Samples - 2) % Samples], raw[(i + Samples - 1) % Samples]);
+                var right = Mathf.Max(raw[(i + 1) % Samples], raw[(i + 2) % Samples]);
+                if (raw[i] < 0.75f * Mathf.Min(left, right)) radii[i] = (left + right) * 0.5f;
             }
 
             var smooth = new float[Samples];

@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 6;
+        public const int Version = 7;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -67,7 +67,13 @@ namespace MorzaBogow.Simulation
                 writer.Write(world.Explored);
 
                 writer.Write(world.Islands.Count);
-                foreach (var island in world.Islands) { writer.Write(island.X); writer.Write(island.Y); writer.Write(island.Radius); writer.Write((int)island.Kind); }
+                foreach (var island in world.Islands)
+                {
+                    writer.Write(island.X); writer.Write(island.Y); writer.Write(island.Radius); writer.Write((int)island.Kind);
+                    writer.Write(island.Yaw);
+                    writer.Write(island.Outline?.Length ?? 0);
+                    if (island.Outline != null) foreach (var radius in island.Outline) writer.Write(radius);
+                }
 
                 writer.Write(world.Nodes.Count);
                 foreach (var node in world.Nodes)
@@ -164,7 +170,18 @@ namespace MorzaBogow.Simulation
                 if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
 
                 var count = reader.ReadInt32();
-                for (var i = 0; i < count; i++) world.Islands.Add(new Island { X = reader.ReadDouble(), Y = reader.ReadDouble(), Radius = reader.ReadDouble(), Kind = (IslandKind)reader.ReadInt32() });
+                for (var i = 0; i < count; i++)
+                {
+                    var island = new Island { X = reader.ReadDouble(), Y = reader.ReadDouble(), Radius = reader.ReadDouble(), Kind = (IslandKind)reader.ReadInt32(), Yaw = reader.ReadDouble() };
+                    var samples = reader.ReadInt32();
+                    if (samples != 0 && samples != LandShape.Samples) throw new InvalidDataException("Damaged land outline.");
+                    if (samples > 0)
+                    {
+                        island.Outline = new double[samples];
+                        for (var k = 0; k < samples; k++) island.Outline[k] = reader.ReadDouble();
+                    }
+                    world.Islands.Add(island);
+                }
 
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
