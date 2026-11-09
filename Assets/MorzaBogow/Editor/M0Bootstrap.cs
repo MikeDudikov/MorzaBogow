@@ -146,6 +146,19 @@ namespace MorzaBogow.Editor
             environment.skyType.Override((int)SkyType.PhysicallyBased);
             profile.Add<PhysicallyBasedSky>(true);
 
+            // V05: fixed exposure, so dark fog on screen never brightens the visible part of the battle.
+            var exposure = profile.Add<Exposure>(true);
+            exposure.mode.Override(ExposureMode.Fixed);
+            exposure.fixedExposure.Override(12f);
+
+            // Compresses highlights, so sunlit sand and light models keep their shape at this exposure.
+            var tonemapping = profile.Add<Tonemapping>(true);
+            tonemapping.mode.Override(TonemappingMode.Neutral);
+
+            // Neutral tonemapping washes colors out; this brings the water back to its earlier blue-green.
+            var color = profile.Add<ColorAdjustments>(true);
+            color.saturation.Override(35f);
+
             var shadows = profile.Add<HDShadowSettings>(true);
             shadows.cascadeShadowSplitCount.Override(tier >= GraphicsProfile.ExtraHigh ? 4 : tier == GraphicsProfile.High ? 3 : 2);
 

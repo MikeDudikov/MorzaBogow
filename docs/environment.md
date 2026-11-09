@@ -60,18 +60,22 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 | Kontrola | Wynik | Zakres |
 |---|---|---|
-| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 82/82, PlayMode 15/15 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 91/91, PlayMode 29/29 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
 | Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
-| Build Windows64 Mono, scena M1_Battle | Success, 261613684 B, 0 błędów, 0 ostrzeżeń | |
+| Build Windows64 Mono, scena M1_Battle | Success, 261872052 B, 0 błędów, 0 ostrzeżeń | |
+| Build, 130 s rozgrywki SI z próbkowaniem wody | 136445 odczytów, 8 błędów, przechył do 12°, wznoszenie do 1,07 m | odczyty liczbowe, ruch na ekranie nie był oceniany |
+| Kolor wody w buildzie, profil Ultra | RGB 34 68 75, wzorzec z wcześniejszego buildu 31 65 81 | średnia z wycinka zrzutu, inna wysokość kamery niż we wzorcu |
 | Pojedynczy kuter, trasa 70 m | 108 D/min | model: do 124 D/min przy pełnym wykorzystaniu trasy |
 | Mecz SI kontra SI, seed 9 | Rozstrzygnięty po 20 min, pierwsza walka po 148 s | jeden przebieg, nie dowód balansu |
 | docs/economy-model/economy-model.py | Wykonany ponownie, CSV zgodne z pakietem | model nie obejmuje walki ani Unity |
 
 Coast Rocks 02: 4 siatki, 2363290 trójkątów LOD0, Mesh LOD do 64 trójkątów na siatkę, FBX zaimportowany bez zmian, jeden materiał HDRP Lit. Na mapie wyspa ma około 102 × 7 × 110 m. Modele okrętów, osad i węzłów to oznaczone modele zastępcze.
 
-Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Dodane animacje i efekty to prezentacja na modelach zastępczych; nie obejmują mgły wojny dla odległych zdarzeń.
+Obraz: stała ekspozycja EV 12, mapowanie tonów Neutral, nasycenie +35, słońce 100000 lx. Słabsze słońce nie poprawiało proporcji wody do lądu, bo niebo fizyczne ciemnieje razem z nim. Fale są wyłącznie prezentacją: kadłub odczytuje wysokość prawdziwej powierzchni wody, a pozycja logiczna, zasięgi i kolizje pozostają bez zmian.
 
-Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 2.
+Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Znaczniki to cienkie, półprzezroczyste okręgi z lekko zmiękczoną krawędzią: zaznaczenie i cel ruchu mają krycie 42%, atakowany wróg czerwony okrąg o kryciu 70%. Mgła wojny jest widoczna w trzech stanach, a odkrycie należy do zapisu gry. Animacje, efekty oraz modele składu drewna i kopalni srebra to prezentacja zbudowana z prostych brył, do zastąpienia docelową grafiką.
+
+Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 3.
 
 Budżety kampanii M01–M14 i ładunek misji (E12) są tylko w dokumentach i danych. Sceny misji nie istnieją.
 
@@ -94,7 +98,9 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 ## Nieuruchomione
 
 - Dłuższa rozgrywka człowieka: użytkownik zagrał krótko, zaznaczanie i rozkazy działały, bez błędów. Paski HP, animacje i efekty dodane po tej próbie: NOT_RUN w ręcznej ocenie.
-- Ocena obrazu, w tym wizualne potwierdzenie działania RTGI i odbić RT: NOT_RUN.
+- Ocena obrazu przez człowieka dla obecnej wody, okręgów, mgły i modeli: NOT_RUN. Sprawdzono je tylko na zrzutach z profilu Ultra w 1920×1080.
+- Wizualne potwierdzenie działania RTGI i odbić RT: NOT_RUN.
+- Kolor wody i ekspozycja w profilach Low, Medium, High i Extra High w buildzie: NOT_RUN.
 - Fizyczne wyświetlanie 2560×1440 i pozostałych trybów powyżej 1080p: BLOCKED, brak monitora.
 - Pełne przełączanie rozdzielczości i profili w buildzie, 20 cykli bez wycieków: NOT_RUN.
 - Pomiary GPU, VRAM oraz scen 100/200/400 statków: NOT_RUN.

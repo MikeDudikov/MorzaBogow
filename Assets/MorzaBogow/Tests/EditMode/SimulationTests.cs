@@ -677,6 +677,61 @@ namespace MorzaBogow.Tests
             Assert.That(warship.TargetId, Is.Not.EqualTo(hidden.Id));
         }
 
+        [Test]
+        public void Fog_StartsUnexploredBeyondOwnSight()
+        {
+            var world = MapFactory.CreateSkirmish(1);
+            var home = world.SettlementOf(0);
+            var enemy = world.SettlementOf(1);
+            int Cell(double value) => (int)((value - World.FogOrigin) / World.FogCellSize);
+            Assert.That(world.GetFog(0, Cell(home.X), Cell(home.Y)), Is.EqualTo(FogState.Visible));
+            Assert.That(world.GetFog(0, Cell(enemy.X), Cell(enemy.Y)), Is.EqualTo(FogState.Unexplored));
+            Assert.That(world.GetFog(1, Cell(enemy.X), Cell(enemy.Y)), Is.EqualTo(FogState.Visible));
+        }
+
+        [Test]
+        public void Fog_LeftAreaStaysExploredButNotVisible()
+        {
+            var world = Empty();
+            var scout = world.SpawnShip(0, ShipClass.Cutter, 0, 500);
+            world.RefreshExplored();
+            int Cell(double value) => (int)((value - World.FogOrigin) / World.FogCellSize);
+            Assert.That(world.GetFog(0, Cell(0), Cell(500)), Is.EqualTo(FogState.Visible));
+            world.Ships.Remove(scout);
+            world.RefreshExplored();
+            Assert.That(world.GetFog(0, Cell(0), Cell(500)), Is.EqualTo(FogState.Explored));
+            Assert.That(world.GetFog(1, Cell(0), Cell(500)), Is.EqualTo(FogState.Unexplored), "Exploration is per faction.");
+        }
+
+        [Test]
+        public void Fog_ExplorationIsSaved()
+        {
+            var world = Empty();
+            var scout = world.SpawnShip(0, ShipClass.Cutter, 0, 500);
+            world.RefreshExplored();
+            world.Ships.Remove(scout);
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            int Cell(double value) => (int)((value - World.FogOrigin) / World.FogCellSize);
+            Assert.That(loaded.GetFog(0, Cell(0), Cell(500)), Is.EqualTo(FogState.Explored));
+        }
+
+        [Test]
+        public void Fog_VisibleGridMatchesCellByCellQuery()
+        {
+            var world = MapFactory.CreateSkirmish(2);
+            var grid = new bool[World.FogCells * World.FogCells];
+            world.FillVisible(0, grid);
+            for (var j = 0; j < World.FogCells; j++)
+            {
+                for (var i = 0; i < World.FogCells; i++)
+                {
+                    var expected = world.GetFog(0, i, j) == FogState.Visible;
+                    if (grid[j * World.FogCells + i] != expected) Assert.Fail($"Cell {i},{j} differs");
+                }
+            }
+            Assert.That(grid.Count(item => item), Is.GreaterThan(0));
+        }
+
         // ---------- Combat and victory ----------
 
         [Test]

@@ -32,7 +32,18 @@ namespace MorzaBogow.Presentation
         readonly Dictionary<int, int[]> groups = new Dictionary<int, int[]>();
         readonly List<GameObject> mapObjects = new List<GameObject>();
         readonly Dictionary<int, GameObject> wreckViews = new Dictionary<int, GameObject>();
-        readonly Dictionary<int, Transform> orderLines = new Dictionary<int, Transform>();
+        readonly Dictionary<int, Transform> destinationMarkers = new Dictionary<int, Transform>();
+        readonly Dictionary<int, ResourceSiteVisual> siteViews = new Dictionary<int, ResourceSiteVisual>();
+        readonly HashSet<int> targetedShips = new HashSet<int>();
+        WaterSampler water;
+        int waterCursor;
+        float maxRollSeen, maxHeaveSeen;
+        BattleFog fog;
+        float fogTimer;
+        GameObject settlementTargetMarker;
+        string smokeShotPrefix;
+        int smokeShots;
+        float smokeShotAt;
         readonly Dictionary<int, Vector3> lastPositions = new Dictionary<int, Vector3>();
         readonly HashSet<int> sinkingShips = new HashSet<int>();
         BattleEffects effects;
@@ -64,6 +75,13 @@ namespace MorzaBogow.Presentation
         public IReadOnlyDictionary<int, ShipVisual> Views => views;
         public IReadOnlyDictionary<int, GameObject> WreckViews => wreckViews;
         public BattleEffects Effects => effects;
+        public BattleFog Fog => fog;
+        public WaterSampler Water => water;
+
+        /// <summary>Samples only some ships each frame; between samples the hull smoothly follows its last pose.</summary>
+        const int WaterShipsPerFrame = 24;
+        public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
+        public IReadOnlyCollection<int> TargetedShips => targetedShips;
         public IReadOnlyCollection<int> InspectedEnemies => inspectedEnemies;
         public int InspectedSettlementId => inspectedSettlementId;
 
@@ -85,6 +103,8 @@ namespace MorzaBogow.Presentation
         void Awake()
         {
             StartMatch(MapFactory.CreateSkirmish(seed), 0);
+            var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
+            if (surface != null) water = new WaterSampler(surface);
             ReadSmokeArguments();
         }
 
@@ -93,9 +113,11 @@ namespace MorzaBogow.Presentation
             ClearViews();
             if (effects == null) effects = new BattleEffects(materials);
             World = world;
+            if (fog == null) fog = new BattleFog(materials?.Fog);
             opponent = new Opponent(1) { BuildIndex = opponentBuildIndex };
             BuildStaticViews();
             SyncViews();
+            fog.Update(World, PlayerFaction, 0f, true);
 
             var home = World.SettlementOf(PlayerFaction);
             pivot = new Vector3((float)home.X + 60f, 0f, (float)home.Y);
@@ -109,6 +131,17 @@ namespace MorzaBogow.Presentation
             if (index < 0 || index + 2 >= arguments.Length) return;
             smokeReport = arguments[index + 1];
             smokeSeconds = float.Parse(arguments[index + 2], System.Globalization.CultureInfo.InvariantCulture);
+            var exposureIndex = Array.IndexOf(arguments, "-morzaExposure");
+            if (exposureIndex >= 0 && exposureIndex + 1 < arguments.Length)
+            {
+                var value = float.Parse(arguments[exposureIndex + 1], System.Globalization.CultureInfo.InvariantCulture);
+                foreach (var volume in FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsSortMode.None))
+                {
+                    if (volume.sharedProfile != null && volume.sharedProfile.TryGet<UnityEngine.Rendering.HighDefinition.Exposure>(out var exposure)) exposure.fixedExposure.Override(value);
+                }
+            }
+            var shot = Array.IndexOf(arguments, "-morzaSmokeShots");
+            if (shot >= 0 && shot + 1 < arguments.Length) smokeShotPrefix = arguments[shot + 1];
             autoPlayer = new Opponent(PlayerFaction);
             speedIndex = Speeds.Length - 1;
         }
@@ -201,8 +234,12 @@ namespace MorzaBogow.Presentation
             selected.Clear();
             foreach (var view in wreckViews.Values) if (view != null) Destroy(view);
             wreckViews.Clear();
-            foreach (var line in orderLines.Values) if (line != null) Destroy(line.gameObject);
-            orderLines.Clear();
+            foreach (var marker in destinationMarkers.Values) if (marker != null) Destroy(marker.gameObject);
+            destinationMarkers.Clear();
+            siteViews.Clear();
+            targetedShips.Clear();
+            if (settlementTargetMarker != null) Destroy(settlementTargetMarker);
+            settlementTargetMarker = null;
             lastPositions.Clear();
             sinkingShips.Clear();
             inspectedEnemies.Clear();
@@ -224,12 +261,10 @@ namespace MorzaBogow.Presentation
 
             foreach (var node in World.Nodes)
             {
-                var material = node.Type == ResourceType.Wood ? materials?.WoodNode : materials?.SilverNode;
-                var view = Primitive(PrimitiveType.Cylinder, $"{node.Type} node {node.Id} [PLACEHOLDER]", material);
-                view.transform.position = new Vector3((float)node.X, 0.3f, (float)node.Y);
-                view.transform.localScale = new Vector3(40f, 0.15f, 40f);
-                nodeViews[node.Id] = view;
-                mapObjects.Add(view);
+                var site = ResourceSiteVisual.Create(node, materials);
+                siteViews[node.Id] = site;
+                nodeViews[node.Id] = site.gameObject;
+                mapObjects.Add(site.gameObject);
             }
         }
 
@@ -381,31 +416,66 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        void UpdateOrderLines()
+        /// <summary>A modest ring where selected ships are heading. Enemy targets get their own red marker instead.</summary>
+        void UpdateDestinationMarkers()
         {
-            var width = Mathf.Clamp(height * 0.006f, 0.25f, 1.6f);
-            foreach (var id in orderLines.Keys.ToList())
+            foreach (var id in destinationMarkers.Keys.ToList())
             {
                 var ship = World.FindShip(id);
-                if (ship == null || !selected.Contains(id) || !TryGetOrderTarget(ship, out _))
-                {
-                    orderLines[id].gameObject.SetActive(false);
-                }
+                var hasMarker = ship != null && selected.Contains(id) && ship.Order != OrderKind.AttackShip && ship.Order != OrderKind.Ram
+                                && ship.Order != OrderKind.Board && ship.Order != OrderKind.AttackSettlement && TryGetOrderTarget(ship, out _);
+                destinationMarkers[id].gameObject.SetActive(hasMarker);
             }
 
             foreach (var id in selected)
             {
                 var ship = World.FindShip(id);
-                if (ship == null || !TryGetOrderTarget(ship, out var target)) continue;
-                if (!orderLines.TryGetValue(id, out var line))
+                if (ship == null || ship.Order == OrderKind.AttackShip || ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board
+                    || ship.Order == OrderKind.AttackSettlement || !TryGetOrderTarget(ship, out var target)) continue;
+                if (!destinationMarkers.TryGetValue(id, out var marker))
                 {
-                    line = Primitive(PrimitiveType.Cube, "Order line", materials?.OrderLine).transform;
-                    orderLines[id] = line;
+                    marker = RingMarker.Create("Destination", materials?.OrderLine, null, 4f);
+                    destinationMarkers[id] = marker;
                 }
-                line.gameObject.SetActive(true);
-                var from = views.TryGetValue(id, out var view) ? view.transform.position : ToWorld(ship);
-                BattleEffects.Stretch(line, from + Vector3.up * 1.5f, target + Vector3.up * 1.5f, width);
+                marker.gameObject.SetActive(true);
+                marker.position = target + Vector3.up * 0.5f;
             }
+        }
+
+        /// <summary>Marks what the player's ships were ordered to attack, as long as the player can see it.</summary>
+        void UpdateTargetMarkers()
+        {
+            targetedShips.Clear();
+            Settlement targetedSettlement = null;
+            foreach (var ship in World.Ships)
+            {
+                if (ship.Owner != PlayerFaction) continue;
+                if (ship.Order == OrderKind.AttackShip || ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board)
+                {
+                    var target = World.FindShip(ship.TargetId);
+                    if (target != null && target.Owner != PlayerFaction && World.CanSee(PlayerFaction, target)) targetedShips.Add(target.Id);
+                }
+                else if (ship.Order == OrderKind.AttackSettlement)
+                {
+                    targetedSettlement = World.Settlements.FirstOrDefault(item => item.Id == ship.TargetId && !item.Destroyed);
+                }
+            }
+
+            foreach (var pair in views) pair.Value.SetTargetMarker(targetedShips.Contains(pair.Key));
+
+            if (targetedSettlement == null)
+            {
+                if (settlementTargetMarker != null) settlementTargetMarker.SetActive(false);
+                return;
+            }
+            if (settlementTargetMarker == null)
+            {
+                settlementTargetMarker = RingMarker.Create("Settlement attack target", materials?.TargetRing, null, 24f).gameObject;
+            }
+            settlementTargetMarker.SetActive(true);
+            var pulse = 26f + Mathf.Sin(Time.unscaledTime * 5f) * 1.5f;
+            settlementTargetMarker.transform.position = new Vector3((float)targetedSettlement.X, 0.7f, (float)targetedSettlement.Y);
+            settlementTargetMarker.transform.localScale = new Vector3(pulse, 1f, pulse);
         }
 
         void PresentFrame()
@@ -414,12 +484,20 @@ namespace MorzaBogow.Presentation
             var delta = Time.unscaledDeltaTime;
             effects.Update(paused ? 0f : delta * Speed);
             SyncWrecks();
-            UpdateOrderLines();
+            UpdateDestinationMarkers();
+            UpdateTargetMarkers();
+            fogTimer += delta;
+            if (fogTimer >= 0.1f)
+            {
+                fog.Update(World, PlayerFaction, fogTimer);
+                fogTimer = 0f;
+            }
             inspectedEnemies.RemoveWhere(id =>
             {
                 var inspected = World.FindShip(id);
                 return inspected == null || inspected.Owner == PlayerFaction || !World.CanSee(PlayerFaction, inspected);
             });
+            UpdateWaterPoses();
             foreach (var ship in World.Ships)
             {
                 if (!views.TryGetValue(ship.Id, out var view)) continue;
@@ -442,6 +520,7 @@ namespace MorzaBogow.Presentation
                 {
                     var known = (node.KnownMask & (1 << PlayerFaction)) != 0;
                     if (view.activeSelf != known) view.SetActive(known);
+                    if (known && siteViews.TryGetValue(node.Id, out var site)) site.UpdateStock(node.Stock);
                 }
             }
 
@@ -450,6 +529,31 @@ namespace MorzaBogow.Presentation
                 if (!settlementViews.TryGetValue(settlement.Id, out var view)) continue;
                 var shown = !settlement.Destroyed && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
                 if (view.activeSelf != shown) view.SetActive(shown);
+            }
+        }
+
+        /// <summary>Reads the real surface under bow, stern, sides and center of visible ships.</summary>
+        void UpdateWaterPoses()
+        {
+            if (water == null || World.Ships.Count == 0) return;
+            var count = Mathf.Min(WaterShipsPerFrame, World.Ships.Count);
+            for (var i = 0; i < count; i++)
+            {
+                waterCursor = (waterCursor + 1) % World.Ships.Count;
+                var ship = World.Ships[waterCursor];
+                if (!views.TryGetValue(ship.Id, out var view) || !World.CanSee(PlayerFaction, ship)) continue;
+
+                var center = view.transform.position;
+                var forward = view.transform.forward * (view.Length * 0.5f);
+                var side = view.transform.right * (view.Beam * 0.5f);
+                if (!water.TryHeight(center + forward, out var bow) || !water.TryHeight(center - forward, out var stern)
+                    || !water.TryHeight(center - side, out var port) || !water.TryHeight(center + side, out var starboard)
+                    || !water.TryHeight(center, out var middle)) continue;
+
+                var pose = HullPose.FromHeights(bow, stern, port, starboard, middle, view.Length, view.Beam);
+                view.SetWaterPose(pose);
+                maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(pose.Roll), Mathf.Abs(pose.Pitch));
+                maxHeaveSeen = Mathf.Max(maxHeaveSeen, Mathf.Abs(pose.Heave));
             }
         }
 
@@ -462,18 +566,22 @@ namespace MorzaBogow.Presentation
             if (strategicCamera == null) return;
             var delta = Time.unscaledDeltaTime;
             var move = Vector3.zero;
-            if (Input.GetKey(KeyCode.W) || Input.mousePosition.y >= Screen.height - 4) move += Vector3.forward;
-            if (Input.GetKey(KeyCode.S) || Input.mousePosition.y <= 4) move += Vector3.back;
-            if (Input.GetKey(KeyCode.A) || Input.mousePosition.x <= 4) move += Vector3.left;
-            if (Input.GetKey(KeyCode.D) || Input.mousePosition.x >= Screen.width - 4) move += Vector3.right;
+            // Edge scrolling needs a focused game and a cursor inside the screen; the automatic test never scrolls.
+            var mouse = Input.mousePosition;
+            var edgeScroll = Application.isFocused && autoPlayer == null
+                             && mouse.x >= 0f && mouse.y >= 0f && mouse.x <= Screen.width && mouse.y <= Screen.height;
+            if (Input.GetKey(KeyCode.W) || (edgeScroll && mouse.y >= Screen.height - 4)) move += Vector3.forward;
+            if (Input.GetKey(KeyCode.S) || (edgeScroll && mouse.y <= 4)) move += Vector3.back;
+            if (Input.GetKey(KeyCode.A) || (edgeScroll && mouse.x <= 4)) move += Vector3.left;
+            if (Input.GetKey(KeyCode.D) || (edgeScroll && mouse.x >= Screen.width - 4)) move += Vector3.right;
             if (Input.GetKey(KeyCode.Q)) yaw -= 70f * delta;
             if (Input.GetKey(KeyCode.E)) yaw += 70f * delta;
             height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f);
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             pivot += rotation * move.normalized * (height * 0.8f * delta);
-            pivot.x = Mathf.Clamp(pivot.x, -700f, 700f);
-            pivot.z = Mathf.Clamp(pivot.z, -700f, 700f);
+            pivot.x = Mathf.Clamp(pivot.x, -520f, 520f);
+            pivot.z = Mathf.Clamp(pivot.z, -420f, 420f);
 
             var view = rotation * Quaternion.Euler(52f, 0f, 0f);
             strategicCamera.transform.SetPositionAndRotation(pivot - view * Vector3.forward * (height / Mathf.Sin(52f * Mathf.Deg2Rad)), view);
@@ -541,6 +649,7 @@ namespace MorzaBogow.Presentation
 
         void ClearSelection()
         {
+            if (smokeReport != null) Debug.Log($"[Smoke] selection cleared by input at {smokeElapsed:0.0} s");
             selected.Clear();
             inspectedEnemies.Clear();
             inspectedSettlementId = -1;
@@ -846,12 +955,58 @@ namespace MorzaBogow.Presentation
             smokeElapsed += Time.unscaledDeltaTime;
             if (firstEnemySeenSeconds < 0 && World.Ships.Any(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship))) firstEnemySeenSeconds = World.Tick / (float)Rules.TickRate;
             smokeMaxVisibleEnemies = Mathf.Max(smokeMaxVisibleEnemies, World.Ships.Count(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship)));
+            UpdateSmokeShots();
             if (Mathf.FloorToInt(smokeElapsed / 30f) != Mathf.FloorToInt((smokeElapsed - Time.unscaledDeltaTime) / 30f))
                 Debug.Log($"[Smoke] {smokeElapsed:0} s, tick {World.Tick}, ships {World.Ships.Count}, combat {combatEvents}, focus {Application.isFocused}");
             if (smokeElapsed < smokeSeconds && World.Outcome == OutcomeKind.InProgress) return;
 
             WriteSmokeReport(false);
             Application.Quit(0);
+        }
+
+        /// <summary>Test screenshots: a resource site up close, the whole map, then the fleet with bars and markers.</summary>
+        void UpdateSmokeShots()
+        {
+            if (smokeShotPrefix == null || smokeShots >= 4) return;
+            if (smokeShotAt > 0f)
+            {
+                if (smokeElapsed < smokeShotAt) return;
+                smokeShots++;
+                smokeShotAt = 0f;
+                ScreenCapture.CaptureScreenshot($"{smokeShotPrefix}-{smokeShots}.png");
+                Debug.Log($"[Smoke] shot {smokeShots}, selected {selected.Count}, player ships {World.Ships.Count(ship => ship.Owner == PlayerFaction)}");
+                return;
+            }
+            if (smokeElapsed < smokeSeconds * (smokeShots + 1) / 5f) return;
+
+            var home = World.SettlementOf(PlayerFaction);
+            switch (smokeShots)
+            {
+                case 0:
+                    var wood = World.Nodes.First(node => node.Type == ResourceType.Wood && (node.KnownMask & (1 << PlayerFaction)) != 0);
+                    pivot = new Vector3((float)wood.X, 0f, (float)wood.Y + 22f);
+                    height = 55f;
+                    break;
+                case 1:
+                    var silver = World.Nodes.First(node => node.Type == ResourceType.Silver && (node.KnownMask & (1 << PlayerFaction)) != 0);
+                    pivot = new Vector3((float)silver.X, 0f, (float)silver.Y + 22f);
+                    height = 55f;
+                    break;
+                case 2:
+                    pivot = Vector3.zero;
+                    height = 300f;
+                    break;
+                default:
+                    var focus = World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Order == OrderKind.Ram)
+                                ?? World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Definition.LightSlots > 0)
+                                ?? World.Ships.First(ship => ship.Owner == PlayerFaction);
+                    pivot = ToWorld(focus);
+                    height = 90f;
+                    selected.Clear();
+                    foreach (var ship in World.Ships.Where(item => item.Owner == PlayerFaction)) selected.Add(ship.Id);
+                    break;
+            }
+            smokeShotAt = smokeElapsed + 1.5f;
         }
 
         /// <summary>An outside close still leaves a report, clearly marked as not completed.</summary>
@@ -873,6 +1028,9 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"wood\": [{World.Settlements[0].Wood / Rules.Centi}, {World.Settlements[1].Wood / Rules.Centi}],\n");
             report.Append($"  \"silver\": [{World.Settlements[0].Silver / Rules.Centi}, {World.Settlements[1].Silver / Rules.Centi}],\n");
             report.Append($"  \"firstEnemySeenSeconds\": {firstEnemySeenSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            report.Append($"  \"waterSamples\": {(water != null ? water.Samples : 0)},\n  \"waterFailures\": {(water != null ? water.Failures : 0)},\n");
+            report.Append($"  \"maxTiltDegrees\": {maxRollSeen.ToString("0.00", culture)},\n  \"maxHeaveMetres\": {maxHeaveSeen.ToString("0.00", culture)},\n");
             report.Append($"  \"combatEvents\": {combatEvents}\n}}\n");
             File.WriteAllText(smokeReport, report.ToString());
             smokeReport = null;

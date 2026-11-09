@@ -104,6 +104,7 @@ namespace MorzaBogow.Simulation
         void UpdateKnowledge()
         {
             if (Tick % 15 != 0) return;
+            RefreshExplored();
             foreach (var node in Nodes)
             {
                 for (var faction = 0; faction < 2; faction++)

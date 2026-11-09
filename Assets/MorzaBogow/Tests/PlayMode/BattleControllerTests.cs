@@ -131,6 +131,92 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Target_EnemyIsMarkedAfterAttackOrderAndNotBefore()
+        {
+            yield return null;
+            var world = battle.World;
+            var enemy = HiddenEnemy();
+            var attacker = world.SpawnShip(0, ShipClass.CrewDestroyer, enemy.X - 60, enemy.Y);
+            battle.RunTicks(1);
+            Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.False);
+
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.AttackShip, ShipIds = new[] { attacker.Id }, TargetId = enemy.Id });
+            battle.RunTicks(1);
+            Assert.That(battle.TargetedShips, Does.Contain(enemy.Id));
+            Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.True);
+
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Stop, ShipIds = new[] { attacker.Id } });
+            battle.RunTicks(1);
+            Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.False);
+        }
+
+        [Test]
+        public void Waves_HigherBowLiftsTheBowAndTiltIsLimited()
+        {
+            var calm = HullPose.FromHeights(1f, 1f, 1f, 1f, 1f, 20f, 6f);
+            Assert.That(calm.Heave, Is.EqualTo(1f).Within(1e-4f));
+            Assert.That(calm.Pitch, Is.EqualTo(0f).Within(1e-4f));
+            Assert.That(calm.Roll, Is.EqualTo(0f).Within(1e-4f));
+
+            var bowUp = HullPose.FromHeights(1f, -1f, 0f, 0f, 0f, 20f, 6f);
+            Assert.That(bowUp.Pitch, Is.LessThan(0f), "Negative rotation around X raises the bow.");
+
+            var starboardUp = HullPose.FromHeights(0f, 0f, -0.5f, 0.5f, 0f, 20f, 6f);
+            Assert.That(starboardUp.Roll, Is.GreaterThan(0f));
+
+            var steep = HullPose.FromHeights(50f, -50f, -50f, 50f, 0f, 10f, 4f);
+            Assert.That(Mathf.Abs(steep.Pitch), Is.EqualTo(HullPose.MaxTiltDegrees).Within(1e-4f));
+            Assert.That(Mathf.Abs(steep.Roll), Is.EqualTo(HullPose.MaxTiltDegrees).Within(1e-4f));
+        }
+
+        [UnityTest]
+        public IEnumerator Visual_ShipHasNoWakeStrip()
+        {
+            yield return null;
+            var view = battle.Views.Values.First();
+            Assert.That(view.GetComponentsInChildren<Transform>(true).Any(item => item.name == "Wake" || item.name == "Order line"), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator Fog_LayerFollowsTheThreeStates()
+        {
+            yield return null;
+            var world = battle.World;
+            battle.Fog.Update(world, 0, 0f, true);
+            var home = world.SettlementOf(0);
+            int Cell(double value) => (int)((value - World.FogOrigin) / World.FogCellSize);
+
+            Assert.That(battle.Fog.AlphaAt(Cell(home.X), Cell(home.Y)), Is.EqualTo(0), "Own base is visible.");
+            Assert.That(battle.Fog.AlphaAt(Cell(375), Cell(0)), Is.EqualTo(BattleFog.UnexploredAlpha), "Enemy base starts unexplored.");
+
+            var scout = world.SpawnShip(0, ShipClass.Cutter, 0, 650);
+            world.RefreshExplored();
+            battle.Fog.Update(world, 0, 0f, true);
+            Assert.That(battle.Fog.AlphaAt(Cell(0), Cell(650)), Is.EqualTo(0));
+
+            world.Ships.Remove(scout);
+            battle.Fog.Update(world, 0, 0f, true);
+            Assert.That(battle.Fog.AlphaAt(Cell(0), Cell(650)), Is.EqualTo(BattleFog.ExploredAlpha), "Explored but no longer observed.");
+        }
+
+        [UnityTest]
+        public IEnumerator Site_PileShrinksWithStockAndEmptiesAtZero()
+        {
+            yield return null;
+            var node = battle.World.Nodes.First(item => item.Type == ResourceType.Wood && (item.KnownMask & 1) != 0);
+            var site = battle.SiteViews[node.Id];
+            Assert.That(site.VisiblePileParts, Is.EqualTo(site.TotalPileParts));
+            Assert.That(site.TotalPileParts, Is.GreaterThan(4));
+            var full = node.Stock;
+            site.UpdateStock(full / 2);
+            Assert.That(site.VisiblePileParts, Is.LessThan(site.TotalPileParts).And.GreaterThan(0));
+            site.UpdateStock(1);
+            Assert.That(site.VisiblePileParts, Is.EqualTo(1));
+            site.UpdateStock(0);
+            Assert.That(site.VisiblePileParts, Is.EqualTo(0));
+        }
+
+        [UnityTest]
         public IEnumerator HealthBar_AppearsOnlyAfterMouseSelection()
         {
             yield return null;

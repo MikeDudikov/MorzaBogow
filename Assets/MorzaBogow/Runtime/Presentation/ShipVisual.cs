@@ -22,6 +22,13 @@ namespace MorzaBogow.Presentation
         public Material Rope;
         public Material OrderLine;
         public Material WreckMarker;
+        public Material TargetRing;
+        public Material Fog;
+        public Material Timber;
+        public Material Foliage;
+        public Material Rock;
+        public Material SilverOre;
+        public Material MineDark;
     }
 
     /// <summary>
@@ -34,13 +41,22 @@ namespace MorzaBogow.Presentation
         readonly List<(Transform pivot, int side, float offset)> oars = new List<(Transform, int, float)>();
         Transform model;
         Transform sail;
-        Transform wake;
+        Transform targetRing;
         float size;
         float rowing;
         float seed;
+        float beam;
+        HullPose pose;
+        HullPose smoothed;
+        bool hasWater;
+
+        public float Length => size;
+        public float Beam => beam;
+        public HullPose CurrentPose => smoothed;
 
         public int ShipId { get; private set; }
         public GameObject Selection { get; private set; }
+        public bool IsMarkedAsTarget => targetRing != null && targetRing.gameObject.activeSelf;
 
         public static ShipVisual Create(Ship ship, PlaceholderMaterials materials)
         {
@@ -55,6 +71,7 @@ namespace MorzaBogow.Presentation
             var length = (float)definition.Radius * 2f;
             visual.size = length;
             var beam = Mathf.Max(2f, length * (ship.Class == ShipClass.Boarder ? 0.42f : 0.28f));
+            visual.beam = beam;
             var hull = Part(visual.model, PrimitiveType.Capsule, "Hull", materials?.Wood);
             hull.localRotation = Quaternion.Euler(90f, 0f, 0f);
             hull.localScale = new Vector3(beam, length * 0.5f, beam * 0.6f);
@@ -100,12 +117,12 @@ namespace MorzaBogow.Presentation
                 weapon.localScale = new Vector3(1.4f, 1.0f, 1.4f);
             }
 
-            visual.wake = Part(root.transform, PrimitiveType.Cube, "Wake", materials?.Foam);
-            visual.wake.gameObject.SetActive(false);
+            visual.targetRing = RingMarker.Create("Attack target", materials?.TargetRing, root.transform, length);
+            visual.targetRing.localPosition = new Vector3(0f, 1.4f, 0f);
+            visual.targetRing.gameObject.SetActive(false);
 
-            var selection = Part(root.transform, PrimitiveType.Cylinder, "Selection", materials?.Selection);
-            selection.localScale = new Vector3(length * 1.3f, 0.05f, length * 1.3f);
-            selection.localPosition = new Vector3(0f, 0.25f, 0f);
+            var selection = RingMarker.Create("Selection", materials?.Selection, root.transform, length * 0.58f);
+            selection.localPosition = new Vector3(0f, 1.4f, 0f);
             visual.Selection = selection.gameObject;
             visual.Selection.SetActive(false);
             return visual;
@@ -120,7 +137,20 @@ namespace MorzaBogow.Presentation
             sail.localPosition = new Vector3(0f, size * 0.4f, 0f);
         }
 
-        /// <summary>Oars, swell, sail and wake follow current speed. Time here is real time, not simulation time.</summary>
+        /// <summary>Latest pose from the real water surface. Smoothing keeps small waves from shaking the hull.</summary>
+        public void SetWaterPose(HullPose value)
+        {
+            pose = value;
+            hasWater = true;
+        }
+
+        /// <summary>Red marker under an enemy ship the player ordered to attack.</summary>
+        public void SetTargetMarker(bool marked)
+        {
+            if (targetRing.gameObject.activeSelf != marked) targetRing.gameObject.SetActive(marked);
+        }
+
+        /// <summary>Oars, swell and sail follow current speed. Time here is real time, not simulation time.</summary>
         public void Animate(float speedFraction, float time, float delta)
         {
             var fraction = Mathf.Clamp01(Mathf.Abs(speedFraction));
@@ -134,9 +164,25 @@ namespace MorzaBogow.Presentation
                 pivot.localRotation = Quaternion.Euler(0f, side * stroke * 24f * strength, side * (-14f + lift * 9f * strength));
             }
 
-            var wave = time * 0.9f + seed;
-            model.localPosition = new Vector3(0f, 0.35f + Mathf.Sin(wave) * 0.22f, 0f);
-            model.localRotation = Quaternion.Euler(Mathf.Sin(wave * 0.8f) * 1.6f, 0f, Mathf.Cos(wave * 0.6f) * 2.2f);
+            if (hasWater)
+            {
+                var blend = 1f - Mathf.Exp(-delta * 5f);
+                smoothed = new HullPose(
+                    Mathf.Lerp(smoothed.Heave, pose.Heave, blend),
+                    Mathf.Lerp(smoothed.Pitch, pose.Pitch, blend),
+                    Mathf.Lerp(smoothed.Roll, pose.Roll, blend));
+
+                // The bow lifts slightly with speed, on top of what the water does.
+                model.localPosition = new Vector3(0f, 0.2f + smoothed.Heave, 0f);
+                model.localRotation = Quaternion.Euler(smoothed.Pitch - fraction * 1.5f, 0f, smoothed.Roll);
+            }
+            else
+            {
+                // Without a water surface, as in logic tests, a small sway keeps the placeholder alive.
+                var wave = time * 0.9f + seed;
+                model.localPosition = new Vector3(0f, 0.35f + Mathf.Sin(wave) * 0.22f, 0f);
+                model.localRotation = Quaternion.Euler(Mathf.Sin(wave * 0.8f) * 1.6f, 0f, Mathf.Cos(wave * 0.6f) * 2.2f);
+            }
 
             if (sail != null)
             {
@@ -145,12 +191,11 @@ namespace MorzaBogow.Presentation
                 sail.localPosition = new Vector3(0f, size * 0.4f, billow * 0.4f);
             }
 
-            var showWake = fraction > 0.08f;
-            if (wake.gameObject.activeSelf != showWake) wake.gameObject.SetActive(showWake);
-            if (!showWake) return;
-            var length = size * (0.7f + fraction * 1.6f);
-            wake.localScale = new Vector3(size * (0.18f + fraction * 0.22f), 0.04f, length);
-            wake.localPosition = new Vector3(0f, 0.45f, -size * 0.45f - length * 0.5f);
+            if (targetRing.gameObject.activeSelf)
+            {
+                var pulse = size * (0.95f + Mathf.Sin(time * 5f) * 0.07f);
+                targetRing.localScale = new Vector3(pulse, 1f, pulse);
+            }
         }
 
         static Transform Part(Transform parent, PrimitiveType type, string name, Material material)

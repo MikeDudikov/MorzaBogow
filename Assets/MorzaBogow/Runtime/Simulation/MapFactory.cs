@@ -27,6 +27,7 @@ namespace MorzaBogow.Simulation
             world.Islands.Add(new Island { X = 0, Y = 0, Radius = 60 });
             world.Islands.Add(new Island { X = -150, Y = 130, Radius = 35 });
             world.Islands.Add(new Island { X = 150, Y = -130, Radius = 35 });
+            world.RefreshExplored();
             return world;
         }
 

@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 2;
+        public const int Version = 3;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -64,6 +64,7 @@ namespace MorzaBogow.Simulation
                 writer.Write(world.SpentWood); writer.Write(world.SpentSilver);
                 writer.Write(world.LostWood); writer.Write(world.LostSilver);
                 writer.Write(world.ReturnedWood); writer.Write(world.ReturnedSilver);
+                writer.Write(world.Explored);
 
                 writer.Write(world.Islands.Count);
                 foreach (var island in world.Islands) { writer.Write(island.X); writer.Write(island.Y); writer.Write(island.Radius); }
@@ -142,6 +143,8 @@ namespace MorzaBogow.Simulation
                 world.SpentWood = reader.ReadInt64(); world.SpentSilver = reader.ReadInt64();
                 world.LostWood = reader.ReadInt64(); world.LostSilver = reader.ReadInt64();
                 world.ReturnedWood = reader.ReadInt64(); world.ReturnedSilver = reader.ReadInt64();
+                world.Explored = reader.ReadBytes(World.FogCells * World.FogCells);
+                if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
 
                 var count = reader.ReadInt32();
                 for (var i = 0; i < count; i++) world.Islands.Add(new Island { X = reader.ReadDouble(), Y = reader.ReadDouble(), Radius = reader.ReadDouble() });
