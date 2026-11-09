@@ -372,7 +372,7 @@ namespace MorzaBogow.Simulation
         }
 
         /// <summary>Water kept between two hulls, so moored or passing ships never appear to sit on each other.</summary>
-        public const double HullSpacing = 1.0;
+        public const double HullSpacing = 2.0;
 
         bool Grappled(Ship a, Ship b)
         {
