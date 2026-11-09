@@ -14,9 +14,11 @@ if ($Mode -eq 'dtd') { Set-Content -LiteralPath $Results -Value '<!DOCTYPE test-
 $count=if ($Mode -eq 'zero') {0} else {1}
 $result=if ($Mode -eq 'failed') {'Failed'} elseif ($Mode -eq 'skipped') {'Skipped'} else {'Passed'}
 $caseResult=if ($Mode -eq 'hiddenfailed') {'Failed'} else {$result}
-$asserts=if ($Mode -eq 'noasserts') {0} else {1}
+$asserts=if ($Mode -eq 'noasserts' -or $Mode -like 'source*') {0} else {1}
 $case=if ($count) { '<test-case fullname="Fixture.RealAssertion" result="'+$caseResult+'" asserts="'+$asserts+'" />' } else {''}
 if ($Mode -eq 'duplicate') { $case += $case; $count=2 }
+if ($Mode -eq 'sourcetestname') { $case=$case.Replace('<test-case ','<test-case classname="Fixture" methodname="Empty" ') }
+if ($Mode -eq 'sourcemissingattr') { $case=$case.Replace(' asserts="0"','') }
 $passed=if ($Mode -eq 'counter') {99} else {$count}
 $xml='<test-run result="'+$result+'" total="'+$count+'" passed="'+$passed+'" failed="0" skipped="0" inconclusive="0"><test-suite result="Passed">'+$case+'</test-suite></test-run>'
 Set-Content -LiteralPath $Results -Value $xml -Encoding utf8

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "downloadedModels": 1,
+  "pendingModels": 4,
+  "assets": [
+    {
+      "id": "coast_rocks_02",
+      "name": "Coast Rocks 02",
+      "status": "DOWNLOADED",
+      "directory": "Assets/Art/External/Coast_Rocks_02",
+      "modelFormat": "FBX",
+      "textureResolution": "2K",
+      "textureFormat": "EXR",
+      "maps": {
+        "baseColor": "Textures/coast_rocks_02_diff_2k.exr",
+        "normalOpenGL": "Textures/coast_rocks_02_nor_gl_2k.exr",
+        "roughness": "Textures/coast_rocks_02_rough_2k.exr",
+        "ambientOcclusion": "Textures/coast_rocks_02_ao_2k.exr"
+      },
+      "files": [
+        {
+          "path": "Assets/Art/External/Coast_Rocks_02/coast_rocks_02_2k.fbx",
+          "bytes": 98829020,
+          "sha256": "80d58bc54fe262ad5644f9fbc38870602166c8fb5efa649f36f79c37ab24d96e"
+        },
+        {
+          "path": "Assets/Art/External/Coast_Rocks_02/Textures/coast_rocks_02_diff_2k.exr",
+          "bytes": 5683165,
+          "sha256": "d1442a7c4621edb873f1f599781e47d122025ad49218eebc7ba34b7224fe0038"
+        },
+        {
+          "path": "Assets/Art/External/Coast_Rocks_02/Textures/coast_rocks_02_nor_gl_2k.exr",
+          "bytes": 8700249,
+          "sha256": "d374851d70f7889c0b3eef1fa649c9f95f10724c7e2d3cf6dc766e7fe5579b41"
+        },
+        {
+          "path": "Assets/Art/External/Coast_Rocks_02/Textures/coast_rocks_02_rough_2k.exr",
+          "bytes": 3620904,
+          "sha256": "c2faf40f04b3da0cfd297e13c3e24aeef23a96c74a0ab9da5f707ca6043bbc36"
+        },
+        {
+          "path": "Assets/Art/External/Coast_Rocks_02/Textures/coast_rocks_02_ao_2k.exr",
+          "bytes": 4917276,
+          "sha256": "1e6e212a821d28ef66f446ac4e6db345a351f06df8dcab6dec067307f2206f40"
+        }
+      ]
+    },
+    {
+      "id": "ancient_ships_hdrp",
+      "name": "Ancient Ships [HDRP]",
+      "status": "NOT_PURCHASED",
+      "url": "https://assetstore.unity.com/packages/3d/vehicles/sea/ancient-ships-hdrp-250555",
+      "packageDirectory": "AssetPackages/Ancient_Ships_HDRP"
+    },
+    {
+      "id": "trireme_01",
+      "name": "Ancient Ship Trireme 01",
+      "status": "NOT_PURCHASED",
+      "url": "https://www.fab.com/listings/afe87ca8-dea5-4484-9b4d-5ba7ea9f2fd4",
+      "packageDirectory": "AssetPackages/Ancient_Ship_Trireme_01"
+    },
+    {
+      "id": "greek_environments",
+      "name": "Roman/Greek Environments Bundle",
+      "status": "NOT_PURCHASED",
+      "url": "https://marketplace.unity.com/packages/3d/environments/historic/roman-greek-environments-bundle-264734",
+      "packageDirectory": "AssetPackages/Greek_Environments"
+    },
+    {
+      "id": "sea_dragon",
+      "name": "SeaDragon",
+      "status": "NOT_PURCHASED",
+      "url": "https://www.cgtrader.com/3d-models/character/fantasy-character/seadragon-89219682-7036-401f-a3fe-1c4efe0c4294",
+      "packageDirectory": "AssetPackages/SeaDragon"
+    }
+  ]
+}

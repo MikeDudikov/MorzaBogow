@@ -56,14 +56,35 @@ Scena M0_Probe: woda, niebo, kula testowa, bez statków. Okno 1920×1080, 180 kl
 
 GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080.
 
+## Etap M1
+
+| Kontrola | Wynik | Zakres |
+|---|---|---|
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 59/59, PlayMode 15/15 | logika i integracja, raport w `qa/reports` |
+| Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
+| Build Windows64 Mono, scena M1_Battle | Success, 261604832 B, 0 błędów, 0 ostrzeżeń | |
+| Test dymny 180 s, SI kontra SI | Ultra i Low: exit 0, 0 wyjątków, model wybrzeża wczytany | brak kontaktu widocznego dla frakcji 0 w tym czasie |
+
+Coast Rocks 02: 4 siatki, 2363290 trójkątów LOD0, Mesh LOD do 64 trójkątów na siatkę, FBX zaimportowany bez zmian, jeden materiał HDRP Lit. Na mapie wyspa ma około 102 × 7 × 110 m. Modele okrętów, osad i węzłów to oznaczone modele zastępcze.
+
+Uproszczenia M1 względem specyfikacji, do wdrożenia w M2:
+
+- Nawigacja omija koła wysp; nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji.
+- Jedyna broń to łucznicy z rzutem seedowanym, bez lotu pocisku, sektorów i wyboru wyposażenia. Broń i żołnierze są wliczeni w cenę okrętu.
+- Nie ma wraków i odzysku, napraw, nowych osad, transferów między osadami, konwojów ani modułów portu.
+- Osada łączy port i stocznię w jednym obiekcie. Zwycięstwo: zniszczenie osady albo brak okrętów, kolejki i środków na kuter.
+- SI jest prosta i zna pozycję startową wroga. Mecz SI kontra SI (seed 9) nie rozstrzygnął się w 30 minutach; balans: NOT_RUN.
+
 ## Znane ograniczenia
 
-- Unity zapisuje `asserts="0"` w wynikach NUnit także dla testów z asercjami, a `quality-gate.ps1` odrzuca taki wynik. Bramka zablokowałaby każdy prawdziwy test. Stan: BLOCKED, zmiana wymaga niezależnego przeglądu.
+- Unity zapisuje `asserts="0"` w wynikach NUnit także dla testów z asercjami. Bramka wymaga wtedy asercji w kodzie właściwej metody testu, więc asercja wyłącznie w metodzie pomocniczej blokuje wynik. Zmiana przeszła niezależny przegląd, po którym usunięto wykryte obejścia; poprawek nie przeglądano ponownie. Analiza kodu nie dowodzi, że asercja faktycznie się wykonała.
+- PreToolUse reaguje na narzędzie TaskUpdate, którego ta aplikacja nie używa. Automatyczne wywołanie hooków: NOT_RUN.
 - Profile różnią się na razie funkcjami HDRP, kaskadami i ustawieniami objętości. Limity świateł, detal wody i gęstość VFX z V10 nie są wdrożone.
 - Menu rozdzielczości (F10) i profili (F9) to robocze panele IMGUI.
 
 ## Nieuruchomione
 
+- Rozgrywka człowieka i sterowanie myszą w buildzie: NOT_RUN.
 - Ocena obrazu, w tym wizualne potwierdzenie działania RTGI i odbić RT: NOT_RUN.
 - Fizyczne wyświetlanie 2560×1440 i pozostałych trybów powyżej 1080p: BLOCKED, brak monitora.
 - Pełne przełączanie rozdzielczości i profili w buildzie, 20 cykli bez wycieków: NOT_RUN.

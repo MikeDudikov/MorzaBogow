@@ -3,6 +3,7 @@
     "rootNamespace": "MorzaBogow.Presentation",
     "references": [
         "MorzaBogow.Settings",
+        "MorzaBogow.Simulation",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.HighDefinition.Runtime"
     ],

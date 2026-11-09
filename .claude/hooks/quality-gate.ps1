@@ -11,7 +11,7 @@ function Read-Json([string]$path) {
 }
 function Snapshot {
     $rows = [Collections.Generic.List[string]]::new()
-    foreach ($name in @('Assets','Packages','ProjectSettings','.claude','qa','docs','GAME_VISION.md','GAME_DESIGN.md','MYTHIC_SCENARIOS.md','CLAUDE.md','VISUAL_TECH_SPEC.md','ECONOMY_DESIGN.md','ECONOMY_BALANCE.md','START_PROMPT_PL.md','README_PL.md')) {
+    foreach ($name in @('Assets','Packages','ProjectSettings','.claude','qa','docs','PROMPT_WDROZENIOWY.md','ASSET_STATUS.json','GAME_VISION.md','GAME_DESIGN.md','MYTHIC_SCENARIOS.md','CLAUDE.md','VISUAL_TECH_SPEC.md','ECONOMY_DESIGN.md','ECONOMY_BALANCE.md','START_PROMPT_PL.md','README_PL.md')) {
         $target = Join-Path $projectRoot $name
         if (!(Test-Path -LiteralPath $target)) { continue }
         $files = if (Test-Path -LiteralPath $target -PathType Leaf) { @(Get-Item -LiteralPath $target) } else { @(Get-ChildItem -LiteralPath $target -Recurse -File -Force) }
@@ -24,6 +24,140 @@ function Snapshot {
     }
     $bytes = [Text.Encoding]::UTF8.GetBytes((@($rows | Sort-Object -CaseSensitive) -join "`n"))
     return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+}
+$script:cleanSources = $null
+function Remove-CodeNoise([string]$s) {
+    # Blanks string and character literals and removes comments, so nothing inside them can look like code or braces.
+    $out = [Text.StringBuilder]::new($s.Length)
+    $i = 0
+    $n = $s.Length
+    while ($i -lt $n) {
+        $c = $s[$i]
+        $d = if ($i + 1 -lt $n) { $s[$i + 1] } else { [char]0 }
+        if ($c -ceq '/' -and $d -ceq '/') {
+            while ($i -lt $n -and $s[$i] -cne "`n") { $i++ }
+            continue
+        }
+        if ($c -ceq '/' -and $d -ceq '*') {
+            $end = $s.IndexOf('*/', $i + 2)
+            $i = if ($end -lt 0) { $n } else { $end + 2 }
+            [void]$out.Append(' ')
+            continue
+        }
+        if ($c -ceq '"') {
+            $verbatim = ($i -ge 1 -and $s[$i - 1] -ceq '@') -or ($i -ge 2 -and $s[$i - 1] -ceq '$' -and $s[$i - 2] -ceq '@')
+            $i++
+            while ($i -lt $n) {
+                if ($verbatim) {
+                    if ($s[$i] -ceq '"') {
+                        if ($i + 1 -lt $n -and $s[$i + 1] -ceq '"') { $i += 2; continue }
+                        $i++
+                        break
+                    }
+                    $i++
+                    continue
+                }
+                if ($s[$i] -ceq '\') { $i += 2; continue }
+                if ($s[$i] -ceq '"') { $i++; break }
+                $i++
+            }
+            [void]$out.Append('""')
+            continue
+        }
+        if ($c -ceq "'") {
+            $i++
+            while ($i -lt $n) {
+                if ($s[$i] -ceq '\') { $i += 2; continue }
+                if ($s[$i] -ceq "'") { $i++; break }
+                $i++
+            }
+            [void]$out.Append("''")
+            continue
+        }
+        [void]$out.Append($c)
+        $i++
+    }
+    return [regex]::Replace($out.ToString(), '(?ms)^\s*#if\s+false\b.*?^\s*#endif\b[^\r\n]*', '')
+}
+function Get-CleanSources {
+    if ($null -eq $script:cleanSources) {
+        $script:cleanSources = @()
+        $assets = Join-Path $projectRoot 'Assets'
+        if (Test-Path -LiteralPath $assets -PathType Container) {
+            foreach ($file in Get-ChildItem -LiteralPath $assets -Recurse -File -Filter '*.cs') {
+                $script:cleanSources += Remove-CodeNoise (Get-Content -LiteralPath $file.FullName -Raw -Encoding utf8)
+            }
+        }
+    }
+    return $script:cleanSources
+}
+function Get-BlockEnd([string]$source, [int]$open, [char]$opening, [char]$closing) {
+    # $open is the index of the opening character; returns the index of its match, or -1.
+    $depth = 0
+    for ($index = $open; $index -lt $source.Length; $index++) {
+        if ($source[$index] -ceq $opening) { $depth++ }
+        elseif ($source[$index] -ceq $closing) {
+            $depth--
+            if ($depth -eq 0) { return $index }
+        }
+    }
+    return -1
+}
+function Get-MethodBodies([string]$classBody, [string]$methodName) {
+    # Only real declarations with a return type count, so call sites are never mistaken for methods.
+    $keywords = @('return','new','await','if','else','while','for','foreach','switch','case','throw','in','is','as','using','lock','yield','typeof','nameof','do','not','and','or')
+    $pattern = '(?<![\w.])(?<type>[A-Za-z_][\w.]*(?:<[^<>()]*(?:<[^<>()]*>[^<>()]*)*>)?(?:\[[,\s]*\])*\??)\s+' + [regex]::Escape($methodName) + '\s*(?:<[^<>()]*>)?\s*\('
+    $bodies = @()
+    foreach ($match in [regex]::Matches($classBody, $pattern)) {
+        if ($keywords -ccontains $match.Groups['type'].Value) { continue }
+        $paren = $match.Index + $match.Length - 1
+        $close = Get-BlockEnd $classBody $paren '(' ')'
+        if ($close -lt 0) { continue }
+        $after = $classBody.Substring($close + 1).TrimStart()
+        $start = $classBody.Length - $after.Length
+        if ($after.StartsWith('=>')) {
+            $end = $classBody.IndexOf(';', $start)
+            if ($end -ge 0) { $bodies += $classBody.Substring($start, $end - $start) }
+        } elseif ($after.StartsWith('{')) {
+            $end = Get-BlockEnd $classBody $start '{' '}'
+            if ($end -ge 0) { $bodies += $classBody.Substring($start, $end - $start + 1) }
+        }
+    }
+    return ,$bodies
+}
+function Test-SourceAssertion($testCase) {
+    # Unity's NUnit XML reports asserts="0" even for tests that execute assertions, so the
+    # counter alone cannot prove an assertion. Require one in the test's real method source.
+    $fullName = $testCase.GetAttribute('fullname')
+    $classAttr = $testCase.GetAttribute('classname')
+    $methodName = $testCase.GetAttribute('methodname')
+    if (!$classAttr -or !$methodName) {
+        $parts = ($fullName -replace '\(.*$', '').Split('.')
+        if ($parts.Count -lt 2) { return $false }
+        $methodName = $parts[$parts.Count - 1]
+        $classAttr = ($parts[0..($parts.Count - 2)] -join '.')
+    }
+    $methodName = $methodName -replace '[<(].*$', ''
+    $classPath = ($classAttr -replace '[<(].*$', '').Split('.')
+    $className = $classPath[$classPath.Count - 1].Split('+')[-1]
+    $namespace = if ($classPath.Count -gt 1) { $classPath[0..($classPath.Count - 2)] -join '.' } else { '' }
+
+    $assertion = '\b(?:Assert|LogAssert|CollectionAssert|StringAssert)\s*\.\s*(?!Pass\b|Ignore\b|Inconclusive\b)\w+\s*[(<]'
+    $classPattern = '\b(?:class|struct)\s+' + [regex]::Escape($className) + '\b[^{;]*\{'
+    $found = 0
+    foreach ($source in (Get-CleanSources)) {
+        if ($namespace -and $source -cnotmatch ('\bnamespace\s+' + [regex]::Escape($namespace) + '\b')) { continue }
+        foreach ($match in [regex]::Matches($source, $classPattern)) {
+            $open = $match.Index + $match.Length - 1
+            $close = Get-BlockEnd $source $open '{' '}'
+            if ($close -lt 0) { continue }
+            foreach ($body in (Get-MethodBodies $source.Substring($open, $close - $open + 1) $methodName)) {
+                $found++
+                if ($body -cnotmatch $assertion) { return $false }
+            }
+        }
+    }
+    return $found -gt 0
 }
 function Check-NUnit([string]$path, [int]$minTests, [string[]]$expected) {
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Brak świeżego XML testów' }
@@ -45,7 +179,8 @@ function Check-NUnit([string]$path, [int]$minTests, [string[]]$expected) {
         $name = $case.GetAttribute('fullname')
         if (!$name -or !$names.Add($name)) { throw 'Brak lub duplikat fullname testu' }
         $asserts = 0
-        if (![int]::TryParse($case.GetAttribute('asserts'), [ref]$asserts) -or $asserts -lt 1) { throw "Test bez asercji: $name" }
+        if (![int]::TryParse($case.GetAttribute('asserts'), [ref]$asserts)) { throw "Brak licznika asercji: $name" }
+        if ($asserts -lt 1 -and !(Test-SourceAssertion $case)) { throw "Test bez asercji: $name" }
     }
     foreach ($suite in $doc.SelectNodes('//test-suite')) {
         if ($suite.GetAttribute('result') -cne 'Passed') { throw 'Nieskuteczny setup/teardown lub zestaw' }

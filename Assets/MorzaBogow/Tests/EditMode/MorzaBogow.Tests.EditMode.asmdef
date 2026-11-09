@@ -3,6 +3,7 @@
     "rootNamespace": "MorzaBogow.Tests",
     "references": [
         "MorzaBogow.Settings",
+        "MorzaBogow.Simulation",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

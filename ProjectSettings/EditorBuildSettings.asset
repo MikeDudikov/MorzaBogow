@@ -6,7 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/MorzaBogow/Scenes/M1_Battle.unity
+    guid: 309b0e28cd3f93340a4d7d2301eadf29
+  - enabled: 0
     path: Assets/MorzaBogow/Scenes/M0_Probe.unity
     guid: b62ce58d1a966994490bb001f4270d3b
+  - enabled: 0
+    path: Assets/MorzaBogow/Scenes/Art_Integration_Coast.unity
+    guid: b8a4c9cd20568f54080fb77231023ab3
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
