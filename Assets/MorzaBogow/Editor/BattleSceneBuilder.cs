@@ -48,6 +48,7 @@ namespace MorzaBogow.Editor
                 MineDark = Material("Placeholder_MineDark", new Color(0.02f, 0.02f, 0.02f), 0f, 0.05f),
                 Fog = FogMaterial(),
                 BowWave = WaterDecalMaterial("Placeholder_WaterBowWave", BowWaveType, deformation: true, foam: false),
+                Spray = SprayMaterial(),
                 Sand = Material("Placeholder_Sand", new Color(0.6f, 0.54f, 0.4f), 0f, 0.1f),
                 FoamDisk = WaterDecalMaterial("Placeholder_WaterFoamDisk", DiskType, deformation: false, foam: true),
             };
@@ -114,7 +115,7 @@ namespace MorzaBogow.Editor
             services.AddComponent<GraphicsProfileController>().Configure(volume, profiles);
             services.AddComponent<DisplaySettingsController>();
             var coast = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Coast/Coast_Rocks_02.prefab");
-            new GameObject("Battle").AddComponent<BattleController>().Configure(coast, materials, camera);
+            new GameObject("Battle").AddComponent<BattleController>().Configure(coast, materials, camera, CoastWaterline(coast));
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -198,6 +199,74 @@ namespace MorzaBogow.Editor
         }
 
         /// <summary>Alpha across the ring band: zero at both edges, full in the middle, a barely noticeable blur.</summary>
+        /// <summary>
+        /// The coast model's waterline, in units of the land radius it is scaled to at runtime. Placement matches
+        /// BattleController.CreateIsland: footprint scaled to the land diameter, 15% of its height under water.
+        /// The editor can read the mesh even though the player cannot, so this runs here.
+        /// </summary>
+        static float[] CoastWaterline(GameObject prefab)
+        {
+            if (prefab == null) return null;
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            try
+            {
+                var renderers = instance.GetComponentsInChildren<Renderer>();
+                var bounds = renderers[0].bounds;
+                foreach (var item in renderers) bounds.Encapsulate(item.bounds);
+                var water = bounds.min.y + bounds.size.y * 0.15f;
+                var half = Mathf.Max(bounds.size.x, bounds.size.z) * 0.5f;
+
+                var points = new System.Collections.Generic.List<Vector2>();
+                foreach (var filter in instance.GetComponentsInChildren<MeshFilter>())
+                {
+                    if (filter.sharedMesh == null) continue;
+                    var matrix = filter.transform.localToWorldMatrix;
+                    foreach (var vertex in filter.sharedMesh.vertices)
+                    {
+                        var world = matrix.MultiplyPoint3x4(vertex);
+                        if (world.y < water - bounds.size.y * 0.15f || world.y > water + bounds.size.y * 0.08f) continue;
+                        points.Add(new Vector2((world.x - bounds.center.x) / half, (world.z - bounds.center.z) / half));
+                    }
+                }
+                Debug.Log($"[M1] Coast waterline from {points.Count} vertices.");
+                return points.Count > 0 ? ShoreShape.FromPoints(points) : null;
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
+        }
+
+        /// <summary>Unlit white droplet, soft-edged, for bow spray.</summary>
+        static Material SprayMaterial()
+        {
+            var material = RingMaterial("Placeholder_Spray", new Color(0.95f, 0.97f, 1f, 0.75f));
+            material.SetTexture("_UnlitColorMap", SprayTexture());
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        static Texture2D SprayTexture()
+        {
+            var path = $"{MaterialFolder}/Placeholder_SprayDot.asset";
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (texture != null) return texture;
+
+            const int Size = 32;
+            texture = new Texture2D(Size, Size, TextureFormat.RGBA32, true, true) { wrapMode = TextureWrapMode.Clamp };
+            for (var y = 0; y < Size; y++)
+            {
+                for (var x = 0; x < Size; x++)
+                {
+                    var distance = new Vector2(x - (Size - 1) * 0.5f, y - (Size - 1) * 0.5f).magnitude / (Size * 0.5f);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.SmoothStep(1f, 0f, distance)));
+                }
+            }
+            texture.Apply(true);
+            AssetDatabase.CreateAsset(texture, path);
+            return texture;
+        }
+
         static Texture2D RingEdgeTexture()
         {
             var path = $"{MaterialFolder}/Placeholder_RingEdge.asset";

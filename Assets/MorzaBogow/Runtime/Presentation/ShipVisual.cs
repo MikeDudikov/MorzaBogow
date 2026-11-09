@@ -36,6 +36,9 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Sea floor around land, seen through the water as shallows.</summary>
         public Material Sand;
+
+        /// <summary>Soft white droplets thrown up at the stem.</summary>
+        public Material Spray;
     }
 
     /// <summary>
@@ -56,6 +59,17 @@ namespace MorzaBogow.Presentation
         HullPose pose;
         HullPose smoothed;
         bool hasWater;
+        HullMotion motion;
+        float bowWater;
+        float immersion;
+        float sprayBudget;
+        UnityEngine.Rendering.HighDefinition.WaterDecal bowFoam;
+        ParticleSystem spray;
+
+        /// <summary>Metres of water standing above the stem; positive while the bow breaks into a crest.</summary>
+        public float BowImmersion => immersion;
+        public int SprayParticles => spray != null ? spray.particleCount : 0;
+        public float BowFoam => bowFoam != null ? bowFoam.surfaceFoamDimmer : 0f;
         float load;
         float smoothedLoad;
         UnityEngine.Rendering.HighDefinition.WaterDecal bowWave;
@@ -161,12 +175,51 @@ namespace MorzaBogow.Presentation
             visual.bowWave = WaterDecalAt(root.transform, "Bow wave", materials?.BowWave, new Vector3(0f, 0f, -length * 0.05f), new Vector2(beam * 3f, length * 1.1f));
             visual.bowWave.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             visual.hullFoam = WaterDecalAt(root.transform, "Hull foam", materials?.FoamDisk, Vector3.zero, new Vector2(beam * 1.9f, length * 1.15f));
+            visual.bowFoam = WaterDecalAt(root.transform, "Bow foam", materials?.FoamDisk, new Vector3(0f, 0f, length * 0.48f), new Vector2(beam * 2f, beam * 2f));
             visual.bowWave.amplitude = 0f;
             visual.hullFoam.amplitude = 0f;
             visual.hullFoam.surfaceFoamDimmer = 0f;
             visual.hullFoam.deepFoamDimmer = 0f;
+            visual.bowFoam.amplitude = 0f;
+            visual.bowFoam.surfaceFoamDimmer = 0f;
+            visual.bowFoam.deepFoamDimmer = 0f;
+            visual.motion = new HullMotion(length, beam);
+            visual.spray = CreateSpray(root.transform, materials?.Spray, length);
             visual.ApplyDraft();
             return visual;
+        }
+
+        /// <summary>Water thrown up where the stem cuts a crest. World space, so spray stays where it was thrown.</summary>
+        static ParticleSystem CreateSpray(Transform parent, Material material, float length)
+        {
+            var item = new GameObject("Bow spray");
+            item.transform.SetParent(parent, false);
+            var system = item.AddComponent<ParticleSystem>();
+            system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = system.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.duration = 1f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = 1f;
+            main.maxParticles = 96;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1.1f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.3f);
+            main.startSpeed = 0f;
+            var emission = system.emission;
+            emission.enabled = false;
+
+            // Spray thins out as it falls back: the only way an unlit particle fades without vertex colour.
+            var size = system.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.6f), new Keyframe(0.25f, 1f), new Keyframe(1f, 0.1f)));
+
+            var renderer = item.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (material != null) renderer.sharedMaterial = material;
+            system.Play();
+            return system;
         }
 
         internal static UnityEngine.Rendering.HighDefinition.WaterDecal WaterDecalAt(Transform parent, string name, Material material, Vector3 position, Vector2 region)
@@ -204,9 +257,11 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>Latest pose from the real water surface. Smoothing keeps small waves from shaking the hull.</summary>
-        public void SetWaterPose(HullPose value)
+        public void SetWaterPose(HullPose value, float bowWaterHeight)
         {
+            if (!hasWater) motion.Reset(value);
             pose = value;
+            bowWater = bowWaterHeight;
             hasWater = true;
         }
 
@@ -217,8 +272,11 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>Oars, swell and sail follow current speed. Time here is real time, not simulation time.</summary>
-        public void Animate(float speedFraction, float time, float delta)
+        /// <param name="delta">Game time, for rowing and the hold.</param>
+        /// <param name="waterDelta">Real time: the water keeps moving at real speed even when the game is paused or sped up.</param>
+        public void Animate(float speedFraction, float time, float delta, float waterDelta = -1f)
         {
+            if (waterDelta < 0f) waterDelta = delta;
             var fraction = Mathf.Clamp01(Mathf.Abs(speedFraction));
             rowing += delta * (1.2f + fraction * 3.2f);
 
@@ -233,23 +291,28 @@ namespace MorzaBogow.Presentation
             // Loading and unloading change the draft over seconds, not in one jump.
             smoothedLoad = Mathf.MoveTowards(smoothedLoad, load, delta * 0.25f);
             ApplyDraft();
-            bowWave.amplitude = BowWaveFor(size, fraction);
-            hullFoam.surfaceFoamDimmer = HullFoamFor(fraction);
-            hullFoam.deepFoamDimmer = HullFoamFor(fraction) * 0.8f;
-
             if (hasWater)
             {
-                var blend = 1f - Mathf.Exp(-delta * 5f);
-                smoothed = new HullPose(
-                    Mathf.Lerp(smoothed.Heave, pose.Heave, blend),
-                    Mathf.Lerp(smoothed.Pitch, pose.Pitch, blend),
-                    Mathf.Lerp(smoothed.Roll, pose.Roll, blend));
+                // The hull carries its own inertia: it follows the water with a lag, overshoots and settles.
+                smoothed = motion.Step(pose, waterDelta);
+                immersion = HullMotion.BowImmersion(smoothed, bowWater, size);
 
                 // The bow lifts slightly with speed, on top of what the water does.
                 model.localPosition = new Vector3(0f, baseHeight + smoothed.Heave, 0f);
                 model.localRotation = Quaternion.Euler(smoothed.Pitch - fraction * 1.5f, 0f, smoothed.Roll);
             }
-            else
+            else immersion = 0f;
+
+            // Water breaks where the stem meets it: harder under way, and in bursts when the bow digs into a crest.
+            var breaking = BreakingFor(fraction, immersion, motion.HeaveVelocity);
+            bowWave.amplitude = BowWaveFor(size, fraction) * (1f + 0.6f * Mathf.Clamp01(immersion));
+            hullFoam.surfaceFoamDimmer = Mathf.Clamp01(HullFoamFor(fraction) + Mathf.Abs(motion.HeaveVelocity) * 0.15f);
+            hullFoam.deepFoamDimmer = hullFoam.surfaceFoamDimmer * 0.8f;
+            bowFoam.surfaceFoamDimmer = breaking;
+            bowFoam.deepFoamDimmer = breaking * 0.9f;
+            EmitSpray(breaking, fraction, waterDelta);
+
+            if (!hasWater)
             {
                 // Without a water surface, as in logic tests, a small sway keeps the placeholder alive.
                 var wave = time * 0.9f + seed;
@@ -268,6 +331,43 @@ namespace MorzaBogow.Presentation
             {
                 var pulse = size * (0.95f + Mathf.Sin(time * 5f) * 0.07f);
                 targetRing.localScale = new Vector3(pulse, 1f, pulse);
+            }
+        }
+
+        /// <summary>
+        /// 0 to 1: how hard water breaks at the stem. Speed alone gives a steady curl; a bow driving into a crest or
+        /// dropping onto the water adds bursts. A ship at rest on calm water breaks nothing.
+        /// </summary>
+        public static float BreakingFor(float speedFraction, float immersion, float heaveVelocity)
+        {
+            var speed = Mathf.Clamp01(Mathf.Abs(speedFraction));
+            var crest = Mathf.Clamp01(immersion * 1.5f);
+            var drop = Mathf.Clamp01(-heaveVelocity * 0.5f);
+            return Mathf.Clamp01(speed * 0.45f + crest * (0.25f + speed) + drop * 0.3f);
+        }
+
+        void EmitSpray(float breaking, float fraction, float delta)
+        {
+            if (spray == null || delta <= 0f || breaking < 0.15f) { sprayBudget = 0f; return; }
+            sprayBudget += (breaking - 0.15f) * 70f * delta;
+            var stem = model.TransformPoint(new Vector3(0f, 0.3f, size * 0.5f));
+            var forward = transform.forward;
+            var right = transform.right;
+            while (sprayBudget >= 1f)
+            {
+                sprayBudget -= 1f;
+                var side = Random.value < 0.5f ? -1f : 1f;
+                var emit = new ParticleSystem.EmitParams
+                {
+                    position = stem + right * side * beam * Random.Range(0.1f, 0.45f),
+                    velocity = right * side * Random.Range(1.2f, 3.5f) * (0.6f + breaking)
+                               + Vector3.up * Random.Range(1.5f, 4.5f) * (0.5f + breaking)
+                               + forward * fraction * Random.Range(0.5f, 2.5f),
+                    startSize = Random.Range(0.5f, 1.3f) * Mathf.Clamp(size / 20f, 0.6f, 1.4f),
+                    startLifetime = Random.Range(0.5f, 1.1f),
+                    applyShapeToPosition = false,
+                };
+                spray.Emit(emit, 1);
             }
         }
 

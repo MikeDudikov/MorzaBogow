@@ -235,7 +235,7 @@ MonoBehaviour:
     supportWaterHorizontalDeformation: 0
     supportWaterDecals: 0
     waterDecalAtlasSize: 1024
-    maximumWaterDecalCount: 1024
+    maximumWaterDecalCount: 2048
     waterScriptInteractionsMode: 0
     waterFullCPUSimulation: 0
     supportComputeThickness: 0

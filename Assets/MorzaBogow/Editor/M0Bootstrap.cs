@@ -77,8 +77,8 @@ namespace MorzaBogow.Editor
             settings.supportWater = true;
             settings.supportWaterDecals = atLeastHigh;
 
-            // Every visible ship has a bow wave and hull foam, and every shore its surf: 400 ships need room.
-            settings.maximumWaterDecalCount = 1024;
+            // Every visible ship has a bow wave and two foam patches, and surf runs along every shore: 400 ships need room.
+            settings.maximumWaterDecalCount = 2048;
             settings.supportTransparentBackface = atLeastHigh;
             settings.supportTransparentDepthPrepass = atLeastHigh;
             settings.supportTransparentDepthPostpass = atLeastHigh;

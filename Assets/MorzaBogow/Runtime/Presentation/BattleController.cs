@@ -19,6 +19,9 @@ namespace MorzaBogow.Presentation
         static readonly float[] Speeds = { 0.5f, 1f, 1.5f, 2f };
 
         [SerializeField] GameObject coastPrefab;
+
+        /// <summary>The coast model's waterline in units of the land radius, baked when the scene is built.</summary>
+        [SerializeField] float[] coastOutline;
         [SerializeField] PlaceholderMaterials materials = new PlaceholderMaterials();
         [SerializeField] Camera strategicCamera;
         [SerializeField] ulong seed = 20261109;
@@ -105,9 +108,10 @@ namespace MorzaBogow.Presentation
 
         public static string DefaultSavePath => Path.Combine(Application.persistentDataPath, "quicksave.mbsave");
 
-        public void Configure(GameObject coast, PlaceholderMaterials placeholderMaterials, Camera mainCamera)
+        public void Configure(GameObject coast, PlaceholderMaterials placeholderMaterials, Camera mainCamera, float[] coastWaterline = null)
         {
             coastPrefab = coast;
+            coastOutline = coastWaterline;
             materials = placeholderMaterials;
             strategicCamera = mainCamera;
         }
@@ -284,26 +288,31 @@ namespace MorzaBogow.Presentation
             // Land under sites and settlements is drawn by their own models.
             foreach (var island in World.Islands.Where(item => item.Kind == IslandKind.Coast)) mapObjects.Add(CreateIsland(island));
 
-            // Waves break into foam on every shore. A rocky coast is not round, so its ring stays inside its outline.
+            // Every shore follows the outline of its own land: the rocky coast's real waterline, an islet's ellipse.
+            // Its seabed falls away along that outline, and surf breaks along it, not in a circle.
             surf.Clear();
             foreach (var island in World.Islands)
             {
-                var coast = island.Kind == IslandKind.Coast;
-                var reach = (float)island.Radius * (coast ? 0.8f : 1f) + 5f;
-                var holder = new GameObject("Shore surf");
+                var outline = OutlineOf(island);
+                var holder = new GameObject("Shore");
                 holder.transform.position = new Vector3((float)island.X, 0f, (float)island.Y);
-                var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, Vector3.zero, new Vector2(reach * 2f, reach * 2f));
-                decal.amplitude = 0f;
-                surf.Add((decal, coast ? 0.9f : 1f, (float)(island.X * 0.013 + island.Y * 0.021), island));
 
-                // Land does not end at the waterline: a sandy shelf and a deeper slope show through the water,
-                // so shallows turn pale near the shore and fade into deep sea, and caustics have a floor to fall on.
-                // One dome: 0.8 m deep at its top, falling to about 4 m at a berth and 9 m at its rim, where the water
-                // has absorbed it, so it fades out instead of ending in an edge. A rocky coast is not round, so
-                // its shelf stays well inside the outline.
-                var shelf = (float)island.Radius * (coast ? 0.7f : 1f) + 14f;
-                AddViewPart(holder, PrimitiveType.Sphere, "Underwater shelf", materials?.Sand, new Vector3(0f, -8.8f, 0f), new Vector3(shelf * 2f, 16f, shelf * 2f));
-                holder.SetActive(coast);
+                var shelf = new GameObject("Underwater shelf");
+                shelf.transform.SetParent(holder.transform, false);
+                shelf.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Shelf(outline, island.X * 0.7 + island.Y * 1.3);
+                var shelfRenderer = shelf.AddComponent<MeshRenderer>();
+                shelfRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (materials?.Sand != null) shelfRenderer.sharedMaterial = materials.Sand;
+
+                foreach (var (point, along) in ShoreShape.SurfPoints(outline, ShoreShape.SurfSpacing))
+                {
+                    var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, point, new Vector2(ShoreShape.SurfSize, ShoreShape.SurfSize));
+                    decal.amplitude = 0f;
+
+                    // Phase grows along the shore, so each set of waves runs along the coast instead of flashing at once.
+                    surf.Add((decal, island.Kind == IslandKind.Coast ? 0.55f : 0.6f, along * 0.08f + (float)(island.X * 0.013 + island.Y * 0.021), island));
+                }
+                holder.SetActive(island.Kind == IslandKind.Coast);
                 mapObjects.Add(holder);
             }
 
@@ -368,6 +377,23 @@ namespace MorzaBogow.Presentation
             part.transform.SetParent(root.transform, false);
             part.transform.localPosition = position;
             part.transform.localScale = scale;
+        }
+
+        /// <summary>The waterline of each land, as the radius around its centre at evenly spaced angles.</summary>
+        float[] OutlineOf(Island island)
+        {
+            switch (island.Kind)
+            {
+                case IslandKind.Coast:
+                    // Read from the rock model at scene build time and scaled like the model itself.
+                    return coastOutline != null && coastOutline.Length == ShoreShape.Samples && coastPrefab != null
+                        ? ShoreShape.Scaled(coastOutline, (float)island.Radius)
+                        : ShoreShape.Ellipse((float)island.Radius, (float)island.Radius);
+                case IslandKind.ResourceSite:
+                    return ShoreShape.Ellipse(ResourceSiteVisual.IsletHalfWidth, ResourceSiteVisual.IsletHalfDepth);
+                default:
+                    return ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius);
+            }
         }
 
         GameObject CreateIsland(Island island)
@@ -629,6 +655,7 @@ namespace MorzaBogow.Presentation
 
                 // Surf would reveal small land under the fog, so it shows only where the player has explored.
                 var holder = decal.transform.parent.gameObject;
+                if (!holder.activeSelf && island.Kind == IslandKind.Coast) continue;
                 var shown = island.Kind == IslandKind.Coast || World.IsExplored(PlayerFaction, island.X, island.Y);
                 if (holder.activeSelf != shown) holder.SetActive(shown);
                 var set = 0.55f + 0.45f * Mathf.Sin(now * 0.9f + phase);
@@ -651,7 +678,7 @@ namespace MorzaBogow.Presentation
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));
                 var capacity = ship.Definition.Capacity * Rules.Centi;
                 view.SetLoad(capacity > 0 ? (float)(ship.Cargo + ship.HoldWood + ship.HoldSilver) / capacity : 0f);
-                view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, paused ? 0f : delta * Speed);
+                view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, paused ? 0f : delta * Speed, delta);
             }
 
             foreach (var node in World.Nodes)
@@ -704,7 +731,7 @@ namespace MorzaBogow.Presentation
                     || !water.TryHeight(center, out var middle)) continue;
 
                 var pose = HullPose.FromHeights(bow, stern, port, starboard, middle, view.Length, view.Beam);
-                view.SetWaterPose(pose);
+                view.SetWaterPose(pose, bow);
                 maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(pose.Roll), Mathf.Abs(pose.Pitch));
                 maxHeaveSeen = Mathf.Max(maxHeaveSeen, Mathf.Abs(pose.Heave));
             }

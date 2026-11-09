@@ -10,6 +10,10 @@ namespace MorzaBogow.Presentation
     /// </summary>
     public sealed class ResourceSiteVisual : MonoBehaviour
     {
+        /// <summary>Waterline of the islet under both models, around the land's collision centre.</summary>
+        public const float IsletHalfWidth = 19f;
+        public const float IsletHalfDepth = 14f;
+
         readonly List<GameObject> pile = new List<GameObject>();
         long startStock;
 
