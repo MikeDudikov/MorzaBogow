@@ -83,6 +83,7 @@ namespace MorzaBogow.Presentation
         /// <summary>Samples only some ships each frame; between samples the hull smoothly follows its last pose.</summary>
         const int WaterShipsPerFrame = 24;
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
+        public IReadOnlyDictionary<int, GameObject> SettlementViews => settlementViews;
         public IReadOnlyCollection<int> TargetedShips => targetedShips;
         public IReadOnlyCollection<int> InspectedEnemies => inspectedEnemies;
         public int InspectedSettlementId => inspectedSettlementId;
@@ -256,9 +257,7 @@ namespace MorzaBogow.Presentation
 
             foreach (var settlement in World.Settlements)
             {
-                var view = Primitive(PrimitiveType.Cube, $"Settlement {settlement.Owner} [PLACEHOLDER]", materials?.Neutral);
-                view.transform.position = new Vector3((float)Rules.SettlementLandX(settlement), 3f, (float)settlement.Y);
-                view.transform.localScale = new Vector3(28f, 6f, 28f);
+                var view = CreateSettlementView(settlement);
                 settlementViews[settlement.Id] = view;
                 mapObjects.Add(view);
             }
@@ -270,6 +269,36 @@ namespace MorzaBogow.Presentation
                 nodeViews[node.Id] = site.gameObject;
                 mapObjects.Add(site.gameObject);
             }
+        }
+
+        /// <summary>Replaceable placeholder: an islet exactly as wide as the land ships cannot enter, with a jetty to the port.</summary>
+        GameObject CreateSettlementView(Settlement settlement)
+        {
+            var landX = (float)Rules.SettlementLandX(settlement);
+            var root = new GameObject($"Settlement {settlement.Owner} [PLACEHOLDER]");
+            root.transform.position = new Vector3(landX, 0f, (float)settlement.Y);
+
+            void Part(PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale)
+            {
+                var part = Primitive(type, name, material);
+                part.transform.SetParent(root.transform, false);
+                part.transform.localPosition = position;
+                part.transform.localScale = scale;
+            }
+
+            var diameter = (float)Rules.SettlementLandRadius * 2f;
+            Part(PrimitiveType.Sphere, "Islet", materials?.Rock, new Vector3(0f, 0.4f, 0f), new Vector3(diameter, 3f, diameter));
+            Part(PrimitiveType.Sphere, "Islet grass", materials?.Foliage, new Vector3(0f, 0.5f, 0f), new Vector3(diameter - 4f, 3.2f, diameter - 4f));
+            Part(PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 3.5f, 0f), new Vector3(26f, 6f, 26f));
+
+            // The jetty points from the land toward the port on the water.
+            var towardPort = Mathf.Sign((float)settlement.X - landX);
+            Part(PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * 17f, 1.4f, 0f), new Vector3(8f, 0.4f, 5f));
+            for (var side = -1; side <= 1; side += 2)
+            {
+                Part(PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * 20.5f, 0.8f, side * 2.4f), new Vector3(0.45f, 1.5f, 0.45f));
+            }
+            return root;
         }
 
         GameObject CreateIsland(Island island)

@@ -30,6 +30,27 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Settlement_ModelStandsOnItsLandAndKeepsThePortClear()
+        {
+            yield return null;
+            foreach (var settlement in battle.World.Settlements)
+            {
+                var view = battle.SettlementViews[settlement.Id];
+                Assert.That(view.transform.position.x, Is.EqualTo((float)Rules.SettlementLandX(settlement)).Within(1e-3f));
+
+                var islet = view.transform.Find("Islet").GetComponent<Renderer>().bounds;
+                Assert.That(islet.extents.x, Is.EqualTo((float)Rules.SettlementLandRadius).Within(0.01f), "The islet matches the collision circle.");
+
+                // The nearest point a cutter's hull can reach is the land edge plus nothing more than the jetty tip.
+                var jetty = view.transform.Find("Jetty").GetComponent<Renderer>().bounds;
+                var portSide = Mathf.Max(Mathf.Abs(jetty.min.x - (float)settlement.X), Mathf.Abs(jetty.max.x - (float)settlement.X));
+                var jettyGap = Mathf.Min(Mathf.Abs(jetty.min.x - (float)settlement.X), Mathf.Abs(jetty.max.x - (float)settlement.X));
+                Assert.That(jettyGap, Is.GreaterThan(0f), "The jetty does not reach the port point.");
+                Assert.That(portSide, Is.LessThanOrEqualTo((float)Rules.SettlementLandOffset));
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Views_MatchSimulationShips()
         {
             yield return null;
