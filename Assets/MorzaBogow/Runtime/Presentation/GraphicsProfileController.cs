@@ -21,6 +21,9 @@ namespace MorzaBogow.Presentation
         public GraphicsProfile Current { get; private set; } = GraphicsProfiles.Default;
         public string Notice { get; private set; } = string.Empty;
 
+        /// <summary>Off when the battle interface shows profiles and notices in its own settings window.</summary>
+        public bool DrawImguiPanel { get; set; } = true;
+
         public void Configure(Volume targetVolume, VolumeProfile[] profiles)
         {
             volume = targetVolume;
@@ -60,6 +63,7 @@ namespace MorzaBogow.Presentation
 
         void OnGUI()
         {
+            if (!DrawImguiPanel) return;
             if (!string.IsNullOrEmpty(Notice)) GUI.Label(new Rect(20, 50, 700, 30), Notice);
             if (!panelVisible) return;
 

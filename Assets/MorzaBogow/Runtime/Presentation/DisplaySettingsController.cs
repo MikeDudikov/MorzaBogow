@@ -23,6 +23,9 @@ namespace MorzaBogow.Presentation
         public ResolutionChangeSession Session => session;
         public string Notice { get; private set; } = string.Empty;
 
+        /// <summary>Off when the battle interface shows resolutions, the confirmation and notices itself.</summary>
+        public bool DrawImguiPanel { get; set; } = true;
+
         void Awake()
         {
             RefreshAvailable();
@@ -105,6 +108,7 @@ namespace MorzaBogow.Presentation
 
         void OnGUI()
         {
+            if (!DrawImguiPanel) return;
             if (session.State == ResolutionChangeState.AwaitingConfirmation)
             {
                 GUILayout.BeginArea(new Rect(20, 20, 420, 110), GUI.skin.box);

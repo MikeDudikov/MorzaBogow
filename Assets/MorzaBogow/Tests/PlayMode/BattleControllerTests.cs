@@ -108,6 +108,7 @@ namespace MorzaBogow.Tests
             }
             Assert.That(built, Is.Not.Null);
             Assert.That(battle.LaunchesInProgress, Is.EqualTo(1));
+            Assert.That(battle.LastNotice, Does.StartWith("Zwodowano"), "The herald announces the launch.");
 
             yield return null;
             var view = battle.Views[built.Id];
@@ -127,6 +128,55 @@ namespace MorzaBogow.Tests
             Assert.That(battle.LaunchesCompleted, Is.EqualTo(1), "The launch ends.");
             var placed = new Vector2(view.transform.position.x - (float)built.X, view.transform.position.z - (float)built.Y).magnitude;
             Assert.That(placed, Is.LessThan(2f), "Afloat, it is where the game has it.");
+        }
+
+        IEnumerator WaitForInterface()
+        {
+            var waited = 0f;
+            while (waited < 0.4f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_ShowsTheActivePortsStoreAndSwitchesOrdersWithSelection()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            Assert.That(hud, Is.Not.Null);
+            var port = battle.ActivePort;
+            Assert.That(hud.WoodText, Is.EqualTo((port.Available(ResourceType.Wood) / Rules.Centi).ToString()), "The bar shows the active port's free wood.");
+            Assert.That(hud.ShowsProduction, Is.True, "With nothing selected the order panel orders ships.");
+            Assert.That(hud.SlotCount, Is.GreaterThanOrEqualTo(5));
+
+            // The bars are placed through the battle camera, which the test scene does not have by itself.
+            var view = new GameObject("Test camera").AddComponent<Camera>();
+            try
+            {
+                battle.Configure(null, null, view);
+                var own = battle.World.Ships.First(ship => ship.Owner == 0);
+                battle.SelectForTest(own.Id);
+                yield return WaitForInterface();
+                Assert.That(hud.ShowsProduction, Is.False, "With a ship selected it gives orders.");
+                Assert.That(hud.SlotCount, Is.EqualTo(12));
+                Assert.That(hud.VisibleHealthBars, Is.GreaterThanOrEqualTo(1), "The selected ship shows its bar.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.gameObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_PanelsTakeThePointerAndTheSeaDoesNot()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            Assert.That(hud.IsPointerOverInterface(new Vector2(Screen.width * 0.5f, Screen.height * 0.04f)), Is.True, "The bottom dock takes clicks.");
+            Assert.That(hud.IsPointerOverInterface(new Vector2(Screen.width * 0.5f, Screen.height * 0.55f)), Is.False, "The open sea does not.");
+            Assert.That(hud.IsPointerOverInterface(new Vector2(Screen.width * 0.3f, Screen.height * 0.985f)), Is.True, "The top bar takes clicks.");
         }
 
         [UnityTest]
@@ -270,14 +320,18 @@ namespace MorzaBogow.Tests
             battle.RunTicks(1);
             Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.False);
 
+            Assert.That(battle.ShowsHealthBar(enemy), Is.False, "No bar over an enemy nobody attacks or inspects.");
+
             world.Issue(new Command { Faction = 0, Kind = CommandKind.AttackShip, ShipIds = new[] { attacker.Id }, TargetId = enemy.Id });
             battle.RunTicks(1);
             Assert.That(battle.TargetedShips, Does.Contain(enemy.Id));
             Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.True);
+            Assert.That(battle.ShowsHealthBar(enemy), Is.True, "The enemy under attack shows its hull.");
 
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Stop, ShipIds = new[] { attacker.Id } });
             battle.RunTicks(1);
             Assert.That(battle.Views[enemy.Id].IsMarkedAsTarget, Is.False);
+            Assert.That(battle.ShowsHealthBar(enemy), Is.False, "The bar goes when the attack ends.");
         }
 
         [Test]

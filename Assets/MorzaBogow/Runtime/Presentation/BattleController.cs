@@ -25,6 +25,7 @@ namespace MorzaBogow.Presentation
 
         readonly Dictionary<int, ShipVisual> views = new Dictionary<int, ShipVisual>();
         readonly Dictionary<int, int> viewOwners = new Dictionary<int, int>();
+        readonly Dictionary<int, ShipClass> viewClasses = new Dictionary<int, ShipClass>();
         readonly Dictionary<int, Vector3> previous = new Dictionary<int, Vector3>();
         readonly Dictionary<int, GameObject> nodeViews = new Dictionary<int, GameObject>();
         readonly Dictionary<int, GameObject> settlementViews = new Dictionary<int, GameObject>();
@@ -56,8 +57,8 @@ namespace MorzaBogow.Presentation
         double accumulator;
         int speedIndex = 1;
         bool paused;
-        string notice = string.Empty;
-        float noticeUntil;
+        /// <summary>The latest herald's text, for tools and tests.</summary>
+        public string LastNotice { get; private set; } = string.Empty;
         Vector3 pivot;
         float yaw = ObliqueCamera.DefaultYaw;
         float tilt = ObliqueCamera.DefaultTilt;
@@ -139,17 +140,18 @@ namespace MorzaBogow.Presentation
         /// <summary>Samples only some ships each frame; between samples the hull smoothly follows its last pose.</summary>
         const int WaterShipsPerFrame = 24;
 
-        /// <summary>Bottom panels: a template list with a merchant and a shipyard button needs this much room.</summary>
-        const float HudHeight = 190f;
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
         public IReadOnlyDictionary<int, GameObject> SettlementViews => settlementViews;
         public IReadOnlyCollection<int> TargetedShips => targetedShips;
         public IReadOnlyCollection<int> InspectedEnemies => inspectedEnemies;
         public int InspectedSettlementId => inspectedSettlementId;
 
-        /// <summary>A health bar appears only for what the player selected with the mouse and can still see.</summary>
+        /// <summary>
+        /// A health bar appears only for what the player selected with the mouse, and over an enemy the player's
+        /// ships are attacking, while the player can see it.
+        /// </summary>
         public bool ShowsHealthBar(Ship ship) =>
-            World.CanSee(PlayerFaction, ship) && (selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));
+            World.CanSee(PlayerFaction, ship) && (selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id) || targetedShips.Contains(ship.Id));
         public bool Paused { get => paused; set => paused = value; }
         public float Speed => Speeds[speedIndex];
 
@@ -181,6 +183,7 @@ namespace MorzaBogow.Presentation
             }
             sun = FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(light => light.type == LightType.Directional);
             ReadSmokeArguments();
+            hud = BattleHud.Create(this);
         }
 
         void StartMatch(World world, int opponentBuildIndex)
@@ -197,6 +200,9 @@ namespace MorzaBogow.Presentation
             var home = World.SettlementOf(PlayerFaction);
             pivot = new Vector3((float)home.X + 60f, 0f, (float)home.Y);
             if (strategicCamera == null) strategicCamera = Camera.main;
+            PendingOrder = HudOrder.None;
+            lastAlarm.Clear();
+            if (hud != null) hud.OnMatchStarted();
         }
 
         void ReadSmokeArguments()
@@ -266,25 +272,29 @@ namespace MorzaBogow.Presentation
                 switch (item.Type)
                 {
                     case "order_rejected":
-                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Notify("Rozkazu nie można wykonać: brak ładunku w porcie, nieodkryty lub zajęty brzeg.");
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce("Rozkazu nie można wykonać: brak ładunku w porcie, nieodkryty lub zajęty brzeg.", HeraldLevel.Important, at);
                         break;
                     case "store_full":
-                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Notify("Magazyn pełny: reszta ładunku została na statku.");
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce("Magazyn pełny: reszta ładunku została na statku.", HeraldLevel.Important, at);
                         break;
                     case "outpost_built":
-                        if (World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) Notify("Przyczółek gotowy: ma własny magazyn, port i kolejkę portu.");
+                        if (World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) Announce("Przyczółek gotowy: ma własny magazyn, port i kolejkę portu.", HeraldLevel.Important, at);
                         break;
                     case "ship_built":
                         if (seen || World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) BeginLaunch(item.SubjectId, item.OtherId, item.Amount == 1);
+                        var launched = World.FindShip(item.SubjectId);
+                        if (launched != null && launched.Owner == PlayerFaction) Announce($"Zwodowano: {ClassName(launched.Class)}.", HeraldLevel.Important, at, HeraldTopic.Launch);
                         break;
                     case "shipyard_built":
-                        if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Notify("Stocznia na przyczółku gotowa.");
+                        if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce("Stocznia na przyczółku gotowa.", HeraldLevel.Important, at);
                         break;
                     case "volley":
                         if (seen && lastPositions.TryGetValue(item.SubjectId, out var shooter)) effects.Arrows(shooter, at, (int)item.Amount);
+                        WarnIfOwnUnderAttack(item.OtherId, at);
                         break;
                     case "ram_hit":
                         if (seen) effects.Flash(at, 22f);
+                        WarnIfOwnUnderAttack(item.OtherId, at);
                         break;
                     case "ram_failed":
                         if (seen) effects.Flash(at, 8f);
@@ -294,9 +304,21 @@ namespace MorzaBogow.Presentation
                         break;
                     case "ship_captured":
                         if (seen) effects.Flash(at, 16f);
+                        if (viewOwners.TryGetValue(item.SubjectId, out var formerOwner))
+                        {
+                            var takenName = viewClasses.TryGetValue(item.SubjectId, out var takenClass) ? ClassName(takenClass) : "okręt";
+                            if (formerOwner == PlayerFaction) Announce($"Wróg zdobył abordażem: {takenName}.", HeraldLevel.Critical, at);
+                            else if (seen) Announce($"Zdobyto abordażem: {takenName}.", HeraldLevel.Important, at);
+                        }
                         break;
                     case "ship_sunk":
                         if (seen) { sinkingShips.Add(item.SubjectId); effects.Flash(at, 14f); }
+                        if (viewOwners.TryGetValue(item.SubjectId, out var sunkOwner))
+                        {
+                            var sunkName = viewClasses.TryGetValue(item.SubjectId, out var sunkClass) ? ClassName(sunkClass) : "okręt";
+                            if (sunkOwner == PlayerFaction) Announce($"Utracono: {sunkName}.", HeraldLevel.Critical, at);
+                            else if (seen) Announce($"Zatopiono wrogi okręt: {sunkName}.", HeraldLevel.Important, at);
+                        }
                         break;
                 }
             }
@@ -325,6 +347,7 @@ namespace MorzaBogow.Presentation
             foreach (var item in mapObjects) if (item != null) Destroy(item);
             views.Clear();
             viewOwners.Clear();
+            viewClasses.Clear();
             previous.Clear();
             nodeViews.Clear();
             settlementViews.Clear();
@@ -813,6 +836,7 @@ namespace MorzaBogow.Presentation
                     view = ShipVisual.Create(ship, materials);
                     views[ship.Id] = view;
                     viewOwners[ship.Id] = ship.Owner;
+                    viewClasses[ship.Id] = ship.Class;
                 }
                 else if (viewOwners[ship.Id] != ship.Owner)
                 {
@@ -829,6 +853,7 @@ namespace MorzaBogow.Presentation
                 views.Remove(id);
                 lastPositions.Remove(id);
                 viewOwners.Remove(id);
+                viewClasses.Remove(id);
                 previous.Remove(id);
                 selected.Remove(id);
             }
@@ -1184,15 +1209,28 @@ namespace MorzaBogow.Presentation
         void HandleInput()
         {
             if (Input.GetKeyDown(KeyCode.Space)) paused = !paused;
-            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) speedIndex = Mathf.Min(Speeds.Length - 1, speedIndex + 1);
-            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) speedIndex = Mathf.Max(0, speedIndex - 1);
-            if (Input.GetKeyDown(KeyCode.Escape)) ClearSelection();
+            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) SpeedUp();
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) SpeedDown();
             if (Input.GetKeyDown(KeyCode.F5)) QuickSave(DefaultSavePath);
             if (Input.GetKeyDown(KeyCode.F8)) QuickLoad(DefaultSavePath);
             HandleGroups();
-            if (Input.GetKeyDown(KeyCode.R)) Send(CommandKind.Repair, selected.ToArray());
+            if (Input.GetKeyDown(KeyCode.R)) RepairSelected();
 
-            if (PointerOverHud()) return;
+            // A targeted order waits for its target: left click places it, right click or Escape cancels it.
+            if (PendingOrder != HudOrder.None)
+            {
+                if (selected.Count == 0 || Input.GetKeyDown(KeyCode.Escape) || (Input.GetMouseButtonDown(1) && !PointerOverHud())) { PendingOrder = HudOrder.None; return; }
+                if (Input.GetMouseButtonDown(0) && !PointerOverHud() && TryGround(Input.mousePosition, out var target))
+                {
+                    var order = PendingOrder;
+                    var keep = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                    if (ExecuteOrder(order, target) && !keep) PendingOrder = HudOrder.None;
+                }
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.Escape)) ClearSelection();
+
+            if (PointerOverHud()) { if (Input.GetMouseButtonUp(0)) dragging = false; return; }
             if (Input.GetMouseButtonDown(0)) { dragging = true; dragStart = Input.mousePosition; }
             if (Input.GetMouseButtonUp(0) && dragging) { dragging = false; FinishSelection(Input.mousePosition); }
             if (Input.GetMouseButtonDown(1) && TryGround(Input.mousePosition, out var point)) OrderAt(point);
@@ -1210,7 +1248,7 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        bool PointerOverHud() => Input.mousePosition.y < HudHeight;
+        bool PointerOverHud() => hud != null && hud.IsPointerOverInterface(Input.mousePosition);
 
         void FinishSelection(Vector2 end)
         {
@@ -1406,133 +1444,205 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        void Notify(string text)
+        void Notify(string text) => Announce(text, HeraldLevel.Info, null);
+
+        // ---------- Interface ----------
+
+        /// <summary>The battle interface reads this controller and issues orders through it; it never changes the game itself.</summary>
+        BattleHud hud;
+        public BattleHud Hud => hud;
+        public Camera StrategicCamera => strategicCamera;
+
+        /// <summary>A herald's message for the interface: text, weight and the place it concerns.</summary>
+        public event Action<HeraldMessage> Herald;
+        readonly Dictionary<int, float> lastAlarm = new Dictionary<int, float>();
+
+        void Announce(string text, HeraldLevel level, Vector3? at, HeraldTopic topic = HeraldTopic.General)
         {
-            notice = text;
-            noticeUntil = Time.unscaledTime + 5f;
+            LastNotice = text;
+            Herald?.Invoke(new HeraldMessage(text, level, at, topic));
         }
 
-        // ---------- Working M1 HUD ----------
-
-        void OnGUI()
+        /// <summary>An own ship or port under fire raises an alarm, at most once in a while for each of them.</summary>
+        void WarnIfOwnUnderAttack(int targetId, Vector3 at)
         {
-            // E03: the bar shows one local store, never a remote total. Clicking an own port makes it active.
-            var settlement = ActivePort;
-            if (settlement != null)
+            var ship = World.FindShip(targetId);
+            var settlement = ship == null ? World.FindSettlement(targetId) : null;
+            if (ship?.Owner != PlayerFaction && settlement?.Owner != PlayerFaction) return;
+            if (lastAlarm.TryGetValue(targetId, out var last) && Time.unscaledTime - last < 15f) return;
+            lastAlarm[targetId] = Time.unscaledTime;
+            var text = ship != null ? $"Atak na {ClassName(ship.Class).ToLowerInvariant()}!" : settlement.IsOutpost ? "Przyczółek pod ostrzałem!" : "Osada pod ostrzałem!";
+            Announce(text, HeraldLevel.Critical, at, HeraldTopic.Alarm);
+        }
+
+        /// <summary>A targeted order chosen on the order panel, waiting for a left click on the map.</summary>
+        public HudOrder PendingOrder { get; set; }
+
+        public bool IsDragging => dragging && (Input.mousePosition - (Vector3)dragStart).magnitude >= 6f;
+
+        /// <summary>The selection box in screen pixels, origin at the bottom left.</summary>
+        public Rect DragScreenRect
+        {
+            get
             {
-                var own = World.Ships.Where(ship => ship.Owner == PlayerFaction).ToList();
-                var woodTransit = (own.Where(ship => ship.CargoType == ResourceType.Wood).Sum(ship => ship.Cargo) + own.Sum(ship => ship.HoldWood)) / Rules.Centi;
-                var silverTransit = (own.Where(ship => ship.CargoType == ResourceType.Silver).Sum(ship => ship.Cargo) + own.Sum(ship => ship.HoldSilver)) / Rules.Centi;
-                var portName = settlement.IsOutpost ? "Przyczółek" : "Osada";
-                GUI.Box(new Rect(0, 0, Screen.width, 26), string.Empty);
-                GUI.Label(new Rect(10, 3, Screen.width - 20, 24),
-                    $"{portName}: drewno {settlement.Available(ResourceType.Wood) / Rules.Centi} (rez. {settlement.ReservedWood / Rules.Centi})   srebro {settlement.Available(ResourceType.Silver) / Rules.Centi} (rez. {settlement.ReservedSilver / Rules.Centi})   {Mathf.CeilToInt((float)settlement.Hull)} HP   " +
-                    $"W drodze: {woodTransit} D, {silverTransit} S   Porty {World.PortsOf(PlayerFaction).Count()}   Flota {own.Count}/{Rules.FleetLimit}   " +
-                    $"Prędkość {Speed:0.#}x{(paused ? "  PAUZA" : string.Empty)}   Czas {World.Tick / Rules.TickRate / 60}:{World.Tick / Rules.TickRate % 60:00}");
-
-                GUILayout.BeginArea(new Rect(0, Screen.height - HudHeight, 380, HudHeight), GUI.skin.box);
-                GUILayout.Label($"{portName}: cena kompletnego szablonu z lokalnego magazynu.");
-                foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
-                {
-                    var definition = ShipCatalog.Get(shipClass);
-                    if (!definition.IsEconomic && !settlement.HasShipyard) continue;
-                    var label = $"{ClassName(shipClass)}: {definition.CostWood} D / {definition.CostSilver} S, {definition.BuildSeconds:0} s";
-                    if (GUILayout.Button(label)) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass, TargetId = settlement.Id });
-                }
-                if (settlement.ShipyardBuild != null)
-                {
-                    GUILayout.Label($"Stocznia: budowa {100 * settlement.ShipyardBuild.DoneTicks / settlement.ShipyardBuild.TotalTicks}%");
-                }
-                else if (!settlement.HasShipyard)
-                {
-                    if (GUILayout.Button($"Stocznia: {Rules.ShipyardWood / Rules.Centi} D / {Rules.ShipyardSilver / Rules.Centi} S, {Rules.ShipyardBuildSeconds:0} s"))
-                    {
-                        World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildShipyard, TargetId = settlement.Id });
-                    }
-                }
-                GUILayout.EndArea();
-
-                if (settlement.WarQueue.Count + settlement.PortQueue.Count > 0)
-                {
-                    GUILayout.BeginArea(new Rect(385, Screen.height - HudHeight, 250, HudHeight), GUI.skin.box);
-                    GUILayout.Label("Kolejki");
-                    QueueButtons(settlement, settlement.WarQueue, false);
-                    QueueButtons(settlement, settlement.PortQueue, true);
-                    GUILayout.EndArea();
-                }
-            }
-
-            if (Event.current.type == EventType.Repaint) DrawHealthBars();
-
-            GUILayout.BeginArea(new Rect(640, Screen.height - HudHeight, Mathf.Max(320, Screen.width - 640), HudHeight), GUI.skin.box);
-            if (selected.Count == 0 && inspectedEnemies.Count == 0) GUILayout.Label("LPM: zaznacz (także wroga, by zobaczyć jego stan; własny port staje się aktywny). PPM: rozkaz; handlowiec na wolny brzeg: przyczółek, na własny port: dostawa; okręt na handlowca: eskorta. Spacja: pauza. +/-: prędkość. F5/F8: zapis/wczytanie. R: remont. Alt+PPM: ostrzał abordażowcem.");
-            foreach (var id in selected.Take(5))
-            {
-                var ship = World.FindShip(id);
-                if (ship == null) continue;
-                GUILayout.Label($"{ClassName(ship.Class)}: kadłub {Mathf.CeilToInt((float)ship.Hull)}/{ship.Definition.Hull}, marynarze {ship.Sailors}, żołnierze {ship.Soldiers}, morale {Mathf.RoundToInt((float)ship.Morale)}, ładunek {DescribeCargo(ship)}. {DescribeOrder(ship)}");
-            }
-            if (selected.Count > 5) GUILayout.Label($"oraz {selected.Count - 5} kolejnych");
-            foreach (var id in inspectedEnemies.Take(3))
-            {
-                var enemy = World.FindShip(id);
-                if (enemy == null) continue;
-                GUILayout.Label($"WRÓG {ClassName(enemy.Class)}: kadłub {Mathf.CeilToInt((float)enemy.Hull)}/{enemy.Definition.Hull}, marynarze {enemy.Sailors}, żołnierze {enemy.Soldiers}, morale {Mathf.RoundToInt((float)enemy.Morale)}");
-            }
-            if (inspectedEnemies.Count > 3) GUILayout.Label($"oraz {inspectedEnemies.Count - 3} wrogów");
-            GUILayout.EndArea();
-
-            if (Time.unscaledTime < noticeUntil) GUI.Label(new Rect(10, 30, 700, 24), notice);
-            if (dragging && (Input.mousePosition - (Vector3)dragStart).magnitude >= 6f)
-            {
-                var end = Input.mousePosition;
-                GUI.Box(Rect.MinMaxRect(Mathf.Min(dragStart.x, end.x), Screen.height - Mathf.Max(dragStart.y, end.y), Mathf.Max(dragStart.x, end.x), Screen.height - Mathf.Min(dragStart.y, end.y)), string.Empty);
-            }
-
-            if (World.Outcome != OutcomeKind.InProgress)
-            {
-                var text = World.Outcome == OutcomeKind.Draw ? "REMIS" : World.Winner == PlayerFaction ? "ZWYCIĘSTWO" : "PORAŻKA";
-                GUI.Box(new Rect(Screen.width / 2f - 150, Screen.height / 2f - 40, 300, 80), text);
-                if (GUI.Button(new Rect(Screen.width / 2f - 80, Screen.height / 2f, 160, 28), "Nowa gra")) StartMatch(MapFactory.CreateSkirmish(seed + (ulong)Time.frameCount), 0);
+                var end = (Vector2)Input.mousePosition;
+                return Rect.MinMaxRect(Mathf.Min(dragStart.x, end.x), Mathf.Min(dragStart.y, end.y), Mathf.Max(dragStart.x, end.x), Mathf.Max(dragStart.y, end.y));
             }
         }
 
-        void DrawHealthBars()
+        public void FocusCamera(Vector3 point)
         {
-            if (strategicCamera == null) return;
-            var previousColor = GUI.color;
-            foreach (var ship in World.Ships)
-            {
-                if (!ShowsHealthBar(ship)) continue;
-                var position = views.TryGetValue(ship.Id, out var view) ? view.transform.position : ToWorld(ship);
-                var screen = strategicCamera.WorldToScreenPoint(position + Vector3.up * ((float)ship.Definition.Radius + 3f));
-                if (screen.z <= 0f) continue;
-                var width = Mathf.Clamp(18f + (float)ship.Definition.Radius * 240f / Mathf.Max(height, 20f), 18f, 90f);
-                var own = ship.Owner == PlayerFaction;
-                var crewMax = ship.Definition.MaxCrew;
-                DrawBar(screen, width, 5f, (float)(ship.Hull / ship.Definition.Hull), own ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.15f), 0f);
-                DrawBar(screen, width, 3f, (float)(ship.Sailors + ship.Soldiers) / crewMax, new Color(0.95f, 0.8f, 0.3f), 6f);
-            }
-
-            foreach (var settlement in World.Settlements)
-            {
-                if (settlement.Destroyed || settlement.Id != inspectedSettlementId) continue;
-                if (settlement.Owner != PlayerFaction && !World.CanSee(PlayerFaction, settlement.X, settlement.Y)) continue;
-                var screen = strategicCamera.WorldToScreenPoint(new Vector3((float)Rules.SettlementLandX(settlement), 12f, (float)settlement.Y));
-                if (screen.z <= 0f) continue;
-                DrawBar(screen, 110f, 7f, (float)(settlement.Hull / settlement.MaxHull), settlement.Owner == PlayerFaction ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.15f), 0f);
-            }
-            GUI.color = previousColor;
+            pivot = new Vector3(Mathf.Clamp(point.x, -520f, 520f), 0f, Mathf.Clamp(point.z, -420f, 420f));
         }
 
-        static void DrawBar(Vector3 screen, float width, float barHeight, float fraction, Color color, float offset)
+        public void TogglePause() => paused = !paused;
+        public void SpeedUp() => speedIndex = Mathf.Min(Speeds.Length - 1, speedIndex + 1);
+        public void SpeedDown() => speedIndex = Mathf.Max(0, speedIndex - 1);
+        public bool CanSpeedUp => speedIndex < Speeds.Length - 1;
+        public bool CanSpeedDown => speedIndex > 0;
+
+        public void SelectOnly(int id)
         {
-            var x = screen.x - width * 0.5f;
-            var y = Screen.height - screen.y + offset;
-            GUI.color = new Color(0f, 0f, 0f, 0.75f);
-            GUI.DrawTexture(new Rect(x - 1f, y - 1f, width + 2f, barHeight + 2f), Texture2D.whiteTexture);
-            GUI.color = color;
-            GUI.DrawTexture(new Rect(x, y, width * Mathf.Clamp01(fraction), barHeight), Texture2D.whiteTexture);
+            selected.Clear();
+            inspectedEnemies.Clear();
+            if (World.FindShip(id)?.Owner == PlayerFaction) selected.Add(id);
+        }
+
+        public void Deselect(int id) => selected.Remove(id);
+
+        public void SelectPort(int settlementId)
+        {
+            var settlement = World.FindSettlement(settlementId);
+            if (settlement != null && settlement.Owner == PlayerFaction && !settlement.Destroyed) inspectedSettlementId = settlementId;
+        }
+
+        public void QueueShip(ShipClass shipClass)
+        {
+            var port = ActivePort;
+            if (port == null) return;
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass, TargetId = port.Id });
+        }
+
+        public void CancelQueue(bool warLine, int index)
+        {
+            var port = ActivePort;
+            if (port == null) return;
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = index, PortQueue = !warLine, TargetId = port.Id });
+        }
+
+        public void BuildShipyard()
+        {
+            var port = ActivePort;
+            if (port == null) return;
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildShipyard, TargetId = port.Id });
+        }
+
+        public void StopSelected() => Send(CommandKind.Stop, selected.ToArray());
+        public void RepairSelected() => Send(CommandKind.Repair, selected.ToArray());
+        public void ScrapSelected() => Send(CommandKind.Scrap, selected.ToArray());
+
+        public void NewGame()
+        {
+            StartMatch(MapFactory.CreateSkirmish(seed + (ulong)Time.frameCount), 0);
+        }
+
+        /// <summary>
+        /// Carries out a targeted order at a point on the map, the same way the context order does but for one
+        /// chosen kind. False when nothing suitable lies there or no selected ship can do it.
+        /// </summary>
+        public bool ExecuteOrder(HudOrder order, Vector3 point)
+        {
+            var ships = selected.Select(World.FindShip).Where(ship => ship != null && ship.Owner == PlayerFaction).ToList();
+            if (ships.Count == 0) return false;
+            int[] Ids(Func<Ship, bool> able) => ships.Where(able).Select(ship => ship.Id).ToArray();
+            var enemy = NearestShip(point, ship => ship.Owner != PlayerFaction);
+            var done = false;
+
+            switch (order)
+            {
+                case HudOrder.Move:
+                    Send(CommandKind.Move, Ids(_ => true), point);
+                    done = true;
+                    break;
+                case HudOrder.Attack:
+                {
+                    var archers = Ids(ship => ship.Definition.LightSlots > 0);
+                    if (enemy != null && archers.Length > 0) { Send(CommandKind.AttackShip, archers, target: enemy.Id); done = true; break; }
+                    var port = World.Settlements.FirstOrDefault(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item));
+                    if (port != null && archers.Length > 0) { Send(CommandKind.AttackSettlement, archers, target: port.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Ram:
+                {
+                    var rams = Ids(ship => ship.Class == ShipClass.Ram);
+                    if (enemy != null && rams.Length > 0) { Send(CommandKind.Ram, rams, target: enemy.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Board:
+                {
+                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder);
+                    if (enemy != null && boarders.Length > 0) { Send(CommandKind.Board, boarders, target: enemy.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Volley:
+                {
+                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder && ship.Definition.LightSlots > 0);
+                    if (enemy != null && boarders.Length > 0) { Send(CommandKind.AttackShip, boarders, target: enemy.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Harvest:
+                {
+                    var cutters = Ids(ship => ship.Definition.CanHarvest);
+                    if (cutters.Length == 0) break;
+                    var wreck = World.Wrecks.FirstOrDefault(item => World.CanSee(PlayerFaction, item.X, item.Y) && World.Distance(point.x, point.z, item.X, item.Y) < 20);
+                    if (wreck != null) { Send(CommandKind.Salvage, cutters, target: wreck.Id); done = true; break; }
+                    var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0
+                        && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, item.X, item.Y + Rules.SiteLandOffset) < Rules.SiteLandRadius));
+                    if (node != null) { Send(CommandKind.Harvest, cutters, target: node.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Deliver:
+                {
+                    var merchants = Ids(ship => ship.Class == ShipClass.Merchant);
+                    var port = World.PortsOf(PlayerFaction).FirstOrDefault(item => IsOnSettlement(point, item));
+                    if (port != null && merchants.Length > 0) { Send(CommandKind.Transfer, merchants, target: port.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Outpost:
+                {
+                    var merchant = Ids(ship => ship.Class == ShipClass.Merchant).Take(1).ToArray();
+                    var shore = World.Sites.FirstOrDefault(item => World.IsSiteFree(item) && World.IsExplored(PlayerFaction, item.X, item.Y)
+                        && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, Rules.LandX(item.X), item.Y) < 25));
+                    if (shore != null && merchant.Length > 0) { Send(CommandKind.FoundOutpost, merchant, target: shore.Id); done = true; }
+                    break;
+                }
+                case HudOrder.Escort:
+                {
+                    var warships = Ids(ship => !ship.Definition.IsEconomic);
+                    var ids = selected.ToArray();
+                    var escorted = NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id));
+                    if (escorted != null && warships.Length > 0) { Send(CommandKind.Escort, warships, target: escorted.Id); done = true; }
+                    break;
+                }
+            }
+
+            if (done) effects.Ping(point);
+            else Announce("Tu nie ma właściwego celu dla tego rozkazu.", HeraldLevel.Info, point);
+            return done;
+        }
+
+        /// <summary>Seconds left to finish a build order at the game's pace.</summary>
+        public static float SecondsLeft(BuildOrder order) => order == null ? 0f : (order.TotalTicks - order.DoneTicks) / (float)Rules.TickRate;
+
+        /// <summary>The stage a hull on the slipway has reached, as named on the interface.</summary>
+        public static string StageName(float progress)
+        {
+            if (progress < 0.1f) return "stępka";
+            if (progress < 0.35f) return "wręgi";
+            if (progress < 0.7f) return "poszycie";
+            if (progress < 0.85f) return "pokład";
+            if (progress < 0.95f) return "maszt";
+            return "wiosła i żagiel";
         }
 
         /// <summary>Plain language order text for the selection panel.</summary>
@@ -1596,23 +1706,13 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        static string DescribeCargo(Ship ship)
+        public static string DescribeCargo(Ship ship)
         {
             if (ship.HoldWood + ship.HoldSilver > 0) return $"{ship.HoldWood / Rules.Centi} D i {ship.HoldSilver / Rules.Centi} S";
             return (ship.Cargo / Rules.Centi).ToString();
         }
 
-        void QueueButtons(Settlement port, List<BuildOrder> queue, bool portQueue)
-        {
-            for (var i = 0; i < queue.Count; i++)
-            {
-                var order = queue[i];
-                if (GUILayout.Button($"{ClassName(order.Class)} {100 * order.DoneTicks / order.TotalTicks}% (anuluj)"))
-                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = i, PortQueue = portQueue, TargetId = port.Id });
-            }
-        }
-
-        static string ClassName(ShipClass shipClass)
+        public static string ClassName(ShipClass shipClass)
         {
             switch (shipClass)
             {
