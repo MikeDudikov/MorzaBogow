@@ -60,9 +60,10 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 | Kontrola | Wynik | Zakres |
 |---|---|---|
-| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 91/91, PlayMode 35/35 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 95/95, PlayMode 35/35 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
 | Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
-| Build Windows64 Mono, scena M1_Battle | Success, 261873816 B, 0 błędów, 0 ostrzeżeń | |
+| Build Windows64 Mono, scena M1_Battle | Success, 261875352 B, 0 błędów, 0 ostrzeżeń | |
+| Mecz SI kontra SI, seed 9, 6000 kroków, test | Żaden statek nie wszedł na ląd, punkty pracy nadal działają | sprawdzane co krok dla kół kolizji, jeden seed |
 | Build, 130 s rozgrywki SI z próbkowaniem wody | 118645 odczytów, 8 błędów, przechył do 11,96°, wznoszenie do 0,98 m | odczyty liczbowe, ruch na ekranie nie był oceniany |
 | Kolor wody w buildzie, profil Ultra, widok domyślny | RGB 42 71 84, 0% przepaleń; zaakceptowana wersja perspektywiczna 34 68 75 | średnia z wycinka zrzutu, inny kadr niż we wzorcu |
 | Nachylenie 80°, obrót −40°, profil Ultra | 0% przepaleń | jeden zrzut, pozostałe kąty policzone, nie zmierzone |
@@ -78,7 +79,7 @@ Obraz: stała ekspozycja EV 12,25, mapowanie tonów Neutral, nasycenie +35, sło
 
 Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Znaczniki to cienkie, półprzezroczyste okręgi z lekko zmiękczoną krawędzią: zaznaczenie i cel ruchu mają krycie 42%, atakowany wróg czerwony okrąg o kryciu 70%. Mgła wojny jest widoczna w trzech stanach, a odkrycie należy do zapisu gry. Animacje, efekty oraz modele składu drewna i kopalni srebra to prezentacja zbudowana z prostych brył, do zastąpienia docelową grafiką.
 
-Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 3.
+Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 4. Zapisy z wcześniejszych buildów nie wczytują się.
 
 Budżety kampanii M01–M14 i ładunek misji (E12) są tylko w dokumentach i danych. Sceny misji nie istnieją.
 
@@ -86,7 +87,7 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 
 - Następny etap z E00: handlowiec, druga wyspa, eskorta, przyczółek, konwoje i lokalna produkcja.
 - Nie ma inwestycji z E05, kolejnej stoczni, ostrzeżeń o nasyceniu ani rezerwy gracza; rezerwy 60 D/20 S przestrzega tylko SI.
-- Nawigacja omija koła wysp; nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
+- Nawigacja omija koła lądu: wybrzeża, składy, kopalnie i osady. Port i punkt pracy leżą na wodzie obok swojego lądu. Tylko wybrzeże blokuje strzały. Kolizja to koło, więc nie odwzorowuje dokładnie kształtu modelu. Cel ruchu na lądzie przesuwa się na najbliższą wodę. Statki nie zderzają się ze sobą. Nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
 - Jedyna broń to łucznicy z rzutem seedowanym, bez lotu pocisku, sektorów i wyboru wyposażenia. Wyposażenie z szablonu nie jest osobnym przedmiotem, więc 30% szansy jego przetrwania we wraku nie jest wdrożone.
 - Osada łączy port i stocznię w jednym obiekcie, więc zniszczenia samego portu nie ma; łup 30% ze zniszczonej osady nie jest wdrożony, bo jej zniszczenie kończy mecz.
 - SI jest prosta i zna pozycję startową wroga oraz położenie punktów pracy. Balans: NOT_RUN.
@@ -99,8 +100,6 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - Menu rozdzielczości (F10) i profili (F9) to robocze panele IMGUI.
 - Jeden z 57 przebiegów w logach z 2026-11-09 wystartował na Intel Iris Xe z Direct3D 11. HDRP nie uruchomił się wtedy (`Kernel 'KDepthDownsample8DualUav' not found`), obraz był czarny, a gra działała dalej. Powtórka na RTX 3050 Ti przeszła. Przyczyny wyboru karty nie ustalono.
 - Pierwsze uruchomienie po przebudowie bywa bardzo wolne: 68 kroków w 16 s przy drugiej działającej kopii gry. Przyczyny nie potwierdzono.
-- Modele składu drewna, kopalni i osady nie mają kolizji w symulacji, więc statki potrafią przez nie przepływać.
-
 ## Nieuruchomione
 
 - Dłuższa rozgrywka człowieka: użytkownik zagrał krótko, zaznaczanie i rozkazy działały, bez błędów. Paski HP, animacje i efekty dodane po tej próbie: NOT_RUN w ręcznej ocenie.

@@ -27,7 +27,7 @@ namespace MorzaBogow.Presentation
             // and its front toward the default camera, so piles stay readable from every site.
             var model = new GameObject("Model").transform;
             model.SetParent(root.transform, false);
-            model.localPosition = new Vector3(0f, 0f, 24f);
+            model.localPosition = new Vector3(0f, 0f, (float)Rules.SiteLandOffset - 4f);
 
             var random = new System.Random(node.Id * 7919);
             if (node.Type == ResourceType.Wood) visual.BuildForestYard(model, materials, random);

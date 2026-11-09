@@ -60,6 +60,17 @@ namespace MorzaBogow.Simulation
         public const double HandlingPerSecond = 60;
         public const double PortRange = 8;
         public const double NodeWorkRange = 8;
+
+        // A work point and a port lie on water. Their land sits beside them, so ships can moor without entering it.
+        public const double SiteLandOffset = 28;
+        public const double SiteLandRadius = 20;
+        public const double SettlementLandOffset = 26;
+        public const double SettlementLandRadius = 20;
+
+        /// <summary>A settlement's land lies on the side away from the map center.</summary>
+        public static double SettlementLandX(Settlement settlement) =>
+            settlement.X + (settlement.X < 0 ? -SettlementLandOffset : SettlementLandOffset);
+
         public const int WorkBerths = 2;
         public const int WoodNodeCap = 12;
         public const int SilverNodeCap = 4;

@@ -483,6 +483,78 @@ namespace MorzaBogow.Tests
             Assert.That(World.Distance(ship.X, ship.Y, 200, 0), Is.LessThan(ship.Definition.Radius + 8));
         }
 
+        // ---------- Land under sites and settlements ----------
+
+        [Test]
+        public void Land_EverySiteAndSettlementHasLandAndStaysReachable()
+        {
+            var world = MapFactory.CreateSkirmish(1);
+            Assert.That(world.Islands.Count(item => item.Kind == IslandKind.ResourceSite), Is.EqualTo(world.Nodes.Count));
+            Assert.That(world.Islands.Count(item => item.Kind == IslandKind.Settlement), Is.EqualTo(world.Settlements.Count));
+
+            var cutter = ShipCatalog.Get(ShipClass.Cutter).Radius;
+            foreach (var node in world.Nodes)
+            {
+                foreach (var island in world.Islands)
+                {
+                    Assert.That(World.Distance(node.X, node.Y, island.X, island.Y), Is.GreaterThanOrEqualTo(island.Radius + cutter), $"Node {node.Id}");
+                }
+            }
+        }
+
+        [Test]
+        public void Land_ShipsNeverEnterItDuringAMatchAndStillDeliverGoods()
+        {
+            var world = MapFactory.CreateSkirmish(9);
+            var first = new Opponent(0);
+            var second = new Opponent(1);
+            var startStock = world.Nodes.Sum(node => node.Stock);
+            for (var tick = 0; tick < 6000 && world.Outcome == OutcomeKind.InProgress; tick++)
+            {
+                first.Think(world);
+                second.Think(world);
+                world.Step();
+                world.Events.Clear();
+                foreach (var ship in world.Ships)
+                {
+                    foreach (var island in world.Islands)
+                    {
+                        var distance = World.Distance(ship.X, ship.Y, island.X, island.Y);
+                        if (distance < island.Radius + ship.Definition.Radius - 1e-6) Assert.Fail($"Tick {tick}: ship {ship.Id} is {distance:0.00} m from {island.Kind} land.");
+                    }
+                }
+            }
+            Assert.That(world.Nodes.Sum(node => node.Stock), Is.LessThan(startStock), "Work points stay usable next to their land.");
+        }
+
+        [Test]
+        public void Land_MoveOrderOntoLandStopsAtTheShore()
+        {
+            var world = Empty();
+            var island = new Island { X = 0, Y = 0, Radius = 20, Kind = IslandKind.ResourceSite };
+            world.Islands.Add(island);
+            var ship = world.SpawnShip(0, ShipClass.Cutter, -150, 0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = 5, Y = 0 });
+            world.Step();
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.Move), "The command takes effect on the first step.");
+            for (var i = 0; i < 3000 && ship.Order != OrderKind.Idle; i++) world.Step();
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.Idle), "The ship must not circle the land forever.");
+            Assert.That(World.Distance(ship.X, ship.Y, 0, 0), Is.LessThan(island.Radius + ship.Definition.Radius * 2 + 8));
+        }
+
+        [Test]
+        public void Land_OnlyACoastBlocksShotsAndKindIsSaved()
+        {
+            var world = Empty();
+            world.Islands.Add(new Island { X = 0, Y = 0, Radius = 20, Kind = IslandKind.ResourceSite });
+            Assert.That(world.HasIslandBetween(-50, 0, 50, 0), Is.False);
+            world.Islands.Add(new Island { X = 0, Y = 100, Radius = 20, Kind = IslandKind.Coast });
+            Assert.That(world.HasIslandBetween(-50, 100, 50, 100), Is.True);
+
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            Assert.That(loaded.Islands.Select(item => item.Kind), Is.EqualTo(new[] { IslandKind.ResourceSite, IslandKind.Coast }));
+        }
+
         // ---------- Ram ----------
 
         static (Ship ram, Ship target) RamSetup(World world, double targetHeading)

@@ -251,12 +251,13 @@ namespace MorzaBogow.Presentation
 
         void BuildStaticViews()
         {
-            foreach (var island in World.Islands) mapObjects.Add(CreateIsland(island));
+            // Land under sites and settlements is drawn by their own models.
+            foreach (var island in World.Islands.Where(item => item.Kind == IslandKind.Coast)) mapObjects.Add(CreateIsland(island));
 
             foreach (var settlement in World.Settlements)
             {
                 var view = Primitive(PrimitiveType.Cube, $"Settlement {settlement.Owner} [PLACEHOLDER]", materials?.Neutral);
-                view.transform.position = new Vector3((float)settlement.X, 3f, (float)settlement.Y);
+                view.transform.position = new Vector3((float)Rules.SettlementLandX(settlement), 3f, (float)settlement.Y);
                 view.transform.localScale = new Vector3(28f, 6f, 28f);
                 settlementViews[settlement.Id] = view;
                 mapObjects.Add(view);
@@ -477,7 +478,7 @@ namespace MorzaBogow.Presentation
             }
             settlementTargetMarker.SetActive(true);
             var pulse = 26f + Mathf.Sin(Time.unscaledTime * 5f) * 1.5f;
-            settlementTargetMarker.transform.position = new Vector3((float)targetedSettlement.X, 0.7f, (float)targetedSettlement.Y);
+            settlementTargetMarker.transform.position = new Vector3((float)Rules.SettlementLandX(targetedSettlement), 7f, (float)targetedSettlement.Y);
             settlementTargetMarker.transform.localScale = new Vector3(pulse, 1f, pulse);
         }
 
@@ -680,10 +681,15 @@ namespace MorzaBogow.Presentation
             if (enemy != null) { inspectedEnemies.Add(enemy.Id); return; }
             foreach (var settlement in World.Settlements)
             {
-                if (settlement.Destroyed || World.Distance(point.x, point.z, settlement.X, settlement.Y) > 25) continue;
+                if (settlement.Destroyed || !IsOnSettlement(point, settlement)) continue;
                 if (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y)) inspectedSettlementId = settlement.Id;
             }
         }
+
+        /// <summary>A click counts on the settlement's model as well as on its port.</summary>
+        static bool IsOnSettlement(Vector3 point, Settlement settlement) =>
+            World.Distance(point.x, point.z, settlement.X, settlement.Y) < 25
+            || World.Distance(point.x, point.z, Rules.SettlementLandX(settlement), settlement.Y) < 25;
 
         Ship NearestShip(Vector3 point, Func<Ship, bool> filter)
         {
@@ -721,7 +727,7 @@ namespace MorzaBogow.Presentation
             if (enemy != null) { OrderAttack(ids, enemy); return; }
 
             var enemyHome = World.SettlementOf(1 - PlayerFaction);
-            if (enemyHome != null && World.CanSee(PlayerFaction, enemyHome.X, enemyHome.Y) && World.Distance(point.x, point.z, enemyHome.X, enemyHome.Y) < 25)
+            if (enemyHome != null && World.CanSee(PlayerFaction, enemyHome.X, enemyHome.Y) && IsOnSettlement(point, enemyHome))
             {
                 Send(CommandKind.AttackSettlement, ids, target: enemyHome.Id);
                 return;
@@ -734,7 +740,8 @@ namespace MorzaBogow.Presentation
                 if (salvagers.Length > 0) { Send(CommandKind.Salvage, salvagers, target: wreck.Id); return; }
             }
 
-            var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0 && World.Distance(point.x, point.z, item.X, item.Y) < 25);
+            var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0
+                && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, item.X, item.Y + Rules.SiteLandOffset) < Rules.SiteLandRadius));
             if (node != null)
             {
                 var cutters = ids.Where(id => World.FindShip(id)?.Definition.CanHarvest == true).ToArray();
@@ -893,7 +900,7 @@ namespace MorzaBogow.Presentation
             {
                 if (settlement.Destroyed || settlement.Id != inspectedSettlementId) continue;
                 if (settlement.Owner != PlayerFaction && !World.CanSee(PlayerFaction, settlement.X, settlement.Y)) continue;
-                var screen = strategicCamera.WorldToScreenPoint(new Vector3((float)settlement.X, 12f, (float)settlement.Y));
+                var screen = strategicCamera.WorldToScreenPoint(new Vector3((float)Rules.SettlementLandX(settlement), 12f, (float)settlement.Y));
                 if (screen.z <= 0f) continue;
                 DrawBar(screen, 110f, 7f, (float)(settlement.Hull / Rules.SettlementHull), settlement.Owner == PlayerFaction ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.15f), 0f);
             }
@@ -1014,8 +1021,9 @@ namespace MorzaBogow.Presentation
                     tilt = ObliqueCamera.MaxTilt;
                     break;
                 case 2:
-                    pivot = Vector3.zero;
-                    height = 300f;
+                    // The home port, where docking ships sit next to the settlement's land.
+                    pivot = new Vector3((float)home.X, 0f, (float)home.Y);
+                    height = 120f;
                     yaw = ObliqueCamera.DefaultYaw;
                     tilt = ObliqueCamera.DefaultTilt;
                     break;

@@ -40,6 +40,7 @@ namespace MorzaBogow.Simulation
             };
             world.Settlements.Add(settlement);
             world.Islands.Add(new Island { X = x - direction * 75, Y = 0, Radius = 50 });
+            world.Islands.Add(new Island { X = Rules.SettlementLandX(settlement), Y = settlement.Y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
 
             var mask = 1 << owner;
             var wood = AddNode(world, ResourceType.Wood, x + direction * 80, 45, 3000, mask);
@@ -65,6 +66,7 @@ namespace MorzaBogow.Simulation
         {
             var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, KnownMask = knownMask };
             world.Nodes.Add(node);
+            world.Islands.Add(new Island { X = x, Y = y + Rules.SiteLandOffset, Radius = Rules.SiteLandRadius, Kind = IslandKind.ResourceSite });
             return node.Id;
         }
     }

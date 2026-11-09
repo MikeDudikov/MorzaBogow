@@ -222,6 +222,7 @@ namespace MorzaBogow.Simulation
                 {
                     case OrderKind.Idle: StopShip(ship); break;
                     case OrderKind.Move:
+                        MoveTargetToWater(ship);
                         if (Distance(ship.X, ship.Y, ship.TargetX, ship.TargetY) <= ship.Definition.Radius + 4) { ship.Order = OrderKind.Idle; StopShip(ship); }
                         else Steer(ship, ship.TargetX, ship.TargetY, ship.Definition.Speed, ship.Definition.Radius + 4);
                         break;
@@ -246,6 +247,22 @@ namespace MorzaBogow.Simulation
                 Integrate(ship);
             }
             StepWorkers();
+        }
+
+        /// <summary>A target on land moves to the nearest water, so the ship stops at the shore instead of circling.</summary>
+        void MoveTargetToWater(Ship ship)
+        {
+            foreach (var island in Islands)
+            {
+                var minimum = island.Radius + ship.Definition.Radius + 1;
+                var distance = Distance(ship.TargetX, ship.TargetY, island.X, island.Y);
+                if (distance >= minimum) continue;
+                var awayX = distance > 1e-6 ? ship.TargetX - island.X : ship.X - island.X;
+                var awayY = distance > 1e-6 ? ship.TargetY - island.Y : ship.Y - island.Y;
+                var length = Math.Max(Math.Sqrt(awayX * awayX + awayY * awayY), 1e-6);
+                ship.TargetX = island.X + awayX / length * minimum;
+                ship.TargetY = island.Y + awayY / length * minimum;
+            }
         }
 
         void Pursue(Ship ship, double x, double y, double hold)
@@ -469,6 +486,7 @@ namespace MorzaBogow.Simulation
             if (length2 < 1e-9) return false;
             foreach (var island in Islands)
             {
+                if (!island.BlocksShots) continue;
                 var along = Math.Max(0, Math.Min(1, ((island.X - ax) * dx + (island.Y - ay) * dy) / length2));
                 if (Distance(ax + along * dx, ay + along * dy, island.X, island.Y) < island.Radius) return true;
             }

@@ -6,9 +6,15 @@ namespace MorzaBogow.Simulation
     public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked }
     public enum RamPhase { Approach, Recoil, Cooldown }
 
+    public enum IslandKind { Coast, ResourceSite, Settlement }
+
+    /// <summary>Land ships cannot enter. Only a coast also stops shots; a quay or a settlement is too low for that.</summary>
     public sealed class Island
     {
         public double X, Y, Radius;
+        public IslandKind Kind;
+
+        public bool BlocksShots => Kind == IslandKind.Coast;
     }
 
     /// <summary>A finite coastal work point with two berths and a FIFO queue (E02).</summary>
