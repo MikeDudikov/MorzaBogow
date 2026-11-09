@@ -12,8 +12,8 @@ namespace MorzaBogow.Presentation
         public Material PlayerSail;
         public Material EnemySail;
         public Material Neutral;
-        public Material BronzeNode;
-        public Material RationsNode;
+        public Material WoodNode;
+        public Material SilverNode;
         public Material Selection;
     }
 

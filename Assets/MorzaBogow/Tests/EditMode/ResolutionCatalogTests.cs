@@ -64,6 +64,26 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Startup_OpensFullscreenByDefault()
+        {
+            Assert.That(DisplayStartup.WantsFullscreen(new[] { "game.exe" }, null), Is.True);
+        }
+
+        [Test]
+        public void Startup_SavedWindowedChoiceIsRespected()
+        {
+            Assert.That(DisplayStartup.WantsFullscreen(new[] { "game.exe" }, false), Is.False);
+        }
+
+        [Test]
+        public void Startup_CommandLineWindowOverridesEverything()
+        {
+            Assert.That(DisplayStartup.WantsFullscreen(new[] { "game.exe", "-screen-fullscreen", "0" }, true), Is.False);
+            Assert.That(DisplayStartup.WantsFullscreen(new[] { "game.exe", "-window" }, null), Is.False);
+            Assert.That(DisplayStartup.WantsFullscreen(new[] { "game.exe", "-screen-fullscreen", "1" }, null), Is.True);
+        }
+
+        [Test]
         public void Session_RevertsOnceAfterFifteenSeconds()
         {
             var session = new ResolutionChangeSession();

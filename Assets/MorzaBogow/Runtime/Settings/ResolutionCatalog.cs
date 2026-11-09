@@ -58,6 +58,18 @@ namespace MorzaBogow.Settings
         }
     }
 
+    /// <summary>The game opens in full screen unless the command line or a saved choice says otherwise.</summary>
+    public static class DisplayStartup
+    {
+        public static bool WantsFullscreen(string[] commandLine, bool? savedFullscreen)
+        {
+            var index = Array.IndexOf(commandLine, "-screen-fullscreen");
+            if (index >= 0 && index + 1 < commandLine.Length && commandLine[index + 1] == "0") return false;
+            if (Array.IndexOf(commandLine, "-window") >= 0 || Array.IndexOf(commandLine, "-windowed") >= 0) return false;
+            return savedFullscreen ?? true;
+        }
+    }
+
     public enum ResolutionChangeState
     {
         Idle,

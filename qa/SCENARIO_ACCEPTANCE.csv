@@ -8,11 +8,11 @@ S02,Postacie i bohaterowie nie dublują się po zapisie i powtórzeniu,PlayMode 
 
 S03,Manifesty wrogów są skończone i nie dublują odwodów,PlayMode wyzwalaczy i ponownego wejścia,Log manifestów M01-M14,NOT_RUN
 
-S04,Floty używają istniejących klas i jawnych lokalnych zasad B/R,EditMode danych misji oraz PlayMode startu,Snapshot flot i księga zasobów,NOT_RUN
+S04,Floty używają istniejących klas i jawnych lokalnych zasad D/S,EditMode danych misji oraz PlayMode startu,Snapshot flot i księga zasobów,NOT_RUN
 
 M01,Ocalali wsiadają raz a penaty mają jedno ID i można je odzyskać z wraku,PlayMode podejmowania utraty statku i zapisu,Lista actorId i rejestr itemId M01,NOT_RUN
 
-M02,Ładunek racji jest fizyczny a nalot nie kradnie ze skarbca,PlayMode dostawy ataku i zapisu,Księga M02 przed i po ataku,NOT_RUN
+M02,Ładunek zapasów jest fizyczny a nalot nie kradnie z dostarczonej części,PlayMode dostawy ataku i zapisu,Księga M02 przed i po ataku,NOT_RUN
 
 M03,Manifest pościgu ma limit 12 okrętów i grupy pojawiają się raz,PlayMode wyzwalaczy po reload i nawrocie,Log manifestu i eventId M03,NOT_RUN
 
@@ -32,7 +32,7 @@ M10,Podstawowa ewakuacja jest wykonalna bez ratowania całej floty,PlayMode ści
 
 M11,Scylla i Charybda mają zapowiedź i kontrgrę bez wielokrotnej straty,PlayMode wejść granicznych i powtórnych kolizji,Log obrażeń i eventId M11,NOT_RUN
 
-M12,Przysięga i koszt 240 R nie duplikują zasobów po zapisie,PlayMode dostawy odpłynięcia i load,Księga E14 M12,NOT_RUN
+M12,Przysięga i zużycie 240 jednostek zapasów nie dublują ładunku po zapisie i nie są srebrem,PlayMode dostawy odpłynięcia i load,Księga M12,NOT_RUN
 
 M13,Objawienie Dionizosa wykonuje się raz i zachowuje sternika,PlayMode abordażu i zapisu przed epifanią,Log aktorów i transakcji M13,NOT_RUN
 

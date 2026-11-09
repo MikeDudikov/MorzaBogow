@@ -2,14 +2,14 @@
 
 Paczka określa wymagania gry oraz sposób przygotowania projektu, implementacji i odbioru zadań.
 
-Głównym doświadczeniem jest dowodzenie flotą podczas bitew, eskort, rajdów i wypraw mitologicznych. Gospodarka dwóch zasobów, lokalne porty i automatyczne konwoje tworzą cele do walki. Czytelność, dostępna kontrgra i obciążenie uwagi gracza są warunkami odbioru.
+Głównym doświadczeniem jest dowodzenie flotą podczas bitew, eskort, rajdów i wypraw mitologicznych. Gospodarka drewna i srebra, lokalne porty i automatyczne konwoje tworzą cele do walki. Czytelność, dostępna kontrgra i obciążenie uwagi gracza są warunkami odbioru.
 
 ## Dokumenty
 
 - GAME_VISION.md — doświadczenie gracza, filary rozgrywki, cele tempa i balansu.
 - GAME_DESIGN.md — mechaniki, floty, walka, magia, SI, środowisko i zakres produkcji.
-- ECONOMY_DESIGN.md — reguły E00–E16 dotyczące dwóch zasobów, portów i logistyki morskiej.
-- ECONOMY_BALANCE.md — parametry, zależności liczbowe i cele balansu.
+- ECONOMY_DESIGN.md — reguły E00–E12 dotyczące drewna i srebra, portów, logistyki morskiej i kampanii.
+- ECONOMY_BALANCE.md — weryfikacja obliczeniowa i wymagane próby; model w docs/economy-model.
 - VISUAL_TECH_SPEC.md — wymagania V00–V13 dotyczące obrazu, wody, światła i wydajności.
 - MYTHIC_SCENARIOS.md — 14 misji kampanii z celami, flotami, zasobami i przebiegiem.
 - CLAUDE.md — zasady pracy, kontroli jakości i zamykania zadań.

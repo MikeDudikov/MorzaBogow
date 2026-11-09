@@ -11,14 +11,14 @@ namespace MorzaBogow.Tests
         static World Empty(ulong seed = 7)
         {
             var world = new World(seed);
-            world.Settlements.Add(new Settlement { Id = world.NextId++, Owner = 0, X = -500, Y = 0, Bronze = 2000 * Rules.Centi, Rations = 2000 * Rules.Centi });
-            world.Settlements.Add(new Settlement { Id = world.NextId++, Owner = 1, X = 500, Y = 0, Bronze = 2000 * Rules.Centi, Rations = 2000 * Rules.Centi });
+            world.Settlements.Add(new Settlement { Id = world.NextId++, Owner = 0, X = -500, Y = 0, Wood = 2000 * Rules.Centi, Silver = 1500 * Rules.Centi });
+            world.Settlements.Add(new Settlement { Id = world.NextId++, Owner = 1, X = 500, Y = 0, Wood = 2000 * Rules.Centi, Silver = 1500 * Rules.Centi });
             return world;
         }
 
         static ResourceNode AddNode(World world, ResourceType type, double x, double y, long units)
         {
-            var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, Capacity = units * Rules.Centi, KnownMask = 3 };
+            var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, KnownMask = 3 };
             world.Nodes.Add(node);
             return node;
         }
@@ -32,142 +32,268 @@ namespace MorzaBogow.Tests
         static void Harvest(World world, Ship ship, ResourceNode node) =>
             world.Issue(new Command { Faction = ship.Owner, Kind = CommandKind.Harvest, ShipIds = new[] { ship.Id }, TargetId = node.Id });
 
-        // ---------- Economy ----------
-
-        [Test]
-        public void Harvest_BronzeReachesSettlementOnlyAfterRealDelivery()
+        static Ship Loaded(World world, int owner, double x, ResourceType type, long units)
         {
-            var world = Empty();
-            var settlement = world.SettlementOf(0);
-            var node = AddNode(world, ResourceType.Bronze, -400, 0, 3000);
-            var ship = world.SpawnShip(0, ShipClass.Cutter, -470, 0);
-            var start = settlement.Bronze;
-            Harvest(world, ship, node);
-
-            Run(world, 30);
-            Assert.That(ship.Cargo, Is.GreaterThan(0));
-            Assert.That(settlement.Bronze, Is.EqualTo(start), "Cargo in a hold is not spendable.");
-
-            Run(world, 120);
-            Assert.That(settlement.Bronze, Is.GreaterThan(start));
-        }
-
-        [Test]
-        public void Harvest_ConservesBronzeAcrossNodeShipAndSettlement()
-        {
-            var world = Empty();
-            var settlement = world.SettlementOf(0);
-            var node = AddNode(world, ResourceType.Bronze, -400, 0, 3000);
-            var ship = world.SpawnShip(0, ShipClass.Cutter, -470, 0);
-            var total = node.Stock + ship.Cargo + settlement.Bronze;
-            Harvest(world, ship, node);
-            for (var i = 0; i < 4000; i++)
-            {
-                world.Step();
-                Assert.That(node.Stock + ship.Cargo + settlement.Bronze, Is.EqualTo(total));
-            }
-        }
-
-        [Test]
-        public void Node_SharesWorkCapBetweenFourCutters()
-        {
-            var world = Empty();
-            var node = AddNode(world, ResourceType.Bronze, 0, 0, 3000);
-            var cutters = Enumerable.Range(0, 4).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
-            foreach (var ship in cutters) Harvest(world, ship, node);
-            var before = node.Stock;
-            Run(world, 10);
-            var perSecond = (before - node.Stock) / (double)Rules.Centi / 10.0;
-            Assert.That(perSecond, Is.EqualTo(Rules.BronzeNodeCap).Within(0.5));
-        }
-
-        [Test]
-        public void ShellBed_ClosesBelowTenPercentAndReopensAtThirty()
-        {
-            var world = Empty();
-            var node = AddNode(world, ResourceType.Rations, 0, 0, 2000);
-            node.Stock = 150 * Rules.Centi;
-            world.Step();
-            Assert.That(node.Closed, Is.True);
-            node.Stock = 500 * Rules.Centi;
-            world.Step();
-            Assert.That(node.Closed, Is.True, "Hysteresis keeps the bed closed below 30%.");
-            node.Stock = 600 * Rules.Centi;
-            world.Step();
-            Assert.That(node.Closed, Is.False);
-        }
-
-        [Test]
-        public void ShellBed_RegeneratesEvenFromZero()
-        {
-            var world = Empty();
-            var node = AddNode(world, ResourceType.Rations, 0, 0, 2000);
-            node.Stock = 0;
-            Run(world, 10);
-            Assert.That(node.Stock, Is.GreaterThan(0));
-        }
-
-        [Test]
-        public void Bronze_DoesNotRegenerate()
-        {
-            var world = Empty();
-            var node = AddNode(world, ResourceType.Bronze, 0, 0, 3000);
-            node.Stock = 100 * Rules.Centi;
-            Run(world, 60);
-            Assert.That(node.Stock, Is.EqualTo(100 * Rules.Centi));
-        }
-
-        [Test]
-        public void Port_ServesTwoShipsAndMakesTheThirdWait()
-        {
-            var world = Empty();
-            var settlement = world.SettlementOf(0);
-            var ships = Enumerable.Range(0, 3).Select(i =>
-            {
-                var ship = world.SpawnShip(0, ShipClass.Cutter, settlement.X + 5 + i, 0);
-                ship.Order = OrderKind.Harvest;
-                ship.Harvest = HarvestPhase.ToPort;
-                ship.CargoType = ResourceType.Bronze;
-                ship.Cargo = 160 * Rules.Centi;
-                return ship;
-            }).ToArray();
-
-            Run(world, 1);
-            Assert.That(settlement.DockedShips.Count, Is.EqualTo(Rules.StationCount));
-            Assert.That(ships.Count(ship => ship.Harvest == HarvestPhase.Docked), Is.EqualTo(2));
-        }
-
-        [Test]
-        public void Settlement_FullStoreLeavesCargoOnTheShip()
-        {
-            var world = Empty();
-            var settlement = world.SettlementOf(0);
-            settlement.Bronze = Rules.SettlementCapacity;
-            var ship = world.SpawnShip(0, ShipClass.Cutter, settlement.X, 0);
+            var ship = world.SpawnShip(owner, ShipClass.Cutter, x, 0);
             ship.Order = OrderKind.Harvest;
             ship.Harvest = HarvestPhase.ToPort;
-            ship.Cargo = 50 * Rules.Centi;
-            Run(world, 5);
-            Assert.That(ship.Cargo, Is.EqualTo(50 * Rules.Centi));
-            Assert.That(settlement.Bronze, Is.EqualTo(Rules.SettlementCapacity));
+            ship.CargoType = type;
+            ship.Cargo = units * Rules.Centi;
+            return ship;
         }
 
-        // ---------- Production ----------
+        // ---------- Gathering (E02) ----------
 
         [Test]
-        public void Queue_ChargesTemplateOnceAndBuildsAfterItsTime()
+        public void Harvest_WoodReachesStoreOnlyAfterRealDelivery()
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
-            var bronze = settlement.Bronze;
+            var node = AddNode(world, ResourceType.Wood, -420, 0, 3000);
+            var ship = world.SpawnShip(0, ShipClass.Cutter, -470, 0);
+            var start = settlement.Wood;
+            Harvest(world, ship, node);
+
+            Run(world, 10);
+            Assert.That(ship.Cargo, Is.GreaterThan(0));
+            Assert.That(settlement.Wood, Is.EqualTo(start), "Cargo in a hold is not spendable.");
+
+            Run(world, 40);
+            Assert.That(settlement.Wood, Is.GreaterThan(start));
+        }
+
+        [Test]
+        public void Income_MatchesTheModelCycleWithinTolerance()
+        {
+            // The model gives about 124 D/min at 70 m without manoeuvre detail. Real motion must stay in its range.
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var node = AddNode(world, ResourceType.Wood, -430, 0, 3000);
+            var ship = world.SpawnShip(0, ShipClass.Cutter, -470, 0);
+            Harvest(world, ship, node);
+            Run(world, 60);
+            var start = settlement.Wood;
+            Run(world, 300);
+            var perMinute = (settlement.Wood - start) / (double)Rules.Centi / 5.0;
+            TestContext.WriteLine($"Delivered {perMinute:0.0} D/min");
+            Assert.That(perMinute, Is.InRange(80.0, 124.2));
+        }
+
+        [Test]
+        public void Node_HasTwoBerthsAndMakesOthersWaitFifo()
+        {
+            var world = Empty();
+            var node = AddNode(world, ResourceType.Wood, 0, 0, 3000);
+            var ships = Enumerable.Range(0, 4).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
+            foreach (var ship in ships) Harvest(world, ship, node);
+            Run(world, 1);
+            Assert.That(node.Workers, Is.EqualTo(new[] { ships[0].Id, ships[1].Id }));
+            Assert.That(node.Waiting, Is.EqualTo(new[] { ships[2].Id, ships[3].Id }));
+            Assert.That(ships[2].Cargo + ships[3].Cargo, Is.EqualTo(0), "Waiting ships do not take work.");
+        }
+
+        [Test]
+        public void Node_WoodLimitIsTwelvePerSecond()
+        {
+            var world = Empty();
+            var node = AddNode(world, ResourceType.Wood, 0, 0, 3000);
+            var ships = Enumerable.Range(0, 4).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
+            foreach (var ship in ships) Harvest(world, ship, node);
+            Run(world, 1);
+            var before = node.Stock;
+            Run(world, 4);
+            var perSecond = (before - node.Stock) / (double)Rules.Centi / 4.0;
+            Assert.That(perSecond, Is.EqualTo(Rules.WoodNodeCap).Within(0.1));
+        }
+
+        [Test]
+        public void Node_SilverLimitIsSharedProportionally()
+        {
+            var world = Empty();
+            var node = AddNode(world, ResourceType.Silver, 0, 0, 1000);
+            var ships = Enumerable.Range(0, 2).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
+            foreach (var ship in ships) Harvest(world, ship, node);
+            Run(world, 1);
+            var before = node.Stock;
+            Run(world, 5);
+            Assert.That((before - node.Stock) / (double)Rules.Centi / 5.0, Is.EqualTo(Rules.SilverNodeCap).Within(0.1));
+            Assert.That(ships[0].Cargo, Is.EqualTo(ships[1].Cargo).Within(5));
+        }
+
+        [Test]
+        public void Node_LastUnitsGiveAPartialLoadAndNoSecondCopy()
+        {
+            var world = Empty();
+            var node = AddNode(world, ResourceType.Wood, 0, 0, 25);
+            var first = world.SpawnShip(0, ShipClass.Cutter, 0, 0);
+            var second = world.SpawnShip(0, ShipClass.Cutter, 1, 0);
+            Harvest(world, first, node);
+            Harvest(world, second, node);
+            var total = node.Stock;
+            Run(world, 6);
+            Assert.That(node.Stock, Is.EqualTo(0));
+            Assert.That(first.Cargo + second.Cargo, Is.EqualTo(total));
+            Assert.That(first.Harvest, Is.Not.EqualTo(HarvestPhase.Working));
+        }
+
+        [Test]
+        public void Nodes_BothResourcesAreFinite()
+        {
+            var world = Empty();
+            var wood = AddNode(world, ResourceType.Wood, 0, 0, 100);
+            var silver = AddNode(world, ResourceType.Silver, 50, 0, 100);
+            Run(world, 300);
+            Assert.That(wood.Stock, Is.EqualTo(100 * Rules.Centi));
+            Assert.That(silver.Stock, Is.EqualTo(100 * Rules.Centi));
+        }
+
+        // ---------- Stores and port (E03) ----------
+
+        [Test]
+        public void Port_ServesThreeShipsAndMakesTheFourthWait()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var ships = Enumerable.Range(0, 4).Select(i => Loaded(world, 0, settlement.X + 5 + i, ResourceType.Wood, 60)).ToArray();
+            Run(world, 0.2);
+            Assert.That(settlement.DockedShips.Count, Is.EqualTo(Rules.PortBerths));
+            Assert.That(settlement.PortWaiting, Is.EqualTo(new[] { ships[3].Id }));
+        }
+
+        [Test]
+        public void Port_PartialUnloadOfSixtyPerSecond()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var ship = Loaded(world, 0, settlement.X, ResourceType.Wood, 60);
+            var start = settlement.Wood;
+            Run(world, 0.5);
+            Assert.That(settlement.Wood - start, Is.GreaterThan(0));
+            Assert.That(ship.Cargo, Is.GreaterThan(0));
+            Assert.That(settlement.Wood - start + ship.Cargo, Is.EqualTo(60 * Rules.Centi));
+        }
+
+        [Test]
+        public void Store_FullKeepsCargoOnTheShipAndFreesTheBerth()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            settlement.Wood = Rules.WarehouseWood;
+            var ship = Loaded(world, 0, settlement.X, ResourceType.Wood, 50);
+            Run(world, 1);
+            Assert.That(ship.Cargo, Is.EqualTo(50 * Rules.Centi));
+            Assert.That(settlement.Wood, Is.EqualTo(Rules.WarehouseWood));
+            Assert.That(settlement.DockedShips, Is.Empty);
+            Assert.That(world.Events.Count(item => item.Type == "store_full"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Store_SilverLimitIsThreeThousand()
+        {
+            Assert.That(new Settlement().Capacity(ResourceType.Silver), Is.EqualTo(3000 * Rules.Centi));
+            Assert.That(new Settlement().Capacity(ResourceType.Wood), Is.EqualTo(6000 * Rules.Centi));
+        }
+
+        // ---------- Production (E04) ----------
+
+        [TestCase(ShipClass.Cutter, 60, 20, 4.0, 48.0, 6.40, 12.0, 9.60)]
+        [TestCase(ShipClass.Ram, 240, 100, 31.5, 192.0, 27.40, 48.0, 41.10)]
+        [TestCase(ShipClass.CrewDestroyer, 180, 90, 45.5, 144.0, 17.80, 36.0, 26.70)]
+        [TestCase(ShipClass.Boarder, 200, 180, 78.5, 160.0, 40.60, 40.0, 60.90)]
+        public void Template_SplitMatchesTheCostTable(ShipClass shipClass, int wood, int silver, double crew, double conWood, double conSilver, double eqWood, double eqSilver)
+        {
+            var definition = ShipCatalog.Get(shipClass);
+            Assert.That(definition.CostWood, Is.EqualTo(wood));
+            Assert.That(definition.CostSilver, Is.EqualTo(silver));
+            Assert.That(TemplatePricing.CrewSilver(definition) / 100.0, Is.EqualTo(crew).Within(0.001));
+            Assert.That(TemplatePricing.ConstructionWood(definition) / 100.0, Is.EqualTo(conWood).Within(0.001));
+            Assert.That(TemplatePricing.ConstructionSilver(definition) / 100.0, Is.EqualTo(conSilver).Within(0.001));
+            Assert.That(TemplatePricing.EquipmentWood(definition) / 100.0, Is.EqualTo(eqWood).Within(0.001));
+            Assert.That(TemplatePricing.EquipmentSilver(definition) / 100.0, Is.EqualTo(eqSilver).Within(0.001));
+        }
+
+        [Test]
+        public void Queue_ChargesTemplateExactlyOnceWithProgress()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var wood = settlement.Wood;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
             world.Step();
-            Assert.That(bronze - settlement.Bronze, Is.EqualTo(860 * Rules.Centi), "800 hull + 60 light weapon.");
-            Run(world, 49);
+            Assert.That(settlement.ReservedWood, Is.LessThanOrEqualTo(240 * Rules.Centi));
+            Assert.That(settlement.Available(ResourceType.Wood), Is.EqualTo(wood - 240 * Rules.Centi), "Reserved in full at once.");
+            Assert.That(settlement.Wood, Is.GreaterThan(wood - 240 * Rules.Centi), "Used up with progress.");
+            Run(world, 34);
             Assert.That(world.Ships.Count(ship => ship.Class == ShipClass.Ram), Is.EqualTo(0));
             Run(world, 2);
             Assert.That(world.Ships.Count(ship => ship.Class == ShipClass.Ram), Is.EqualTo(1));
-            Assert.That(bronze - settlement.Bronze, Is.EqualTo(860 * Rules.Centi));
+            Assert.That(settlement.Wood, Is.EqualTo(wood - 240 * Rules.Centi));
+            Assert.That(settlement.ReservedWood, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Queue_CompetingOrdersCannotReserveTheSameResource()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            settlement.Wood = 300 * Rules.Centi;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Step();
+            Assert.That(settlement.WarQueue.Count, Is.EqualTo(1));
+            Assert.That(settlement.Available(ResourceType.Wood), Is.EqualTo(60 * Rules.Centi));
+        }
+
+        [Test]
+        public void Queue_WarLineAndPortQueueRunTogether()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
+            Run(world, 1);
+            Assert.That(settlement.WarQueue[0].DoneTicks, Is.GreaterThan(0));
+            Assert.That(settlement.PortQueue[0].DoneTicks, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Queue_WarLineBuildsOneShipAtATime()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.CrewDestroyer });
+            Run(world, 1);
+            Assert.That(settlement.WarQueue[1].Started, Is.False);
+        }
+
+        [Test]
+        public void Cancel_BeforeStartReleasesEverything()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var wood = settlement.Available(ResourceType.Wood);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 1 });
+            world.Step();
+            Assert.That(settlement.WarQueue.Count, Is.EqualTo(1));
+            Assert.That(settlement.Available(ResourceType.Wood), Is.EqualTo(wood - 240 * Rules.Centi));
+        }
+
+        [Test]
+        public void Cancel_AfterStartReturnsEightyPercentOfTheUnusedPart()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var wood = settlement.Wood;
+            settlement.ReservedWood = 60 * Rules.Centi;
+            settlement.Wood = wood - 40 * Rules.Centi;
+            settlement.WarQueue.Add(new BuildOrder { Class = ShipClass.Ram, PaidWood = 100 * Rules.Centi, UsedWood = 40 * Rules.Centi, TotalTicks = 100, DoneTicks = 40, Started = true });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 0 });
+            world.Step();
+            Assert.That(settlement.ReservedWood, Is.EqualTo(0));
+            Assert.That(settlement.Wood, Is.EqualTo(wood - 40 * Rules.Centi - 12 * Rules.Centi), "40 used, 60 unused, 48 back, 12 lost.");
         }
 
         [Test]
@@ -175,46 +301,146 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
-            settlement.Bronze = 100 * Rules.Centi;
+            settlement.Silver = 10 * Rules.Centi;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
             world.Step();
-            Assert.That(settlement.Queue, Is.Empty);
-            Assert.That(settlement.Bronze, Is.EqualTo(100 * Rules.Centi));
+            Assert.That(settlement.PortQueue, Is.Empty);
+            Assert.That(settlement.ReservedWood, Is.EqualTo(0));
         }
 
         [Test]
-        public void Cancel_BeforeStartRefundsEverything()
+        public void Crew_EconomicHasSailorsOnlyAndWarshipFullCrew()
+        {
+            var world = Empty();
+            var cutter = world.SpawnShip(0, ShipClass.Cutter, 0, 0);
+            var ram = world.SpawnShip(0, ShipClass.Ram, 0, 50);
+            Assert.That(cutter.Sailors, Is.EqualTo(8));
+            Assert.That(cutter.Soldiers, Is.EqualTo(0));
+            Assert.That(ram.Sailors, Is.EqualTo(9));
+            Assert.That(ram.Soldiers, Is.EqualTo(27));
+        }
+
+        // ---------- Repair, scrap, wreck (E06) ----------
+
+        [Test]
+        public void Repair_ChargesAQuarterOfConstructionForFullHull()
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
-            var bronze = settlement.Bronze;
-            settlement.Queue.Add(new BuildOrder { Class = ShipClass.Cutter, PaidBronze = 100 * Rules.Centi, TotalTicks = 100 });
-            world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 0 });
-            settlement.Queue[0].Started = false;
-            world.Pending[0].QueueIndex = 0;
-            ApplyPendingOnly(world);
-            Assert.That(settlement.Bronze, Is.EqualTo(bronze + 100 * Rules.Centi));
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            ship.Hull = 380;
+            var wood = settlement.Wood;
+            var silver = settlement.Silver;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            Run(world, 40);
+            Assert.That(ship.Hull, Is.EqualTo(760).Within(0.01));
+            Assert.That((wood - settlement.Wood) / 100.0, Is.EqualTo(192 * 0.25 * 0.5).Within(0.05));
+            Assert.That((silver - settlement.Silver) / 100.0, Is.EqualTo(27.4 * 0.25 * 0.5).Within(0.05));
         }
 
         [Test]
-        public void Cancel_AfterStartMatchesTheDocumentedExample()
+        public void Repair_RunsAtTwelveHullPerSecondOnOneStation()
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
-            var bronze = settlement.Bronze;
-            settlement.Queue.Add(new BuildOrder { Class = ShipClass.Cutter, PaidBronze = 100 * Rules.Centi, TotalTicks = 100, DoneTicks = 40, Started = true });
-            world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 0 });
-            ApplyPendingOnly(world);
-            Assert.That(settlement.Bronze, Is.EqualTo(bronze + 48 * Rules.Centi), "E07: 40% used, 60 reserved, 48 back, 12 lost.");
+            var first = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            var second = world.SpawnShip(0, ShipClass.Ram, settlement.X, 5);
+            first.Hull = second.Hull = 100;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { first.Id, second.Id } });
+            Run(world, 10);
+            Assert.That(first.Hull, Is.EqualTo(100 + Rules.RepairHullPerSecond * 10).Within(1));
+            Assert.That(second.Hull, Is.EqualTo(100));
         }
 
-        static void ApplyPendingOnly(World world)
+        [Test]
+        public void Repair_PausesWithoutResourcesAndDoesNotRestoreCrew()
         {
+            var world = Empty();
             var settlement = world.SettlementOf(0);
-            var order = settlement.Queue[0];
-            order.TotalTicks = Math.Max(order.TotalTicks, 100);
-            // Step advances production after commands; commands run first, so the cancel sees this state.
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            ship.Hull = 100;
+            ship.Soldiers = 3;
+            settlement.Wood = 0;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            Run(world, 5);
+            Assert.That(ship.Hull, Is.LessThan(110));
+            Assert.That(settlement.Wood, Is.GreaterThanOrEqualTo(0));
+            Assert.That(ship.Soldiers, Is.EqualTo(3));
+        }
+
+        [TestCase(0.25)]
+        [TestCase(0.5)]
+        [TestCase(0.75)]
+        [TestCase(1.0)]
+        public void Scrap_RepairingFirstNeverPaysBetter(double condition)
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            ship.Hull = ship.Definition.Hull * condition;
+            var start = settlement.Wood;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Scrap, ShipIds = new[] { ship.Id } });
+            Run(world, 21);
+            Assert.That(world.FindShip(ship.Id), Is.Null);
+            var refund = (settlement.Wood - start) / 100.0;
+            Assert.That(refund, Is.EqualTo(192 * 0.15 * condition).Within(0.01));
+            var viaRepair = 192 * 0.15 - 192 * 0.25 * (1 - condition);
+            Assert.That(viaRepair, Is.LessThanOrEqualTo(refund + 0.01));
+            Assert.That(world.Wrecks, Is.Empty);
+        }
+
+        [Test]
+        public void Wreck_SunkTransportLeavesHalfItsCargo()
+        {
+            var world = Empty();
+            var ship = world.SpawnShip(0, ShipClass.Cutter, 0, 0);
+            ship.CargoType = ResourceType.Silver;
+            ship.Cargo = 60 * Rules.Centi;
+            ship.Hull = 0;
+            var total = world.LedgerTotal(ResourceType.Silver);
             world.Step();
+            Assert.That(world.Wrecks.Count, Is.EqualTo(1));
+            Assert.That(world.Wrecks[0].Silver, Is.EqualTo(30 * Rules.Centi));
+            Assert.That(world.LostSilver, Is.EqualTo(30 * Rules.Centi));
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(total));
+        }
+
+        [Test]
+        public void Wreck_EmptyHullPaysNothing()
+        {
+            var world = Empty();
+            var ship = world.SpawnShip(0, ShipClass.Ram, 0, 0);
+            ship.Hull = 0;
+            var wood = world.SettlementOf(0).Wood;
+            world.Step();
+            Assert.That(world.Wrecks, Is.Empty);
+            Assert.That(world.SettlementOf(0).Wood, Is.EqualTo(wood));
+        }
+
+        [Test]
+        public void Wreck_CanBeSalvagedAndDeliveredByACutter()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            world.Wrecks.Add(new Wreck { Id = world.NextId++, X = -450, Y = 0, Wood = 40 * Rules.Centi, ExpiresTick = 100000 });
+            var cutter = world.SpawnShip(0, ShipClass.Cutter, -470, 0);
+            var start = settlement.Wood;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Salvage, ShipIds = new[] { cutter.Id }, TargetId = world.Wrecks[0].Id });
+            Run(world, 40);
+            Assert.That(world.Wrecks, Is.Empty);
+            Assert.That(settlement.Wood - start, Is.EqualTo(40 * Rules.Centi));
+            Assert.That(cutter.Order, Is.EqualTo(OrderKind.Idle));
+        }
+
+        [Test]
+        public void Wreck_ExpiresIntoTheLedgerAsLoss()
+        {
+            var world = Empty();
+            world.Wrecks.Add(new Wreck { Id = world.NextId++, Wood = 40 * Rules.Centi, ExpiresTick = 5 });
+            var total = world.LedgerTotal(ResourceType.Wood);
+            Run(world, 1);
+            Assert.That(world.Wrecks, Is.Empty);
+            Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(total));
         }
 
         // ---------- Movement ----------
@@ -356,17 +582,22 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
-        public void Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargo()
+        public void Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargoAndPaidCost()
         {
             var world = Empty();
             var (boarder, target) = BoardSetup(world, 5);
+            target.CargoType = ResourceType.Silver;
             target.Cargo = 77 * Rules.Centi;
+            var paid = target.PaidConstructionWood;
+            var silver = world.LedgerTotal(ResourceType.Silver);
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
             Run(world, 2);
             Assert.That(target.Owner, Is.EqualTo(1), "Hooks take 3 seconds.");
             Run(world, 30);
             Assert.That(target.Owner, Is.EqualTo(0));
             Assert.That(target.Cargo, Is.EqualTo(77 * Rules.Centi));
+            Assert.That(target.PaidConstructionWood, Is.EqualTo(paid));
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
             Assert.That(world.Boardings, Is.Empty);
         }
 
@@ -439,8 +670,8 @@ namespace MorzaBogow.Tests
         {
             var world = MapFactory.CreateSkirmish(11);
             var ai = new Opponent(1);
-            var warship = world.SpawnShip(1, ShipClass.CrewDestroyer, 500, 400);
-            var hidden = world.SpawnShip(0, ShipClass.Cutter, -500, -400);
+            var warship = world.SpawnShip(1, ShipClass.CrewDestroyer, 450, 450);
+            var hidden = world.SpawnShip(0, ShipClass.Cutter, -500, -500);
             for (var i = 0; i < 90; i++) { ai.Think(world); world.Step(); }
             Assert.That(world.CanSee(1, hidden), Is.False);
             Assert.That(warship.TargetId, Is.Not.EqualTo(hidden.Id));
@@ -466,7 +697,6 @@ namespace MorzaBogow.Tests
             var world = Empty();
             world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
             var target = world.SpawnShip(1, ShipClass.Cutter, 60, 0);
-            target.Sailors = 8;
             var hull = target.Hull;
             Run(world, 10);
             Assert.That(target.Hull, Is.LessThan(hull));
@@ -490,7 +720,7 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             world.SpawnShip(1, ShipClass.Cutter, 500, 0);
-            world.SettlementOf(0).Bronze = 0;
+            world.SettlementOf(0).Silver = 0;
             world.Step();
             Assert.That(world.Outcome, Is.EqualTo(OutcomeKind.Won));
             Assert.That(world.Winner, Is.EqualTo(1));
@@ -505,7 +735,7 @@ namespace MorzaBogow.Tests
             Assert.That(world.Outcome, Is.EqualTo(OutcomeKind.InProgress));
         }
 
-        // ---------- Save, determinism, whole match ----------
+        // ---------- Save, ledger, whole match ----------
 
         static (World world, Opponent first, Opponent second) Match(ulong seed)
         {
@@ -524,6 +754,37 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Ledger_ConservesWoodAndSilverAcrossAMatch()
+        {
+            var (world, first, second) = Match(21);
+            var wood = world.LedgerTotal(ResourceType.Wood);
+            var silver = world.LedgerTotal(ResourceType.Silver);
+            for (var i = 0; i < 15000 && world.Outcome == OutcomeKind.InProgress; i++)
+            {
+                first.Think(world);
+                second.Think(world);
+                world.Step();
+                world.Events.Clear();
+                if (i % 30 != 0) continue;
+                Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(wood));
+                Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
+                foreach (var settlement in world.Settlements)
+                {
+                    Assert.That(settlement.Wood, Is.GreaterThanOrEqualTo(0));
+                    Assert.That(settlement.Silver, Is.GreaterThanOrEqualTo(0));
+                    Assert.That(settlement.Available(ResourceType.Wood), Is.GreaterThanOrEqualTo(0));
+                    Assert.That(settlement.Available(ResourceType.Silver), Is.GreaterThanOrEqualTo(0));
+                    Assert.That(settlement.DockedShips.Count, Is.LessThanOrEqualTo(Rules.PortBerths));
+                }
+                foreach (var node in world.Nodes)
+                {
+                    Assert.That(node.Workers.Count, Is.LessThanOrEqualTo(Rules.WorkBerths));
+                    Assert.That(node.Stock, Is.GreaterThanOrEqualTo(0));
+                }
+            }
+        }
+
+        [Test]
         public void Match_SameSeedGivesIdenticalState()
         {
             var (a, a0, a1) = Match(42);
@@ -534,15 +795,17 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
-        public void Save_RoundTripContinuesIdentically()
+        public void Save_RoundTripContinuesIdenticallyDuringTransfers()
         {
             var (world, first, second) = Match(5);
-            Advance(world, first, second, 9000);
+            Advance(world, first, second, 4000);
+            Assert.That(world.Ships.Any(ship => ship.Cargo > 0), Is.True, "Saved while cargo is in transit.");
             var data = SaveGame.Serialize(world, second.BuildIndex);
             var firstBuild = first.BuildIndex;
 
             var loaded = SaveGame.Deserialize(data, out var build);
             Assert.That(SaveGame.Serialize(loaded, build), Is.EqualTo(data));
+            Assert.That(loaded.LedgerTotal(ResourceType.Wood), Is.EqualTo(world.LedgerTotal(ResourceType.Wood)));
 
             var loadedFirst = new Opponent(0) { BuildIndex = firstBuild };
             var loadedSecond = new Opponent(1) { BuildIndex = build };
@@ -583,42 +846,53 @@ namespace MorzaBogow.Tests
             var world = MapFactory.CreateSkirmish(1);
             foreach (var settlement in world.Settlements)
             {
-                Assert.That(settlement.Bronze, Is.EqualTo(1400 * Rules.Centi));
-                Assert.That(settlement.Rations, Is.EqualTo(600 * Rules.Centi));
-                Assert.That(world.Ships.Count(ship => ship.Owner == settlement.Owner && ship.Class == ShipClass.Cutter), Is.EqualTo(2));
+                Assert.That(settlement.Wood, Is.EqualTo(360 * Rules.Centi));
+                Assert.That(settlement.Silver, Is.EqualTo(160 * Rules.Centi));
+                var cutters = world.Ships.Where(ship => ship.Owner == settlement.Owner).ToList();
+                Assert.That(cutters.Count, Is.EqualTo(4));
+                Assert.That(cutters.Count(ship => world.FindNode(ship.NodeId).Type == ResourceType.Wood), Is.EqualTo(3));
+                Assert.That(cutters.Count(ship => world.FindNode(ship.NodeId).Type == ResourceType.Silver), Is.EqualTo(1));
+                foreach (var node in world.Nodes.Where(item => item.KnownMask == 1 << settlement.Owner && World.Distance(item.X, item.Y, settlement.X, settlement.Y) < 150))
+                {
+                    Assert.That(World.Distance(node.X, node.Y, settlement.X, settlement.Y), Is.InRange(70.0, 110.0));
+                }
             }
-            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Bronze).Sum(node => node.Capacity), Is.EqualTo(34000 * Rules.Centi), "E03: 34000 B on the reference map.");
+            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Wood).Sum(node => node.Stock), Is.EqualTo(34000 * Rules.Centi), "E08 wood budget.");
+            Assert.That(world.Nodes.Where(node => node.Type == ResourceType.Silver).Sum(node => node.Stock), Is.EqualTo(12400 * Rules.Centi), "E08 silver budget.");
         }
 
         [Test]
-        public void Opponent_KeepsGatheringBothResources()
+        public void Match_FirstRamCanStartImmediatelyAndLeavesTheDocumentedRest()
         {
-            var (world, first, second) = Match(3);
-            Advance(world, first, second, 10 * 60 * Rules.TickRate);
-            var settlement = world.SettlementOf(1);
-            var rationsStock = world.Nodes.Where(node => node.Type == ResourceType.Rations && (node.KnownMask & 2) != 0).Sum(node => node.Capacity - node.Stock);
-            Assert.That(rationsStock + settlement.Rations, Is.GreaterThan(0));
-            Assert.That(world.Ships.Any(ship => ship.Owner == 1 && ship.Order == OrderKind.Harvest && world.FindNode(ship.NodeId).Type == ResourceType.Rations)
-                        || settlement.Rations * 2 >= settlement.Bronze, Is.True);
+            var world = MapFactory.CreateSkirmish(1);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            world.Step();
+            var settlement = world.SettlementOf(0);
+            Assert.That(settlement.Available(ResourceType.Wood), Is.EqualTo(120 * Rules.Centi));
+            Assert.That(settlement.Available(ResourceType.Silver), Is.EqualTo(60 * Rules.Centi));
+            Assert.That(settlement.WarQueue[0].Started, Is.True);
         }
 
         [Test]
-        public void Match_OpponentsBuildFleetsFightAndFinishOrKeepPlaying()
+        public void Match_OpponentsBuildFleetsAndFight()
         {
             var (world, first, second) = Match(9);
             var built = 0;
             var combat = 0;
+            var firstCombatTick = -1;
             for (var i = 0; i < 30 * 60 * Rules.TickRate && world.Outcome == OutcomeKind.InProgress; i++)
             {
                 first.Think(world);
                 second.Think(world);
                 world.Step();
                 built += world.Events.Count(item => item.Type == "ship_built");
-                combat += world.Events.Count(item => item.Type == "volley" || item.Type == "ram_hit");
+                var fights = world.Events.Count(item => item.Type == "volley" || item.Type == "ram_hit");
+                if (fights > 0 && firstCombatTick < 0) firstCombatTick = world.Tick;
+                combat += fights;
                 world.Events.Clear();
                 Assert.That(world.Ships.All(ship => !double.IsNaN(ship.X) && !double.IsNaN(ship.Y)), Is.True);
             }
-            TestContext.WriteLine($"Tick {world.Tick}, outcome {world.Outcome}, winner {world.Winner}, built {built}, combat events {combat}, ships {world.Ships.Count}");
+            TestContext.WriteLine($"Tick {world.Tick} ({world.Tick / 30 / 60} min), outcome {world.Outcome}, winner {world.Winner}, built {built}, combat events {combat}, first combat {firstCombatTick / 30} s, ships {world.Ships.Count}");
             Assert.That(built, Is.GreaterThan(4));
             Assert.That(combat, Is.GreaterThan(0));
         }

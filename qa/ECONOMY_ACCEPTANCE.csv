@@ -1,35 +1,32 @@
 requirement_id,criterion,verification,evidence,status
-E00,Exactly two spendable resources and no recurring fleet tax,EditMode schema review and resource ledger,REQUIRED,NOT_RUN
-E01,Global HUD cannot spend remote local inventories,EditMode reservations plus PlayMode two-island orders,REQUIRED,NOT_RUN
-E01,Concurrent orders cannot reserve the same resource twice,EditMode competing transaction tests,REQUIRED,NOT_RUN
-E02,End of node cannot be harvested by multiple collectors,EditMode and PlayMode contention,REQUIRED,NOT_RUN
-E02,Shared work cap and additive bonus caps respected,EditMode parameterized limits,REQUIRED,NOT_RUN
-E03,Rationsery closes recovers and reopens without flicker,EditMode long-run and PlayMode reassignment,REQUIRED,NOT_RUN
-E03,Finite bronze budget and start symmetry validated,Generated-map audit plus paired pathfinding,REQUIRED,NOT_RUN
-E04,Full port cannot starve low priority collectors forever,PlayMode queue and blocked approach,REQUIRED,NOT_RUN
-E04,Module geometry and unloading cap enforced,PlayMode upgraded port plus collision review,REQUIRED,NOT_RUN
-E05,Shipment follows unique cargo through every state,EditMode state transitions plus PlayMode delivery,REQUIRED,NOT_RUN
-E05,Cancelled shipment returns physical goods without duplication,PlayMode partial loading and reroute,REQUIRED,NOT_RUN
-E05,Transport decisions use only observed enemy knowledge,Paired fog-of-war scenarios,REQUIRED,NOT_RUN
-E05,Convoy escort does not abandon transports for unlimited chase,PlayMode naval interception scenario,REQUIRED,NOT_RUN
-E06,Expedition consumes real 600 bronze and supports interruption,PlayMode founding and lost cargo,REQUIRED,NOT_RUN
-E06,Specialization applies once and cannot stack through reassignment,EditMode plus PlayMode profile change,REQUIRED,NOT_RUN
-E07,Production refunds only correct unused cost,EditMode refund and destroyed-source tests,REQUIRED,NOT_RUN
-E07,Ship template includes actual weapon and crew costs,UI and production integration review,REQUIRED,NOT_RUN
-E08,Economic tech does not inherit military percent bonuses,EditMode data isolation and cap tests,REQUIRED,NOT_RUN
-E09,All market cycles remain below one after bonuses,EditMode all-port offer graph verification,REQUIRED,NOT_RUN
-E09,Trade payouts and quotas survive partial delivery and save-load,PlayMode escrow and save-load,REQUIRED,NOT_RUN
-E10,Destroyed port preserves settlement stock and frees berth,PlayMode destruction during unload,REQUIRED,NOT_RUN
-E10,Destroyed settlement cannot double-refund reserved stock,EditMode ledger plus PlayMode simultaneous destruction,REQUIRED,NOT_RUN
-E10,Emergency cutter costs full price and respects unit limit,PlayMode recovery scenario,REQUIRED,NOT_RUN
-E11,Repairing for scrap never increases net refund,EditMode original-paid-cost and HP sweep,REQUIRED,NOT_RUN
-E11,Captured transport changes ownership without restoring old cargo,PlayMode boarding during transport,REQUIRED,NOT_RUN
-E11,Wreck cannot duplicate equipment or reroll loot on load,PlayMode deterministic wreck recovery,REQUIRED,NOT_RUN
-E12,Salvage dive produces one physical finite reward,PlayMode competing dives and interruption,REQUIRED,NOT_RUN
-E13,AI pays identical local costs and trade limits,Paired AI-human command traces,REQUIRED,NOT_RUN
-E13,Economy automation preserves attention for naval combat,Human playtest with intervention counts,REQUIRED,NOT_RUN
-E14,Ledger conserves resources with separate world and faction views,EditMode property-based transaction sequences,REQUIRED,NOT_RUN
-E14,Save and load preserve local resource totals,EditMode serialization plus PlayMode inventory checks,REQUIRED,NOT_RUN
-E15,Raid escort-expansion and defense all have counterplay,Paired-seed naval matches plus human review,REQUIRED,NOT_RUN
-E15,Timing targets and uncertainty reported honestly,Match telemetry and statistical report,REQUIRED,NOT_RUN
-E16,First playable battle does not wait for full optional economy,Playable milestone review,REQUIRED,NOT_RUN
+E01,Exactly two spendable resources and no recurring fleet tax,EditMode schema review and ledger,REQUIRED,NOT_RUN
+E02,End of node gives a partial load and cannot be taken twice,EditMode and PlayMode contention,REQUIRED,NOT_RUN
+E02,Work berths queue FIFO and shared work cap is respected,EditMode parameterized limits,REQUIRED,NOT_RUN
+E02,Both resources are finite and never refill,EditMode long run and save-load,REQUIRED,NOT_RUN
+E03,Global HUD cannot spend remote local stores,EditMode reservations plus PlayMode two-island orders,REQUIRED,NOT_RUN
+E03,Concurrent orders cannot reserve the same resource twice,EditMode competing transaction tests,REQUIRED,NOT_RUN
+E03,Full store leaves cargo on the ship and frees the berth,EditMode and PlayMode,REQUIRED,NOT_RUN
+E03,Port serves three ships at 60 per second and keeps a fair queue,PlayMode queue and blocked approach,REQUIRED,NOT_RUN
+E03,Transport decisions use only observed enemy knowledge,Paired fog-of-war scenarios,REQUIRED,NOT_RUN
+E03,Convoy escort does not abandon transports for unlimited chase,PlayMode naval interception scenario,REQUIRED,NOT_RUN
+E04,Template price covers hull equipment and crew exactly once,EditMode split against template-costs.csv,REQUIRED,NOT_RUN
+E04,Production consumes with progress and refunds only correct unused cost,EditMode refund and destroyed-source tests,REQUIRED,NOT_RUN
+E04,War line and port queue are independent,EditMode parallel production,REQUIRED,NOT_RUN
+E05,Outpost consumes real cargo and supports interruption,PlayMode founding and lost cargo,REQUIRED,NOT_RUN
+E05,Upgrades apply once with no node cap increase,EditMode plus PlayMode,REQUIRED,NOT_RUN
+E06,Repairing for scrap never increases net refund,EditMode paid-cost and HP sweep,REQUIRED,NOT_RUN
+E06,Sunk transport leaves half its cargo as one salvageable wreck,EditMode and PlayMode,REQUIRED,NOT_RUN
+E06,Captured ship keeps cargo paid cost and identity,PlayMode boarding during transport,REQUIRED,NOT_RUN
+E06,Wreck cannot duplicate equipment or reroll loot on load,PlayMode deterministic wreck recovery,REQUIRED,NOT_RUN
+E06,Destroyed port keeps settlement stock and settlement loot is 30 percent,PlayMode destruction during unload,REQUIRED,NOT_RUN
+E07,Spell cost is local and charged once with a shared cooldown,EditMode and PlayMode,REQUIRED,NOT_RUN
+E08,Finite budget and start symmetry validated on real routes,Generated-map audit plus paired pathfinding,REQUIRED,NOT_RUN
+E09,AI pays identical local costs queues and carries real cargo,Paired AI-human command traces,REQUIRED,NOT_RUN
+E09,Economy automation preserves attention for naval combat,Human playtest with intervention counts,REQUIRED,NOT_RUN
+E10,World ledger conserves resources in stores nodes cargo wrecks and spending,EditMode property-based sequences,REQUIRED,NOT_RUN
+E10,Save and load preserve all transfers and do not charge twice,EditMode serialization plus PlayMode,REQUIRED,NOT_RUN
+E11,Raid escort-expansion and defense all have counterplay,Paired-seed naval matches plus human review,REQUIRED,NOT_RUN
+E11,Timing targets and uncertainty reported honestly,Match telemetry and statistical report,REQUIRED,NOT_RUN
+E11,First playable battle does not wait for full optional economy,Playable milestone review,REQUIRED,NOT_RUN
+E12,Mission cargo fills holds without becoming a third currency,PlayMode M02 and M12 delivery and save-load,REQUIRED,NOT_RUN
+E12,Every mission budget allows its objectives,Playtest of each mission,REQUIRED,NOT_RUN

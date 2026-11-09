@@ -49,6 +49,8 @@ namespace MorzaBogow.Presentation
         float smokeElapsed;
         int smokeMaxVisibleEnemies;
         string coastScaleNote = "not used";
+        float firstEnemySeenSeconds = -1f;
+        int combatEvents;
 
         public World World { get; private set; }
         public IReadOnlyCollection<int> Selected => selected;
@@ -123,6 +125,7 @@ namespace MorzaBogow.Presentation
             autoPlayer?.Think(World);
             opponent.Think(World);
             World.Step();
+            combatEvents += World.Events.Count(item => item.Type == "volley" || item.Type == "ram_hit" || item.Type == "hooks_thrown");
             World.Events.Clear();
             SyncViews();
         }
@@ -164,7 +167,7 @@ namespace MorzaBogow.Presentation
 
             foreach (var node in World.Nodes)
             {
-                var material = node.Type == ResourceType.Bronze ? materials?.BronzeNode : materials?.RationsNode;
+                var material = node.Type == ResourceType.Wood ? materials?.WoodNode : materials?.SilverNode;
                 var view = Primitive(PrimitiveType.Cylinder, $"{node.Type} node {node.Id} [PLACEHOLDER]", material);
                 view.transform.position = new Vector3((float)node.X, 0.3f, (float)node.Y);
                 view.transform.localScale = new Vector3(40f, 0.15f, 40f);
@@ -298,8 +301,8 @@ namespace MorzaBogow.Presentation
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             pivot += rotation * move.normalized * (height * 0.8f * delta);
-            pivot.x = Mathf.Clamp(pivot.x, -750f, 750f);
-            pivot.z = Mathf.Clamp(pivot.z, -750f, 750f);
+            pivot.x = Mathf.Clamp(pivot.x, -700f, 700f);
+            pivot.z = Mathf.Clamp(pivot.z, -700f, 700f);
 
             var view = rotation * Quaternion.Euler(52f, 0f, 0f);
             strategicCamera.transform.SetPositionAndRotation(pivot - view * Vector3.forward * (height / Mathf.Sin(52f * Mathf.Deg2Rad)), view);
@@ -316,6 +319,7 @@ namespace MorzaBogow.Presentation
             if (Input.GetKeyDown(KeyCode.F5)) QuickSave(DefaultSavePath);
             if (Input.GetKeyDown(KeyCode.F8)) QuickLoad(DefaultSavePath);
             HandleGroups();
+            if (Input.GetKeyDown(KeyCode.R)) Send(CommandKind.Repair, selected.ToArray());
 
             if (PointerOverHud()) return;
             if (Input.GetMouseButtonDown(0)) { dragging = true; dragStart = Input.mousePosition; }
@@ -402,6 +406,13 @@ namespace MorzaBogow.Presentation
                 return;
             }
 
+            var wreck = World.Wrecks.FirstOrDefault(item => World.CanSee(PlayerFaction, item.X, item.Y) && World.Distance(point.x, point.z, item.X, item.Y) < 20);
+            if (wreck != null)
+            {
+                var salvagers = ids.Where(id => World.FindShip(id)?.Definition.CanHarvest == true).ToArray();
+                if (salvagers.Length > 0) { Send(CommandKind.Salvage, salvagers, target: wreck.Id); return; }
+            }
+
             var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0 && World.Distance(point.x, point.z, item.X, item.Y) < 25);
             if (node != null)
             {
@@ -477,39 +488,36 @@ namespace MorzaBogow.Presentation
             if (settlement != null)
             {
                 var transit = World.Ships.Where(ship => ship.Owner == PlayerFaction && ship.Cargo > 0).ToList();
-                var bronzeTransit = transit.Where(ship => ship.CargoType == ResourceType.Bronze).Sum(ship => ship.Cargo) / Rules.Centi;
-                var rationsTransit = transit.Where(ship => ship.CargoType == ResourceType.Rations).Sum(ship => ship.Cargo) / Rules.Centi;
+                var woodTransit = transit.Where(ship => ship.CargoType == ResourceType.Wood).Sum(ship => ship.Cargo) / Rules.Centi;
+                var silverTransit = transit.Where(ship => ship.CargoType == ResourceType.Silver).Sum(ship => ship.Cargo) / Rules.Centi;
                 var fleet = World.Ships.Count(ship => ship.Owner == PlayerFaction);
                 GUI.Box(new Rect(0, 0, Screen.width, 26), string.Empty);
                 GUI.Label(new Rect(10, 3, Screen.width - 20, 24),
-                    $"Brąz {settlement.Bronze / Rules.Centi} (w drodze {bronzeTransit})   Racje {settlement.Rations / Rules.Centi} (w drodze {rationsTransit})   Flota {fleet}/{Rules.FleetLimit}   Osada {Mathf.CeilToInt((float)settlement.Hull)} HP   " +
+                    $"Drewno {settlement.Available(ResourceType.Wood) / Rules.Centi} (rez. {settlement.ReservedWood / Rules.Centi}, w drodze {woodTransit})   Srebro {settlement.Available(ResourceType.Silver) / Rules.Centi} (rez. {settlement.ReservedSilver / Rules.Centi}, w drodze {silverTransit})   Flota {fleet}/{Rules.FleetLimit}   Osada {Mathf.CeilToInt((float)settlement.Hull)} HP   " +
                     $"Prędkość {Speed:0.#}x{(paused ? "  PAUZA" : string.Empty)}   Czas {World.Tick / Rules.TickRate / 60}:{World.Tick / Rules.TickRate % 60:00}");
 
                 GUILayout.BeginArea(new Rect(0, Screen.height - 150, 380, 150), GUI.skin.box);
-                GUILayout.Label("Stocznia (cena z bronią i pełną załogą)");
+                GUILayout.Label("Cena kompletnego szablonu. Kuter: port. Okręty: stocznia.");
                 foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
                 {
-                    var label = $"{ClassName(shipClass)}: {World.HullCostBronze(shipClass) / Rules.Centi} B / {World.HullCostRations(shipClass) / Rules.Centi} R";
+                    var definition = ShipCatalog.Get(shipClass);
+                    var label = $"{ClassName(shipClass)}: {definition.CostWood} D / {definition.CostSilver} S, {definition.BuildSeconds:0} s";
                     if (GUILayout.Button(label)) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass });
                 }
                 GUILayout.EndArea();
 
-                if (settlement.Queue.Count > 0)
+                if (settlement.WarQueue.Count + settlement.PortQueue.Count > 0)
                 {
                     GUILayout.BeginArea(new Rect(385, Screen.height - 150, 250, 150), GUI.skin.box);
-                    GUILayout.Label("Kolejka");
-                    for (var i = 0; i < settlement.Queue.Count; i++)
-                    {
-                        var order = settlement.Queue[i];
-                        if (GUILayout.Button($"{ClassName(order.Class)} {100 * order.DoneTicks / order.TotalTicks}% (anuluj)"))
-                            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = i });
-                    }
+                    GUILayout.Label("Kolejki");
+                    QueueButtons(settlement.WarQueue, false);
+                    QueueButtons(settlement.PortQueue, true);
                     GUILayout.EndArea();
                 }
             }
 
             GUILayout.BeginArea(new Rect(640, Screen.height - 150, Mathf.Max(320, Screen.width - 640), 150), GUI.skin.box);
-            if (selected.Count == 0) GUILayout.Label("LPM: zaznacz. PPM: rozkaz. Spacja: pauza. +/-: prędkość. F5/F8: zapis/wczytanie. Alt+PPM: ostrzał abordażowcem.");
+            if (selected.Count == 0) GUILayout.Label("LPM: zaznacz. PPM: rozkaz. Spacja: pauza. +/-: prędkość. F5/F8: zapis/wczytanie. R: remont. Alt+PPM: ostrzał abordażowcem.");
             foreach (var id in selected.Take(5))
             {
                 var ship = World.FindShip(id);
@@ -534,6 +542,16 @@ namespace MorzaBogow.Presentation
             }
         }
 
+        void QueueButtons(List<BuildOrder> queue, bool portQueue)
+        {
+            for (var i = 0; i < queue.Count; i++)
+            {
+                var order = queue[i];
+                if (GUILayout.Button($"{ClassName(order.Class)} {100 * order.DoneTicks / order.TotalTicks}% (anuluj)"))
+                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = i, PortQueue = portQueue });
+            }
+        }
+
         static string ClassName(ShipClass shipClass)
         {
             switch (shipClass)
@@ -550,19 +568,38 @@ namespace MorzaBogow.Presentation
         void UpdateSmoke()
         {
             smokeElapsed += Time.unscaledDeltaTime;
+            if (firstEnemySeenSeconds < 0 && World.Ships.Any(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship))) firstEnemySeenSeconds = World.Tick / (float)Rules.TickRate;
             smokeMaxVisibleEnemies = Mathf.Max(smokeMaxVisibleEnemies, World.Ships.Count(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship)));
+            if (Mathf.FloorToInt(smokeElapsed / 30f) != Mathf.FloorToInt((smokeElapsed - Time.unscaledDeltaTime) / 30f))
+                Debug.Log($"[Smoke] {smokeElapsed:0} s, tick {World.Tick}, ships {World.Ships.Count}, combat {combatEvents}, focus {Application.isFocused}");
             if (smokeElapsed < smokeSeconds && World.Outcome == OutcomeKind.InProgress) return;
 
+            WriteSmokeReport(false);
+            Application.Quit(0);
+        }
+
+        /// <summary>An outside close still leaves a report, clearly marked as not completed.</summary>
+        void OnApplicationQuit()
+        {
+            if (smokeReport == null) return;
+            Debug.Log($"[Smoke] Closed from outside after {smokeElapsed:0} s, focus {Application.isFocused}");
+            WriteSmokeReport(true);
+        }
+
+        void WriteSmokeReport(bool interrupted)
+        {
             var report = new StringBuilder("{\n");
+            report.Append($"  \"interrupted\": {(interrupted ? "true" : "false")},\n  \"elapsedSeconds\": {Mathf.RoundToInt(smokeElapsed)},\n  \"fullScreenMode\": \"{Screen.fullScreenMode}\",\n");
             report.Append($"  \"tick\": {World.Tick},\n  \"outcome\": \"{World.Outcome}\",\n  \"winner\": {World.Winner},\n");
             report.Append($"  \"ships\": {World.Ships.Count},\n  \"views\": {views.Count},\n  \"maxVisibleEnemies\": {smokeMaxVisibleEnemies},\n");
             report.Append($"  \"coastPrefabLoaded\": {(coastPrefab != null ? "true" : "false")},\n  \"coast\": \"{coastScaleNote}\",\n");
             report.Append($"  \"profile\": \"{QualitySettings.names[QualitySettings.GetQualityLevel()]}\",\n  \"screen\": \"{Screen.width}x{Screen.height}\",\n");
-            report.Append($"  \"bronze\": [{World.Settlements[0].Bronze / Rules.Centi}, {World.Settlements[1].Bronze / Rules.Centi}],\n");
-            report.Append($"  \"rations\": [{World.Settlements[0].Rations / Rules.Centi}, {World.Settlements[1].Rations / Rules.Centi}]\n}}\n");
+            report.Append($"  \"wood\": [{World.Settlements[0].Wood / Rules.Centi}, {World.Settlements[1].Wood / Rules.Centi}],\n");
+            report.Append($"  \"silver\": [{World.Settlements[0].Silver / Rules.Centi}, {World.Settlements[1].Silver / Rules.Centi}],\n");
+            report.Append($"  \"firstEnemySeenSeconds\": {firstEnemySeenSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
+            report.Append($"  \"combatEvents\": {combatEvents}\n}}\n");
             File.WriteAllText(smokeReport, report.ToString());
             smokeReport = null;
-            Application.Quit(0);
         }
     }
 }

@@ -66,8 +66,14 @@ if (data) {
 
       for (const key of ['localStock', 'resourceNodes']) {
         const resources = item[key] || {};
-        check(isNonNegativeInteger(resources.bronze), id + ': ' + key + '.bronze must be a nonnegative integer');
-        check(isNonNegativeInteger(resources.rations), id + ': ' + key + '.rations must be a nonnegative integer');
+        check(isNonNegativeInteger(resources.wood), id + ': ' + key + '.wood must be a nonnegative integer');
+        check(isNonNegativeInteger(resources.silver), id + ': ' + key + '.silver must be a nonnegative integer');
+      }
+      if (item.missionCargo !== undefined) {
+        const cargo = item.missionCargo;
+        check(typeof cargo.name === 'string' && cargo.name.trim().length > 0, id + ': missionCargo.name is missing');
+        check(Number.isInteger(cargo.required) && cargo.required > 0 && Number.isInteger(cargo.available) && cargo.available >= cargo.required,
+          id + ': missionCargo must offer at least the required amount');
       }
       check(isNonNegativeInteger(item.enemyHullBudget), id + ': enemyHullBudget must be a nonnegative integer');
       check(Array.isArray(item.storyThreats) && item.storyThreats.length > 0, id + ': storyThreats must not be empty');

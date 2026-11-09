@@ -22,7 +22,7 @@ Morza Bogów to strategia czasu rzeczywistego o dowodzeniu flotą wojenną w św
 
 Najważniejszą jednostką decyzji jest okręt działający w eskadrze. Kadłub, napęd, załoga, morale, wyposażenie i gotowość określają jego rolę i bieżącą użyteczność. Ostrzał, taranowanie oraz abordaż współdziałają i wymagają odmiennych pozycji, dystansów oraz przygotowania. Liczebność floty ma znaczenie, a jej skuteczność zależy także od składu, osłony i realizowanego celu.
 
-Gospodarka opiera się na brązie i racjach, lokalnych magazynach i rzeczywistym transporcie. Automatyczne dostawy, doktryny i kolejki pozwalają kierować uwagę na sytuację na morzu. Skończony brąz, limity pracy, odnawiające się skupiska i koszt ekspansji tworzą sporne szlaki. Rozbudowa infrastruktury jest decyzją konkurującą z przygotowaniem kolejnej eskadry.
+Gospodarka opiera się na drewnie okrętowym i srebrze, lokalnych magazynach i rzeczywistym transporcie. Automatyczne dostawy, doktryny i kolejki pozwalają kierować uwagę na sytuację na morzu. Skończone zasoby, stanowiska pracy i koszt ekspansji tworzą sporne szlaki. Rozbudowa infrastruktury jest decyzją konkurującą z przygotowaniem kolejnej eskadry.
 
 Mitologia nadaje operacjom charakter przez bohaterów, zaklęcia, artefakty, potwory i wyjątkowe zagrożenia. Koszty, cooldowny, zapowiedzi oraz dostępna kontrgra utrzymują znaczenie dowodzenia. Każda misja ma jawne cele; zwycięstwo może oznaczać przeprowadzenie konwoju, ocalenie ludzi, wyjście z cieśniny lub utrzymanie pozycji.
 
@@ -41,7 +41,7 @@ Pełne zasady doświadczenia gracza określa GAME_VISION.md. Ponad 70% aktywnego
 
 ### 1.2. Rytm i progresja
 
-Standardowa potyczka 1 na 1 ma umożliwiać celowy kontakt około 3–5 min, ekspansję około 5–8 min i większą bitwę około 8–12 min; docelowy mecz trwa około 25–35 min. Są to cele do weryfikacji na mapach i w playtestach. Dostępna wcześniej okazja do rajdu nie jest blokowana zegarem.
+Standardowa potyczka 1 na 1 ma umożliwiać celowy kontakt około 1:45–3:00 i większą bitwę około 4:00–7:00; docelowy mecz trwa około 15–25 min. Są to cele do weryfikacji na mapach i w playtestach. Dostępna wcześniej okazja do rajdu nie jest blokowana zegarem.
 
 Kampania obejmuje 14 misji w trzech cyklach z określonymi flotami i budżetami startowymi. Między misjami zachowuje ukończenia, medale i kronikę; nie przenosi flot ani magazynów. Cele poboczne nie dają stałej przewagi w potyczkach. Katalog 40 potyczek obejmuje różne cele operacyjne i osiem biomów.
 
@@ -158,35 +158,25 @@ Mgła, ulewa, noc i niektóre zaklęcia ograniczają efektywny promień obserwac
 
 ## 5. Zasoby i gospodarka morska
 
-Dokładnie dwa zasoby: brąz do konstrukcji, technologii, wyposażenia i remontów; racje do budowy części kadłubów, rekrutacji, wypraw i zaklęć. Wyposażenie jest przedmiotami. Nie ma dodatkowej waluty, podatku od floty, głodu załóg ani obowiązkowej dostawy amunicji. Pełne reguły i kontrakty implementacji: E00–E16 w ECONOMY_DESIGN.md.
+Dokładnie dwa zasoby: **drewno okrętowe D** na kadłuby, wiosła, maszty, zabudowania, remonty i fizyczne wyposażenie oraz **srebro S** na rekrutację, zaopatrzenie, uzbrojenie, szkolenie, badania i ofiary w sanktuariach. Oba są skończone. Nie ma dodatkowej waluty, podatku od floty, głodu załóg ani obowiązkowej dostawy amunicji. Żywność i inne materiały występują w oprawie albo jako ładunek misji. Pełne reguły: E00–E12 w ECONOMY_DESIGN.md.
 
-### 5.1. Pozyskiwanie brązu
+### 5.1. Zbiór
 
-Złoże brązu to przybrzeżne rumowisko dawnych składów i wraków, z którego załogi wydobywają gotowy metal. Kuter pozyskuje 4 B/s podczas pracy, handlowiec 6 B/s. Dochód zależy także od czasu rejsu, pojemności i obsługi portu. Złoże obsługuje łącznie 12 B/s przed premiami, dzielone proporcjonalnie między aktywnych pracowników. Brąz w bazowej potyczce jest skończony, bez regeneracji; zmiana właściciela nie odnawia złoża. Zasoby ładuje się fizycznie do statku i dostarcza do portu.
+Punkty pracy na wybrzeżu mają po dwa stanowiska. Kuter pracuje z tempem 6 D/s albo 3 S/s; wspólny limit punktu to 12 D/s albo 4 S/s, a kolejni zbieracze czekają FIFO. Handlowiec nie zbiera. Nie ma dochodu za samo posiadanie portu. Zasoby ładuje się fizycznie i dostarcza do portu.
 
-### 5.2. Skupiska małży
+### 5.2. Magazyny i dostawy
 
-Racje to żywność dla załóg, przygotowywana z małży zbieranych w przybrzeżnych skupiskach. Tempo pracy: kuter 3 R/s, handlowiec 5 R/s, wspólny limit skupiska 9 R/s. Pojemność bazowa 2000 R; regeneracja 1+3×(stan/pojemność) R/s do pojemności. Poniżej 35% zapasów efektywność maleje według E03; poniżej 10% skupisko jest zamknięte, aż osiągnie 30%. Automatyka wybiera inne znane bezpieczne miejsce w wyznaczonej strefie. Nie ma ręcznej minigry zbierackiej ani psucia zapasów.
+Każda osada ma magazyn 6000 D i 3000 S, wspólny dla jej budynków na jednej wyspie. Między wyspami towar musi przewieźć statek. HUD rozdziela zapas dostępny, zarezerwowany i w drodze; suma nie jest zdalnym portfelem. Port ma trzy stanowiska po 60 jednostek/s. Remont i produkcja mają odrębne stanowiska. Przy pełnym magazynie pozostałość zostaje na statku.
 
-### 5.3. Wyprawy nurkowe
+### 5.3. Wraki i łup
 
-Opcjonalny wspólny cel, zatopiony skarbiec, pojawia się najwcześniej od 8:00. Handlowiec z wyposażeniem nurkowym (200 B/100 R) wykonuje operację przez 90 s w promieniu 30 m. Nagroda 600 B/300 R znajduje się fizycznie na mapie; wymaga transportu i może zostać przechwycona. Rzadki wariant 900 B/450 R jest wyłączony w bazowej potyczce. Szczegółowy postęp i przerwanie: E12.
+Zatopiony transport pozostawia 50% realnego ładunku jako zbieralny wrak, druga połowa przepada. Pusty kadłub niczego nie wypłaca. Każdy przedmiot wyposażenia ma 30% szans przetrwania, losowane raz i zapisywane. Zniszczenie osady pozostawia do odzyskania 30% jej niewydanych zapasów.
 
-### 5.4. Wraki, łup i odzysk
+### 5.4. Ekspansja
 
-Wrak zachowuje 50% realnego ładunku B/R, a każdy istniejący element wyposażenia ma 30% szans przetrwania rozstrzygniętych raz według zapisanego seeda. Nie wypłaca pieniędzy za cenę samego kadłuba. Przedmioty fabularne są zachowane i nie wygasają; pozostały wrak domyślnie wygasa po 300 s. Dobrowolne złomowanie w doku daje 15% faktycznie opłaconego kosztu kadłuba pomnożone przez stan HP. Ograniczenia odzysku i brak duplikacji: E10/E11.
+Przyczółek portowy kosztuje 300 D/100 S, mieści się w ładowni handlowca i powstaje w 35 s po dotarciu. Obejmuje lokalny magazyn, port i kolejkę gospodarczą, bez darmowych kutrów i stoczni. Bazowa potyczka nie wymaga rynku ani wypraw; neutralne kontrakty i skarby to jawne, skończone cele scenariusza.
 
-### 5.5. Magazyny lokalne i dostawy
-
-Każda osada ma własny magazyn B/R. Budynki tej samej osady na jednej wyspie korzystają z niego bez transportu lądowego; między wyspami towar musi przewieźć statek. Globalny HUD jest zestawieniem, nie zdalnym portfelem. Dostępne lokalnie = dostarczone minus zarezerwowane; cargo i oczekiwana dostawa nie są ponownie dostępne. Wyposażenie i załogi również przemieszczają się rzeczywiście.
-
-Port ma dwa stanowiska, 40 jednostek ładunku/s na każde. Automatyczne zapasy i konwoje z E05 dostarczają zasoby do wskazanych portów zgodnie z priorytetem. Gracz ustala strefę pracy, cel dostaw i eskor­tę, a nie zarządza każdą skrzynią. Inwestycje w porty i specjalizacje opisuje E04/E06. Przecięcie szlaku nie odbiera natychmiast istniejącej flocie możliwości walki.
-
-### 5.6. Handel, ekspansja i balans
-
-Neutralne kontrakty są opcjonalne od 6:00, mają skończone limity wypłat i nie dają zysku z zamkniętego cyklu wymiany. Ekspansja wymaga dowiezienia 600 B na osadę i port. Miasto może mieć jeden z trzech profili: zaopatrzeniowy, stoczniowy lub logistyczny. Technologie ekonomiczne nie obniżają cen kadłubów i mają twarde limity premii. Pełne liczby: E06–E09.
-
-Gospodarka daje powody do eskort i rajdów. Nie jest alternatywnym trybem wygranej przez samo gromadzenie pieniędzy; warunki konkretnego scenariusza są jawne. Start potyczki pozostaje: osada, port, stocznia, dwa kutry, 1400 B/600 R. Model tempa i plan testów: ECONOMY_BALANCE.md.
+Gospodarka daje powody do eskort i rajdów. Nie jest alternatywnym trybem wygranej. Start potyczki: port, stocznia, cztery kutry (trzy przy drewnie, jeden przy srebrze), 360 D/160 S. Model tempa: ECONOMY_BALANCE.md.
 
 ---
 
@@ -194,139 +184,39 @@ Gospodarka daje powody do eskort i rajdów. Nie jest alternatywnym trybem wygran
 
 ## 6. System budowy
 
-Budynki powstają wyłącznie na odpowiednio przygotowanych obszarach wysp i wybrzeży.
+Budynki powstają wyłącznie na odpowiednio przygotowanych obszarach wysp i wybrzeży, w obszarze wpływów osady. Podczas ustawiania gracz widzi obrys, koszt, dostęp do morza oraz kolizje. Budynki nadbrzeżne wymagają kontaktu ze strefą żeglowną. Koszt pokrywa lokalny magazyn osady.
 
-Każda osada posiada własny obszar wpływów. Budowa poza nim wymaga założenia nowej placówki lub zdobycia istniejącej infrastruktury.
+### 6.1. Port i przyczółek
 
-Podczas ustawiania budynku gracz widzi jego obrys, wymagane miejsce, koszt, dostęp do morza oraz ewentualne kolizje.
+Port jest podstawowym centrum gospodarczym: magazyn 6000 D/3000 S, trzy stanowiska przeładunku, osobna kolejka kutrów i handlowców. Model wizualny ma czytelną strukturę: centralny budynek, magazyny, nabrzeże i stanowiska pracy. Rozbudowuje się go przez dobudowanie magazynów, wież, portyków i monumentalnych budowli.
 
-Budynki nadbrzeżne wymagają kontaktu ze strefą żeglowną. Koszt pokrywa lokalny magazyn osady. Nowa wyspa wymaga wyprawy z rzeczywistym ładunkiem 600 B według E06; nie ma zdalnej opłaty z globalnej puli.
+Nowy port powstaje jako przyczółek za 300 D/100 S w 35 s, po dowiezieniu ładunku handlowcem. Dostępne rozkazy obejmują załadunek, rozładunek, transfer uzbrojenia, zmianę załogi, transfer bohatera, transfer artefaktu oraz organizację konwoju.
 
-### 6.1. Osada
+### 6.2. Stocznia
 
-**Koszt:** 400 brązu.
+Stocznia produkuje okręty i ma jedną linię wojenną. Kolejna stocznia daje dodatkową linię za 200 D/100 S i 40 s, z własnym wolnym podejściem. Budowana jednostka ma wizualną reprezentację na pochylni: żebra, poszycie, maszt i wyposażenie.
 
-Osada jest podstawowym centrum ekonomicznym. Umożliwia rekrutację załóg, przechowywanie zasobów, zarządzanie lokalnymi budynkami oraz organizację budowy.
+Stocznia ma jedno odrębne stanowisko remontowe, 12 HP/s. Remont pełnej utraconej wytrzymałości kosztuje 25% konstrukcyjnej części ceny kadłuba; częściowy rozlicza faktycznie odtworzony odsetek HP. Naprawa kadłuba nie przywraca automatycznie żołnierzy ani uzbrojenia. Złomowanie poza walką trwa 20 s i oddaje 15% opłaconej konstrukcji × odsetek bieżących HP.
 
-Posiada 1800 punktów wytrzymałości i początkowy magazyn o pojemności 5000 brązu i 5000 racji.
+### 6.3. Inwestycje
 
-Musi posiadać czytelną wizualną strukturę: centralny budynek administracyjny, niewielkie zabudowania, magazyny i stanowiska pracy.
+| Inwestycja | D/S | Czas | Działanie |
+|---|---:|---:|---|
+| Arsenał | 200/120 | 45 s | Ciężkie i specjalistyczne uzbrojenie, pancerze i tarany; bombardowce i jednostki specjalne |
+| Sanktuarium Żywiołów | 180/160 | 40 s | Zaklęcia wody, wiatru, widoczności i pioruna |
+| Sanktuarium Męstwa | 180/160 | 40 s | Zaklęcia ognia, ochrony, morale, naprawy i przywołania |
+| Szkoła morska | 140/180 | 40 s | Szkolenie, technologie floty i zaawansowane szablony |
+| Rozbudowa magazynu | 120/40 | 25 s | Jednorazowo +3000 D i +1500 S |
+| Żurawie | 120/60 | 25 s | Jednorazowo +25% tempa przeładunku |
+| Narzędzia drwali | 120/100 | 40 s | +10% pracy kutra przy D, bez wzrostu limitu punktu |
+| Organizacja wydobycia | 100/120 | 40 s | +10% pracy kutra przy S, bez wzrostu limitu punktu |
+| Wieża brzegowa | 200/140 | 40 s | Lokalna osłona podejścia, zakres 110 m |
 
-### 6.2. Miasto
+Podstawowy port wspiera jedną wieżę, arsenał odblokowuje drugą. Wieża nie naprawia floty i musi pozostawiać drogę obejścia oraz przestrzeń centralną. Fortece występują wyłącznie jako obiekty scenariuszy i baz barbarzyńców, nie są budowane przez gracza w bazowej potyczce.
 
-**Koszt ulepszenia osady:** 500 brązu.
+Każde sanktuarium ma własny obszar wpływu. Zaklęcia o zasięgu lokalnym można rzucać tylko w skutecznym zasięgu aktywnego sanktuarium.
 
-Miasto odblokowuje zaawansowane budynki, szkoły mędrców, świątynie i rozwinięte doki.
-
-Posiada 3000 punktów wytrzymałości oraz dwukrotnie większą lokalną pojemność magazynową. Ulepszenie trwa 60 s. Opcjonalny pojedynczy profil zaopatrzeniowy, stoczniowy albo logistyczny kosztuje kolejne 300 B/100 R i 60 s; parametry i przebudowa według E06.
-
-Model wizualny zmienia się poprzez dobudowanie murów, wież, portyków, większych magazynów i monumentalnych budowli.
-
-### 6.3. Port
-
-**Koszt:** 200 brązu.
-
-Port obsługuje przeładunek, przyjmowanie jednostek, lokalne zaopatrzenie i organizowanie tras transportowych.
-
-Każdy port posiada kolejkę cumowania oraz określoną liczbę dostępnych stanowisk.
-
-Podstawowy port obsługuje jednocześnie dwa statki z tempem przeładunku 40 jednostek/s na stanowisko. Może kupić maksymalnie dwa różne moduły z E04. Awaryjna budowa kutra po utracie stoczni wymaga normalnej ceny i działa zgodnie z E10.
-
-Dostępne rozkazy obejmują załadunek, rozładunek, transfer uzbrojenia, zmianę załogi, transfer bohatera, transfer artefaktu oraz organizację konwoju.
-
-### 6.4. Stocznia
-
-**Koszt:** 400 brązu.
-
-Stocznia produkuje okręty.
-
-Podstawowa stocznia posiada dwa stanowiska konstrukcyjne, wspólną kolejkę produkcji i możliwość przypisania automatycznego miejsca zbiórki.
-
-Każda budowana jednostka posiada wizualną reprezentację na pochylni. Postęp konstrukcji powinien być widoczny poprzez pojawianie się żeber, poszycia, masztu i wyposażenia.
-
-### 6.5. Dok
-
-**Koszt ulepszenia stoczni:** 600 brązu.
-
-Dok umożliwia naprawę i modernizację okrętów.
-
-Jednostka musi podpłynąć do wyznaczonego stanowiska i zatrzymać się w strefie remontowej.
-
-Koszt naprawy wynosi 20% bazowej ceny kadłuba w obu walutach przy przywracaniu 100% jego wytrzymałości. Naprawa częściowa nalicza koszt proporcjonalnie do rzeczywiście odzyskanych HP, według E11. Dok ma jedno odrębne stanowisko remontowe, bazowo 10 HP/s; nie zajmuje stanowiska rozładunku portu.
-
-Naprawa kadłuba nie przywraca automatycznie utraconych żołnierzy ani zniszczonego uzbrojenia.
-
-### 6.6. Warsztat
-
-**Koszt:** 700 brązu.
-
-Warsztat produkuje machiny bojowe i wyposażenie.
-
-Dostępne kategorie:
-
-- uzbrojenie przeciwzałogowe;
-- lekkie machiny;
-- średnie machiny;
-- ciężkie machiny;
-- amunicja specjalna.
-
-Każdy przedmiot ma czas produkcji, koszt i wymagania technologiczne.
-
-### 6.7. Kuźnia
-
-**Koszt:** 800 brązu.
-
-Kuźnia produkuje i modernizuje pancerze oraz tarany.
-
-Posiada osobne linie badań nad wytrzymałością opancerzenia i skutecznością taranowania.
-
-### 6.8. Szkoła mędrców
-
-**Koszt:** 900 brązu.
-
-Szkoła rozwija technologie floty.
-
-Kategorie badań:
-
-- kadłuby i opancerzenie;
-- konstrukcja taranów;
-- napęd i żeglarstwo;
-- uzbrojenie lekkie;
-- uzbrojenie ciężkie;
-- szkolenie załóg;
-- specjalistyczne konstrukcje.
-
-Wojskowe technologie mają trzy poziomy, z wyjątkiem badań odblokowujących konkretne klasy jednostek. Osobne gałęzie ekonomiczne mają poziomy i koszty z E08: narzędzia pracy, organizacja ładowni, kartografia szlaków. Premii wojskowych nie stosuje się do ekonomii.
-
-### 6.9. Fortyfikacje
-
-Dostępne są trzy klasy fortec.
-
-| Budowla | Koszt bez uzbrojenia | Wytrzymałość | Stanowiska broni |
-|---|---:|---:|---:|
-| Mała forteca | 600 brązu | 1400 | 4 |
-| Średnia forteca | 1000 brązu | 2600 | 7 |
-| Wielka forteca | 1500 brązu | 4200 | 10 |
-
-Forteca ma własny magazyn broni, obsadę oraz sektory ostrzału wynikające z geometrii stanowisk.
-
-Fortyfikacje można budować przy wybrzeżu i na wybranych punktach obronnych wyspy. Duże forty wymagają dostarczenia wyposażenia i ukończenia odpowiednich badań.
-
-Zaopatrywanie odległej fortecy realizuje się transportem morskim.
-
-### 6.10. Sanktuarium Żywiołów
-
-**Koszt:** 1000 brązu.
-
-Odblokowuje zaklęcia żywiołów: wodę, wiatr, widoczność i piorun.
-
-### 6.11. Sanktuarium Męstwa
-
-**Koszt:** 1000 brązu.
-
-Odblokowuje zaklęcia ducha i rzemiosła: ogień, ochronę, morale, naprawę i przywołanie.
-
-Każde sanktuarium ma własny obszar wpływu. Zaklęcia o zasięgu lokalnym mogą być rzucane wyłącznie na obszar znajdujący się w skutecznym zasięgu aktywnej świątyni.
+Technologie floty w szkole morskiej mają trzy poziomy, z wyjątkiem badań odblokowujących konkretne klasy. Kategorie: kadłuby i opancerzenie, konstrukcja taranów, napęd i żeglarstwo, uzbrojenie lekkie, uzbrojenie ciężkie, szkolenie załóg, specjalistyczne konstrukcje.
 
 ---
 
@@ -406,38 +296,38 @@ Każdy podsystem musi mieć jednoznacznie określony stan w danych rozgrywki.
 
 Tabela określa parametry startowe do strojenia balansu. Prędkości są wyrażone w jednostkach świata gry na sekundę przy neutralnych warunkach.
 
-| Jednostka | Kadłub | Prędkość | Załoga maks. | Koszt: brąz / racje |
-|--------|--------|--------|--------|--------|
-| Kuter | 180 | 8,5 | 8 | 200 / 0 |
-| Handlowiec | 370 | 5,8 | 16 | 400 / 200 |
-| Taranowiec | 760 | 8,2 | 36 | 800 / 300 |
-| Niszczyciel załóg | 520 | 6,8 | 52 | 600 / 200 |
-| Niszczyciel okrętów | 620 | 6,5 | 36 | 700 / 200 |
-| Bombardowiec | 960 | 4,3 | 45 | 1300 / 400 |
-| Abordażowiec | 780 | 5,2 | 90 | 900 / 200 |
-| Okręt królewski | 1150 | 6,1 | 80 | 1100 / 400 |
-| Ogniomiot | 540 | 7,0 | 40 | 700 / 200 |
-| Dymowiec | 600 | 6,1 | 36 | 900 / 200 |
-| Okręt Nieśmiertelnych | 680 | 6,3 | 45 | 1050 / 300 |
-| Żmija cieśnin | 560 | 8,0 | 30 | 950 / 250 |
+| Jednostka | Kadłub | Prędkość | Załoga maks. | Kompletny szablon D / S | Produkcja |
+|--------|--------|--------|--------|--------|--------|
+| Kuter | 180 | 10,0 | 8 | 60 / 20 | 18 s |
+| Handlowiec | 370 | 7,0 | 16 | 140 / 60 | 28 s |
+| Taranowiec | 760 | 8,2 | 36 | 240 / 100 | 35 s |
+| Niszczyciel załóg | 520 | 6,8 | 52 | 180 / 90 | 30 s |
+| Niszczyciel okrętów | 620 | 6,5 | 36 | 220 / 140 | 38 s |
+| Bombardowiec | 960 | 4,3 | 45 | 400 / 260 | 60 s |
+| Abordażowiec | 780 | 5,2 | 90 | 200 / 180 | 40 s |
+| Okręt królewski | 1150 | 6,1 | 80 | 460 / 320 | 70 s |
+| Ogniomiot | 540 | 7,0 | 40 | 260 / 180 | 45 s |
+| Dymowiec | 600 | 6,1 | 36 | 300 / 180 | 45 s |
+| Okręt Nieśmiertelnych | 680 | 6,3 | 45 | 280 / 220 | 45 s |
+| Żmija cieśnin | 560 | 8,0 | 30 | 260 / 200 | 40 s |
 
-Koszty nie uwzględniają dodatkowej broni, ulepszeń i specjalistycznej załogi. Jednostki ostatnich czterech klas są unikatowe dla swoich frakcji: ogniomiot i dymowiec dla floty helleńskiej, pozostałe dwa dla floty perskiej. Parametry są propozycją balansową, wymagającą testów.
+Ceny obejmują kadłub, standardowe uzbrojenie, taran właściwy klasie i pełną zwykłą obsadę; nie pobiera się ich drugi raz (E04). Bombardowiec, ogniomiot, dymowiec i żmija wymagają arsenału, okręt królewski także szkoły morskiej, a Okręt Nieśmiertelnych Sanktuarium Męstwa. Jednostki ostatnich czterech klas są unikatowe dla swoich frakcji: ogniomiot i dymowiec dla floty helleńskiej, pozostałe dwa dla floty perskiej. Prędkości kutra i handlowca pochodzą z modelu gospodarki; pozostałe parametry bojowe wymagają testów.
 
 ### 4.3. Kuter
 
 Najmniejszy, najtańszy statek gospodarczy. Wąski, lekki kadłub, niewielki żagiel, widoczne wiosła, małe zanurzenie.
 
-Ma zbierać racje, brąz i pozostałości wraków, prowadzić rozpoznanie wybrzeża oraz przewozić małe ilości wyposażenia.
+Ma zbierać drewno, srebro i pozostałości wraków, prowadzić rozpoznanie wybrzeża oraz przewozić małe ilości wyposażenia.
 
-Ładowność startowa: 160 jednostek. Może przepływać przez płycizny niedostępne dla ciężkich galer. Jego podstawową obroną jest ucieczka; może przewozić niewielką eskortę żołnierzy, lecz nie może inicjować abordażu.
+Ładowność: 60 jednostek. Może przepływać przez płycizny niedostępne dla ciężkich galer. Jego podstawową obroną jest ucieczka; może przewozić niewielką eskortę żołnierzy, lecz nie może inicjować abordażu.
 
 W zachowaniu automatycznym unika wszystkich uzbrojonych przeciwników. Jeśli wyznaczony obszar zbioru zostanie wyczerpany, automatycznie wyszukuje kolejny bezpieczny zasób w zasięgu swojej sieci logistycznej.
 
 ### 4.4. Handlowiec
 
-Szerszy kadłub, większe żagle, ładownia podzielona na sekcje, mniejsza zwrotność. Ładowność startowa: 650 jednostek.
+Szerszy kadłub, większe żagle, ładownia podzielona na sekcje, mniejsza zwrotność. Ładowność: 480 jednostek.
 
-Poza pozyskiwaniem zasobów ma realizować cztery dodatkowe zadania: przewożenie uzbrojenia do portów, zaopatrywanie wysuniętych fortec, transport artefaktów oraz organizowanie automatycznych szlaków handlowych między osadami.
+Nie zbiera zasobów. Realizuje cztery zadania: przewożenie uzbrojenia do portów, zaopatrywanie przyczółków i wypraw budowlanych, transport artefaktów oraz organizowanie automatycznych szlaków handlowych między osadami.
 
 Handlowiec może eskortować zaopatrzenie budowanej w odległym miejscu placówki. Jeżeli przeciwnik zablokuje wybraną trasę, system ma spróbować znaleźć drogę alternatywną lub poprosić gracza o decyzję.
 
@@ -539,7 +429,7 @@ Nawigacja: graf akwenów dla tras globalnych, lokalna siatka kosztów uwzględni
 
 Zanurzenie startowe: kuter 0,7 m, handlowiec 1,4 m, taranowiec 1,6 m, niszczyciele 1,7 m, bombardowiec 2,8 m, abordażowiec 2,2 m, królewski 2,5 m, ogniomiot i dymowiec 1,6 m, Nieśmiertelnych 1,9 m, Żmija 1,3 m. Ładunek i zalanie zwiększają zanurzenie do +25% podstawy. Nie zwiększaj kolizyjnego zanurzenia od samego przechyłu wizualnego.
 
-Brak postępu przez 5 s uruchamia lokalne ponowne planowanie; po 15 s jednostka wycofuje się do ostatniego bezpiecznego punktu albo zgłasza blokadę. Nie wykonuje nieskończonej pętli szukania. Port bazowo rezerwuje dwa stanowiska (trzy po module nabrzeża E04) i bezpieczny punkt oczekiwania, zwalnia rezerwację po śmierci lub anulowaniu. Pierwszeństwo ma jednostka opuszczająca kanał; kolejka ma ochronę przed zagłodzeniem.
+Brak postępu przez 5 s uruchamia lokalne ponowne planowanie; po 15 s jednostka wycofuje się do ostatniego bezpiecznego punktu albo zgłasza blokadę. Nie wykonuje nieskończonej pętli szukania. Port rezerwuje trzy stanowiska i bezpieczny punkt oczekiwania, zwalnia rezerwację po śmierci lub anulowaniu. Pierwszeństwo ma jednostka opuszczająca kanał; kolejka ma ochronę przed zagłodzeniem.
 
 Formacje: linia, kolumna, klin, półksiężyc, pierścień eskorty. Odstęp minimalny = suma promieni obrysów + 3 m; przy sztormie +50%. Lider wyznacza trasę dla największego zanurzenia albo rozdziela grupę na podgrupy z komunikatem. W cieśninie automatyczne przejście do kolumny, potem odtworzenie szyku. Gracz może zablokować automatyczne przeformowanie. Prędkość grupy odpowiada najwolniejszej sprawnej jednostce; pościg ma limit dystansu.
 
@@ -549,29 +439,29 @@ Okręt Nieśmiertelnych: perska galera gwardii z łuskowymi osłonami burt, odpo
 
 Żmija Cieśnin: perski przechwytujący okręt o niskiej sylwetce; przyspieszenie ×1,2 względem taranowca, mały promień skrętu, słaby pancerz, bonus +20% obrażeń pierwszego ataku po 10 s bez walki. Bonus nie odnawia się przez chwilowe wyjście z zasięgu. Nie posiada niewidzialności; mgła wojny działa normalnie.
 
-Barbarzyńcy używają wariantów istniejących mechanik: łupieżca (kuter, prędkość +10%, ładownia 100, broń lekka), lekki taranowiec (HP 500, prędkość 8,5, załoga 24), abordażowy (HP 600, załoga 65), korsarski (HP 850, załoga 55, dwa średnie stanowiska), dowódca (HP 1000, załoga 70, aura morale +10 w 100 m). Nie otrzymują zasobów znikąd. Budżety zdarzeń scenariusza są jawne w ustawieniach trudności.
+Barbarzyńcy używają wariantów istniejących mechanik: łupieżca (kuter, prędkość +10%, ładownia 40, broń lekka), lekki taranowiec (HP 500, prędkość 8,5, załoga 24), abordażowy (HP 600, załoga 65), korsarski (HP 850, załoga 55, dwa średnie stanowiska), dowódca (HP 1000, załoga 70, aura morale +10 w 100 m). Nie otrzymują zasobów znikąd. Budżety zdarzeń scenariusza są jawne w ustawieniach trudności.
 
 ## C04. Produkcja, ekonomia i wyposażenie
 
-Wymagania ekonomiczne E00–E16 w ECONOMY_DESIGN.md są integralne i nadrzędne w swoim zakresie. Dwa zasoby, lokalne magazyny, fizyczne cargo, automatyczne dostawy i brak stałego podatku od istniejącej floty. Magazyny osad nie łączą zdalnie dostępnych środków. Produkcja i naprawy płacą z własnej osady, magia z osady aktywnej świątyni.
+Wymagania ekonomiczne E00–E12 w ECONOMY_DESIGN.md są integralne i nadrzędne w swoim zakresie: dwa skończone zasoby D/S, lokalne magazyny, fizyczne cargo, automatyczne dostawy i brak stałego podatku od istniejącej floty. Produkcja i naprawy płacą z własnej osady, magia z osady aktywnego sanktuarium.
 
-Jednostka zasobu zajmuje 1 pojemności. Broń lekka/średnia/ciężka: 20/40/80, artefakt 5, pasażer 1. Zamontowane wyposażenie nie zajmuje pojemności transportowej, ale ma masę i wpływ na ruch/zanurzenie. Kuter 160, handlowiec 650 pojemności bazowej, bez darmowego ładunku przy ulepszeniu. Ładunek i rozładunek: 40 jednostek/s na stanowisko; moduły i profil logistyczny sumują się do maksymalnie +40%.
+Jednostka zasobu zajmuje 1 pojemności. Broń lekka/średnia/ciężka: 20/40/80, artefakt 5, pasażer 1. Zamontowane wyposażenie nie zajmuje pojemności transportowej, ale ma masę i wpływ na ruch/zanurzenie. Kuter 60, handlowiec 480 pojemności, bez darmowego ładunku przy ulepszeniu. Przeładunek: 60 jednostek/s na stanowisko, żurawie +25%.
 
-Zlecenie finansowane rezerwuje pełny lokalny koszt. Anulowanie przed startem zwalnia 100%; po starcie zwraca 80% niezużytej części. Pozostałe 20% tej części jest stratą, zużyta część nie wraca. Zniszczenie samej stoczni zwalnia niezużyte rezerwacje do osady, nie tworzy zdalnego zwrotu. Zniszczenie osady rozlicza rezerwacje przed łupem według E10. Przestawienie kolejki nie pobiera opłaty ponownie.
+Zlecenie rezerwuje pełny lokalny koszt, a zużycie następuje wraz z postępem. Anulowanie przed startem zwalnia 100%; po starcie zwraca 80% niezużytej części. Pozostałe 20% tej części jest stratą, zużyta część nie wraca. Zniszczenie samej stoczni zwalnia niezużyte rezerwacje do osady. Przestawienie kolejki nie pobiera opłaty ponownie.
 
-Domyślne czasy kadłubów: kuter 20 s, handlowiec 35, taranowiec 50, niszczyciele 45, bombardowiec 90, abordażowiec 60, królewski 90, specjalne 65. Osada 45 s, port 25, stocznia 40, miasto 60, pozostałe podstawowe budynki 60–90 s. Start potyczki: osada, port, stocznia, dwa kutry, 1400 B/600 R. Limit 100 okrętów na frakcję, 400 łącznie; edytowalny per scenariusz. Przejęcie ponad limit dopuszcza istniejącą flotę, ale blokuje nową produkcję. Awaryjny kuter portowy respektuje te same limity.
+Czasy: inwestycje według 6.3, port 35 s jako przyczółek. Start potyczki: port, stocznia, cztery kutry, 360 D/160 S. Limit 100 okrętów na frakcję, 400 łącznie; edytowalny per scenariusz. Przejęcie ponad limit dopuszcza istniejącą flotę, ale blokuje nową produkcję.
 
-Kadłub ma sloty lekkie/średnie/ciężkie: kuter 0/0/0, handlowiec 1/0/0, taranowiec 1/0/0, niszczyciel załóg 4/0/0, niszczyciel okrętów 0/2/0, bombardowiec 0/0/2, abordażowiec 2/0/0, królewski 2/2/1, ogniomiot 1 specjalny, dymowiec 1 specjalny, Nieśmiertelnych 2/1/0, Żmija 2/0/0. Broń montowana wyłącznie przy porcie/doku po zatrzymaniu, 5 s lekka, 10 s średnia, 15 s ciężka. Brak wymiany w czasie walki (10 s od obrażeń).
+Kadłub ma sloty lekkie/średnie/ciężkie: kuter 0/0/0, handlowiec 1/0/0, taranowiec 1/0/0, niszczyciel załóg 4/0/0, niszczyciel okrętów 0/2/0, bombardowiec 0/0/2, abordażowiec 2/0/0, królewski 2/2/1, ogniomiot 1 specjalny, dymowiec 1 specjalny, Nieśmiertelni 2/1/0, Żmija 2/0/0. Broń montowana wyłącznie przy porcie po zatrzymaniu, 5 s lekka, 10 s średnia, 15 s ciężka. Brak wymiany w czasie walki (10 s od obrażeń).
 
-Podstawowa obsada marynarzy równa ceil(25% maksymalnej załogi) jest w cenie kadłuba; maksymalna załoga z tabeli obejmuje marynarzy i żołnierzy łącznie. Pełna obsada bojowa wymaga osobnego opłacenia wolnych miejsc, bez powtórnego naliczenia kosztu podstawowej obsady. Rekrutacja żołnierza 3 racje, 1 s; specjalisty 10 brązu i 5 racji, 3 s. Minimalna obsada ruchu = 25% maksymalnej, poniżej niej prędkość skaluje się liniowo do zera. Personel nie może być jednocześnie w dwóch rolach ani statkach. Zapisuj liczbę, specjalizację i doświadczenie.
+Standardowa obsada szablonu wojennego to ceil(25% maksymalnej załogi) marynarzy i pozostałe miejsca żołnierzy; szablon gospodarczy ma wyłącznie marynarzy. Cena członka obsady: marynarz 0,50 S, żołnierz 1 S, specjalista 3 S. Uzupełnienie po stratach: żołnierz 1 s, specjalista 3 s. Minimalna obsada ruchu = 25% maksymalnej, poniżej niej prędkość skaluje się liniowo do zera. Personel nie może być jednocześnie w dwóch rolach ani statkach.
 
-Pancerz I/II/III: redukcja pocisków 10/20/30%, kara prędkości 0/5/10%, koszt 100/200/350 brązu. Taran I/II/III: mnożnik 1/1,2/1,4, koszt 100/200/350. Maksymalna redukcja sumaryczna 70%; premie multiplikatywne w określonej kolejności, z logiem źródeł. Technologie wojskowe trzy poziomy: 250/500/900 brązu, 30/60/90 s, po +8% w danej dziedzinie, poza odblokowaniami. Tylko jedna technologia danej gałęzi naraz w całej frakcji. Badania ekonomiczne mają inne koszty i premie według E08; bonus +8% nie dotyczy wydobycia.
+Indywidualna zmiana wyposażenia płaci różnicę według cennika komponentów, wartości startowe do strojenia: stanowisko lekkie 12 D/16 S, średnie 20 D/30 S, ciężkie 40 D/70 S; pancerz I/II/III 30/10, 60/20, 100/40; taran I/II/III 30/10, 60/20, 100/40. Pancerz: redukcja pocisków 10/20/30%, kara prędkości 0/5/10%. Taran: mnożnik 1/1,2/1,4. Maksymalna redukcja sumaryczna 70%; premie multiplikatywne w określonej kolejności, z logiem źródeł. Technologie floty mają trzy poziomy: 80/60, 150/120, 260/220 D/S, 30/60/90 s, po +8% w danej dziedzinie, poza odblokowaniami. Tylko jedna technologia danej gałęzi naraz w całej frakcji. Te wartości to hipoteza do testów walki, nie wynik modelu gospodarki.
 
 ## C05. Walka i przejmowanie
 
 Kolejność kroku: rozkazy i koszty → ruch → kolizje/tarany → trafienia → straty załóg → abordaż → zmiana właściciela → śmierć → wygrana. Kadłub o HP ≤0 zostaje oznaczony do zatonięcia; w tym samym kroku nie można go zdobyć. Przy równoczesnym zniszczeniu obu celów misja stosuje jawny priorytet lub remis. Wszystkie obrażenia są naliczane dokładnie raz po identyfikatorze zdarzenia.
 
-Broń ma obsługę, sektor, przeładowanie, minimalny/maksymalny zasięg, celność, czas lotu, obrażenia kadłuba/załogi/modułu. Dane startowe na jeden strzał: łucznicy 2/4 HP, 15–100 m, 2 s; oszczepnicy 4/6, 5–45 m, 3 s; balista 45/2, 30–180 m, 5 s; ciężka katapulta 100/8, 60–260 m, 10 s, promień 8 m. Koszt stanowiska: 60/80/200/400 brązu. Celność bazowa 0,75 dla lekkiej, 0,8 balisty, 0,65 katapulty; spada przy ruchu i fali, nigdy nie omija sektora i linii widzenia. Trafienie w obszar liczone geometrycznie; celność określa rozrzut. Nie losuj niezależnie trafienia po geometrycznej kolizji pocisku.
+Broń ma obsługę, sektor, przeładowanie, minimalny/maksymalny zasięg, celność, czas lotu, obrażenia kadłuba/załogi/modułu. Dane startowe na jeden strzał: łucznicy 2/4 HP, 15–100 m, 2 s; oszczepnicy 4/6, 5–45 m, 3 s; balista 45/2, 30–180 m, 5 s; ciężka katapulta 100/8, 60–260 m, 10 s, promień 8 m. Celność bazowa 0,75 dla lekkiej, 0,8 balisty, 0,65 katapulty; spada przy ruchu i fali, nigdy nie omija sektora i linii widzenia. Trafienie w obszar liczone geometrycznie; celność określa rozrzut. Nie losuj niezależnie trafienia po geometrycznej kolizji pocisku.
 
 Rozkazy: atakuj kadłub, załogę, napęd, moduł; przechwyć; utrzymaj dystans; odwrót. Samoobrona nie goni poza strefę. Ogień sojuszniczy domyślnie wyłączony, wyjątek jawnie opisany przez scenariusz. Pociski nie strzelają przez wyspę; budynek jest przeszkodą. Cel niewidoczny można ostrzelać obszarowo ostatnią znaną pozycją, bez śledzenia.
 
@@ -579,26 +469,26 @@ Taran: stan Podejście → Przyspieszenie → Uderzenie → Odskok → Gotowy. W
 
 Abordaż wymaga dystansu burt ≤4 m, względnej prędkości ≤1,5 m/s i ≥10 żołnierzy. Haki przygotowują się 3 s, przeciwnik może uciec lub przeciąć połączenie. Walka rozliczana co 1 s: siła = żołnierze × wyszkolenie × (0,5 + morale/100) × bonus obrony. Straty obu stron równoczesne, bazowo 5% przeciwnej siły z ograniczeniem do realnej liczby. Morale 0–100, spada za straty i ogień, regeneruje poza walką. Po pokonaniu obrony i 3 s kontroli atomowo zmień właściciela, przenieś minimalną obsadę, zakończ stare rozkazy i zaktualizuj mgłę wojny. Dwóch atakujących nie może zdobyć tego samego statku; zwycięża pierwszy ważny commit kontroli w porządku identyfikatorów. Sojusznicza pomoc nie duplikuje żołnierzy.
 
-Ogień ma intensywność 0–1, bazowo 12 HP/s przy 1, nie zabija załogi bezpośrednio szybciej niż 1/s. Deszcz mnoży narastanie przez 0,5, gaszenie przez 1,5. Gaszenie zajmuje część załogi i obniża gotowość. Dymowiec: -30% celności i -20% przeładowania przez 5 s, pełna blokada modułu maks. 2 s, odporność na kolejną pełną blokadę 10 s; powtórne trafienia nie wydłużają jej bez końca. Zalanie ograniczone i zależne od uszkodzeń, pompy zużywają obsadę. Przy zatonięciu usuń rezerwacje portowe, cele AI, boarding links i sloty formacji. Wrak zachowuje wyłącznie realną zawartość, 30% szans przetrwania każdego przedmiotu wyposażenia według E11, bez losowej duplikacji fabularnych artefaktów.
+Ogień ma intensywność 0–1, bazowo 12 HP/s przy 1, nie zabija załogi bezpośrednio szybciej niż 1/s. Deszcz mnoży narastanie przez 0,5, gaszenie przez 1,5. Gaszenie zajmuje część załogi i obniża gotowość. Dymowiec: -30% celności i -20% przeładowania przez 5 s, pełna blokada modułu maks. 2 s, odporność na kolejną pełną blokadę 10 s; powtórne trafienia nie wydłużają jej bez końca. Zalanie ograniczone i zależne od uszkodzeń, pompy zużywają obsadę. Przy zatonięciu usuń rezerwacje portowe, cele AI, boarding links i sloty formacji. Wrak zachowuje wyłącznie realną zawartość, 30% szans przetrwania każdego przedmiotu wyposażenia według E06, bez losowej duplikacji fabularnych artefaktów.
 
 ## C06. Magia — 12 zaklęć, dwie szkoły
 
-Nie ma trzeciego zasobu mana. Koszt B/R = brąz/racje z dostępnego lokalnego magazynu osady wybranej aktywnej świątyni; cooldown wspólny dla danego zaklęcia całej frakcji, aby budowa świątyń nie omijała ograniczeń. Zniszczona świątynia nie anuluje już zastosowanego efektu, ale nie przyjmuje nowego zlecenia. Domyślny zasięg świątyni 800 m, cel musi być obserwowany. Koszt rezerwowany przy rozpoczęciu, pobrany przy aktywacji; utrata ważności przed aktywacją zwraca rezerwację i nie daje efektu. Czas rzucania 2 s, z wyjątkiem wyraźnie opisanym w danych. Efekty obszarowe mają widoczną zapowiedź i obrzeże.
+Nie ma trzeciego zasobu mana. Koszt D/S pochodzi z dostępnego lokalnego magazynu osady wybranego aktywnego sanktuarium i jest naliczany raz; cooldown wspólny dla danego zaklęcia całej frakcji, aby budowa sanktuariów nie omijała ograniczeń. Zaklęcia zużywają przeważnie S, a efekty wymagające materiałów także D. Zniszczone sanktuarium nie anuluje już zastosowanego efektu, ale nie przyjmuje nowego zlecenia. Domyślny zasięg sanktuarium 800 m, cel musi być obserwowany. Koszt rezerwowany przy rozpoczęciu, pobrany przy aktywacji; utrata ważności przed aktywacją zwraca rezerwację i nie daje efektu. Czas rzucania 2 s, z wyjątkiem wyraźnie opisanym w danych. Efekty obszarowe mają widoczną zapowiedź i obrzeże. Koszty poza czterema przykładami z E07 są wartościami startowymi do strojenia.
 
-| Szkoła | Zaklęcie | Koszt B/R | Cooldown | Działanie i kontrgra |
+| Szkoła | Zaklęcie | Koszt D/S | Cooldown | Działanie i kontrgra |
 |---|---|---:|---:|---|
-| Żywioły | Sprzyjający wiatr | 120/40 | 60 s | Stożek 120 m, 15 s, żagle +20%; nie zwiększa wioseł |
-| Żywioły | Mgła Posejdona | 180/60 | 90 s | Koło 100 m, 20 s, widoczność obu stron ×0,5; bez pełnej niewidzialności |
-| Żywioły | Spokojne wody | 150/50 | 75 s | 100 m, 20 s, lokalna kara fal zmniejszona o połowę |
-| Żywioły | Fala odpychająca | 200/80 | 90 s | 60 m, rozdziela zwarcie do 10 m po sprawdzeniu kolizji; nie przenosi na ląd |
-| Żywioły | Oko oceanu | 160/40 | 90 s | Odkrywa koło 150 m przez 10 s; bez stałego śledzenia po końcu |
-| Żywioły | Błyskawica Zeusa | 300/100 | 120 s | Jeden widoczny cel, 180 HP kadłuba po 2 s, bez trafień łańcuchowych |
-| Męstwo | Wezwanie trytona | 350/150 | 180 s | Jeden sojuszniczy tryton na 30 s, HP 600, atak 25/3 s, nie zdobywa zasobów |
-| Męstwo | Płomień Aresa | 180/60 | 75 s | 40 m, +0,4 intensywności ognia po 2 s zapowiedzi; działa gaszenie |
-| Męstwo | Egida | 220/80 | 90 s | Jeden okręt, redukcja 25% przez 12 s, respektuje limit redukcji 70% |
-| Męstwo | Zew odwagi | 120/80 | 60 s | 100 m, morale +20 na 15 s, bez wskrzeszania załogi |
-| Męstwo | Klątwa paniki | 220/80 | 90 s | 60 m, morale -20 na 10 s; minimalne morale 0, odporność Nieśmiertelnych |
-| Męstwo | Naprawa Hefajstosa | 240/100 | 120 s | Regeneruje 150 HP przez 15 s, przerywana przez taran; bez naprawy załogi |
+| Żywioły | Sprzyjający wiatr | 0/70 | 60 s | Stożek 120 m, 15 s, żagle +20%; nie zwiększa wioseł |
+| Żywioły | Mgła Posejdona | 0/90 | 90 s | Koło 100 m, 20 s, widoczność obu stron ×0,5; bez pełnej niewidzialności |
+| Żywioły | Spokojne wody | 0/80 | 75 s | 100 m, 20 s, lokalna kara fal zmniejszona o połowę |
+| Żywioły | Fala odpychająca | 0/110 | 90 s | 60 m, rozdziela zwarcie do 10 m po sprawdzeniu kolizji; nie przenosi na ląd |
+| Żywioły | Oko oceanu | 0/80 | 90 s | Odkrywa koło 150 m przez 10 s; bez stałego śledzenia po końcu |
+| Żywioły | Błyskawica Zeusa | 0/150 | 120 s | Jeden widoczny cel, 180 HP kadłuba po 2 s, bez trafień łańcuchowych |
+| Męstwo | Wezwanie trytona | 60/180 | 180 s | Jeden sojuszniczy tryton na 30 s, HP 600, atak 25/3 s, nie zdobywa zasobów |
+| Męstwo | Płomień Aresa | 60/100 | 75 s | 40 m, +0,4 intensywności ognia po 2 s zapowiedzi; działa gaszenie |
+| Męstwo | Egida | 40/110 | 90 s | Jeden okręt, redukcja 25% przez 12 s, respektuje limit redukcji 70% |
+| Męstwo | Zew odwagi | 0/80 | 60 s | 100 m, morale +20 na 15 s, bez wskrzeszania załogi |
+| Męstwo | Klątwa paniki | 0/110 | 90 s | 60 m, morale -20 na 10 s; minimalne morale 0, odporność Nieśmiertelnych |
+| Męstwo | Naprawa Hefajstosa | 120/120 | 120 s | Regeneruje 150 HP przez 15 s, przerywana przez taran; bez naprawy załogi |
 
 Takie same efekty nie sumują się; używany jest silniejszy, czas nie przekracza pierwotnego maksimum. Różne modyfikatory składają się według jawnej tabeli kolejności. Cooldown, status i rezerwacje muszą przetrwać zapis. Żaden VFX nie nadaje obrażeń. SI płaci identyczne koszty i podlega zasięgowi.
 
@@ -620,7 +510,7 @@ Wejścia SI ograniczone własną mgłą wojny i pamięcią ostatnich obserwacji.
 
 Doktryny jednostek: bierna, samoobrona, agresywna, eskortuj, patroluj, broń obszaru, zbieraj, transportuj, napraw przy HP <30%, oszczędzaj załogę. Ręczny rozkaz ma pierwszeństwo do ukończenia lub anulowania. Awaryjna ucieczka gospodarcza nie prowadzi przez widoczny silniejszy oddział, jeśli istnieje bezpieczna droga. Brak bezpiecznej drogi oznacza zatrzymanie i alarm. Nie wolno przejąć ręcznego rozkazu bez oznaczonej przyczyny.
 
-SI ekonomiczna realizuje E13: fizyczne dostawy, zapasy docelowe, skończone kontrakty i odbudowę po rajdach według tych samych reguł co gracz. Nie zna zagrożeń pod mgłą. Przeciwnik buduje co najmniej jedną ścieżkę dochodu, eskortuje handlowce, atakuje zasoby, osłania bombardowce, osłabia załogi przed abordażem, wycofuje uszkodzone jednostki. Stosuje histerezę celu (minimum 3 s), aby nie przeskakiwał co krok. Trace diagnostyczny zapisuje obserwację, wybrany cel i przyczynę replanowania. QA sprawdza symetrię wiedzy i kosztów na seedowanych meczach.
+SI ekonomiczna realizuje E09: fizyczne dostawy, zapasy docelowe i odbudowę po rajdach według tych samych reguł co gracz. Nie zna zagrożeń pod mgłą. Przeciwnik buduje co najmniej jedną ścieżkę dochodu, eskortuje handlowce, atakuje zasoby, osłania bombardowce, osłabia załogi przed abordażem, wycofuje uszkodzone jednostki. Stosuje histerezę celu (minimum 3 s), aby nie przeskakiwał co krok. Trace diagnostyczny zapisuje obserwację, wybrany cel i przyczynę replanowania. QA sprawdza symetrię wiedzy i kosztów na seedowanych meczach.
 
 ## C09. Pogoda, woda i oświetlenie
 
@@ -640,7 +530,7 @@ Cykl dobowy konfigurowany per mapa, domyślnie 24 minuty. Deszcz i mgła oddzia�
 
 Kamera 3D: przesuwanie WSAD/krawędzie, obrót Q/E, zoom kółkiem, opcjonalny tilt; zakres wysokości 20–300 m, ograniczenia mapy, bez wejścia pod wodę i klify. Płynność zależna od czasu rzeczywistego, nie prędkości symulacji. Zaznaczenie kliknięciem/ramką, Shift dodaje, Ctrl+1–9 zapisuje grupy, 1–9 przywołuje, podwójne przywołanie centruje. PPM rozkaz kontekstowy z podglądem trasy, Shift kolejkuje, Escape anuluje tryb. Klawisze remapowalne. Menu zatrzymuje single player zgodnie z ustawieniem.
 
-HUD: dostępne B/R, transport i rezerwacje oddzielnie, limit floty, minimapa z mgłą, panel zaznaczenia, cztery wskaźniki statku (kadłub, załoga, napęd, gotowość), zakładka wyposażenia i aktywnych statusów. Tooltip pokazuje koszt, cooldown, sektor, przyczynę braku dostępności. Ostrzeżenia grupowane i ograniczone częstotliwością. Kolor nie jest jedynym nośnikiem informacji. Skalowanie interfejsu 80–150%, PL/EN, brak tekstu zaszytego w obrazach. Ustawienia oferują pełną gamę rozdzielczości od 1920×1080 do 2560×1440 według V13 w VISUAL_TECH_SPEC.md; rozdzielczość nie zmienia reguł ani informacji taktycznej.
+HUD: dostępne D/S, transport i rezerwacje oddzielnie, limit floty, minimapa z mgłą, panel zaznaczenia, cztery wskaźniki statku (kadłub, załoga, napęd, gotowość), zakładka wyposażenia i aktywnych statusów. Tooltip pokazuje koszt, cooldown, sektor, przyczynę braku dostępności. Ostrzeżenia grupowane i ograniczone częstotliwością. Kolor nie jest jedynym nośnikiem informacji. Skalowanie interfejsu 80–150%, PL/EN, brak tekstu zaszytego w obrazach. Ustawienia oferują pełną gamę rozdzielczości od 1920×1080 do 2560×1440 według V13 w VISUAL_TECH_SPEC.md; rozdzielczość nie zmienia reguł ani informacji taktycznej.
 
 Dźwięk: osobne miksery muzyki, morza, bitwy, komunikatów i UI. Priorytet sygnałów tarana, utraty portu i alarmu konwoju. Maksymalna liczba nakładających się komunikatów; napisy rozkazów i zdarzeń fabularnych. Brak zależności mechanik od długości klipu.
 
@@ -651,7 +541,7 @@ Kampania fabularna obejmuje czternaście misji opartych na epizodach mitologii g
 Kolejność kampanii:
 
 1. M01 Popioły Ilionu — ewakuacja ocalałych i penatów z płonącego wybrzeża.
-2. M02 Szpony nad Strofadami — załadunek racji pod nalotami Harpii.
+2. M02 Szpony nad Strofadami — załadunek zapasów pod nalotami Harpii.
 3. M03 Noc odpłynięcia z Kartaginy — konwój wychodzi z portu przed pościgiem.
 4. M04 Ogień na plaży Drepanum — ratowanie floty płonącej na kotwicy.
 5. M05 Palinur u steru — nocna żegluga przy rafach i utrata sternika.
@@ -675,7 +565,7 @@ Dane projektowe znajdują się w qa/scenario-design.json, a macierz odbioru w qa
 
 Warstwy: dane definicji (ScriptableObject lub równoważne), czysta symulacja, adaptery Unity, prezentacja/UI, narzędzia i testy. Rozkazy walidowane w jednym miejscu. Odpowiedzialność za jednostki i zasoby jawna, brak globalnej zmiennej zmienianej przez VFX. Oddziel asmdef dla runtime/editor/testów. Użyj stabilnych ID zamiast referencji do obiektów sceny w zapisie. Nie zakładaj deterministyczności Unity Physics między platformami; docelowy multiplayer wymaga osobnego wyboru authoritative server/lockstep po prototypie i pomiarach.
 
-Zapis wersjonowany, atomowy (plik tymczasowy + podmiana), z kopią poprzedniego zapisu. Gospodarka przechowuje lokalne magazyny, faktycznie zapłacone ceny, transakcje, transporty, limity neutralnego handlu, histerezę skupisk i postęp wypraw według E14. Zawiera jednostki, właścicieli, wyposażenie, załogi, rozkazy, kolejki i rezerwacje, RNG, czas, pogodę, mgłę wojny, misje, bohaterów, artefakty, cooldowny i boarding links. Ładowanie dwufazowe: obiekty, potem relacje; walidacja brakujących ID i bezpieczne odrzucenie niekompatybilnej wersji. Autosave co 5 min poza krytyczną operacją zapisu, trzy rotowane sloty. Wczytanie nie pobiera ponownie ceny ani nie wypłaca ponownie nagród.
+Zapis wersjonowany, atomowy (plik tymczasowy + podmiana), z kopią poprzedniego zapisu. Gospodarka przechowuje lokalne magazyny, faktycznie zapłacone ceny, transakcje, transporty, kolejki, stanowiska i wraki według E10. Zawiera jednostki, właścicieli, wyposażenie, załogi, rozkazy, kolejki i rezerwacje, RNG, czas, pogodę, mgłę wojny, misje, bohaterów, artefakty, cooldowny i boarding links. Ładowanie dwufazowe: obiekty, potem relacje; walidacja brakujących ID i bezpieczne odrzucenie niekompatybilnej wersji. Autosave co 5 min poza krytyczną operacją zapisu, trzy rotowane sloty. Wczytanie nie pobiera ponownie ceny ani nie wypłaca ponownie nagród.
 
 Gra nie ma wymagań sprzętowych ani budżetu FPS ograniczającego jakość obrazu. Skala 400 statków, 100 pocisków i aktywnej pogody pozostaje wymogiem projektowym. Raportować informacyjnie p50/p95/p99 czasu CPU/GPU, szczyt RAM/VRAM, liczbę jednostek, ustawienia, wersję builda i sprzęt; wyniki nie obniżają jakości obrazu. Wymogami poprawności, niezależnymi od profilu grafiki, pozostają: brak narastania pamięci po 30 min oraz krok symulacji 30 Hz, który na sprzęcie testowym nie spowalnia czasu gry. Przekroczenie kroku optymalizuje się w samej symulacji, bez usuwania reguł. Pomiary bez edytora, po rozgrzaniu.
 
@@ -687,10 +577,10 @@ Każdy wymóg ma ID (numer rozdziału lub Cxx), implementację, test i artefakt 
 
 | Obszar | Obowiązkowe przypadki |
 |---|---|
-| Ekonomia | wszystkie E00–E16 i qa/ECONOMY_ACCEPTANCE.csv: zachowanie sum, lokalne rezerwacje, transport/utrata cargo, limity pracy i handlu, odbudowa, przerwanie wyprawy, brak arbitrażu i niezależne playtesty morskie |
+| Ekonomia | wszystkie E00–E12 i qa/ECONOMY_ACCEPTANCE.csv: zachowanie sum, lokalne rezerwacje, transport/utrata cargo, stanowiska i limity pracy, koniec złoża, wrak, remont, anulowanie, przejęcie, zapis i niezależne playtesty morskie |
 | Nawigacja | 50 okrętów w cieśninie, dwa konwoje z przeciwnych stron, zablokowany port, różne zanurzenia, unreachable, śmierć lidera, odtworzenie formacji |
 | Walka | sektory i martwa strefa, wyspa zasłaniająca cel, jeden taran na szarżę, dwa abordażowce, zatonięcie w kroku przejęcia, brak wiecznego stun |
-| Magia | koszt raz, cooldown po save/load, niewidoczny cel, zniszczona świątynia, stacking, anulowanie rzucania, identyczne reguły SI |
+| Magia | koszt raz, cooldown po save/load, niewidoczny cel, zniszczone sanktuarium, stacking, anulowanie rzucania, identyczne reguły SI |
 | SI | brak wiedzy pod mgłą, brak darmowych zasobów, osiągalne cele, utrata dochodu, test 30-minutowy bez zakleszczeń |
 | Zapis | roundtrip wszystkich stanów, uszkodzony plik, nieznana wersja, autosave przy pełnym dysku, brak duplikacji artefaktu |
 | Grafika | dzień/noc/deszcz/sztorm, wszystkie zoomy, kilwater, styk brzegu, przejścia LOD, pięć profili Low–Ultra, Ultra z RT, czytelność w walce |

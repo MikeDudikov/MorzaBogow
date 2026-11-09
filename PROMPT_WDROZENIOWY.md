@@ -28,7 +28,7 @@ ASSET_STATUS.json określa faktyczną dostępność modeli. Coast Rocks 02 jest 
 
 ## Grywalny etap i odbiór
 
-10. Wykonaj małą mapę z wybrzeżem, portem, kutrem i okrętami bojowymi. Zrealizuj zbiór B/R, lokalny rozładunek, ruch, ostrzał, taran, abordaż, przeciwnika, zwycięstwo i porażkę oraz zapis/wczytanie. Gospodarka pracuje równolegle do działań floty. Nie uzależniaj grywalności od zakupienia całej oprawy.
+10. Wykonaj małą mapę z wybrzeżem, portem, kutrem i okrętami bojowymi. Zrealizuj zbiór D/S, lokalny rozładunek, ruch, ostrzał, taran, abordaż, przeciwnika, zwycięstwo i porażkę oraz zapis/wczytanie. Gospodarka pracuje równolegle do działań floty. Nie uzależniaj grywalności od zakupienia całej oprawy.
 11. Sprawdź prefaby w buildzie i wykonaj odpowiednie testy zachowania gry. Profiluj sceny ze 100, 200 i 400 statkami. Podawaj realny sprzęt, ustawienia, liczby obiektów i p95 czasu CPU/GPU. Modele zastępcze nie potwierdzają wydajności docelowych modeli.
 12. Raportuj po polsku: co jest rzeczywiście zaimportowane, co działa jako model zastępczy, jakie testy wykonano i które pliki nadal są potrzebne. NOT_RUN oraz BLOCKED nie oznaczają PASS. Opisy mechanik i wizji zachowaj w formie wymagań; dostępność paczek prowadź w ASSET_STATUS.json.
 

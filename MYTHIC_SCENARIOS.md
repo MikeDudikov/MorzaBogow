@@ -12,11 +12,11 @@ Gra pozostaje strategią morską. Ponad 70% aktywnego czasu misji projektuj jako
 
 Okręt Eneasza to jeden wyjątkowy okręt fabularny korzystający z bazowego kadłuba królewskiego; nie można produkować jego kopii. W cyklu Odyseusza używaj osobnej nazwy „Okręt Odyseusza”. Liczbę eskort określa konfiguracja każdej misji.
 
-Wszystkie startowe okręty są wyposażone i obsadzone według jawnego MissionLoadout; stanowią początkowy majątek scenariusza, nie zakupy odliczane po starcie. Ceny i parametry bazowych klas pozostają takie jak w głównej specyfikacji. Nieosiągalne w porcie klasy są ukryte w menu budowy. Podane B/R trafiają do jednej własnej osady; cargo z M03 jest dodatkowym rzeczywistym ładunkiem o osobnych ID. Dwa typy zasobów pozostają jedynymi wydawanymi walutami.
+Wszystkie startowe okręty są wyposażone i obsadzone według jawnego MissionLoadout; stanowią początkowy majątek scenariusza, nie zakupy odliczane po starcie. Ceny i parametry bazowych klas pozostają takie jak w głównej specyfikacji. Nieosiągalne w porcie klasy są ukryte w menu budowy. Podane D/S trafiają do jednej własnej osady; cargo z M03 jest dodatkowym rzeczywistym ładunkiem o osobnych ID. Dwa typy zasobów pozostają jedynymi wydawanymi walutami.
 
-Szablony bazy: **REPAIR_AND_LIGHT_BUILD** — osada, port, stocznia z dokiem, budowa wyłącznie kutra/taranowca/niszczyciela załóg oraz zwykłe koszty E; **REPAIR_ONLY** — ten sam zespół istniejących budynków, ale budowa/rozbudowa wyłączona regułą misji, remont opłacany lokalnie; **SEA_ONLY** — brak osady, B/R startowe 0, bez budowy, opłat ani magicznego globalnego portfela. Rytuały fabularne są jednokrotnymi interakcjami celu, nie darmowym odblokowaniem dwunastu zaklęć poza świątyniami.
+Szablony bazy: **REPAIR_AND_LIGHT_BUILD** — port, stocznia ze stanowiskiem remontu, budowa wyłącznie kutra/taranowca/niszczyciela załóg oraz zwykłe koszty E; **REPAIR_ONLY** — ten sam zespół istniejących budynków, ale budowa/rozbudowa wyłączona regułą misji, remont opłacany lokalnie; **SEA_ONLY** — brak osady, D/S startowe 0, bez budowy, opłat ani magicznego globalnego portfela. Rytuały fabularne są jednokrotnymi interakcjami celu, nie darmowym odblokowaniem dwunastu zaklęć poza sanktuariami.
 
-Węzły podane jako bronze/rations to łączne początkowe zapasy na mapie, nie liczba węzłów. B dziel na 1–2 rzeczywiście osiągalne złoża, R po 2000 na skupisko, z regeneracją E03. Zero oznacza brak węzła, nie nieskończone źródło. Handel neutralny i zatopione skarbce domyślnie wyłączone w tych misjach, chyba że specyfikacja misji jawnie je doda. Nie trzeba kupować specjalizacji miasta, aby wykonać cel fabularny.
+Węzły podane jako wood/silver to łączne początkowe zapasy na mapie, nie liczba węzłów. Dziel je na 1–2 rzeczywiście osiągalne punkty pracy; oba zasoby są skończone (E02). Zero oznacza brak punktu, nie nieskończone źródło. Budżety i ładunek misji określa E12. Handel neutralny i skarby domyślnie wyłączone w tych misjach, chyba że specyfikacja misji jawnie je doda. Nie trzeba kupować specjalizacji miasta, aby wykonać cel fabularny.
 
 Podane czasy są sekundami symulacji; pauza zatrzymuje pogodę, naloty, pociski i zegary. planningSeconds w danych jest parametrem opisowym, a nie automatycznym warunkiem przejścia; 0 oznacza brak podanej wartości czasu. Rzeczywiste zakończenie etapu wymaga predicate z opisu misji. W M12 zegar pierwszego okna 8:00 licz od początku misji, nie początku P2. Cykl pogody z M11/M12 jest lokalnym wyjątkiem do standardu mapy i musi być zapowiedziany w briefie.
 
@@ -30,13 +30,13 @@ Scylla, Charybda, Harpie, Syreny i objawienie Dionizosa nie są zwykłymi okręt
 
 ## S03. Sprawiedliwe napięcie i gospodarka
 
-Wrogie okręty pochodzą z jawnego, skończonego EnemyManifest. Okręty startowe i odwody w każdej misji sumują się do enemyHullBudget z danych; żadnych nieskończonych respawnów ani mnożenia grup po wejściu/wyjściu z triggera. Odwody mogą być predefiniowanymi wpływami scenariusza, zgodnie z ledger E14, a nie fikcyjną produkcją SI bez kosztu. Ich miejsce wejścia i powód muszą być zapowiedziane.
+Wrogie okręty pochodzą z jawnego, skończonego EnemyManifest. Okręty startowe i odwody w każdej misji sumują się do enemyHullBudget z danych; żadnych nieskończonych respawnów ani mnożenia grup po wejściu/wyjściu z triggera. Odwody mogą być predefiniowanymi wpływami scenariusza, zgodnie z księgą E10, a nie fikcyjną produkcją SI bez kosztu. Ich miejsce wejścia i powód muszą być zapowiedziane.
 
 Normalny poziom trudności zachowuje bazowe HP, obrażenia i ekonomię. Łatwy daje dłuższe o 30% zapowiedzi i o 25% dłuższe okna krytyczne; trudny zmniejsza te czasy o 15% przy zachowaniu minimum 4 s dla niszczących ataków. Wszystkie zegary misji działają w sekundach symulacji. Brak skalowania trudności po cichu z wielkością floty.
 
 Znaczące zagrożenie musi mieć kontrgrę: strefę ucieczki, wycofanie, okno postoju albo wybór strat. Nie wymagaj manewru niemożliwego dla danego zanurzenia, promienia skrętu i najwolniejszego obowiązkowego statku. Parametry cyklu skał i wiru są hipotezą do testów geometrii; jeśli brak fizycznie osiągalnego przejścia, misja jest BLOCKED, nie „trudna”.
 
-Nie karz poprawnej gry obowiązkowym ukrytym buntem lub zniszczeniem całej floty dla zgodności z tragicznym finałem. Krytyczne wydarzenie może wystąpić przed rozpoczęciem gry albo prowadzić do jawnego alternatywnego wyniku. Ograniczenia dotyczące głodu, opłat za flotę i dwóch walut E00 zachowują pierwszeństwo. Każdy cel ma zapas wykonalności: dodatkowych ocalałych, drugą drogę lub możliwość odbudowania wymaganego kutra. Gdy cel staje się nieosiągalny, pokaż porażkę/wybór wczytania, bez bezterminowego utknięcia.
+Nie karz poprawnej gry obowiązkowym ukrytym buntem lub zniszczeniem całej floty dla zgodności z tragicznym finałem. Krytyczne wydarzenie może wystąpić przed rozpoczęciem gry albo prowadzić do jawnego alternatywnego wyniku. Ograniczenia dotyczące głodu, opłat za flotę i dwóch walut E01 zachowują pierwszeństwo. Każdy cel ma zapas wykonalności: dodatkowych ocalałych, drugą drogę lub możliwość odbudowania wymaganego kutra. Gdy cel staje się nieosiągalny, pokaż porażkę/wybór wczytania, bez bezterminowego utknięcia.
 
 ## S04. Cele, zdarzenia i zapis
 
@@ -61,7 +61,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 | ID | Tytuł | Główna decyzja | Czas docelowy |
 |---|---|---|---|
 | M01 | Popioły Ilionu | Najpierw zabrać ludzi z bliższego, płonącego nabrzeża albo wcześniej przebić się po penaty. | 15–20 min |
-| M02 | Szpony nad Strofadami | Szybki załadunek na odsłoniętym skupisku albo dłuższy rejs do osłoniętej zatoki. | 12–18 min |
+| M02 | Szpony nad Strofadami | Szybki załadunek na odsłoniętym składzie albo dłuższy rejs do osłoniętej zatoki. | 12–18 min |
 | M03 | Noc odpłynięcia z Kartaginy | Płytka cieśnina wymusza kolumnę; otwarte morze daje miejsce do tarana, ale skraca pościg. | 22–30 min |
 | M04 | Ogień na plaży Drepanum | Gasić najbliższe okręty załogą albo odholować zdrowe kadłuby i oddać płonące. | 18–24 min |
 | M05 | Palinur u steru | Dłuższa droga z dala od raf albo krótszy przesmyk wymagający dokładnego szyku po utracie sternika. | 16–22 min |
@@ -71,7 +71,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 | M09 | Wiatry wyrwane z worka | Najpierw zebrać najwolniejsze transporty albo osłonić drogę i prowadzić jednostki pojedynczo. | 18–25 min |
 | M10 | Port, który stał się pułapką | Bezpieczny odwrót bohatera albo dodatkowe ryzyko dla ludzi w porcie. | 15–22 min |
 | M11 | Sześć głów, jeden przesmyk | Bliżej Scylli — ryzyko załogi; dalej od klifu — większa siła wiru i ryzyko manewrowe. | 16–23 min |
-| M12 | Przysięga pod słońcem | Wcześniejszy zbiór na narażonym skupisku albo ostrożna praca i późniejsze okno wyjścia. | 18–26 min |
+| M12 | Przysięga pod słońcem | Wcześniejszy zbiór na narażonym składzie albo ostrożna praca i późniejsze okno wyjścia. | 18–26 min |
 | M13 | Bóg, którego nie utrzymają liny | Szybszy abordaż osłabionego celu albo wcześniejsze odciągnięcie eskorty, by nie zatonąć razem z ratowanym statkiem. | 20–28 min |
 | M14 | Andromeda: cień pod falą | Połączyć ewakuację z walką w dwóch grupach albo najpierw zapewnić bezpieczny korytarz i dopiero przejść do finału. | 28–36 min |
 
@@ -79,7 +79,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Ilion płonie. Eneasz wywozi z miasta ojca Anchizesa, święte wizerunki penatów i tylu ocalałych, ilu zdołają zabrać okręty.
 
-**Otwarcie:** Troada, mapa około 1.5 × 1.5 km; cel 15–20 min. Aktywny bohater: Eneasz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×2, crewDestroyer ×1. Lokalnie 500 B/240 R; zasoby mapy 1200 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 4; osobne zagrożenia: Płonące nabrzeże zamykane odcinkami.
+**Otwarcie:** Troada, mapa około 1.5 × 1.5 km; cel 15–20 min. Aktywny bohater: Eneasz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×2, crewDestroyer ×1. Lokalnie 150 D/80 S; zasoby mapy 360 D/660 S początkowo. Łączny limit okrętów przeciwnika: 4; osobne zagrożenia: Płonące nabrzeże zamykane odcinkami.
 
 **Przebieg:** Kutry podejmują 24 ocalałych z trzech fizycznych przystani; każda osoba ma actorId i wsiada raz. Penaty powstają jako jedyny przedmiot przy brzegu i wymagają transferu na okręt Eneasza. Cztery greckie patrolowce pilnują wyjścia; można je ominąć lub związać walką. Zwycięstwo wymaga wyjścia okrętu Eneasza z penatami, nie zniszczenia patroli.
 
@@ -101,31 +101,31 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Głodna flota zatrzymuje się na Strofadach. Harpie niszczą zapasy, a Celajno zapowiada wygnańcom dalsze trudy.
 
-**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 12–18 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, cutter ×1, ram ×2. Lokalnie 350 B/140 R; zasoby mapy 0 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Harpie: trzy zapowiadane naloty.
+**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 12–18 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, cutter ×1, ram ×2. Lokalnie 100 D/50 S; zasoby mapy 0 D/0 S początkowo; ładunek misji: 320 jednostek zapasów w dwóch składach, wymagane 200. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Harpie: trzy zapowiadane naloty.
 
-**Przebieg:** Gracz zbiera 200 R na statkach i dowozi je do własnej przystani. Harpie atakują wyłącznie odsłonięty ładunek w strefie zapowiedzi; ostrzał lekki je odpędza, a zwycięstwo nie wymaga ich zabicia. Po trzecim nalocie otwiera się bezpieczne wyjście.
+**Przebieg:** Gracz zabiera 200 jednostek zapasów na statki i dowozi je do własnej przystani. Zapasy są ładunkiem misji (E12), nie srebrem. Harpie atakują wyłącznie odsłonięty ładunek w strefie zapowiedzi; ostrzał lekki je odpędza, a zwycięstwo nie wymaga ich zabicia. Po trzecim nalocie otwiera się bezpieczne wyjście.
 
-**Fazy:** P1 Zabezpiecz skupisko (parametr czasu 45 s) → P2 Dostarcz racje (koniec warunkiem) → P3 Wyprowadź flotę (parametr czasu 120 s). Wskazane czasy etapów to parametry celu; dokładne użycie zegara opisuje przebieg i presja, nie automatyczne przejście po odczekaniu.
+**Fazy:** P1 Zabezpiecz skład (parametr czasu 45 s) → P2 Dostarcz zapasy (koniec warunkiem) → P3 Wyprowadź flotę (parametr czasu 120 s). Wskazane czasy etapów to parametry celu; dokładne użycie zegara opisuje przebieg i presja, nie automatyczne przejście po odczekaniu.
 
-**Napięcie i kontrgra:** Nalot co 60 s, sygnał 8 s przed nurkowaniem, strata najwyżej 25 R z odsłoniętego ładunku, nigdy ze skarbca. Statek w osłoniętej zatoce nie jest celem.
+**Napięcie i kontrgra:** Nalot co 60 s, sygnał 8 s przed nurkowaniem, strata najwyżej 25 jednostek z odsłoniętego ładunku, nigdy z dostarczonej części. Statek w osłoniętej zatoce nie jest celem.
 
-**Zwycięstwo — wszystkie warunki:** rations_delivered, raids_outlasted, flagship_extracted. **Porażka — dowolny warunek:** flagship_lost, aeneas_lost. Nazwy flag należy podłączyć do konkretnych predicate w implementacji, nie uznawać za gotowy kod.
+**Zwycięstwo — wszystkie warunki:** supplies_delivered, raids_outlasted, flagship_extracted. **Porażka — dowolny warunek:** flagship_lost, aeneas_lost. Nazwy flag należy podłączyć do konkretnych predicate w implementacji, nie uznawać za gotowy kod.
 
-**Decyzja taktyczna:** Szybki załadunek na odsłoniętym skupisku albo dłuższy rejs do osłoniętej zatoki.
+**Decyzja taktyczna:** Szybki załadunek na odsłoniętym składzie albo dłuższy rejs do osłoniętej zatoki.
 
-**Cel poboczny:** Dostarczyć 200 R, tracąc najwyżej 50 R.
+**Cel poboczny:** Dostarczyć 200 jednostek, tracąc najwyżej 50.
 
-**Zapis i test regresyjny:** Skradzione ilości, licznik nalotów i pozostały czas. Po wczytaniu nie zwracaj skradzionych R i nie powtarzaj zakończonego nalotu.
+**Zapis i test regresyjny:** Skradzione ilości, licznik nalotów i pozostały czas. Po wczytaniu nie zwracaj skradzionych zapasów i nie powtarzaj zakończonego nalotu.
 
-**Nagroda i przejście:** M03 i wpis o przepowiedni Celajno; bez premii B/R przenoszonej dalej.
+**Nagroda i przejście:** M03 i wpis o przepowiedni Celajno; bez premii D/S przenoszonej dalej.
 
 ## M03. Noc odpłynięcia z Kartaginy
 
 **Fabuła:** Eneasz po rozkazie bogów opuszcza Kartaginę nocą. W tej misji Iarbas, odtrącony król sąsiedni, rusza za odpływającym konwojem.
 
-**Otwarcie:** Wybrzeża Perskie, mapa około 3 × 3 km; cel 22–30 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, merchant ×2, ram ×2, crewDestroyer ×1. Lokalnie 450 B/180 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 12; osobne zagrożenia: Dwie trasy o innym zanurzeniu; Noc ograniczająca widzenie.
+**Otwarcie:** Wybrzeża Perskie, mapa około 3 × 3 km; cel 22–30 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, merchant ×2, ram ×2, crewDestroyer ×1. Lokalnie 140 D/60 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 12; osobne zagrożenia: Dwie trasy o innym zanurzeniu; Noc ograniczająca widzenie.
 
-**Przebieg:** Transporty mają po 300 B rzeczywistego ładunku, poza początkowym zapasem osady. Płytsza cieśnina dopuszcza handlowce, ale wymusza kolumnę; otwarte morze daje przestrzeń do tarana, lecz skraca podejście przechwytujących. Tylna straż może przeciąć linię abordażem albo osłonić odwrót. Zwycięstwo po wyjściu okrętu Eneasza i jednego transportu oraz utrzymaniu rozdzielenia 90 s.
+**Przebieg:** Transporty mają po 90 D rzeczywistego ładunku, poza początkowym zapasem osady. Płytsza cieśnina dopuszcza handlowce, ale wymusza kolumnę; otwarte morze daje przestrzeń do tarana, lecz skraca podejście przechwytujących. Tylna straż może przeciąć linię abordażem albo osłonić odwrót. Zwycięstwo po wyjściu okrętu Eneasza i jednego transportu oraz utrzymaniu rozdzielenia 90 s.
 
 **Fazy:** P1 Rozpoznaj przejścia (parametr czasu 60 s) → P2 Przeprowadź konwój (koniec warunkiem) → P3 Oderwij pościg (parametr czasu 90 s). Wskazane czasy etapów to parametry celu; dokładne użycie zegara opisuje przebieg i presja, nie automatyczne przejście po odczekaniu.
 
@@ -145,7 +145,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Podczas igrzysk na Sycylii znużone tułaczką kobiety podpalają okręty na plaży Drepanum. Deszcz zesłany przez Jowisza ratuje resztę floty.
 
-**Otwarcie:** Wyspy Wulkaniczne, mapa około 1.5 × 1.5 km; cel 18–24 min. Aktywny bohater: Eneasz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×2, merchant ×1, crewDestroyer ×1 oraz cztery fabularne kadłuby do ratowania na kotwicy. Lokalnie 600 B/300 R; zasoby mapy 800 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Pożar przenoszący się między bliskimi kadłubami.
+**Otwarcie:** Wyspy Wulkaniczne, mapa około 1.5 × 1.5 km; cel 18–24 min. Aktywny bohater: Eneasz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×2, merchant ×1, crewDestroyer ×1 oraz cztery fabularne kadłuby do ratowania na kotwicy. Lokalnie 180 D/100 S; zasoby mapy 240 D/660 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Pożar przenoszący się między bliskimi kadłubami.
 
 **Przebieg:** Ogień korzysta z reguł C05: intensywność, narastanie, gaszenie zajmujące załogę. Gracz gasi albo odholowuje kadłuby, rozdzielając odległości, by przerwać rozprzestrzenianie. Deszcz nadchodzi raz, po zapowiedzi, i mnoży narastanie przez 0,5. Przeciwnikiem jest czas i układ kotwicowiska, nie flota.
 
@@ -167,7 +167,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Noc jest spokojna, gdy bóg snu strąca sternika Palinura do morza. Eneasz sam przejmuje ster, gdy okręt dryfuje ku skałom Syren.
 
-**Otwarcie:** Wyspy Syren, mapa około 1.5 × 1.5 km; cel 16–22 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, merchant ×1, ram ×1, crewDestroyer ×1. Lokalnie 300 B/180 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Nocna żegluga przy rafach; Utrata sternika.
+**Otwarcie:** Wyspy Syren, mapa około 1.5 × 1.5 km; cel 16–22 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, merchant ×1, ram ×1, crewDestroyer ×1. Lokalnie 90 D/60 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Nocna żegluga przy rafach; Utrata sternika.
 
 **Przebieg:** Noc zmniejsza widzenie, a rafy mają logiczny obrys ujawniany przez rozpoznanie. Na wyznaczonej bramce następuje jednorazowe zdarzenie: okręt Eneasza traci 30% zwrotności do czasu 12 s interakcji bohatera przy sterze, wykonywanej w ruchu. Gracz utrzymuje szyk i prędkość transportu.
 
@@ -189,7 +189,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** U brzegów Kume Eneasz szuka Sybilli, która ma wskazać mu dalszą drogę. Rytuał w jaskini wymaga czasu, a morze wokół pilnują korsarze.
 
-**Otwarcie:** Morze Zapomnianych, mapa około 3 × 3 km; cel 20–28 min. Aktywny bohater: Sybilla. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×1, crewDestroyer ×1, boarder ×1. Lokalnie 700 B/300 R; zasoby mapy 1600 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 6; osobne zagrożenia: Patrole korsarzy; Zamykane okno rytuału.
+**Otwarcie:** Morze Zapomnianych, mapa około 3 × 3 km; cel 20–28 min. Aktywny bohater: Sybilla. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, cutter ×1, crewDestroyer ×1, boarder ×1. Lokalnie 210 D/100 S; zasoby mapy 480 D/660 S początkowo. Łączny limit okrętów przeciwnika: 6; osobne zagrożenia: Patrole korsarzy; Zamykane okno rytuału.
 
 **Przebieg:** Abordaż zdobywa okręt patrolowy i pozwala ograniczyć starcie, bez magicznej niewidzialności. Okręt z Sybillą stoi w strefie jaskini 45 s; przerwanie zachowuje ukończone etapy. Po wysłuchaniu wyroczni flota wychodzi przez wskazane przejście. Rytuał nie jest powtarzalną farmą nagród.
 
@@ -211,7 +211,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Trojanie docierają do ujścia Tybru. Turnus podpala ich okręty na kotwicy, a Kybele zamienia je w morskie nimfy, zanim spłoną.
 
-**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 24–32 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, ram ×2, shipDestroyer ×1, merchant ×1. Lokalnie 700 B/260 R; zasoby mapy 1200 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 10; osobne zagrożenia: Zapalające rajdy na kotwicowisko.
+**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 24–32 min. Aktywny bohater: Eneasz. Baza REPAIR_ONLY. Flota: royal ×1, ram ×2, shipDestroyer ×1, merchant ×1. Lokalnie 210 D/90 S; zasoby mapy 360 D/660 S początkowo. Łączny limit okrętów przeciwnika: 10; osobne zagrożenia: Zapalające rajdy na kotwicowisko.
 
 **Przebieg:** Gracz utrzymuje ujście przez łącznie 180 s i wysadza osadników z handlowca na brzeg. Rajdy Turnusa kierują się na kotwicowisko po jawnej obserwacji. Jednorazowe zdarzenie Kybele usuwa pierwszy kadłub bliski spłonięcia jako ocalały, bez zaliczania straty; nie tworzy nowych jednostek i nie jest powtarzalne.
 
@@ -233,7 +233,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Odyseusz oślepia Polifema i ucieka. Cyklop rzuca skałami; bohater ujawnia imię i ściąga na siebie klątwę.
 
-**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 16–22 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, cutter ×2, ram ×1. Lokalnie 0 B/0 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Polifem na klifie; Dwie strefy zbierania ocalałych.
+**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 16–22 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, cutter ×2, ram ×1. Lokalnie 0 D/0 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Polifem na klifie; Dwie strefy zbierania ocalałych.
 
 **Przebieg:** Dwa kutry podejmują po sześciu ocalałych, którzy zajmują miejsce zgodnie z regułą pasażera. Minimalny cel 12 osób przy 16 dostępnych w dwóch strefach. Okręt Odyseusza odciąga uwagę, a gracz rozdziela punkty odbioru i zachowuje drogę ucieczki. Ujawnienie imienia następuje w scenie zakończenia i nie odbiera kontroli podczas manewrów.
 
@@ -255,7 +255,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Towarzysze otwierają worek Eola. Uwolnione wiatry odrzucają flotę; Eol odmawia ponownej pomocy.
 
-**Otwarcie:** Morze Burz, mapa około 3 × 3 km; cel 18–25 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, merchant ×2, ram ×2. Lokalnie 0 B/0 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Trzy strefy wiatru o zapowiedzianych zwrotach.
+**Otwarcie:** Morze Burz, mapa około 3 × 3 km; cel 18–25 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, merchant ×2, ram ×2. Lokalnie 0 D/0 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Trzy strefy wiatru o zapowiedzianych zwrotach.
 
 **Przebieg:** Statki startują w trzech czytelnych skupiskach z drożną trasą do zborne­go akwenu. Użycie wioseł i odpowiedniego kursu pozwala wyjść spod niekorzystnego wiatru. Zwycięstwo wymaga okrętu Odyseusza i dwóch pozostałych; odmowa Eola jest sceną fabularną, nie oczekiwaniem na nieistniejące zaopatrzenie. Nie wprowadza się worka jako nowej waluty.
 
@@ -277,7 +277,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Lajstrygonowie niszczą okręty w ciasnym porcie. Odyseusz, pozostawiony poza zatoką, odcina cumę i uchodzi.
 
-**Otwarcie:** Mglisty Archipelag, mapa około 1.5 × 1.5 km; cel 15–22 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, merchant ×2, ram ×3, crewDestroyer ×2. Lokalnie 0 B/0 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Trzy stanowiska olbrzymów na klifach; Wąskie wyjście portowe.
+**Otwarcie:** Mglisty Archipelag, mapa około 1.5 × 1.5 km; cel 15–22 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, merchant ×2, ram ×3, crewDestroyer ×2. Lokalnie 0 D/0 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Trzy stanowiska olbrzymów na klifach; Wąskie wyjście portowe.
 
 **Przebieg:** Okręt Odyseusza startuje bezpiecznie poza gardłem, pozostałe statki w dwóch grupach portowych. Podstawowy cel jest uczciwie wykonalny przez odcięcie cum i odwrót. Gracz może zaryzykować czas i ruchem kolumnowym wyprowadzić część innych jednostek. Olbrzymów nie trzeba zabijać katapultami. Po 180 s zamyka się możliwość ratunku dalszych grup, ale cel główny nie zmienia się w ukryty wymóg ocalenia wszystkich.
 
@@ -299,7 +299,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Odyseusz omija wir Charybdy, lecz Scylla porywa sześciu ludzi. Kirke ostrzega, że walki ze Scyllą nie można wygrać.
 
-**Otwarcie:** Morze Burz, mapa około 1.5 × 1.5 km; cel 16–23 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, cutter ×1, merchant ×1, ram ×1. Lokalnie 0 B/0 R; zasoby mapy 0 B/0 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Scylla jako zagrożenie strefowe; Charybda jako wir.
+**Otwarcie:** Morze Burz, mapa około 1.5 × 1.5 km; cel 16–23 min. Aktywny bohater: Odyseusz. Baza SEA_ONLY. Flota: royal ×1, cutter ×1, merchant ×1, ram ×1. Lokalnie 0 D/0 S; zasoby mapy 0 D/0 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Scylla jako zagrożenie strefowe; Charybda jako wir.
 
 **Przebieg:** Oba zagrożenia nie mają zwykłego paska HP do wyzerowania. Gracz śledzi fazę wiru i wybiera przejście, tolerując ewentualne straty załogi zamiast ryzykować kadłub całej grupy. Strefy bezpieczeństwa i promienie skrętu muszą być przetestowane, aby istniała droga do zwycięstwa. Jeden atak Scylli rozliczany raz na eventId, bez wielokrotnego pobrania ludzi z kontaktujących się colliderów.
 
@@ -321,21 +321,21 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Flota zatrzymuje się na Trynakii. Święte stada Heliosa są objęte zakazem naruszenia, a załoga musi zgromadzić zapasy i odpłynąć w oknie pogody.
 
-**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 18–26 min. Aktywny bohater: Odyseusz. Baza REPAIR_ONLY. Flota: royal ×1, cutter ×2, merchant ×1. Lokalnie 300 B/80 R; zasoby mapy 0 B/4000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Sztorm na podejściach do dwóch skupisk; Święte stada jako obiekt przysięgi.
+**Otwarcie:** Archipelag Egejski, mapa około 1.5 × 1.5 km; cel 18–26 min. Aktywny bohater: Odyseusz. Baza REPAIR_ONLY. Flota: royal ×1, cutter ×2, merchant ×1. Lokalnie 90 D/30 S; zasoby mapy 0 D/0 S początkowo; ładunek misji: 800 jednostek zapasów w dwóch składach, wymagane 240. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Sztorm na podejściach do dwóch składów; Święte stada jako obiekt przysięgi.
 
-**Przebieg:** Zapas 240 R trzeba rzeczywiście dostarczyć do osady i załadować na okręt wyprawowy; przy odpłynięciu jest jednokrotnie wydany na wyprawę. Dwa skupiska i automatyczna rotacja pozwalają osiągnąć cel bez dodatkowych surowców. Nie ma stałego głodu ani podatku od floty. Stada nie są legalnym automatycznym celem; ręczne naruszenie wymaga czytelnego ostrzeżenia w UI i kończy misję stanem porażki z objaśnieniem mitycznej konsekwencji. Nie wymuszaj kradzieży poprawnie grającej załodze.
+**Przebieg:** Zapas 240 jednostek (ładunek misji, E12) trzeba rzeczywiście zebrać kutrami, dowieźć do osady i załadować na okręt wyprawowy; przy odpłynięciu jest jednokrotnie zużyty na rejs. Dwa składy i automatyczna rotacja pozwalają osiągnąć cel bez zużywania D/S, które służą tu tylko remontom. Wyspa jest bezludna, więc zapasów nie można kupić za srebro. Nie ma stałego głodu ani podatku od floty. Stada nie są legalnym automatycznym celem; ręczne naruszenie wymaga czytelnego ostrzeżenia w UI i kończy misję stanem porażki z objaśnieniem mitycznej konsekwencji. Nie wymuszaj kradzieży poprawnie grającej załodze.
 
 **Fazy:** P1 Ustal bezpieczny zbiór (koniec warunkiem) → P2 Zgromadź zapas na rejs (parametr czasu 480 s) → P3 Opuść wyspę w oknie pogody (parametr czasu 120 s). Wskazane czasy etapów to parametry celu; dokładne użycie zegara opisuje przebieg i presja, nie automatyczne przejście po odczekaniu.
 
 **Napięcie i kontrgra:** Pierwsze wyjście od 8:00 przez 120 s, następne dwa okna co 120 s po zamknięciu poprzedniego. Ostatnia możliwość jawnie oznaczona; pogodę i realną osiągalność sprawdzić w QA.
 
-**Zwycięstwo — wszystkie warunki:** oath_kept, departure_rations_committed, odysseus_extracted. **Porażka — dowolny warunek:** odysseus_lost, sacred_herd_harmed, last_departure_window_missed. Nazwy flag należy podłączyć do konkretnych predicate w implementacji, nie uznawać za gotowy kod.
+**Zwycięstwo — wszystkie warunki:** oath_kept, departure_supplies_committed, odysseus_extracted. **Porażka — dowolny warunek:** odysseus_lost, sacred_herd_harmed, last_departure_window_missed. Nazwy flag należy podłączyć do konkretnych predicate w implementacji, nie uznawać za gotowy kod.
 
-**Decyzja taktyczna:** Wcześniejszy zbiór na narażonym skupisku albo ostrożna praca i późniejsze okno wyjścia.
+**Decyzja taktyczna:** Wcześniejszy zbiór na narażonym składzie albo ostrożna praca i późniejsze okno wyjścia.
 
 **Cel poboczny:** Wyjść w pierwszym oknie z całą flotą i nienaruszoną przysięgą.
 
-**Zapis i test regresyjny:** Oath state, ID wydania 240 R, załadowany zapas, indeks i czas okna. Save/load nie zeruje skutków naruszenia ani nie pobiera R ponownie.
+**Zapis i test regresyjny:** Oath state, ID zużycia 240 jednostek, załadowany zapas, indeks i czas okna. Save/load nie zeruje skutków naruszenia ani nie zużywa zapasów ponownie.
 
 **Nagroda i przejście:** Zakończenie cyklu Odyseusza i podsumowanie losów załogi.
 
@@ -343,7 +343,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Piraci porywają Dionizosa. Objawienie boga zmienia ich w delfiny; rozsądny sternik zostaje ocalony.
 
-**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 20–28 min. Aktywny bohater: brak — dowodzenie kapitanami. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, boarder ×1, crewDestroyer ×2, cutter ×1. Lokalnie 700 B/350 R; zasoby mapy 1800 B/2000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 8; osobne zagrożenia: Objawienie Dionizosa na okręcie celu.
+**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 20–28 min. Aktywny bohater: brak — dowodzenie kapitanami. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, boarder ×1, crewDestroyer ×2, cutter ×1. Lokalnie 210 D/120 S; zasoby mapy 540 D/660 S początkowo. Łączny limit okrętów przeciwnika: 8; osobne zagrożenia: Objawienie Dionizosa na okręcie celu.
 
 **Przebieg:** Niszczyciele załóg przygotowują abordaż; target ma wyłączone automatyczne dobijanie kadłuba po rozpoznaniu, a ręczny atak nadal wymaga świadomej decyzji. Kontakt abordażowy i 20 s utrzymania bez zatopienia uruchamiają objawienie: liny przestają więzić boga, porywacze z okrętu celu stają się niebojowymi delfinami, sternik otrzymuje stan ocalałego. Dalsza eskorta ucieka przed dodatkowymi piratami. Przemiana nie wypłaca łupu za każdą jednostkę.
 
@@ -365,7 +365,7 @@ Cele poboczne dają medale, wpisy i warianty dialogu, bez stałego +10% dochodu 
 
 **Fabuła:** Andromeda zostaje wystawiona morskiemu potworowi. Perseusz zabija bestię i uwalnia ją.
 
-**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 28–36 min. Aktywny bohater: Perseusz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, shipDestroyer ×2, ram ×2, merchant ×2, cutter ×1. Lokalnie 1000 B/450 R; zasoby mapy 2400 B/4000 R początkowo; regeneracja wyłącznie racji według E03. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Ketos: jeden potwór morski; Fala przybrzeżna.
+**Otwarcie:** Archipelag Egejski, mapa około 3 × 3 km; cel 28–36 min. Aktywny bohater: Perseusz. Baza REPAIR_AND_LIGHT_BUILD. Flota: royal ×1, shipDestroyer ×2, ram ×2, merchant ×2, cutter ×1. Lokalnie 300 D/150 S; zasoby mapy 720 D/1320 S początkowo. Łączny limit okrętów przeciwnika: 0; osobne zagrożenia: Ketos: jeden potwór morski; Fala przybrzeżna.
 
 **Przebieg:** Dwa handlowce odbierają po 12 osób z 36 dostępnych cywilów. Potwora można odciągnąć na otwarty akwen zgodnie z jego jawnie obserwowanym celem. Gdy uwaga bestii jest daleko od skały, okręt Perseusza kończy interakcję uwolnienia 20 s i zabiera Andromedę. Ostrzał eskorty obniża HP do ostatnich 15%; finał wymaga interakcji Perseusza w oknie po zapowiedzianym ataku. Ten udział heroiczny zapobiega opowieści, w której bohater tylko obserwuje przypadkowe zatopienie celu. Zdarzenie finału po ewakuacji jest jedno­razowe.
 

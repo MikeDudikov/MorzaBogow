@@ -36,12 +36,12 @@
         "crewDestroyer": 1
       },
       "localStock": {
-        "bronze": 500,
-        "rations": 240
+        "wood": 150,
+        "silver": 80
       },
       "resourceNodes": {
-        "bronze": 1200,
-        "rations": 2000
+        "wood": 360,
+        "silver": 660
       },
       "enemyHullBudget": 4,
       "storyThreats": [
@@ -101,12 +101,12 @@
         "ram": 2
       },
       "localStock": {
-        "bronze": 350,
-        "rations": 140
+        "wood": 100,
+        "silver": 50
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 2000
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -115,14 +115,14 @@
       "phases": [
         {
           "id": "P1",
-          "label": "Zabezpiecz skupisko",
+          "label": "Zabezpiecz skład",
           "planningSeconds": 45,
           "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
           "next": "P2"
         },
         {
           "id": "P2",
-          "label": "Dostarcz racje",
+          "label": "Dostarcz zapasy",
           "planningSeconds": 0,
           "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
           "next": "P3"
@@ -136,7 +136,7 @@
         }
       ],
       "allWinFlags": [
-        "rations_delivered",
+        "supplies_delivered",
         "raids_outlasted",
         "flagship_extracted"
       ],
@@ -145,7 +145,13 @@
         "aeneas_lost"
       ],
       "implementationStatus": "NOT_IMPLEMENTED",
-      "gameplayTests": "NOT_RUN"
+      "gameplayTests": "NOT_RUN",
+      "missionCargo": {
+        "name": "zapasy",
+        "available": 320,
+        "required": 200,
+        "points": 2
+      }
     },
     {
       "id": "M03",
@@ -166,12 +172,12 @@
         "crewDestroyer": 1
       },
       "localStock": {
-        "bronze": 450,
-        "rations": 180
+        "wood": 140,
+        "silver": 60
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 12,
       "storyThreats": [
@@ -233,12 +239,12 @@
         "crewDestroyer": 1
       },
       "localStock": {
-        "bronze": 600,
-        "rations": 300
+        "wood": 180,
+        "silver": 100
       },
       "resourceNodes": {
-        "bronze": 800,
-        "rations": 2000
+        "wood": 240,
+        "silver": 660
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -299,12 +305,12 @@
         "crewDestroyer": 1
       },
       "localStock": {
-        "bronze": 300,
-        "rations": 180
+        "wood": 90,
+        "silver": 60
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -366,12 +372,12 @@
         "boarder": 1
       },
       "localStock": {
-        "bronze": 700,
-        "rations": 300
+        "wood": 210,
+        "silver": 100
       },
       "resourceNodes": {
-        "bronze": 1600,
-        "rations": 2000
+        "wood": 480,
+        "silver": 660
       },
       "enemyHullBudget": 6,
       "storyThreats": [
@@ -432,12 +438,12 @@
         "merchant": 1
       },
       "localStock": {
-        "bronze": 700,
-        "rations": 260
+        "wood": 210,
+        "silver": 90
       },
       "resourceNodes": {
-        "bronze": 1200,
-        "rations": 2000
+        "wood": 360,
+        "silver": 660
       },
       "enemyHullBudget": 10,
       "storyThreats": [
@@ -496,12 +502,12 @@
         "ram": 1
       },
       "localStock": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -561,12 +567,12 @@
         "ram": 2
       },
       "localStock": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -625,12 +631,12 @@
         "crewDestroyer": 2
       },
       "localStock": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -688,12 +694,12 @@
         "ram": 1
       },
       "localStock": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 0
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
@@ -752,16 +758,16 @@
         "merchant": 1
       },
       "localStock": {
-        "bronze": 300,
-        "rations": 80
+        "wood": 90,
+        "silver": 30
       },
       "resourceNodes": {
-        "bronze": 0,
-        "rations": 4000
+        "wood": 0,
+        "silver": 0
       },
       "enemyHullBudget": 0,
       "storyThreats": [
-        "Sztorm na podejściach do dwóch skupisk",
+        "Sztorm na podejściach do dwóch składów",
         "Święte stada jako obiekt przysięgi"
       ],
       "phases": [
@@ -789,7 +795,7 @@
       ],
       "allWinFlags": [
         "oath_kept",
-        "departure_rations_committed",
+        "departure_supplies_committed",
         "odysseus_extracted"
       ],
       "anyFailFlags": [
@@ -798,7 +804,13 @@
         "last_departure_window_missed"
       ],
       "implementationStatus": "NOT_IMPLEMENTED",
-      "gameplayTests": "NOT_RUN"
+      "gameplayTests": "NOT_RUN",
+      "missionCargo": {
+        "name": "zapasy",
+        "available": 800,
+        "required": 240,
+        "points": 2
+      }
     },
     {
       "id": "M13",
@@ -819,12 +831,12 @@
         "cutter": 1
       },
       "localStock": {
-        "bronze": 700,
-        "rations": 350
+        "wood": 210,
+        "silver": 120
       },
       "resourceNodes": {
-        "bronze": 1800,
-        "rations": 2000
+        "wood": 540,
+        "silver": 660
       },
       "enemyHullBudget": 8,
       "storyThreats": [
@@ -886,12 +898,12 @@
         "cutter": 1
       },
       "localStock": {
-        "bronze": 1000,
-        "rations": 450
+        "wood": 300,
+        "silver": 150
       },
       "resourceNodes": {
-        "bronze": 2400,
-        "rations": 4000
+        "wood": 720,
+        "silver": 1320
       },
       "enemyHullBudget": 0,
       "storyThreats": [

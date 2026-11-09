@@ -64,23 +64,29 @@ namespace MorzaBogow.Presentation
 
         void ApplyStartupMode()
         {
+            var hasSavedChoice = PlayerPrefs.HasKey(WidthKey);
+            bool? savedFullscreen = hasSavedChoice ? PlayerPrefs.GetInt(FullscreenKey, 1) == 1 : (bool?)null;
+
+            // Unity remembers the last window mode by itself, so the wanted mode is always set explicitly.
+            var fullscreen = DisplayStartup.WantsFullscreen(System.Environment.GetCommandLineArgs(), savedFullscreen);
+
             if (Available.Count == 0)
             {
                 Notice = "Monitor nie zgłasza trybu z zakresu 1920×1080–2560×1440.";
+                Screen.fullScreenMode = fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
                 return;
             }
 
-            if (!PlayerPrefs.HasKey(WidthKey))
+            if (!hasSavedChoice)
             {
-                var first = ResolutionCatalog.PickDefault(Available);
-                ApplyToScreen(first.Value, Screen.fullScreen);
+                ApplyToScreen(ResolutionCatalog.PickDefault(Available).Value, fullscreen);
                 return;
             }
 
             var saved = new DisplayModeSize(PlayerPrefs.GetInt(WidthKey), PlayerPrefs.GetInt(HeightKey));
             var chosen = ResolutionCatalog.PickFallback(saved, Available).Value;
             if (!chosen.Equals(saved)) Notice = $"Tryb {saved} jest niedostępny. Wybrano {chosen}.";
-            ApplyToScreen(chosen, PlayerPrefs.GetInt(FullscreenKey, 1) == 1);
+            ApplyToScreen(chosen, fullscreen);
         }
 
         static void ApplyToScreen(DisplayModeSize mode, bool fullscreen)

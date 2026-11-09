@@ -29,9 +29,9 @@ Dochód, dostawy, rozpoznanie i walka przebiegają równolegle. Pełna rozbudowa
 
 ## VIZ04. Gospodarka kształtująca pole walki
 
-Brąz i racje mają wartość dopiero po rzeczywistym dostarczeniu do właściwej osady. Magazyn na jednej wyspie finansuje jej produkcję, remonty i zaklęcia. Konwoje przenoszą realne zapasy, a zdobycie transportu zmienia właściciela zawartości. Gracz widzi różnicę między dostępnym zapasem, rezerwacją i ładunkiem w drodze.
+Drewno i srebro mają wartość dopiero po rzeczywistym dostarczeniu do właściwej osady. Magazyn na jednej wyspie finansuje jej produkcję, remonty i zaklęcia. Konwoje przenoszą realne zapasy, a zdobycie transportu zmienia właściciela zawartości. Gracz widzi różnicę między dostępnym zapasem, rezerwacją i ładunkiem w drodze.
 
-Skończone złoża brązu, limity pracy i odnawiające się skupiska zachęcają do kontroli dalszych akwenów. Rozbudowa portu, wybór specjalizacji i nowy transport konkurują o budżet z jednostką bojową. Dodatkowy kuter ma przynosić korzyść zależną od dostępnego skupiska lub złoża, drogi i obsługi portu. Skończone kontrakty i wyprawy są opcjonalnymi celami wystawionymi na przechwycenie.
+Oba zasoby są skończone, a stanowiska i limity pracy punktów zachęcają do kontroli dalszych akwenów. Przyczółek, kolejna stocznia i nowy transport konkurują o budżet z jednostką bojową. Dodatkowy kuter przynosi korzyść zależną od wolnego stanowiska, drogi i obsługi portu. Cele specjalne są jawne, skończone i wystawione na przechwycenie.
 
 Blokada ogranicza napływ zasobów, produkcję i możliwość uzupełnień. Okręty znajdujące się na morzu zachowują zdolność walki. Utrata konwoju ma być znaczącym ciosem operacyjnym, po którym można wybrać odwrót, obronę, odbudowę lub kontratak. Odbudowa korzysta z jawnych reguł i kosztów; wsparcie scenariusza musi być widoczne.
 
@@ -49,7 +49,7 @@ Lekka grupa rajdowa, eskorta rozwijającej się gospodarki i oszczędna obrona m
 
 Kampania ma 14 misji w trzech cyklach: wyprawę Eneasza, podróż Odyseusza oraz niezależne opowieści. Scenariusze wprowadzają ewakuacje, eskorty pod pościgiem, walkę z pożarem floty, ratowanie ludzi, nocną żeglugę przy rafach, pogodowe okna odpłynięcia i starcia z wyjątkowymi przeciwnikami.
 
-Bohaterowie, artefakty i magia poszerzają decyzje flotą. Zaklęcia mają koszt w B/R, zasięg, czas przygotowania, cooldown i odpowiedź przeciwnika. Zagrożenia pokazują zapowiedź oraz drogę reakcji. Rozwiązanie celu może wymagać wyminięcia, odciągnięcia, osłony lub interakcji bohatera; pokonanie każdego zagrożenia przez odebranie HP nie jest regułą kampanii.
+Bohaterowie, artefakty i magia poszerzają decyzje flotą. Zaklęcia mają koszt w D/S, zasięg, czas przygotowania, cooldown i odpowiedź przeciwnika. Zagrożenia pokazują zapowiedź oraz drogę reakcji. Rozwiązanie celu może wymagać wyminięcia, odciągnięcia, osłony lub interakcji bohatera; pokonanie każdego zagrożenia przez odebranie HP nie jest regułą kampanii.
 
 Każda misja ma określony stan początkowy i własny budżet. Między misjami zachowywane są ukończenia, medale i kronika; floty i magazyny nie przechodzą do następnej misji. Cele poboczne dają odznaczenia i treść fabularną, bez stałej przewagi ekonomicznej w potyczkach. Bohaterowie są domyślnie niedostępni w symetrycznej potyczce rankingowej. Jawne cele obowiązkowe określają zwycięstwo. Utrata niezbędnej postaci, przedmiotu lub zdolności wykonania celu musi prowadzić do wykrytej porażki albo działającej drogi odzyskania.
 
@@ -57,7 +57,7 @@ Każda misja ma określony stan początkowy i własny budżet. Między misjami z
 
 Katalog potyczek obejmuje 40 map i wariantów celów w ośmiu biomach. Walka może dotyczyć centrum dowodzenia, punktów kontroli, dostawy przedmiotów, eskortowania konwojów lub obrony. Cele, asymetria mapy i ograniczenia są widoczne przed rozpoczęciem. Symetryczne potyczki wymagają porównywalnych możliwości startowych oraz alternatywnych kierunków działania.
 
-Cele tempa standardowej potyczki 1 na 1: pierwszy celowy kontakt bojowy około 3–5 min, pierwsza sensowna wyprawa ekspansyjna około 5–8 min, większe starcie około 8–12 min i czas meczu około 25–35 min. Są to cele projektowe zależne od mapy i działań graczy; nie wymagają opóźniania skutecznego wcześniejszego rajdu. Kampania korzysta z odrębnych czasów określonych dla misji.
+Cele tempa standardowej potyczki 1 na 1: pierwszy celowy kontakt około 1:45–3:00, większe starcie około 4:00–7:00 i czas meczu około 15–25 min. Są to cele projektowe zależne od mapy i działań graczy; nie wymagają okresu nietykalności ani opóźniania skutecznego wcześniejszego rajdu. Kampania korzysta z odrębnych czasów określonych dla misji.
 
 Balans wymaga sparowanych meczów z zamianą stron, różnych strategii i frakcji oraz playtestów z udziałem graczy. Ocenie podlegają wynik, długość rozgrywki, straty, dostawy, przestoje portów i obciążenie uwagi. Sama przewaga w dochodzie nie dowodzi przewagi w realizacji celów. Wyniki muszą obejmować liczebność prób i niepewność pomiaru. Utrzymywanie ponad 60% zwycięstw jednej z trzech strategii przeciw obu pozostałym w symetrycznych testach stanowi sygnał do sprawdzenia kosztów, mapy i kontrgry. Sam ten próg nie potwierdza ani nie wyklucza równowagi.
 
@@ -77,4 +77,4 @@ Gra nie ma wymagań sprzętowych. Gracz wybiera profil Low, Medium, High, Extra 
 
 Docelowa zawartość obejmuje 12 klas okrętów, dwie frakcje grywalne, barbarzyńców, dziewięciu bohaterów, 12 zaklęć, osiem biomów, 14 misji kampanii i 40 potyczek. Multiplayer i edytor wymagają własnych etapów oraz odbioru. Pierwszy grywalny etap ma dostarczyć małą, kompletną bitwę z podstawową logistyką i zapisem; pełna zawartość rozwija działający rdzeń.
 
-Odbiór wizji sprawdza łącznie: przewagę czasu działań na wodzie, sens eskort i rajdów, możliwość stosowania różnych strategii, kontrolę nad eskadrą, skuteczność automatyki, czytelność zagrożeń, brak nieosiągalnych celów i brak ukrytej przewagi SI. Parametry gospodarki określają E00–E16, prezentację V00–V13, a kampanię S00–S07 i M01–M14. Te kryteria należy odbierać w działającej grze.
+Odbiór wizji sprawdza łącznie: przewagę czasu działań na wodzie, sens eskort i rajdów, możliwość stosowania różnych strategii, kontrolę nad eskadrą, skuteczność automatyki, czytelność zagrożeń, brak nieosiągalnych celów i brak ukrytej przewagi SI. Parametry gospodarki określają E00–E12, prezentację V00–V13, a kampanię S00–S07 i M01–M14. Te kryteria należy odbierać w działającej grze.

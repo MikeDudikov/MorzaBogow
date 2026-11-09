@@ -22,6 +22,8 @@ namespace MorzaBogow.Editor
         public static void Run()
         {
             if (!AssetDatabase.IsValidFolder(MaterialFolder)) AssetDatabase.CreateFolder("Assets/Art", "Placeholders");
+            AssetDatabase.DeleteAsset($"{MaterialFolder}/Placeholder_Node_Bronze.mat");
+            AssetDatabase.DeleteAsset($"{MaterialFolder}/Placeholder_Node_Rations.mat");
             var materials = new PlaceholderMaterials
             {
                 Wood = Material("Placeholder_Wood", new Color(0.36f, 0.24f, 0.14f), 0f, 0.35f),
@@ -29,8 +31,8 @@ namespace MorzaBogow.Editor
                 PlayerSail = Material("Placeholder_Sail_Player", new Color(0.12f, 0.22f, 0.6f), 0f, 0.2f),
                 EnemySail = Material("Placeholder_Sail_Enemy", new Color(0.55f, 0.08f, 0.08f), 0f, 0.2f),
                 Neutral = Material("Placeholder_Neutral", new Color(0.55f, 0.53f, 0.48f), 0f, 0.2f),
-                BronzeNode = Material("Placeholder_Node_Bronze", new Color(0.8f, 0.5f, 0.15f), 0f, 0.4f),
-                RationsNode = Material("Placeholder_Node_Rations", new Color(0.3f, 0.65f, 0.55f), 0f, 0.4f),
+                WoodNode = Material("Placeholder_Node_Wood", new Color(0.45f, 0.3f, 0.12f), 0f, 0.3f),
+                SilverNode = Material("Placeholder_Node_Silver", new Color(0.78f, 0.8f, 0.85f), 0.9f, 0.7f),
                 Selection = Material("Placeholder_Selection", new Color(0.3f, 1f, 0.35f), 0f, 0.1f),
             };
 

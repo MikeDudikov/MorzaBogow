@@ -60,20 +60,27 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 | Kontrola | Wynik | Zakres |
 |---|---|---|
-| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 59/59, PlayMode 15/15 | logika i integracja, raport w `qa/reports` |
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 82/82, PlayMode 15/15 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
 | Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
-| Build Windows64 Mono, scena M1_Battle | Success, 261604832 B, 0 błędów, 0 ostrzeżeń | |
-| Test dymny 180 s, SI kontra SI | Ultra i Low: exit 0, 0 wyjątków, model wybrzeża wczytany | brak kontaktu widocznego dla frakcji 0 w tym czasie |
+| Build Windows64 Mono, scena M1_Battle | Success, 261613684 B, 0 błędów, 0 ostrzeżeń | |
+| Pojedynczy kuter, trasa 70 m | 108 D/min | model: do 124 D/min przy pełnym wykorzystaniu trasy |
+| Mecz SI kontra SI, seed 9 | Rozstrzygnięty po 20 min, pierwsza walka po 148 s | jeden przebieg, nie dowód balansu |
+| docs/economy-model/economy-model.py | Wykonany ponownie, CSV zgodne z pakietem | model nie obejmuje walki ani Unity |
 
 Coast Rocks 02: 4 siatki, 2363290 trójkątów LOD0, Mesh LOD do 64 trójkątów na siatkę, FBX zaimportowany bez zmian, jeden materiał HDRP Lit. Na mapie wyspa ma około 102 × 7 × 110 m. Modele okrętów, osad i węzłów to oznaczone modele zastępcze.
 
-Uproszczenia M1 względem specyfikacji, do wdrożenia w M2:
+Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 2.
 
-- Nawigacja omija koła wysp; nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji.
-- Jedyna broń to łucznicy z rzutem seedowanym, bez lotu pocisku, sektorów i wyboru wyposażenia. Broń i żołnierze są wliczeni w cenę okrętu.
-- Nie ma wraków i odzysku, napraw, nowych osad, transferów między osadami, konwojów ani modułów portu.
-- Osada łączy port i stocznię w jednym obiekcie. Zwycięstwo: zniszczenie osady albo brak okrętów, kolejki i środków na kuter.
-- SI jest prosta i zna pozycję startową wroga. Mecz SI kontra SI (seed 9) nie rozstrzygnął się w 30 minutach; balans: NOT_RUN.
+Budżety kampanii M01–M14 i ładunek misji (E12) są tylko w dokumentach i danych. Sceny misji nie istnieją.
+
+Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
+
+- Następny etap z E00: handlowiec, druga wyspa, eskorta, przyczółek, konwoje i lokalna produkcja.
+- Nie ma inwestycji z E05, kolejnej stoczni, ostrzeżeń o nasyceniu ani rezerwy gracza; rezerwy 60 D/20 S przestrzega tylko SI.
+- Nawigacja omija koła wysp; nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
+- Jedyna broń to łucznicy z rzutem seedowanym, bez lotu pocisku, sektorów i wyboru wyposażenia. Wyposażenie z szablonu nie jest osobnym przedmiotem, więc 30% szansy jego przetrwania we wraku nie jest wdrożone.
+- Osada łączy port i stocznię w jednym obiekcie, więc zniszczenia samego portu nie ma; łup 30% ze zniszczonej osady nie jest wdrożony, bo jej zniszczenie kończy mecz.
+- SI jest prosta i zna pozycję startową wroga oraz położenie punktów pracy. Balans: NOT_RUN.
 
 ## Znane ograniczenia
 

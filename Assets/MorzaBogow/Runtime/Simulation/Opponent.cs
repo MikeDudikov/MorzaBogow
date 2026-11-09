@@ -4,21 +4,22 @@ using System.Linq;
 namespace MorzaBogow.Simulation
 {
     /// <summary>
-    /// Rule-following opponent (C08): it only issues normal commands, pays normal costs and reads
-    /// enemy ships through the same visibility check as the player. M1 scope: economy, production,
-    /// attack groups and retreat; it knows the enemy start position as map knowledge.
+    /// Rule-following opponent (C08, E09): it only issues normal commands, pays normal costs, waits in the
+    /// same queues and reads enemy ships through the same visibility check as the player. M1 scope: economy,
+    /// production, attack groups and retreat. Known map knowledge: the enemy start and work point positions.
     /// </summary>
     public sealed class Opponent
     {
         const int StrategyPeriod = 3 * Rules.TickRate;
         const int TacticsPeriod = Rules.TickRate;
-        static readonly ShipClass[] BuildCycle = { ShipClass.CrewDestroyer, ShipClass.Ram, ShipClass.Boarder };
+        const int CutterTarget = 6;
+        static readonly ShipClass[] BuildCycle = { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder };
 
         readonly int faction;
         readonly int minimumAttackGroup;
         int buildIndex;
 
-        public Opponent(int faction, int minimumAttackGroup = 3)
+        public Opponent(int faction, int minimumAttackGroup = 2)
         {
             this.faction = faction;
             this.minimumAttackGroup = minimumAttackGroup;
@@ -40,43 +41,68 @@ namespace MorzaBogow.Simulation
         {
             var settlement = world.SettlementOf(faction);
             if (settlement == null) return;
-            var wanted = settlement.Rations * 2 < settlement.Bronze ? ResourceType.Rations : ResourceType.Bronze;
+
+            // Silver is the scarcer resource by design, so it is requested below half of the wood stock.
+            var wanted = settlement.Silver * 2 < settlement.Wood ? ResourceType.Silver : ResourceType.Wood;
             var cutters = world.Ships.Where(ship => ship.Owner == faction && ship.Class == ShipClass.Cutter).OrderBy(ship => ship.Id).ToList();
-            var assignedToWanted = cutters.Count(ship => ship.Order == OrderKind.Harvest && world.FindNode(ship.NodeId)?.Type == wanted);
+            var onWanted = cutters.Count(ship => ship.Order == OrderKind.Harvest && world.FindNode(ship.NodeId)?.Type == wanted);
 
             foreach (var cutter in cutters)
             {
-                // Rebalance only ships that just unloaded, and keep at least half on the scarcer resource.
+                // Rebalance only ships that just unloaded, keeping at most half on one side of the shortage.
                 var rebalance = cutter.Order == OrderKind.Harvest && cutter.Harvest == HarvestPhase.ToNode && cutter.Cargo == 0
-                                && world.FindNode(cutter.NodeId)?.Type != wanted && assignedToWanted * 2 < cutters.Count;
+                                && world.FindNode(cutter.NodeId)?.Type != wanted && onWanted * 2 < cutters.Count;
                 if (cutter.Order != OrderKind.Idle && !rebalance) continue;
-                if (rebalance) assignedToWanted++;
 
-                var node = world.Nodes
-                    .Where(item => (item.KnownMask & (1 << faction)) != 0 && item.Stock > 0 && !item.Closed)
-                    .OrderBy(item => item.Type == wanted ? 0 : 1)
-                    .ThenBy(item => World.Distance(cutter.X, cutter.Y, item.X, item.Y))
-                    .ThenBy(item => item.Id)
-                    .FirstOrDefault();
-                if (node != null) world.Issue(new Command { Faction = faction, Kind = CommandKind.Harvest, ShipIds = new[] { cutter.Id }, TargetId = node.Id });
+                var node = FindNode(world, cutter, wanted);
+                if (node != null)
+                {
+                    if (rebalance) onWanted++;
+                    world.Issue(new Command { Faction = faction, Kind = CommandKind.Harvest, ShipIds = new[] { cutter.Id }, TargetId = node.Id });
+                }
+                else if (cutter.Order == OrderKind.Idle) Explore(world, cutter);
             }
+        }
+
+        ResourceNode FindNode(World world, Ship cutter, ResourceType wanted) =>
+            world.Nodes
+                .Where(item => (item.KnownMask & (1 << faction)) != 0 && item.Stock > 0)
+                .OrderBy(item => item.Type == wanted ? 0 : 1)
+                .ThenBy(item => World.Distance(cutter.X, cutter.Y, item.X, item.Y))
+                .ThenBy(item => item.Id)
+                .FirstOrDefault();
+
+        void Explore(World world, Ship cutter)
+        {
+            var target = world.Nodes
+                .Where(item => (item.KnownMask & (1 << faction)) == 0)
+                .OrderBy(item => World.Distance(cutter.X, cutter.Y, item.X, item.Y))
+                .ThenBy(item => item.Id)
+                .FirstOrDefault();
+            if (target != null) world.Issue(new Command { Faction = faction, Kind = CommandKind.Move, ShipIds = new[] { cutter.Id }, X = target.X, Y = target.Y });
         }
 
         void ManageProduction(World world)
         {
             var settlement = world.SettlementOf(faction);
-            if (settlement == null || settlement.Destroyed || settlement.Queue.Count >= 2) return;
+            if (settlement == null || settlement.Destroyed) return;
 
             var cutters = world.Ships.Count(ship => ship.Owner == faction && ship.Class == ShipClass.Cutter);
-            if (cutters < 4 && settlement.Bronze >= world.HullCostBronze(ShipClass.Cutter))
+            var cutter = ShipCatalog.Get(ShipClass.Cutter);
+            if (settlement.PortQueue.Count == 0 && cutters < CutterTarget
+                && settlement.Available(ResourceType.Wood) >= cutter.CostWood * Rules.Centi
+                && settlement.Available(ResourceType.Silver) >= cutter.CostSilver * Rules.Centi)
             {
                 world.Issue(new Command { Faction = faction, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
-                return;
             }
 
-            var next = BuildCycle[buildIndex % BuildCycle.Length];
-            if (settlement.Bronze < world.HullCostBronze(next) || settlement.Rations < world.HullCostRations(next)) return;
-            world.Issue(new Command { Faction = faction, Kind = CommandKind.QueueShip, Class = next });
+            if (settlement.WarQueue.Count > 0) return;
+            var next = ShipCatalog.Get(BuildCycle[buildIndex % BuildCycle.Length]);
+
+            // E04: automatic military orders keep the reserve that protects rebuilding a cutter.
+            if (settlement.Available(ResourceType.Wood) < next.CostWood * Rules.Centi + Rules.ReserveWood) return;
+            if (settlement.Available(ResourceType.Silver) < next.CostSilver * Rules.Centi + Rules.ReserveSilver) return;
+            world.Issue(new Command { Faction = faction, Kind = CommandKind.QueueShip, Class = next.Class });
             buildIndex++;
         }
 
@@ -94,19 +120,19 @@ namespace MorzaBogow.Simulation
             {
                 if (ship.Hull < ship.Definition.Hull * 0.3)
                 {
-                    if (ship.Order != OrderKind.Move) world.Issue(new Command { Faction = faction, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = home.X + (faction == 0 ? 60 : -60), Y = home.Y });
+                    if (ship.Order != OrderKind.Repair) world.Issue(new Command { Faction = faction, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
                     continue;
                 }
+                if (ship.Order == OrderKind.Repair) continue;
                 active.Add(ship);
             }
 
-            var threatened = visibleEnemies.Any(enemy => World.Distance(enemy.X, enemy.Y, home.X, home.Y) < 300);
+            var threatened = visibleEnemies.Any(enemy => World.Distance(enemy.X, enemy.Y, home.X, home.Y) < 250);
             if (active.Count < minimumAttackGroup && !threatened) return;
 
             foreach (var ship in active)
             {
-                if (ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board) { if (world.FindShip(ship.TargetId) != null) continue; }
-                if (ship.Order == OrderKind.AttackShip && world.FindShip(ship.TargetId) != null) continue;
+                if ((ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board || ship.Order == OrderKind.AttackShip) && world.FindShip(ship.TargetId) != null) continue;
 
                 var target = visibleEnemies.OrderBy(enemy => World.Distance(ship.X, ship.Y, enemy.X, enemy.Y)).ThenBy(enemy => enemy.Id).FirstOrDefault();
                 if (target != null)

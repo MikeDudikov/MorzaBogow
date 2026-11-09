@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace MorzaBogow.Simulation
@@ -7,7 +8,44 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 1;
+        public const int Version = 2;
+
+        static void WriteIds(BinaryWriter writer, List<int> ids)
+        {
+            writer.Write(ids.Count);
+            foreach (var id in ids) writer.Write(id);
+        }
+
+        static void ReadIds(BinaryReader reader, List<int> ids)
+        {
+            var count = reader.ReadInt32();
+            for (var i = 0; i < count; i++) ids.Add(reader.ReadInt32());
+        }
+
+        static void WriteQueue(BinaryWriter writer, List<BuildOrder> queue)
+        {
+            writer.Write(queue.Count);
+            foreach (var order in queue)
+            {
+                writer.Write((int)order.Class); writer.Write(order.PaidWood); writer.Write(order.PaidSilver);
+                writer.Write(order.UsedWood); writer.Write(order.UsedSilver);
+                writer.Write(order.TotalTicks); writer.Write(order.DoneTicks); writer.Write(order.Started);
+            }
+        }
+
+        static void ReadQueue(BinaryReader reader, List<BuildOrder> queue)
+        {
+            var count = reader.ReadInt32();
+            for (var i = 0; i < count; i++)
+            {
+                queue.Add(new BuildOrder
+                {
+                    Class = (ShipClass)reader.ReadInt32(), PaidWood = reader.ReadInt64(), PaidSilver = reader.ReadInt64(),
+                    UsedWood = reader.ReadInt64(), UsedSilver = reader.ReadInt64(),
+                    TotalTicks = reader.ReadInt32(), DoneTicks = reader.ReadInt32(), Started = reader.ReadBoolean(),
+                });
+            }
+        }
 
         public static byte[] Serialize(World world, int opponentBuildIndex = 0)
         {
@@ -23,6 +61,9 @@ namespace MorzaBogow.Simulation
                 writer.Write((int)world.Outcome);
                 writer.Write(world.Winner);
                 writer.Write(opponentBuildIndex);
+                writer.Write(world.SpentWood); writer.Write(world.SpentSilver);
+                writer.Write(world.LostWood); writer.Write(world.LostSilver);
+                writer.Write(world.ReturnedWood); writer.Write(world.ReturnedSilver);
 
                 writer.Write(world.Islands.Count);
                 foreach (var island in world.Islands) { writer.Write(island.X); writer.Write(island.Y); writer.Write(island.Radius); }
@@ -31,22 +72,21 @@ namespace MorzaBogow.Simulation
                 foreach (var node in world.Nodes)
                 {
                     writer.Write(node.Id); writer.Write((int)node.Type); writer.Write(node.X); writer.Write(node.Y);
-                    writer.Write(node.Stock); writer.Write(node.Capacity); writer.Write(node.Closed); writer.Write(node.KnownMask); writer.Write(node.RegenRemainder);
+                    writer.Write(node.Stock); writer.Write(node.KnownMask);
+                    WriteIds(writer, node.Workers);
+                    WriteIds(writer, node.Waiting);
                 }
 
                 writer.Write(world.Settlements.Count);
                 foreach (var settlement in world.Settlements)
                 {
                     writer.Write(settlement.Id); writer.Write(settlement.Owner); writer.Write(settlement.X); writer.Write(settlement.Y);
-                    writer.Write(settlement.Hull); writer.Write(settlement.Bronze); writer.Write(settlement.Rations);
-                    writer.Write(settlement.Queue.Count);
-                    foreach (var order in settlement.Queue)
-                    {
-                        writer.Write((int)order.Class); writer.Write(order.PaidBronze); writer.Write(order.PaidRations);
-                        writer.Write(order.TotalTicks); writer.Write(order.DoneTicks); writer.Write(order.Started);
-                    }
-                    writer.Write(settlement.DockedShips.Count);
-                    foreach (var id in settlement.DockedShips) writer.Write(id);
+                    writer.Write(settlement.Hull); writer.Write(settlement.Wood); writer.Write(settlement.Silver);
+                    writer.Write(settlement.ReservedWood); writer.Write(settlement.ReservedSilver); writer.Write(settlement.RepairShipId);
+                    WriteQueue(writer, settlement.WarQueue);
+                    WriteQueue(writer, settlement.PortQueue);
+                    WriteIds(writer, settlement.DockedShips);
+                    WriteIds(writer, settlement.PortWaiting);
                 }
 
                 writer.Write(world.Ships.Count);
@@ -56,10 +96,19 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.X); writer.Write(ship.Y); writer.Write(ship.Heading); writer.Write(ship.Speed); writer.Write(ship.Hull);
                     writer.Write(ship.Sailors); writer.Write(ship.Soldiers); writer.Write(ship.CrewDamage); writer.Write(ship.Morale);
                     writer.Write(ship.Reload); writer.Write(ship.LastDamagedTick);
+                    writer.Write(ship.PaidConstructionWood); writer.Write(ship.PaidConstructionSilver);
                     writer.Write((int)ship.Order); writer.Write(ship.TargetX); writer.Write(ship.TargetY); writer.Write(ship.TargetId);
-                    writer.Write(ship.NodeId); writer.Write((int)ship.Harvest); writer.Write((int)ship.CargoType); writer.Write(ship.Cargo);
+                    writer.Write(ship.NodeId); writer.Write(ship.WreckId); writer.Write((int)ship.Harvest); writer.Write((int)ship.CargoType); writer.Write(ship.Cargo);
                     writer.Write(ship.WorkRemainder); writer.Write(ship.UnloadRemainder);
+                    writer.Write(ship.RepairWoodRemainder); writer.Write(ship.RepairSilverRemainder); writer.Write(ship.ScrapTicks);
                     writer.Write((int)ship.RamState); writer.Write(ship.RamTimer); writer.Write(ship.LastRamTick);
+                }
+
+                writer.Write(world.Wrecks.Count);
+                foreach (var wreck in world.Wrecks)
+                {
+                    writer.Write(wreck.Id); writer.Write(wreck.X); writer.Write(wreck.Y);
+                    writer.Write(wreck.Wood); writer.Write(wreck.Silver); writer.Write(wreck.ExpiresTick);
                 }
 
                 writer.Write(world.Boardings.Count);
@@ -90,6 +139,9 @@ namespace MorzaBogow.Simulation
                 world.Outcome = (OutcomeKind)reader.ReadInt32();
                 world.Winner = reader.ReadInt32();
                 opponentBuildIndex = reader.ReadInt32();
+                world.SpentWood = reader.ReadInt64(); world.SpentSilver = reader.ReadInt64();
+                world.LostWood = reader.ReadInt64(); world.LostSilver = reader.ReadInt64();
+                world.ReturnedWood = reader.ReadInt64(); world.ReturnedSilver = reader.ReadInt64();
 
                 var count = reader.ReadInt32();
                 for (var i = 0; i < count; i++) world.Islands.Add(new Island { X = reader.ReadDouble(), Y = reader.ReadDouble(), Radius = reader.ReadDouble() });
@@ -97,11 +149,14 @@ namespace MorzaBogow.Simulation
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
                 {
-                    world.Nodes.Add(new ResourceNode
+                    var node = new ResourceNode
                     {
                         Id = reader.ReadInt32(), Type = (ResourceType)reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
-                        Stock = reader.ReadInt64(), Capacity = reader.ReadInt64(), Closed = reader.ReadBoolean(), KnownMask = reader.ReadInt32(), RegenRemainder = reader.ReadDouble(),
-                    });
+                        Stock = reader.ReadInt64(), KnownMask = reader.ReadInt32(),
+                    };
+                    ReadIds(reader, node.Workers);
+                    ReadIds(reader, node.Waiting);
+                    world.Nodes.Add(node);
                 }
 
                 count = reader.ReadInt32();
@@ -110,19 +165,13 @@ namespace MorzaBogow.Simulation
                     var settlement = new Settlement
                     {
                         Id = reader.ReadInt32(), Owner = reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
-                        Hull = reader.ReadDouble(), Bronze = reader.ReadInt64(), Rations = reader.ReadInt64(),
+                        Hull = reader.ReadDouble(), Wood = reader.ReadInt64(), Silver = reader.ReadInt64(),
+                        ReservedWood = reader.ReadInt64(), ReservedSilver = reader.ReadInt64(), RepairShipId = reader.ReadInt32(),
                     };
-                    var queue = reader.ReadInt32();
-                    for (var q = 0; q < queue; q++)
-                    {
-                        settlement.Queue.Add(new BuildOrder
-                        {
-                            Class = (ShipClass)reader.ReadInt32(), PaidBronze = reader.ReadInt64(), PaidRations = reader.ReadInt64(),
-                            TotalTicks = reader.ReadInt32(), DoneTicks = reader.ReadInt32(), Started = reader.ReadBoolean(),
-                        });
-                    }
-                    var docked = reader.ReadInt32();
-                    for (var d = 0; d < docked; d++) settlement.DockedShips.Add(reader.ReadInt32());
+                    ReadQueue(reader, settlement.WarQueue);
+                    ReadQueue(reader, settlement.PortQueue);
+                    ReadIds(reader, settlement.DockedShips);
+                    ReadIds(reader, settlement.PortWaiting);
                     world.Settlements.Add(settlement);
                 }
 
@@ -135,10 +184,22 @@ namespace MorzaBogow.Simulation
                         X = reader.ReadDouble(), Y = reader.ReadDouble(), Heading = reader.ReadDouble(), Speed = reader.ReadDouble(), Hull = reader.ReadDouble(),
                         Sailors = reader.ReadInt32(), Soldiers = reader.ReadInt32(), CrewDamage = reader.ReadDouble(), Morale = reader.ReadDouble(),
                         Reload = reader.ReadDouble(), LastDamagedTick = reader.ReadInt32(),
+                        PaidConstructionWood = reader.ReadInt64(), PaidConstructionSilver = reader.ReadInt64(),
                         Order = (OrderKind)reader.ReadInt32(), TargetX = reader.ReadDouble(), TargetY = reader.ReadDouble(), TargetId = reader.ReadInt32(),
-                        NodeId = reader.ReadInt32(), Harvest = (HarvestPhase)reader.ReadInt32(), CargoType = (ResourceType)reader.ReadInt32(), Cargo = reader.ReadInt64(),
+                        NodeId = reader.ReadInt32(), WreckId = reader.ReadInt32(), Harvest = (HarvestPhase)reader.ReadInt32(), CargoType = (ResourceType)reader.ReadInt32(), Cargo = reader.ReadInt64(),
                         WorkRemainder = reader.ReadDouble(), UnloadRemainder = reader.ReadDouble(),
+                        RepairWoodRemainder = reader.ReadDouble(), RepairSilverRemainder = reader.ReadDouble(), ScrapTicks = reader.ReadInt32(),
                         RamState = (RamPhase)reader.ReadInt32(), RamTimer = reader.ReadInt32(), LastRamTick = reader.ReadInt32(),
+                    });
+                }
+
+                count = reader.ReadInt32();
+                for (var i = 0; i < count; i++)
+                {
+                    world.Wrecks.Add(new Wreck
+                    {
+                        Id = reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
+                        Wood = reader.ReadInt64(), Silver = reader.ReadInt64(), ExpiresTick = reader.ReadInt32(),
                     });
                 }
 

@@ -2,9 +2,9 @@
 
 ## Dokumentacja obowiązująca
 
-Przeczytaj GAME_VISION.md, GAME_DESIGN.md, ECONOMY_DESIGN.md, ECONOMY_BALANCE.md, VISUAL_TECH_SPEC.md, MYTHIC_SCENARIOS.md i README_PL.md. Stosuj reguły E00–E16 dla gospodarki, V00–V13 dla obrazu i S00–S07 oraz M01–M14 dla kampanii. Parametry qa/economy-baseline.json i qa/scenario-design.json odwzoruj w danych projektu. Utrzymuj zgodność dokumentów, konfiguracji i implementacji.
+Przeczytaj GAME_VISION.md, GAME_DESIGN.md, ECONOMY_DESIGN.md, ECONOMY_BALANCE.md, VISUAL_TECH_SPEC.md, MYTHIC_SCENARIOS.md i README_PL.md. Stosuj reguły E00–E12 dla gospodarki, V00–V13 dla obrazu i S00–S07 oraz M01–M14 dla kampanii. Parametry qa/economy-baseline.json i qa/scenario-design.json odwzoruj w danych projektu. Utrzymuj zgodność dokumentów, konfiguracji i implementacji.
 
-Gra jest strategią bitew morskich. Gospodarka ma tworzyć eskorty, rajdy i walkę o akweny. Obowiązują dwa zasoby, lokalne magazyny, rzeczywiste cargo, automatyczne konwoje, ograniczone premie i skończone kontrakty. Zachowaj role oraz ceny klas okrętów. Nie dodawaj podatku od floty ani systemu potrzeb mieszkańców.
+Gra jest strategią bitew morskich. Gospodarka ma tworzyć eskorty, rajdy i walkę o akweny. Obowiązują dwa skończone zasoby: drewno D i srebro S, lokalne magazyny, rzeczywiste cargo, automatyczne konwoje i ograniczone premie. Żywność w misjach jest ładunkiem misji, nie walutą. Zachowaj role oraz ceny klas okrętów. Nie dodawaj podatku od floty ani systemu potrzeb mieszkańców.
 
 Kampania ma 14 misji. Każda wymaga własnego stanu startowego, wykonalnych celów, jawnych porażek, zapowiedzi zagrożeń i zapisu zdarzeń. Przedmioty oraz postacie mają unikalne identyfikatory. Przejście między misjami nie przenosi floty ani magazynów. Parametry czasu i obrażeń stroi się przez playtesty.
 

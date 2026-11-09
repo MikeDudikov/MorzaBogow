@@ -22,6 +22,7 @@ namespace MorzaBogow.Simulation
         public readonly List<Settlement> Settlements = new List<Settlement>();
         public readonly List<Ship> Ships = new List<Ship>();
         public readonly List<BoardingLink> Boardings = new List<BoardingLink>();
+        public readonly List<Wreck> Wrecks = new List<Wreck>();
 
         /// <summary>Not saved: pending commands are applied on the next step and events are transient.</summary>
         public readonly List<Command> Pending = new List<Command>();
@@ -48,21 +49,13 @@ namespace MorzaBogow.Simulation
             var ship = new Ship
             {
                 Id = NextId++, Owner = owner, Class = shipClass, X = x, Y = y, Hull = definition.Hull,
-                Sailors = definition.BaseSailors, Heading = owner == 0 ? 0 : Math.PI,
+                Sailors = definition.StandardSailors, Heading = owner == 0 ? 0 : Math.PI,
+                PaidConstructionWood = TemplatePricing.ConstructionWood(definition),
+                PaidConstructionSilver = TemplatePricing.ConstructionSilver(definition),
             };
-            if (fullCrew && definition.LightSlots > 0) ship.Soldiers = definition.MaxCrew - definition.BaseSailors;
+            if (fullCrew) ship.Soldiers = definition.StandardSoldiers;
             Ships.Add(ship);
             return ship;
-        }
-
-        public long HullCostBronze(ShipClass shipClass) =>
-            (ShipCatalog.Get(shipClass).CostBronze + ShipCatalog.Get(shipClass).LightSlots * Rules.LightWeaponCost) * Rules.Centi;
-
-        public long HullCostRations(ShipClass shipClass)
-        {
-            var definition = ShipCatalog.Get(shipClass);
-            var soldiers = definition.LightSlots > 0 ? definition.MaxCrew - definition.BaseSailors : 0;
-            return (definition.CostRations + soldiers * Rules.SoldierRationCost) * Rules.Centi;
         }
 
         public void Step()
@@ -70,13 +63,14 @@ namespace MorzaBogow.Simulation
             if (Outcome != OutcomeKind.InProgress) { Pending.Clear(); return; }
             Tick++;
             ApplyCommands();
-            StepNodes();
+            AssignBerths();
             StepProduction();
             StepOrdersAndMovement();
             StepRams();
             StepWeapons();
             StepBoarding();
             StepRecovery();
+            StepWrecks();
             RemoveDead();
             UpdateKnowledge();
             CheckVictory();
@@ -132,7 +126,7 @@ namespace MorzaBogow.Simulation
             switch (command.Kind)
             {
                 case CommandKind.QueueShip: QueueShip(command.Faction, command.Class); return;
-                case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex); return;
+                case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue); return;
             }
 
             foreach (var id in command.ShipIds.OrderBy(value => value))
@@ -178,6 +172,23 @@ namespace MorzaBogow.Simulation
                         : command.Kind == CommandKind.Ram ? OrderKind.Ram : OrderKind.Board;
                     ship.RamState = RamPhase.Approach;
                     break;
+                case CommandKind.Salvage:
+                    if (!ship.Definition.CanHarvest || Wrecks.All(wreck => wreck.Id != command.TargetId)) return;
+                    ClearOrder(ship);
+                    ship.Order = OrderKind.Salvage;
+                    ship.WreckId = command.TargetId;
+                    break;
+                case CommandKind.Repair:
+                    if (ship.Hull >= ship.Definition.Hull) return;
+                    ClearOrder(ship);
+                    ship.Order = OrderKind.Repair;
+                    break;
+                case CommandKind.Scrap:
+                    if (ship.Cargo > 0) return;
+                    ClearOrder(ship);
+                    ship.Order = OrderKind.Scrap;
+                    ship.ScrapTicks = 0;
+                    break;
                 case CommandKind.AttackSettlement:
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
                     if (settlement == null || settlement.Owner == ship.Owner || settlement.Destroyed || ship.Definition.LightSlots == 0) return;
@@ -193,211 +204,11 @@ namespace MorzaBogow.Simulation
         {
             Boardings.RemoveAll(link => link.AttackerId == ship.Id);
             ReleaseDock(ship);
+            LeaveNode(ship);
             ship.Order = OrderKind.Idle;
             ship.TargetId = -1;
             ship.NodeId = -1;
-        }
-
-        void ReleaseDock(Ship ship)
-        {
-            foreach (var settlement in Settlements) settlement.DockedShips.Remove(ship.Id);
-        }
-
-        // ---------- Economy (E01-E04) ----------
-
-        void StepNodes()
-        {
-            foreach (var node in Nodes.Where(item => item.Type == ResourceType.Rations))
-            {
-                if (node.Stock < node.Capacity)
-                {
-                    var stock = (double)node.Stock / Rules.Centi;
-                    var capacity = (double)node.Capacity / Rules.Centi;
-                    node.RegenRemainder += (Rules.ShellRegenMin + Rules.ShellRegenSlope * stock / capacity) * Rules.Dt * Rules.Centi;
-                    var whole = (long)node.RegenRemainder;
-                    node.RegenRemainder -= whole;
-                    node.Stock = Math.Min(node.Capacity, node.Stock + whole);
-                }
-                var fraction = (double)node.Stock / node.Capacity;
-                if (!node.Closed && fraction < Rules.ShellCloseFraction) node.Closed = true;
-                else if (node.Closed && fraction >= Rules.ShellReopenFraction) node.Closed = false;
-            }
-        }
-
-        void QueueShip(int faction, ShipClass shipClass)
-        {
-            var settlement = SettlementOf(faction);
-            if (settlement == null || settlement.Destroyed) return;
-            if (Ships.Count(ship => ship.Owner == faction) + settlement.Queue.Count >= Rules.FleetLimit) return;
-
-            var bronze = HullCostBronze(shipClass);
-            var rations = HullCostRations(shipClass);
-            if (settlement.Bronze < bronze || settlement.Rations < rations) return;
-            settlement.Bronze -= bronze;
-            settlement.Rations -= rations;
-            var definition = ShipCatalog.Get(shipClass);
-            settlement.Queue.Add(new BuildOrder
-            {
-                Class = shipClass, PaidBronze = bronze, PaidRations = rations,
-                TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate),
-            });
-        }
-
-        void CancelQueue(int faction, int index)
-        {
-            var settlement = SettlementOf(faction);
-            if (settlement == null || index < 0 || index >= settlement.Queue.Count) return;
-            var order = settlement.Queue[index];
-            settlement.Queue.RemoveAt(index);
-
-            if (!order.Started)
-            {
-                settlement.Bronze += order.PaidBronze;
-                settlement.Rations += order.PaidRations;
-                return;
-            }
-
-            var unused = 1.0 - (double)order.DoneTicks / order.TotalTicks;
-            settlement.Bronze += (long)(order.PaidBronze * unused * Rules.RefundAfterStart);
-            settlement.Rations += (long)(order.PaidRations * unused * Rules.RefundAfterStart);
-        }
-
-        void StepProduction()
-        {
-            foreach (var settlement in Settlements)
-            {
-                if (settlement.Destroyed) continue;
-                for (var slot = 0; slot < Math.Min(2, settlement.Queue.Count); slot++)
-                {
-                    var order = settlement.Queue[slot];
-                    order.Started = true;
-                    order.DoneTicks++;
-                }
-
-                for (var i = Math.Min(2, settlement.Queue.Count) - 1; i >= 0; i--)
-                {
-                    var order = settlement.Queue[i];
-                    if (order.DoneTicks < order.TotalTicks) continue;
-                    settlement.Queue.RemoveAt(i);
-                    var direction = settlement.Owner == 0 ? 1 : -1;
-                    var ship = SpawnShip(settlement.Owner, order.Class, settlement.X + direction * 45, settlement.Y + (Tick % 5 - 2) * 25);
-                    Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, 0);
-                }
-            }
-        }
-
-        void StepHarvest(Ship ship)
-        {
-            var node = FindNode(ship.NodeId);
-            var settlement = SettlementOf(ship.Owner);
-            var definition = ship.Definition;
-
-            if (ship.Harvest == HarvestPhase.ToNode)
-            {
-                if (node == null || node.Stock <= 0 || node.Closed)
-                {
-                    node = ClosestOpenNode(ship, node?.Type);
-                    if (node == null) { ship.Order = OrderKind.Idle; StopShip(ship); return; }
-                    ship.NodeId = node.Id;
-                }
-                if (ship.Cargo > 0 && ship.CargoType != node.Type) { ship.Harvest = HarvestPhase.ToPort; return; }
-                if (Distance(ship.X, ship.Y, node.X, node.Y) <= Rules.NodeWorkRange) { ship.Harvest = HarvestPhase.Working; ship.CargoType = node.Type; }
-                else Steer(ship, node.X, node.Y, definition.Speed, Rules.NodeWorkRange * 0.8);
-            }
-
-            if (ship.Harvest == HarvestPhase.Working)
-            {
-                StopShip(ship);
-                if (node == null || node.Stock <= 0 || node.Closed || ship.Cargo >= definition.Capacity * Rules.Centi)
-                {
-                    ship.Harvest = ship.Cargo > 0 ? HarvestPhase.ToPort : HarvestPhase.ToNode;
-                }
-                return;
-            }
-
-            if (ship.Harvest == HarvestPhase.ToPort)
-            {
-                if (settlement == null || settlement.Destroyed) { ship.Order = OrderKind.Idle; StopShip(ship); return; }
-                if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) <= Rules.PortRange)
-                {
-                    StopShip(ship);
-                    if (settlement.DockedShips.Count < Rules.StationCount)
-                    {
-                        settlement.DockedShips.Add(ship.Id);
-                        ship.Harvest = HarvestPhase.Docked;
-                    }
-                }
-                else Steer(ship, settlement.X, settlement.Y, definition.Speed, Rules.PortRange * 0.8);
-            }
-
-            if (ship.Harvest == HarvestPhase.Docked)
-            {
-                StopShip(ship);
-                if (settlement == null || settlement.Destroyed) { ReleaseDock(ship); ship.Order = OrderKind.Idle; return; }
-
-                ship.UnloadRemainder += Rules.HandlingPerSecond * Rules.Dt * Rules.Centi;
-                var moved = (long)ship.UnloadRemainder;
-                ship.UnloadRemainder -= moved;
-                moved = Math.Min(moved, ship.Cargo);
-                moved = Math.Min(moved, Rules.SettlementCapacity - settlement.Stock(ship.CargoType));
-                if (moved > 0)
-                {
-                    ship.Cargo -= moved;
-                    settlement.Add(ship.CargoType, moved);
-                }
-
-                if (ship.Cargo == 0)
-                {
-                    ReleaseDock(ship);
-                    ship.UnloadRemainder = 0;
-                    ship.Harvest = HarvestPhase.ToNode;
-                }
-            }
-        }
-
-        void StepWorkers()
-        {
-            foreach (var node in Nodes)
-            {
-                var workers = Ships.Where(ship => ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Working && ship.NodeId == node.Id).OrderBy(ship => ship.Id).ToList();
-                if (workers.Count == 0 || node.Closed) continue;
-
-                double Rate(Ship ship) => node.Type == ResourceType.Bronze ? ship.Definition.BronzeWork : ship.Definition.RationsWork;
-                var total = workers.Sum(Rate);
-                var cap = node.Type == ResourceType.Bronze ? Rules.BronzeNodeCap : Rules.RationsNodeCap;
-                var share = total > cap ? cap / total : 1.0;
-                var factor = 1.0;
-                if (node.Type == ResourceType.Rations)
-                {
-                    var fraction = (double)node.Stock / node.Capacity;
-                    factor = Math.Max(Rules.ShellMinFactor, Math.Min(1.0, fraction / Rules.ShellSlowFraction));
-                }
-
-                foreach (var ship in workers)
-                {
-                    ship.WorkRemainder += Rate(ship) * share * factor * Rules.Dt * Rules.Centi;
-                    var whole = (long)ship.WorkRemainder;
-                    ship.WorkRemainder -= whole;
-                    whole = Math.Min(whole, Math.Min(node.Stock, ship.Definition.Capacity * Rules.Centi - ship.Cargo));
-                    if (whole <= 0) continue;
-                    node.Stock -= whole;
-                    ship.Cargo += whole;
-                }
-            }
-        }
-
-        ResourceNode ClosestOpenNode(Ship ship, ResourceType? type)
-        {
-            ResourceNode best = null;
-            var bestDistance = double.MaxValue;
-            foreach (var node in Nodes)
-            {
-                if (type.HasValue && node.Type != type.Value) continue;
-                if (node.Stock <= 0 || node.Closed || (node.KnownMask & (1 << ship.Owner)) == 0) continue;
-                var distance = Distance2(ship.X, ship.Y, node.X, node.Y);
-                if (distance < bestDistance) { bestDistance = distance; best = node; }
-            }
-            return best;
+            ship.WreckId = -1;
         }
 
         // ---------- Movement (C02): limited turning, no lateral movement ----------
@@ -414,6 +225,9 @@ namespace MorzaBogow.Simulation
                         else Steer(ship, ship.TargetX, ship.TargetY, ship.Definition.Speed, ship.Definition.Radius + 4);
                         break;
                     case OrderKind.Harvest: StepHarvest(ship); break;
+                    case OrderKind.Salvage: StepSalvage(ship); break;
+                    case OrderKind.Repair: StepRepair(ship); break;
+                    case OrderKind.Scrap: StepScrap(ship); break;
                     case OrderKind.AttackShip:
                         var target = FindShip(ship.TargetId);
                         if (target == null || !CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; break; }
@@ -789,8 +603,13 @@ namespace MorzaBogow.Simulation
         {
             foreach (var ship in Ships.Where(item => item.Hull <= 0).ToList())
             {
-                Emit("ship_sunk", ship.Id, -1, ship.X, ship.Y, ship.Cargo);
+                if (!ship.Scrapped)
+                {
+                    Emit("ship_sunk", ship.Id, -1, ship.X, ship.Y, ship.Cargo);
+                    CreateWreck(ship);
+                }
                 ReleaseDock(ship);
+                LeaveNode(ship);
                 Boardings.RemoveAll(link => link.AttackerId == ship.Id || link.TargetId == ship.Id);
                 foreach (var other in Ships.Where(item => item.Order != OrderKind.Idle && item.Order != OrderKind.Move && item.Order != OrderKind.AttackSettlement && item.Order != OrderKind.Harvest && item.TargetId == ship.Id))
                 {
@@ -805,8 +624,10 @@ namespace MorzaBogow.Simulation
         {
             var settlement = SettlementOf(faction);
             if (settlement == null || settlement.Destroyed) return true;
-            if (Ships.Any(ship => ship.Owner == faction) || settlement.Queue.Count > 0) return false;
-            return settlement.Bronze < HullCostBronze(ShipClass.Cutter);
+            if (Ships.Any(ship => ship.Owner == faction) || settlement.WarQueue.Count > 0 || settlement.PortQueue.Count > 0) return false;
+            var cutter = ShipCatalog.Get(ShipClass.Cutter);
+            return settlement.Available(ResourceType.Wood) < cutter.CostWood * Rules.Centi
+                   || settlement.Available(ResourceType.Silver) < cutter.CostSilver * Rules.Centi;
         }
 
         void CheckVictory()
@@ -823,7 +644,7 @@ namespace MorzaBogow.Simulation
 
         public static double Distance(double ax, double ay, double bx, double by) => Math.Sqrt(Distance2(ax, ay, bx, by));
 
-        static double Distance2(double ax, double ay, double bx, double by)
+        internal static double Distance2(double ax, double ay, double bx, double by)
         {
             var dx = ax - bx;
             var dy = ay - by;

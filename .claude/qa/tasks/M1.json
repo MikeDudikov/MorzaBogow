@@ -1,15 +1,15 @@
 {
   "taskId": "M1",
   "sessionId": "manual-m1",
-  "requirements": ["C01-M1", "C02", "C04", "C05", "C08", "C12-save", "E01", "E02", "E03", "E04", "E07", "V10-profiles", "V13"],
+  "requirements": ["C01-M1", "C02", "C04", "C05", "C08", "C12-save", "E01", "E02", "E03", "E04", "E06", "E10", "V10-profiles", "V13"],
   "profiles": {
     "EditMode": {
       "expectedTests": [
-        "MorzaBogow.Tests.SimulationTests.Harvest_ConservesBronzeAcrossNodeShipAndSettlement",
+        "MorzaBogow.Tests.SimulationTests.Ledger_ConservesWoodAndSilverAcrossAMatch",
         "MorzaBogow.Tests.SimulationTests.Ram_OneChargeResolvesOnceAndHurtsAttackerTwentyPercent",
-        "MorzaBogow.Tests.SimulationTests.Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargo",
-        "MorzaBogow.Tests.SimulationTests.Save_RoundTripContinuesIdentically",
-        "MorzaBogow.Tests.SimulationTests.Match_OpponentsBuildFleetsFightAndFinishOrKeepPlaying",
+        "MorzaBogow.Tests.SimulationTests.Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargoAndPaidCost",
+        "MorzaBogow.Tests.SimulationTests.Save_RoundTripContinuesIdenticallyDuringTransfers",
+        "MorzaBogow.Tests.SimulationTests.Match_OpponentsBuildFleetsAndFight",
         "MorzaBogow.Tests.ResolutionCatalogTests.Build_KeepsOnlyModesInRange"
       ]
     },
