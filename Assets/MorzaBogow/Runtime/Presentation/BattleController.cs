@@ -722,15 +722,15 @@ namespace MorzaBogow.Presentation
             var width = settlement.IsOutpost ? 9f : 11f;
             var depth = settlement.IsOutpost ? 12f : 16f;
             var tall = settlement.IsOutpost ? 4f : 6f;
-            // Set on the plateau above the cliffs, its foot at the highest ground under it.
+            // Built into the slope behind the harbour: its foot at the lowest ground under it, its back set into the hill.
             var shape = ShoreOf(settlement.X, settlement.Y);
             var centreX = -toward * (width * 0.5f + 1.5f);
-            var foot = 0f;
+            var foot = float.MaxValue;
             for (var corner = 0; corner < 4; corner++)
             {
                 var x = centreX + ((corner & 1) == 0 ? -0.5f : 0.5f) * width;
                 var z = ((corner & 2) == 0 ? -0.5f : 0.5f) * depth;
-                foot = Mathf.Max(foot, ShoreShape.GroundAt(shape.outline, shape.lift, x, z));
+                foot = Mathf.Min(foot, ShoreShape.GroundAt(shape.outline, shape.lift, x, z));
             }
             AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(centreX, foot + tall * 0.5f - 0.3f, 0f), new Vector3(width, tall, depth));
             yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);

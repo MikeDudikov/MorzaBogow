@@ -29,9 +29,12 @@ namespace MorzaBogow.Presentation
         /// Where the shore is a cliff: a limestone plateau that ends in a near-vertical face dropping straight into
         /// deeper water, as on the rocky Aegean islets. Blended with the gentle profile by each direction's lift.
         /// </summary>
-        static readonly float[] CliffHeightAt = { 5.6f, 5.5f, 5.2f, 4.8f, 4.4f, 3.7f, 2.2f, -0.3f, -2.6f };
+        static readonly float[] CliffHeightAt = { 8.2f, 9.0f, 9.1f, 8.8f, 8.3f, 7.6f, 4.6f, -0.6f, -4.5f };
         const int LandRings = 3;
-        const float CrownHeight = 2.15f, CliffCrown = 5.7f;
+
+        /// <summary>The ring at the top of the cliff face (fraction 0.93): the wall drops from here to the water.</summary>
+        const int RimRing = 5;
+        const float CrownHeight = 2.15f;
 
         /// <summary>
         /// How much of a cliff each direction has: none in the sheltered sector where jetties and slipways meet the
@@ -57,7 +60,8 @@ namespace MorzaBogow.Presentation
         public static float MoundHeight(float fraction, float lift)
         {
             if (lift <= 0f) return MoundHeight(fraction);
-            if (fraction <= MoundFraction[0]) return Mathf.Lerp(Lifted(CrownHeight, CliffCrown, lift), Lifted(MoundHeightAt[0], CliffHeightAt[0], lift), fraction / MoundFraction[0]);
+            // The centre stays low by the landing and slipways; the plateau rises from it toward the cliffs.
+            if (fraction <= MoundFraction[0]) return Mathf.Lerp(CrownHeight, Lifted(MoundHeightAt[0], CliffHeightAt[0], lift), fraction / MoundFraction[0]);
             for (var i = 1; i < MoundFraction.Length; i++)
             {
                 if (fraction > MoundFraction[i]) continue;
@@ -103,10 +107,10 @@ namespace MorzaBogow.Presentation
         public static Mesh Mound(float[] outline, float[] lift = null)
         {
             var rings = MoundFraction.Length;
-            var vertices = new Vector3[1 + rings * Samples];
-            var crownLift = 0f;
-            if (lift != null) { foreach (var value in lift) crownLift += value; crownLift /= Samples; }
-            vertices[0] = new Vector3(0f, Lifted(CrownHeight, CliffCrown, crownLift), 0f);
+            // One extra copy of the rim ring: the cliff face gets its own edge, so the plateau and the wall below
+            // it shade apart instead of blending into a soft slope.
+            var vertices = new Vector3[1 + (rings + 1) * Samples];
+            vertices[0] = new Vector3(0f, CrownHeight, 0f);
             for (var ring = 0; ring < rings; ring++)
             {
                 for (var i = 0; i < Samples; i++)
@@ -117,11 +121,23 @@ namespace MorzaBogow.Presentation
                     vertices[1 + ring * Samples + i] = new Vector3(Mathf.Cos(angle) * radius, height, Mathf.Sin(angle) * radius);
                 }
             }
+            var rimCopy = 1 + rings * Samples;
+            for (var i = 0; i < Samples; i++) vertices[rimCopy + i] = vertices[1 + RimRing * Samples + i];
 
             var land = new List<int>();
             var beach = new List<int>();
             AddCap(land);
-            for (var ring = 0; ring < rings - 1; ring++) AddRing(ring < LandRings ? land : beach, ring);
+            for (var ring = 0; ring < rings - 1; ring++)
+            {
+                if (ring != RimRing) { AddRing(ring < LandRings ? land : beach, ring); continue; }
+                for (var i = 0; i < Samples; i++)
+                {
+                    var next = (i + 1) % Samples;
+                    int a = rimCopy + i, b = rimCopy + next, c = 1 + (ring + 1) * Samples + i, d = 1 + (ring + 1) * Samples + next;
+                    beach.Add(a); beach.Add(b); beach.Add(c);
+                    beach.Add(b); beach.Add(d); beach.Add(c);
+                }
+            }
 
             var mesh = new Mesh { name = "Islet", vertices = vertices, subMeshCount = 2 };
             mesh.SetTriangles(beach, 0);
