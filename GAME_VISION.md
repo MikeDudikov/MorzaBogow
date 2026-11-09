@@ -71,7 +71,7 @@ Gracz musi rozumieć, dlaczego statek czeka, dokąd płynie konwój, co rezerwuj
 
 Realistyczna woda, światło i materiały mają podkreślać skalę floty, warunki nawigacji i skutki walki. Sylwetki klas, kierunek kadłuba, stan uszkodzeń i granice zagrożeń pozostają czytelne z kamery strategicznej. Piana, ogień, mgła i błyskawice nie mogą zasłaniać informacji niezbędnych do manewru.
 
-Gra nie ma wymagań sprzętowych ograniczających jakość: docelowym i jedynym wymaganym profilem jest Ultra. Ewentualne niższe profile są opcjonalne i zachowują pełną czytelność oraz identyczne reguły symulacji. Cienie, odbicia, kilwater, VFX i dźwięk nie ujawniają jednostek ukrytych przez mgłę wojny. Płynność ocenia się podczas ruchu i starcia wielu statków.
+Gra nie ma wymagań sprzętowych. Gracz wybiera profil Low, Medium, High, Extra High albo Ultra. Ultra zapewnia najwyższą jakość bez kompromisów, a każdy profil zachowuje pełną czytelność oraz identyczne reguły symulacji. Cienie, odbicia, kilwater, VFX i dźwięk nie ujawniają jednostek ukrytych przez mgłę wojny. Płynność ocenia się podczas ruchu i starcia wielu statków.
 
 ## VIZ10. Zakres i odbiór doświadczenia
 

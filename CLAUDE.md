@@ -8,7 +8,7 @@ Gra jest strategią bitew morskich. Gospodarka ma tworzyć eskorty, rajdy i walk
 
 Kampania ma 14 misji. Każda wymaga własnego stanu startowego, wykonalnych celów, jawnych porażek, zapowiedzi zagrożeń i zapisu zdarzeń. Przedmioty oraz postacie mają unikalne identyfikatory. Przejście między misjami nie przenosi floty ani magazynów. Parametry czasu i obrażeń stroi się przez playtesty.
 
-Grafikę rozwijaj na funkcjach HDRP. Weryfikuj obsługę API w zainstalowanym środowisku. Docelowym i jedynym wymaganym profilem jest Ultra, a gra nie ma wymagań sprzętowych. Zachowaj czytelność floty i logiczną mgłę wojny; renderowanie nie może ujawniać ukrytych jednostek. Pomiary GPU i ocena ruchomego obrazu wymagają rzeczywistego urządzenia.
+Grafikę rozwijaj na funkcjach HDRP. Weryfikuj obsługę API w zainstalowanym środowisku. Gra ma pięć profili obrazu: Low, Medium, High, Extra High i Ultra, oraz nie ma wymagań sprzętowych. Ultra nie zawiera kompromisów jakości. Zachowaj czytelność floty i logiczną mgłę wojny; renderowanie nie może ujawniać ukrytych jednostek. Pomiary GPU i ocena ruchomego obrazu wymagają rzeczywistego urządzenia.
 
 Decyzje wdrożeniowe oceniaj według GAME_VISION.md. Pierwszeństwo mają grywalna operacja morska, czytelne decyzje i działająca automatyka. Pełna rozbudowa portu nie jest warunkiem pierwszego starcia. Kontroluj tempo standardowej potyczki, różnorodność strategii i czas nieplanowanych interwencji gospodarczych. Odbiór tych celów wymaga playtestów.
 

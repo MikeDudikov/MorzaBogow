@@ -17,7 +17,9 @@ V08,Close-up skin hair and cloth implemented on Ultra,MaterialLab and close-up r
 V09,Event ID does not duplicate VFX,EditMode and PlayMode event tests,REQUIRED,NOT_RUN
 V09,Save-load and pause preserve persistent effects,PlayMode plus recorded sequence,REQUIRED,NOT_RUN
 V09,No blocking temporal trails on masts or foam,300-frame motion sequence,REQUIRED,NOT_RUN
-V10,Ultra runs all required features and frame data is recorded at 100 200 400 ships,Windows build review plus informational profiling,REQUIRED,NOT_RUN
+V10,Low Medium High Extra High and Ultra exist and switch without restart,PlayMode profile cycle plus Windows build check,REQUIRED,NOT_RUN
+V10,All five profiles keep identical simulation and tactical information,Paired deterministic runs across profiles,REQUIRED,NOT_RUN
+V10,Ultra runs all required features and every profile records frame data at 100 200 400 ships,Windows build review plus informational profiling,REQUIRED,NOT_RUN
 V10,No resource leak after 20 quality changes,PlayMode resource counters and memory profile,REQUIRED,NOT_RUN
 V11,Visual baseline changes require independent review,Artifact and review record,REQUIRED,NOT_RUN
 V11,Hidden enemy contributes no reflection fog or VFX,Paired deterministic capture with visual review,REQUIRED,NOT_RUN
@@ -28,4 +30,4 @@ V13,Saved mode falls back safely when the display no longer supports it,PlayMode
 V13,Resolution does not change simulation or tactical information,Paired deterministic runs at both range ends,REQUIRED,NOT_RUN
 V13,HUD and input correct at range ends with UI scale 80-150 percent,PlayMode input plus independent visual review,REQUIRED,NOT_RUN
 V13,No resource leak after 20 resolution changes,PlayMode resource counters and memory profile,REQUIRED,NOT_RUN
-V13,Ultra verified at 1080p and 1440p with informational frame and VRAM data,Windows build review on real hardware,REQUIRED,NOT_RUN
+V13,All five profiles verified at 1080p and 1440p with informational frame and VRAM data,Windows build review on real hardware,REQUIRED,NOT_RUN

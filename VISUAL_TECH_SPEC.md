@@ -50,11 +50,11 @@ Przekazuj dane per instancja bez tworzenia materiału co klatkę. Dobór Materia
 
 Światło ma tworzyć czytelną bryłę: główne słońce/księżyc, kontrolowany ambient nieba, lokalne ciepłe ogniska w porcie i chłodniejsze efekty morskie. Startowa wysokość słońca 25–45° do testów; potem sprawdź pełny cykl. Parametry fizyczne wpisuj w jednostkach obsługiwanych przez komponent (lux/lumen/kandela), nie mieszaj nieudokumentowanego intensity między typami światła. Temperatura barwowa startowo słońce ok. 5500–6500 K, ogień 1800–2400 K, ale kolor płomienia zależy też od emisji i tonemappingu.
 
-Osobne limity świateł widocznych, świateł z cieniem i świateł wpływających na wolumetrię. Start Ultra: do 64 lokalnych aktywnych, 16 z cieniem. Każdy błysk nie tworzy nowego obiektu Light; używaj puli i priorytetu: bliskość, obszar na ekranie, znaczenie rozgrywkowe, intensywność. Kilka pożarów w skupisku może współdzielić światło z wygaszaniem, bez nagłego migotania przy zmianie lidera. Sama emisja materiału nie gwarantuje oświetlenia otoczenia w rasterze.
+Osobne limity świateł widocznych, świateł z cieniem i świateł wpływających na wolumetrię. Limity świateł każdego profilu określa V10. Każdy błysk nie tworzy nowego obiektu Light; używaj puli i priorytetu: bliskość, obszar na ekranie, znaczenie rozgrywkowe, intensywność. Kilka pożarów w skupisku może współdzielić światło z wygaszaniem, bez nagłego migotania przy zmianie lidera. Sama emisja materiału nie gwarantuje oświetlenia otoczenia w rasterze.
 
-Cienie kaskadowe dla światła kierunkowego: startowo 4 kaskady, odległość dobrana do kadru, a nie całych 5 km mapy. Ustaw bias testem liny, burty, masztu i styku portu. Zbyt duży bias daje pływanie cienia, za mały acne. Contact shadows dla najbliższych istotnych obiektów; SSAO wzmacnia styk, nie zastępuje cienia kierunkowego i nie powinno czernić całej burty.
+Cienie kaskadowe dla światła kierunkowego: liczba kaskad według V10, odległość dobrana do kadru, a nie całych 5 km mapy. Ustaw bias testem liny, burty, masztu i styku portu. Zbyt duży bias daje pływanie cienia, za mały acne. Contact shadows dla najbliższych istotnych obiektów; SSAO wzmacnia styk, nie zastępuje cienia kierunkowego i nie powinno czernić całej burty.
 
-Pośrednie światło: niebo + sondy/reflection probes oraz opcjonalne dane pieczone dla statycznych portów w wariantach oświetlenia. Ruchomy statek nie może odziedziczyć wypalonego na stałe cienia w miejscu startu. Zmianę pory dnia i sond uzgodnij; nie pozostawiaj jaskrawej dziennej sondy w środku nocy. RTGI jest częścią profilu Ultra, po potwierdzeniu w V00. Ich wyłączenie na opcjonalnym niższym profilu nie może ujawniać przeciwników ani zmieniać czytelności zagrożeń.
+Pośrednie światło: niebo + sondy/reflection probes oraz opcjonalne dane pieczone dla statycznych portów w wariantach oświetlenia. Ruchomy statek nie może odziedziczyć wypalonego na stałe cienia w miejscu startu. Zmianę pory dnia i sond uzgodnij; nie pozostawiaj jaskrawej dziennej sondy w środku nocy. RTGI jest częścią profilu Ultra, po potwierdzeniu w V00. Ich brak na niższym profilu nie może ujawniać przeciwników ani zmieniać czytelności zagrożeń.
 
 Nie wygaszaj fizycznie całego ambientu poza światłem statku jako zamiennika mgły wojny. Ukrywanie wroga musi nastąpić przed renderowaniem jego geometrii, odbicia, cienia, światła i VFX. Wiele kamer i wspólne mapy cieni wymagają osobnej kontroli per obserwator — globalne wyłączenie renderera może zepsuć widok drugiego gracza/obserwatora.
 
@@ -112,24 +112,26 @@ Włącz TAA dopiero po poprawnych wektorach ruchu dla kadłuba i dostępnych def
 
 Testuj 300 klatek ruchu kamery: ghosting masztów, smugi za płomieniem, migotanie lin, refleksów i białej piany. Pojedynczy screenshot nie dowodzi stabilności. Sharpening nie jest naprawą błędnych motion vectors. Domyślnie gra renderuje natywnie, bez dynamicznej rozdzielczości i upscalera. Są to wyłącznie opcje dla gracza, po ustaleniu obrazu bazowego; porównanie natywnego 1080p z rekonstrukcją musi mieć identyczny seed, kadr i stan pogody.
 
-## V10. Profil Ultra bez wymagań sprzętowych
+## V10. Pięć profili obrazu bez wymagań sprzętowych
 
-Gra nie ma wymagań sprzętowych, minimalnego GPU ani budżetu klatki ograniczającego jakość. Jedynym wymaganym profilem jest Ultra, a obraz dobiera się według jakości, nie według sprzętu. Niższe profile są opcjonalne; jeśli powstaną, nie mogą zmieniać reguł ani informacji taktycznej. Wymagane funkcje, które nie działają na danym urządzeniu, na przykład ray tracing bez DXR, gra zgłasza jasnym komunikatem, a nie zastępuje po cichu.
+Gra nie ma wymagań sprzętowych, minimalnego GPU ani budżetu klatki ograniczającego jakość. Gracz wybiera profil Low, Medium, High, Extra High albo Ultra; zmiana działa bez restartu i jest zapisywana. Domyślnie wybrany jest Ultra. Ultra zawiera najwyższą jakość bez kompromisów. Gra nie obniża jakości automatycznie. Urządzenie bez wymaganej funkcji, na przykład DXR dla Ultra, otrzymuje jasny komunikat z propozycją Extra High, bez cichej zamiany.
 
-| Funkcja | Ultra |
-|---|---|
-| Światła lokalne / z cieniem | start 64 / 16 |
-| Cienie kierunkowe | 4 kaskady, cienie kontaktowe |
-| Woda | najgęstszy detal fal i piany, pełne próbkowanie |
-| Odbicia | ray tracing, SSR i sondy jako fallback, wybrane planar |
-| Oświetlenie pośrednie | RTGI |
-| Fog/VFX | pełna wolumetria, najwyższa rozdzielczość, zachowane markery |
-| Bohaterowie | SSS i Hair w zbliżeniach |
-| Rendering | natywny; upscaler wyłącznie jako opcja gracza |
+Wartości są startowe i podlegają ocenie obrazu:
 
-Pomiary mają charakter informacyjny i nie są warunkiem odbioru jakości obrazu. Przy 100/200/400 statkach zapisuj draw calls, triangles, particles, lokalne światła, czas CPU/GPU, peak VRAM oraz GC allocations, z podaniem sprzętu. Optymalizacja usuwa marnotrawstwo, nie jakość. Automatyczne obniżanie jakości jest domyślnie wyłączone.
+| Funkcja | Low | Medium | High | Extra High | Ultra |
+|---|---|---|---|---|---|
+| Światła lokalne / z cieniem | 8 / 2 | 16 / 4 | 32 / 8 | 48 / 12 | 64 / 16 |
+| Cienie kierunkowe | 2 kaskady | 2 kaskady | 3 kaskady | 4 kaskady | 4 kaskady, cienie kontaktowe |
+| Woda | czytelna, prosty detal | ograniczony detal i piana | pełny kilwater, średni detal | gęsty detal i piana | najgęstszy detal, pełne próbkowanie |
+| Odbicia | niebo i sondy | niebo i sondy | SSR i sondy | SSR, sondy, wybrane planar | ray tracing, SSR i sondy jako fallback, wybrane planar |
+| Oświetlenie pośrednie | sondy | sondy | sondy i SSAO | SSGI | RTGI |
+| Mgła i VFX | prosta mgła, mniej cząsteczek, markery zachowane | niska wolumetria, markery zachowane | średnia wolumetria, markery zachowane | wysoka wolumetria, markery zachowane | pełna wolumetria, najwyższa rozdzielczość, markery zachowane |
+| Bohaterowie | Lit | Lit | SSS w zbliżeniach | SSS i Hair w zbliżeniach | SSS i Hair w zbliżeniach, najwyższa jakość |
+| Rendering | natywny | natywny | natywny | natywny | natywny |
 
-Niezależnie od sprzętu nigdy nie zmieniaj logicznej mgły wojny, czasów zaklęć, hitboxów, sektora broni i wykrywania przeszkód. Czytelność z V00, deterministyczna symulacja, brak przecieków mgły wojny w V11 i brak wycieków zasobów pozostają obowiązkowe. Przełączanie ustawień nie może tworzyć materiałów i RT bez zwalniania; sprawdź 20 cykli zmiany ustawień.
+Upscaler jest na każdym profilu wyłącznie opcją gracza. Pomiary mają charakter informacyjny i nie są warunkiem odbioru jakości obrazu. Przy 100/200/400 statkach zapisuj dla każdego profilu draw calls, triangles, particles, lokalne światła, czas CPU/GPU, peak VRAM oraz GC allocations, z podaniem sprzętu. Optymalizacja usuwa marnotrawstwo, a Ultra nie traci przez nią jakości.
+
+Niezależnie od profilu i sprzętu nigdy nie zmieniaj logicznej mgły wojny, czasów zaklęć, hitboxów, sektora broni i wykrywania przeszkód. Różnice między profilami nie mogą dawać przewagi informacyjnej ani ukrywać ostrzeżeń taktycznych. Czytelność z V00, deterministyczna symulacja, brak przecieków mgły wojny w V11 i brak wycieków zasobów obowiązują na każdym profilu. Przełączanie profili nie może tworzyć materiałów i RT bez zwalniania; sprawdź 20 cykli zmiany przez wszystkie profile.
 
 ## V11. Walidacja obrazu i dowody
 
@@ -168,6 +170,6 @@ Rozdzielczość jest wyłącznie ustawieniem prezentacji. Nie zmienia symulacji,
 
 HUD skaluje się względem bazowego 1920×1080 i łączy się z ustawieniem interfejsu 80–150% z C10. W skrajnych kombinacjach żaden element nie wychodzi poza ekran, a tekst i ikony pozostają czytelne. Czytelność klas, kierunku kadłuba i stanu uszkodzeń z V00 odbiera się przy obu krańcach zakresu i najmniejszym zoomie. Bufory, pola piany, mgła i własne passy są odtwarzane przy zmianie rozdzielczości bez wycieków; 20 cykli przełączania wchodzi w test z V10.
 
-Wszystkie rozdzielczości z zakresu działają na profilu Ultra, natywnie i bez limitu klatki wynikającego ze sprzętu. Skalowanie obrazu jest wyłącznie opcją gracza, a wynik natywny i rekonstruowany raportuje się osobno, z identycznym seedem, kadrem i pogodą zgodnie z V09. Nie ekstrapoluj wyniku z 1080p na 1440p.
+Wszystkie rozdzielczości z zakresu działają na każdym profilu z V10, natywnie i bez limitu klatki wynikającego ze sprzętu. Skalowanie obrazu jest wyłącznie opcją gracza, a wynik natywny i rekonstruowany raportuje się osobno, z identycznym seedem, kadrem i pogodą zgodnie z V09. Nie ekstrapoluj wyniku z 1080p na 1440p.
 
 Informacyjne pomiary 100/200/400 statków z V10 wykonuje się w 1920×1080 i 2560×1440, z zapisem szczytowego VRAM, GPU, sterownika i faktycznego trybu wyświetlania. Działanie trybu 1440p potwierdza się na rzeczywistym wyjściu obrazu w tej rozdzielczości albo przez jawnie opisane renderowanie ponad rozdzielczość monitora; drugi wariant nie potwierdza wyświetlania na fizycznym panelu 1440p. Brak takiego sprzętu oznacza BLOCKED lub NOT_RUN, nigdy PASS.
