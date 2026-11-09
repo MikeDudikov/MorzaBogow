@@ -62,6 +62,11 @@ namespace MorzaBogow.Presentation
         float yaw = ObliqueCamera.DefaultYaw;
         float tilt = ObliqueCamera.DefaultTilt;
         Light sun;
+        Transform decalAnchor;
+        readonly List<(UnityEngine.Rendering.HighDefinition.WaterDecal decal, float strength, float phase, Island island)> surf =
+            new List<(UnityEngine.Rendering.HighDefinition.WaterDecal, float, float, Island)>();
+
+        public int SurfCount => surf.Count;
         float height = 130f;
         bool dragging;
         Vector2 dragStart;
@@ -111,7 +116,14 @@ namespace MorzaBogow.Presentation
         {
             StartMatch(MapFactory.CreateSkirmish(seed), 0);
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
-            if (surface != null) water = new WaterSampler(surface);
+            if (surface != null)
+            {
+                water = new WaterSampler(surface);
+
+                // Bow waves and surf live in a square of water that follows the view, not the distant camera.
+                decalAnchor = new GameObject("Water decal anchor").transform;
+                surface.decalRegionAnchor = decalAnchor;
+            }
             sun = FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(light => light.type == LightType.Directional);
             ReadSmokeArguments();
         }
@@ -271,6 +283,21 @@ namespace MorzaBogow.Presentation
         {
             // Land under sites and settlements is drawn by their own models.
             foreach (var island in World.Islands.Where(item => item.Kind == IslandKind.Coast)) mapObjects.Add(CreateIsland(island));
+
+            // Waves break into foam on every shore. A rocky coast is not round, so its ring stays inside its outline.
+            surf.Clear();
+            foreach (var island in World.Islands)
+            {
+                var coast = island.Kind == IslandKind.Coast;
+                var reach = (float)island.Radius * (coast ? 0.8f : 1f) + 5f;
+                var holder = new GameObject("Shore surf");
+                holder.transform.position = new Vector3((float)island.X, 0f, (float)island.Y);
+                var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, Vector3.zero, new Vector2(reach * 2f, reach * 2f));
+                decal.amplitude = 0f;
+                surf.Add((decal, coast ? 0.55f : 0.7f, (float)(island.X * 0.013 + island.Y * 0.021), island));
+                holder.SetActive(coast);
+                mapObjects.Add(holder);
+            }
 
             foreach (var settlement in World.Settlements)
             {
@@ -585,6 +612,22 @@ namespace MorzaBogow.Presentation
                 return inspected == null || inspected.Owner == PlayerFaction || !World.CanSee(PlayerFaction, inspected);
             });
             UpdateWaterPoses();
+
+            // Surf rises and falls as sets of waves reach each shore, never all shores at once.
+            var now = Time.unscaledTime;
+            foreach (var (decal, strength, phase, island) in surf)
+            {
+                if (decal == null) continue;
+
+                // Surf would reveal small land under the fog, so it shows only where the player has explored.
+                var holder = decal.transform.parent.gameObject;
+                var shown = island.Kind == IslandKind.Coast || World.IsExplored(PlayerFaction, island.X, island.Y);
+                if (holder.activeSelf != shown) holder.SetActive(shown);
+                var set = 0.55f + 0.45f * Mathf.Sin(now * 0.9f + phase);
+                decal.surfaceFoamDimmer = strength * set;
+                decal.deepFoamDimmer = strength * set * 0.6f;
+            }
+
             foreach (var ship in World.Ships)
             {
                 if (!views.TryGetValue(ship.Id, out var view)) continue;
@@ -598,6 +641,8 @@ namespace MorzaBogow.Presentation
                 view.transform.position = previous.TryGetValue(ship.Id, out var last) ? Vector3.Lerp(last, current, blend) : current;
                 view.transform.rotation = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));
+                var capacity = ship.Definition.Capacity * Rules.Centi;
+                view.SetLoad(capacity > 0 ? (float)(ship.Cargo + ship.HoldWood + ship.HoldSilver) / capacity : 0f);
                 view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, paused ? 0f : delta * Speed);
             }
 
@@ -700,6 +745,7 @@ namespace MorzaBogow.Presentation
 
             ObliqueCamera.Apply(strategicCamera, pivot, yaw, tilt, height);
             if (sun != null) sun.transform.rotation = ObliqueCamera.SunRotation(yaw, tilt);
+            if (decalAnchor != null) decalAnchor.position = pivot;
         }
 
         // ---------- Orders ----------
@@ -1185,10 +1231,11 @@ namespace MorzaBogow.Presentation
                     height = 55f;
                     break;
                 case 1:
-                    var silver = World.Nodes.First(node => node.Type == ResourceType.Silver && (node.KnownMask & (1 << PlayerFaction)) != 0);
-                    pivot = new Vector3((float)silver.X, 0f, (float)silver.Y + 22f);
-                    height = 55f;
-                    // A changed view angle, so this picture also covers rotation and tilt.
+                    // The fastest own ship up close, steep, so its bow wave and foam are visible. The pivot is set a
+                    // little ahead, where the ship will be when the picture is taken.
+                    var mover = World.Ships.Where(ship => ship.Owner == PlayerFaction).OrderByDescending(ship => ship.Speed).ThenBy(ship => ship.Id).First();
+                    pivot = ToWorld(mover) + new Vector3(Mathf.Cos((float)mover.Heading), 0f, Mathf.Sin((float)mover.Heading)) * (float)(mover.Speed * 1.5 * Speed);
+                    height = 40f;
                     yaw = -40f;
                     tilt = ObliqueCamera.MaxTilt;
                     break;

@@ -29,6 +29,10 @@ namespace MorzaBogow.Presentation
         public Material Rock;
         public Material SilverOre;
         public Material MineDark;
+
+        /// <summary>HDRP water decals: a bow wave that lifts the surface, and a disk of foam used at hulls and shores.</summary>
+        public Material BowWave;
+        public Material FoamDisk;
     }
 
     /// <summary>
@@ -49,10 +53,31 @@ namespace MorzaBogow.Presentation
         HullPose pose;
         HullPose smoothed;
         bool hasWater;
+        float load;
+        float smoothedLoad;
+        UnityEngine.Rendering.HighDefinition.WaterDecal bowWave;
+        UnityEngine.Rendering.HighDefinition.WaterDecal hullFoam;
 
         public float Length => size;
         public float Beam => beam;
         public HullPose CurrentPose => smoothed;
+        public float HullHeight => beam * 0.6f;
+        public float Draft => DraftFor(HullHeight, smoothedLoad);
+        public float BowWaveHeight => bowWave != null ? bowWave.amplitude : 0f;
+        public float HullFoam => hullFoam != null ? hullFoam.surfaceFoamDimmer : 0f;
+
+        /// <summary>Depth of the hull below the waterline: a third of its height empty, more as the hold fills.</summary>
+        public static float DraftFor(float hullHeight, float loadFraction) => hullHeight * (0.34f + 0.22f * Mathf.Clamp01(loadFraction));
+
+        /// <summary>A hull pushes up water in front of it; a longer, faster hull a higher wave. None at rest.</summary>
+        public static float BowWaveFor(float length, float speedFraction)
+        {
+            var fraction = Mathf.Clamp01(Mathf.Abs(speedFraction));
+            return (0.5f + length * 0.05f) * fraction * fraction;
+        }
+
+        /// <summary>Foam where the hull breaks the surface; a ship at rest makes almost none.</summary>
+        public static float HullFoamFor(float speedFraction) => Mathf.Sqrt(Mathf.Clamp01(Mathf.Abs(speedFraction)));
 
         public int ShipId { get; private set; }
         public GameObject Selection { get; private set; }
@@ -125,8 +150,46 @@ namespace MorzaBogow.Presentation
             selection.localPosition = new Vector3(0f, 1.4f, 0f);
             visual.Selection = selection.gameObject;
             visual.Selection.SetActive(false);
+
+            // Children of the root, which only turns with the heading: water decals must stay flat. A hidden ship's
+            // root is inactive, so its decals switch off too and fog never shows where it sails.
+            // HDRP's bow wave peaks at one end of its region and fades along it; turned so the peak is at the stem
+            // and the falling crests run back along both sides of the hull.
+            visual.bowWave = WaterDecalAt(root.transform, "Bow wave", materials?.BowWave, new Vector3(0f, 0f, -length * 0.05f), new Vector2(beam * 3f, length * 1.1f));
+            visual.bowWave.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            visual.hullFoam = WaterDecalAt(root.transform, "Hull foam", materials?.FoamDisk, Vector3.zero, new Vector2(beam * 1.9f, length * 1.15f));
+            visual.bowWave.amplitude = 0f;
+            visual.hullFoam.amplitude = 0f;
+            visual.hullFoam.surfaceFoamDimmer = 0f;
+            visual.hullFoam.deepFoamDimmer = 0f;
+            visual.ApplyDraft();
             return visual;
         }
+
+        internal static UnityEngine.Rendering.HighDefinition.WaterDecal WaterDecalAt(Transform parent, string name, Material material, Vector3 position, Vector2 region)
+        {
+            var item = new GameObject(name);
+            item.transform.SetParent(parent, false);
+            item.transform.localPosition = position;
+            var decal = item.AddComponent<UnityEngine.Rendering.HighDefinition.WaterDecal>();
+            decal.scaleMode = UnityEngine.Rendering.HighDefinition.DecalScaleMode.ScaleInvariant;
+            decal.regionSize = region;
+            decal.resolution = new Vector2Int(64, 64);
+            decal.updateMode = CustomRenderTextureUpdateMode.OnLoad;
+            decal.material = material;
+            return decal;
+        }
+
+        /// <summary>Fraction of the hold in use, 0 to 1. A loaded transport sits lower in the water.</summary>
+        public void SetLoad(float fraction) => load = Mathf.Clamp01(fraction);
+
+        void ApplyDraft()
+        {
+            // The hull is centred 0.6 m above the model origin; this lowers it so its keel is at the draft depth.
+            baseHeight = -Draft - 0.6f + HullHeight * 0.5f;
+        }
+
+        float baseHeight;
 
         /// <summary>Called when boarding changes the owner: only the sail changes.</summary>
         public void ApplyOwner(int owner, PlaceholderMaterials materials)
@@ -164,6 +227,13 @@ namespace MorzaBogow.Presentation
                 pivot.localRotation = Quaternion.Euler(0f, side * stroke * 24f * strength, side * (-14f + lift * 9f * strength));
             }
 
+            // Loading and unloading change the draft over seconds, not in one jump.
+            smoothedLoad = Mathf.MoveTowards(smoothedLoad, load, delta * 0.25f);
+            ApplyDraft();
+            bowWave.amplitude = BowWaveFor(size, fraction);
+            hullFoam.surfaceFoamDimmer = HullFoamFor(fraction);
+            hullFoam.deepFoamDimmer = HullFoamFor(fraction) * 0.5f;
+
             if (hasWater)
             {
                 var blend = 1f - Mathf.Exp(-delta * 5f);
@@ -173,14 +243,14 @@ namespace MorzaBogow.Presentation
                     Mathf.Lerp(smoothed.Roll, pose.Roll, blend));
 
                 // The bow lifts slightly with speed, on top of what the water does.
-                model.localPosition = new Vector3(0f, 0.2f + smoothed.Heave, 0f);
+                model.localPosition = new Vector3(0f, baseHeight + smoothed.Heave, 0f);
                 model.localRotation = Quaternion.Euler(smoothed.Pitch - fraction * 1.5f, 0f, smoothed.Roll);
             }
             else
             {
                 // Without a water surface, as in logic tests, a small sway keeps the placeholder alive.
                 var wave = time * 0.9f + seed;
-                model.localPosition = new Vector3(0f, 0.35f + Mathf.Sin(wave) * 0.22f, 0f);
+                model.localPosition = new Vector3(0f, baseHeight + Mathf.Sin(wave) * 0.22f, 0f);
                 model.localRotation = Quaternion.Euler(Mathf.Sin(wave * 0.8f) * 1.6f, 0f, Mathf.Cos(wave * 0.6f) * 2.2f);
             }
 

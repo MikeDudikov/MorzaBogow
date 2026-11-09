@@ -47,6 +47,8 @@ namespace MorzaBogow.Editor
                 SilverOre = Material("Placeholder_SilverOre", new Color(0.85f, 0.87f, 0.92f), 1f, 0.85f),
                 MineDark = Material("Placeholder_MineDark", new Color(0.02f, 0.02f, 0.02f), 0f, 0.05f),
                 Fog = FogMaterial(),
+                BowWave = WaterDecalMaterial("Placeholder_WaterBowWave", BowWaveType, deformation: true, foam: false),
+                FoamDisk = WaterDecalMaterial("Placeholder_WaterFoamDisk", DiskType, deformation: false, foam: true),
             };
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -91,6 +93,17 @@ namespace MorzaBogow.Editor
             ocean.startSmoothness = 0.8f;
             ocean.endSmoothness = 0.8f;
 
+            // Hulls and shores change the surface: deformation for bow waves, foam where water breaks. The decal
+            // region follows the view; 2048 texels over 1024 m keep a cutter's bow wave sharp.
+            ocean.deformation = true;
+            ocean.deformationRes = WaterSurface.WaterDecalRegionResolution.Resolution2048;
+            ocean.foam = true;
+            ocean.foamResolution = WaterSurface.WaterDecalRegionResolution.Resolution2048;
+            ocean.decalRegionSize = new Vector2(1024f, 1024f);
+
+            // Short-lived foam: water broken by a hull settles quickly instead of drawing a long strip behind it.
+            ocean.foamPersistenceMultiplier = 0.3f;
+
             var services = new GameObject("Services");
             services.AddComponent<GraphicsProfileController>().Configure(volume, profiles);
             services.AddComponent<DisplaySettingsController>();
@@ -122,6 +135,38 @@ namespace MorzaBogow.Editor
             var report = BuildPipeline.BuildPlayer(options);
             Debug.Log($"[M1] Build {report.summary.result}, {report.summary.totalSize} bytes, {report.summary.totalErrors} errors, {report.summary.totalWarnings} warnings.");
             if (Application.isBatchMode) EditorApplication.Exit(report.summary.result == BuildResult.Succeeded ? 0 : 1);
+        }
+
+        const string WaterDecalShaderPath = "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipelineResources/ShaderGraph/Water Decal Sample.shadergraph";
+        const int DiskType = 0;
+        const int BowWaveType = 2;
+
+        /// <summary>
+        /// A material for HDRP's built-in sample water decal, with the shapes HDRP ships: a disk and a bow wave.
+        /// Amplitude and foam strength are set per decal at runtime, so all ships share one atlas slot.
+        /// </summary>
+        static Material WaterDecalMaterial(string name, int type, bool deformation, bool foam)
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(WaterDecalShaderPath);
+            if (shader == null) throw new System.InvalidOperationException("HDRP water decal shader not found: " + WaterDecalShaderPath);
+
+            var path = $"{MaterialFolder}/{name}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = shader;
+            material.SetFloat("_TYPE", type);
+            material.SetFloat("_AffectDeformation", deformation ? 1f : 0f);
+            material.SetFloat("_AffectFoam", foam ? 1f : 0f);
+            if (type == BowWaveType) material.SetFloat("_Elevation", 0.5f);
+            // Water decal graphs are not HDRP surface shaders; HDRP's own migration validates them this way.
+            MaterialEditor.ApplyMaterialPropertyDrawers(material);
+            HDMaterial.ValidateMaterial(material);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         /// <summary>Unlit and transparent, so a ring keeps its color and never hides what it marks.</summary>
