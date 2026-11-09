@@ -1,0 +1,25 @@
+# Unity-generated state and local builds
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emory[Cc]aptures/
+[Rr]ecordings/
+*.csproj
+*.sln
+*.pidb
+*.user
+*.userprefs
+
+# Quality gate output
+qa/reports/
+qa/SELF_TEST_REPORT.json
+work/
+
+# Local secrets and license files
+*.ulf
+*.alf
+.env

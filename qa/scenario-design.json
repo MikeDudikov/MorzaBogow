@@ -1,0 +1,939 @@
+{
+  "schemaVersion": 1,
+  "scope": "Scenario design data, not implemented Unity content",
+  "scenarioIds": [
+    "M01",
+    "M02",
+    "M03",
+    "M04",
+    "M05",
+    "M06",
+    "M07",
+    "M08",
+    "M09",
+    "M10",
+    "M11",
+    "M12",
+    "M13",
+    "M14"
+  ],
+  "scenarios": [
+    {
+      "id": "M01",
+      "title": "Popioły Ilionu",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        15,
+        20
+      ],
+      "mapKm": 1.5,
+      "biome": "Troada",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_AND_LIGHT_BUILD",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 2,
+        "crewDestroyer": 1
+      },
+      "localStock": {
+        "bronze": 500,
+        "rations": 240
+      },
+      "resourceNodes": {
+        "bronze": 1200,
+        "rations": 2000
+      },
+      "enemyHullBudget": 4,
+      "storyThreats": [
+        "Płonące nabrzeże zamykane odcinkami"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Podejmij ocalałych",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Zabierz penaty",
+          "planningSeconds": 60,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wyjdź z zatoki",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "survivors_boarded",
+        "penates_on_flagship",
+        "flagship_extracted"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost",
+        "penates_unrecoverable"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M02",
+      "title": "Szpony nad Strofadami",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        12,
+        18
+      ],
+      "mapKm": 1.5,
+      "biome": "Archipelag Egejski",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 1,
+        "ram": 2
+      },
+      "localStock": {
+        "bronze": 350,
+        "rations": 140
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 2000
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Harpie: trzy zapowiadane naloty"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Zabezpiecz skupisko",
+          "planningSeconds": 45,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Dostarcz racje",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wyprowadź flotę",
+          "planningSeconds": 120,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "rations_delivered",
+        "raids_outlasted",
+        "flagship_extracted"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M03",
+      "title": "Noc odpłynięcia z Kartaginy",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        22,
+        30
+      ],
+      "mapKm": 3,
+      "biome": "Wybrzeża Perskie",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "merchant": 2,
+        "ram": 2,
+        "crewDestroyer": 1
+      },
+      "localStock": {
+        "bronze": 450,
+        "rations": 180
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 12,
+      "storyThreats": [
+        "Dwie trasy o innym zanurzeniu",
+        "Noc ograniczająca widzenie"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Rozpoznaj przejścia",
+          "planningSeconds": 60,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przeprowadź konwój",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Oderwij pościg",
+          "planningSeconds": 90,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "flagship_extracted",
+        "at_least_one_supply_extracted",
+        "pursuit_separation_90s"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost",
+        "all_supply_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M04",
+      "title": "Ogień na plaży Drepanum",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        18,
+        24
+      ],
+      "mapKm": 1.5,
+      "biome": "Wyspy Wulkaniczne",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_AND_LIGHT_BUILD",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 2,
+        "merchant": 1,
+        "crewDestroyer": 1
+      },
+      "localStock": {
+        "bronze": 600,
+        "rations": 300
+      },
+      "resourceNodes": {
+        "bronze": 800,
+        "rations": 2000
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Pożar przenoszący się między bliskimi kadłubami"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Oceń pożar",
+          "planningSeconds": 30,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Opanuj ogień",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Przygotuj flotę do drogi",
+          "planningSeconds": 120,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "fire_contained",
+        "hulls_saved_min3",
+        "fleet_ready"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost",
+        "hulls_below_3"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M05",
+      "title": "Palinur u steru",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        16,
+        22
+      ],
+      "mapKm": 1.5,
+      "biome": "Wyspy Syren",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "merchant": 1,
+        "ram": 1,
+        "crewDestroyer": 1
+      },
+      "localStock": {
+        "bronze": 300,
+        "rations": 180
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Nocna żegluga przy rafach",
+        "Utrata sternika"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Rozpoznaj kanał",
+          "planningSeconds": 45,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przejmij ster",
+          "planningSeconds": 12,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wyjdź za ostatni przylądek",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "channel_crossed",
+        "helm_recovered",
+        "flagship_extracted"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost",
+        "all_supply_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M06",
+      "title": "Głos z Kume",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        20,
+        28
+      ],
+      "mapKm": 3,
+      "biome": "Morze Zapomnianych",
+      "activeHero": "Sybilla",
+      "baseTemplate": "REPAIR_AND_LIGHT_BUILD",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 1,
+        "crewDestroyer": 1,
+        "boarder": 1
+      },
+      "localStock": {
+        "bronze": 700,
+        "rations": 300
+      },
+      "resourceNodes": {
+        "bronze": 1600,
+        "rations": 2000
+      },
+      "enemyHullBudget": 6,
+      "storyThreats": [
+        "Patrole korsarzy",
+        "Zamykane okno rytuału"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Otwórz podejście do jaskini",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Osłoń rytuał Sybilli",
+          "planningSeconds": 45,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wyjdź ku Italii",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "oracle_heard",
+        "sibyl_on_flagship",
+        "flagship_extracted"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "sibyl_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M07",
+      "title": "Ujście Tybru",
+      "arc": "AENEAS",
+      "targetMinutes": [
+        24,
+        32
+      ],
+      "mapKm": 3,
+      "biome": "Archipelag Egejski",
+      "activeHero": "Eneasz",
+      "baseTemplate": "REPAIR_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "ram": 2,
+        "shipDestroyer": 1,
+        "merchant": 1
+      },
+      "localStock": {
+        "bronze": 700,
+        "rations": 260
+      },
+      "resourceNodes": {
+        "bronze": 1200,
+        "rations": 2000
+      },
+      "enemyHullBudget": 10,
+      "storyThreats": [
+        "Zapalające rajdy na kotwicowisko"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Rozpoznaj ujście",
+          "planningSeconds": 60,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Utrzymaj rzekę",
+          "planningSeconds": 180,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wysadź osadników",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "river_mouth_held",
+        "settlers_landed",
+        "flagship_safe"
+      ],
+      "anyFailFlags": [
+        "flagship_lost",
+        "aeneas_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M08",
+      "title": "Imię zapisane na falach",
+      "arc": "ODYSSEUS",
+      "targetMinutes": [
+        16,
+        22
+      ],
+      "mapKm": 1.5,
+      "biome": "Archipelag Egejski",
+      "activeHero": "Odyseusz",
+      "baseTemplate": "SEA_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 2,
+        "ram": 1
+      },
+      "localStock": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Polifem na klifie",
+        "Dwie strefy zbierania ocalałych"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Zabierz oddział z brzegu",
+          "planningSeconds": 60,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przetrwaj rzuty kamieni",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wyjdź poza zasięg",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "odysseus_extracted",
+        "twelve_survivors_rescued"
+      ],
+      "anyFailFlags": [
+        "odysseus_lost",
+        "all_rescue_capacity_lost",
+        "survivor_goal_unreachable"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M09",
+      "title": "Wiatry wyrwane z worka",
+      "arc": "ODYSSEUS",
+      "targetMinutes": [
+        18,
+        25
+      ],
+      "mapKm": 3,
+      "biome": "Morze Burz",
+      "activeHero": "Odyseusz",
+      "baseTemplate": "SEA_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "merchant": 2,
+        "ram": 2
+      },
+      "localStock": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Trzy strefy wiatru o zapowiedzianych zwrotach"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Odzyskaj spójność floty",
+          "planningSeconds": 120,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przeprowadź rozproszone jednostki",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Opuść wyspę bez pomocy Eola",
+          "planningSeconds": 60,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "odysseus_extracted",
+        "two_other_ships_extracted"
+      ],
+      "anyFailFlags": [
+        "odysseus_lost",
+        "rescue_quota_unreachable"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M10",
+      "title": "Port, który stał się pułapką",
+      "arc": "ODYSSEUS",
+      "targetMinutes": [
+        15,
+        22
+      ],
+      "mapKm": 1.5,
+      "biome": "Mglisty Archipelag",
+      "activeHero": "Odyseusz",
+      "baseTemplate": "SEA_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "merchant": 2,
+        "ram": 3,
+        "crewDestroyer": 2
+      },
+      "localStock": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Trzy stanowiska olbrzymów na klifach",
+        "Wąskie wyjście portowe"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Rozpoznaj zasadzkę",
+          "planningSeconds": 30,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Uwolnij zakleszczone grupy",
+          "planningSeconds": 180,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Wycofaj okręt Odyseusza",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "odysseus_extracted"
+      ],
+      "anyFailFlags": [
+        "odysseus_lost"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M11",
+      "title": "Sześć głów, jeden przesmyk",
+      "arc": "ODYSSEUS",
+      "targetMinutes": [
+        16,
+        23
+      ],
+      "mapKm": 1.5,
+      "biome": "Morze Burz",
+      "activeHero": "Odyseusz",
+      "baseTemplate": "SEA_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 1,
+        "merchant": 1,
+        "ram": 1
+      },
+      "localStock": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 0
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Scylla jako zagrożenie strefowe",
+        "Charybda jako wir"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Odczytaj ostrzeżenie Kirke",
+          "planningSeconds": 45,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przejdź między zagrożeniami",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Zbierz flotę za cieśniną",
+          "planningSeconds": 90,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "odysseus_extracted",
+        "one_escort_extracted"
+      ],
+      "anyFailFlags": [
+        "odysseus_lost",
+        "escort_quota_unreachable"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M12",
+      "title": "Przysięga pod słońcem",
+      "arc": "ODYSSEUS",
+      "targetMinutes": [
+        18,
+        26
+      ],
+      "mapKm": 1.5,
+      "biome": "Archipelag Egejski",
+      "activeHero": "Odyseusz",
+      "baseTemplate": "REPAIR_ONLY",
+      "initialFleet": {
+        "royal": 1,
+        "cutter": 2,
+        "merchant": 1
+      },
+      "localStock": {
+        "bronze": 300,
+        "rations": 80
+      },
+      "resourceNodes": {
+        "bronze": 0,
+        "rations": 4000
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Sztorm na podejściach do dwóch skupisk",
+        "Święte stada jako obiekt przysięgi"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Ustal bezpieczny zbiór",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Zgromadź zapas na rejs",
+          "planningSeconds": 480,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Opuść wyspę w oknie pogody",
+          "planningSeconds": 120,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "oath_kept",
+        "departure_rations_committed",
+        "odysseus_extracted"
+      ],
+      "anyFailFlags": [
+        "odysseus_lost",
+        "sacred_herd_harmed",
+        "last_departure_window_missed"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M13",
+      "title": "Bóg, którego nie utrzymają liny",
+      "arc": "SEA_TALES",
+      "targetMinutes": [
+        20,
+        28
+      ],
+      "mapKm": 3,
+      "biome": "Archipelag Egejski",
+      "activeHero": null,
+      "baseTemplate": "REPAIR_AND_LIGHT_BUILD",
+      "initialFleet": {
+        "royal": 1,
+        "boarder": 1,
+        "crewDestroyer": 2,
+        "cutter": 1
+      },
+      "localStock": {
+        "bronze": 700,
+        "rations": 350
+      },
+      "resourceNodes": {
+        "bronze": 1800,
+        "rations": 2000
+      },
+      "enemyHullBudget": 8,
+      "storyThreats": [
+        "Objawienie Dionizosa na okręcie celu"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Rozpoznaj statek z pojmanym bogiem",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Przerwij ucieczkę porywaczy",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Osłoń ocalonego sternika",
+          "planningSeconds": 180,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "target_intercepted",
+        "epiphany_committed",
+        "helmsman_extracted"
+      ],
+      "anyFailFlags": [
+        "helmsman_lost",
+        "target_sunk_before_epiphany",
+        "target_escaped_before_interception"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    },
+    {
+      "id": "M14",
+      "title": "Andromeda: cień pod falą",
+      "arc": "SEA_TALES",
+      "targetMinutes": [
+        28,
+        36
+      ],
+      "mapKm": 3,
+      "biome": "Archipelag Egejski",
+      "activeHero": "Perseusz",
+      "baseTemplate": "REPAIR_AND_LIGHT_BUILD",
+      "initialFleet": {
+        "royal": 1,
+        "shipDestroyer": 2,
+        "ram": 2,
+        "merchant": 2,
+        "cutter": 1
+      },
+      "localStock": {
+        "bronze": 1000,
+        "rations": 450
+      },
+      "resourceNodes": {
+        "bronze": 2400,
+        "rations": 4000
+      },
+      "enemyHullBudget": 0,
+      "storyThreats": [
+        "Ketos: jeden potwór morski",
+        "Fala przybrzeżna"
+      ],
+      "phases": [
+        {
+          "id": "P1",
+          "label": "Udrożnij drogę ewakuacji",
+          "planningSeconds": 90,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P2"
+        },
+        {
+          "id": "P2",
+          "label": "Odciągnij potwora i uwolnij Andromedę",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": "P3"
+        },
+        {
+          "id": "P3",
+          "label": "Dokończ starcie Perseusza",
+          "planningSeconds": 0,
+          "timingPolicy": "DESIGN_TIMING_NOT_AUTOMATIC_TRANSITION",
+          "next": null
+        }
+      ],
+      "allWinFlags": [
+        "andromeda_extracted",
+        "civilians_24_extracted",
+        "ketos_defeated",
+        "perseus_alive"
+      ],
+      "anyFailFlags": [
+        "perseus_lost",
+        "andromeda_lost",
+        "civilian_quota_unreachable"
+      ],
+      "implementationStatus": "NOT_IMPLEMENTED",
+      "gameplayTests": "NOT_RUN"
+    }
+  ]
+}

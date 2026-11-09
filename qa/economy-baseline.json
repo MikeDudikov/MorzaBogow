@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "scope": "Economy design parameters",
+  "resourceNames": ["brąz", "racje"],
+  "startingStock": {"bronze": 1400, "rations": 600},
+  "ships": {
+    "cutter": {"capacity": 160, "speed": 8.5, "bronzeWorkRate": 4, "rationsWorkRate": 3, "bronzeCost": 200, "rationsCost": 0},
+    "merchant": {"capacity": 650, "speed": 5.8, "bronzeWorkRate": 6, "rationsWorkRate": 5, "bronzeCost": 400, "rationsCost": 200}
+  },
+  "handlingPerSecond": 40,
+  "manoeuvreSeconds": 6,
+  "nodeWorkCaps": {"bronze": 12, "rations": 9},
+  "shellBed": {"capacity": 2000, "regenMin": 1, "regenSlope": 3, "closeFraction": 0.1, "reopenFraction": 0.3, "slowdownFraction": 0.35, "minimumWorkFactor": 0.4},
+  "bonuses": {"gatherTechPerLevel": 0.05, "gatherTechLevels": 3, "localSpecialization": 0.1, "maxGather": 0.25, "cranes": 0.25, "logisticProfile": 0.15},
+  "trade": {"rationsToBronzeMax": 0.6, "bronzeToRationsMax": 1.4, "riskBonusMax": 0.08, "maxCycle": 0.98, "bronzePayoutCapPerPlayer": 1200, "rationsPayoutCapPerPlayer": 1800},
+  "repairFractionOfHullCost": 0.2,
+  "scrapFractionOfPaidCost": 0.15,
+  "cargoRecoveryFraction": 0.5,
+  "expeditionBronzeCost": 600,
+  "standardSalvageReward": {"bronze": 600, "rations": 300},
+  "standardMap": {"players": 2, "safeNodesPerPlayer": 2, "safeNodeBronze": 3000, "contestedNodes": 4, "contestedNodeBronze": 5500}
+}

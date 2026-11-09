@@ -1,0 +1,9 @@
+{
+  "taskId": "REPLACE_WITH_REAL_TASK_ID",
+  "sessionId": "REPLACE_WITH_CURRENT_SESSION_ID",
+  "requirements": ["C04", "C05"],
+  "profiles": {
+    "EditMode": {"expectedTests": ["MorzaBogow.Tests.EconomyTests.ReservationCannotSpendTwice"]},
+    "PlayMode": {"expectedTests": ["MorzaBogow.Tests.PortTests.DestroyedPortReleasesDockReservation"]}
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh",
+            "args": ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-context.ps1"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh",
+            "args": ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.ps1"],
+            "timeout": 3900,
+            "statusMessage": "Weryfikacja wykonanych testów przed zamknięciem zadania"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh",
+            "args": ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/quality-gate.ps1"],
+            "timeout": 3900,
+            "onFailure": "block",
+            "statusMessage": "Kontrola zamknięcia zadania"
+          }
+        ]
+      }
+    ]
+  }
+}

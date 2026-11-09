@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "requiredProfiles": ["EditMode", "PlayMode"],
+  "profiles": {
+    "EditMode": {
+      "executable": "CONFIGURE_ABSOLUTE_PATH_TO_UNITY_EXE",
+      "arguments": ["-batchmode", "-projectPath", "{project}", "-runTests", "-testPlatform", "EditMode", "-testResults", "{results}", "-logFile", "{log}"],
+      "timeoutSeconds": 1800,
+      "minTests": 1
+    },
+    "PlayMode": {
+      "executable": "CONFIGURE_ABSOLUTE_PATH_TO_UNITY_EXE",
+      "arguments": ["-batchmode", "-projectPath", "{project}", "-runTests", "-testPlatform", "PlayMode", "-testResults", "{results}", "-logFile", "{log}"],
+      "timeoutSeconds": 1800,
+      "minTests": 1
+    }
+  }
+}

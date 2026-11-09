@@ -1,0 +1,51 @@
+requirement_id,criterion,verification,evidence,status
+
+S00,Kampania ma 14 misji w trzech cyklach i osobne stany startowe,Kontrola danych i przejść między misjami,Macierz odblokowania M01-M14,NOT_RUN
+
+S01,Minimum 70 procent aktywnego czasu misji dotyczy floty i działań na wodzie,Playtest z rejestrem czasu aktywnych systemów,Rejestr playtestu 14/14,NOT_RUN
+
+S02,Postacie i bohaterowie nie dublują się po zapisie i powtórzeniu,PlayMode unikalności actorId i reload,Log aktorów M01-M14,NOT_RUN
+
+S03,Manifesty wrogów są skończone i nie dublują odwodów,PlayMode wyzwalaczy i ponownego wejścia,Log manifestów M01-M14,NOT_RUN
+
+S04,Floty używają istniejących klas i jawnych lokalnych zasad B/R,EditMode danych misji oraz PlayMode startu,Snapshot flot i księga zasobów,NOT_RUN
+
+M01,Ocalali wsiadają raz a penaty mają jedno ID i można je odzyskać z wraku,PlayMode podejmowania utraty statku i zapisu,Lista actorId i rejestr itemId M01,NOT_RUN
+
+M02,Ładunek racji jest fizyczny a nalot nie kradnie ze skarbca,PlayMode dostawy ataku i zapisu,Księga M02 przed i po ataku,NOT_RUN
+
+M03,Manifest pościgu ma limit 12 okrętów i grupy pojawiają się raz,PlayMode wyzwalaczy po reload i nawrocie,Log manifestu i eventId M03,NOT_RUN
+
+M04,Pożar można opanować a deszcz występuje raz i po zapowiedzi,PlayMode rozprzestrzeniania gaszenia i zapisu,Log ognia i eventId M04,NOT_RUN
+
+M05,Utrata sternika ma zapowiedź i wykonuje się raz a rozkaz odwrotu działa,PlayMode bramki interakcji i zapisu,Replay M05,NOT_RUN
+
+M06,Rytuał nie jest farmowalny a odwód pojawia się raz,PlayMode alarmu przerwania i zapisu,Log eventId i manifestu M06,NOT_RUN
+
+M07,Rajdy mają skończony manifest a zdarzenie Kybele wykonuje się raz,PlayMode rajdów utrzymania i zapisu,Log eventId M07,NOT_RUN
+
+M08,Każdy rozbitek może wejść na pokład najwyżej jednego statku,PlayMode równoczesnego podejmowania i powrotu,Lista actorId M08,NOT_RUN
+
+M09,Seed i wektor pogody pozostają niezmienione po zapisie,PlayMode zapisu przed zmianą kierunku,Porównanie replay M09,NOT_RUN
+
+M10,Podstawowa ewakuacja jest wykonalna bez ratowania całej floty,PlayMode ścieżki bazowej i alternatywnej,Replay i macierz osiągalności M10,NOT_RUN
+
+M11,Scylla i Charybda mają zapowiedź i kontrgrę bez wielokrotnej straty,PlayMode wejść granicznych i powtórnych kolizji,Log obrażeń i eventId M11,NOT_RUN
+
+M12,Przysięga i koszt 240 R nie duplikują zasobów po zapisie,PlayMode dostawy odpłynięcia i load,Księga E14 M12,NOT_RUN
+
+M13,Objawienie Dionizosa wykonuje się raz i zachowuje sternika,PlayMode abordażu i zapisu przed epifanią,Log aktorów i transakcji M13,NOT_RUN
+
+M14,Ratowanie Andromedy i cywilów jest wykonalne oraz czytelne,PlayMode ewakuacji geometrii i walki z bossem,Replay i pomiar wykonalności M14,NOT_RUN
+
+S05,Zapis odtwarza fazy liczniki trasy zapowiedzi i zdarzenia,EditMode serializacji oraz PlayMode zagrożeń,Snapshot przed i po load,NOT_RUN
+
+S06,Pauza i prędkość symulacji nie zmieniają zasad zagrożeń,PlayMode pauzy oraz x0.5 x1 x2,Log zegarów scenariusza,NOT_RUN
+
+S07,Poziom trudności zmienia jawne okna a nie ukryte budżety wrogów,EditMode i PlayMode porównania ustawień,Parametry M01-M14,NOT_RUN
+
+S08,Kampania przechodzi pełne ścieżki i rozgałęzienia w zakresie 14/14,Testy end-to-end i playtesty wszystkich misji,Build Windows replaye i raport 14/14,NOT_RUN
+
+S09,Cele i przedmioty pozostają osiągalne albo zgłaszają wykrytą porażkę,PlayMode utraty jednostek i weryfikacji celu,Logi goal_unreachable M01-M14,NOT_RUN
+
+S10,Cele poboczne nie blokują ukończenia celów obowiązkowych,Testy flag końca oraz wyniku misji,Macierz zakończeń i celów,NOT_RUN
