@@ -1,0 +1,21 @@
+{
+    "name": "MorzaBogow.Editor",
+    "rootNamespace": "MorzaBogow.Editor",
+    "references": [
+        "MorzaBogow.Settings",
+        "MorzaBogow.Presentation",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.HighDefinition.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

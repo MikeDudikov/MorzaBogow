@@ -1,0 +1,14 @@
+{
+    "name": "MorzaBogow.Settings",
+    "rootNamespace": "MorzaBogow.Settings",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
