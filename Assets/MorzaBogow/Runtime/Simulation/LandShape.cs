@@ -24,6 +24,53 @@ namespace MorzaBogow.Simulation
             return radii;
         }
 
+        /// <summary>
+        /// A natural, irregular waterline: capes, bays and a ragged rocky edge, as on small Mediterranean islands.
+        /// Each direction keeps the base radius times a factor between that direction's bounds, so jetties,
+        /// slipways and work places keep the land they stand on. Seeded by place, the same on every machine.
+        /// </summary>
+        public static double[] Irregular(double[] baseRadii, uint seed, Func<double, (double min, double max)> bounds)
+        {
+            var frequencies = new[] { 2, 3, 5, 7, 11, 17 };
+            var amplitudes = new[] { 1.0, 0.75, 0.55, 0.35, 0.22, 0.12 };
+            var phases = new double[frequencies.Length];
+            var state = seed * 2654435761u + 1013904223u;
+            for (var k = 0; k < phases.Length; k++)
+            {
+                state ^= state << 13; state ^= state >> 17; state ^= state << 5;
+                phases[k] = state / (double)uint.MaxValue * 2 * Math.PI;
+            }
+            var total = 0.0;
+            foreach (var amplitude in amplitudes) total += amplitude;
+
+            var radii = new double[Samples];
+            for (var i = 0; i < Samples; i++)
+            {
+                var angle = Angle(i);
+                var noise = 0.0;
+                for (var k = 0; k < frequencies.Length; k++) noise += amplitudes[k] * Math.Sin(frequencies[k] * angle + phases[k]);
+                var n = Math.Max(-1, Math.Min(1, noise / total * 1.8));
+                var (min, max) = bounds(angle);
+                radii[i] = baseRadii[i] * (min + (max - min) * (0.5 + 0.5 * n));
+            }
+            return radii;
+        }
+
+        /// <summary>Smallest angle between two directions, in radians.</summary>
+        public static double AngleBetween(double a, double b)
+        {
+            var d = Math.Abs(a - b) % (2 * Math.PI);
+            return d > Math.PI ? 2 * Math.PI - d : d;
+        }
+
+        /// <summary>Blends two pairs of bounds over an angular band, so the shore has no step where they meet.</summary>
+        public static (double, double) Blend((double min, double max) inner, (double min, double max) outer, double distance, double from, double to)
+        {
+            var t = Math.Max(0, Math.Min(1, (distance - from) / (to - from)));
+            t = t * t * (3 - 2 * t);
+            return (inner.min + (outer.min - inner.min) * t, inner.max + (outer.max - inner.max) * t);
+        }
+
         /// <summary>Scales a unit outline and turns it by half a turn when asked (the map is point-symmetric).</summary>
         public static double[] Place(double[] unit, double scale, bool halfTurn)
         {

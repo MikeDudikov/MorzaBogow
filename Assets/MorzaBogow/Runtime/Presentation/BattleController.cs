@@ -128,6 +128,8 @@ namespace MorzaBogow.Presentation
         string coastScaleNote = "not used";
         float firstEnemySeenSeconds = -1f;
         int combatEvents;
+        int smokeFrames;
+        float smokeFrameTime, smokeWorstFrame;
 
         public World World { get; private set; }
         public IReadOnlyCollection<int> Selected => selected;
@@ -376,6 +378,9 @@ namespace MorzaBogow.Presentation
             yards.Clear();
             launches.Clear();
             recalled.Clear();
+            foreach (var mesh in generatedMeshes) if (mesh != null) Destroy(mesh);
+            generatedMeshes.Clear();
+            BouldersPlaced = 0;
         }
 
         // ---------- Shipyards and launching ----------
@@ -648,18 +653,19 @@ namespace MorzaBogow.Presentation
                 shelf.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Shelf(outline, island.X * 0.7 + island.Y * 1.3);
                 var shelfRenderer = shelf.AddComponent<MeshRenderer>();
                 shelfRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                if (materials?.Sand != null) shelfRenderer.sharedMaterial = materials.Sand;
+                if (materials?.Floor != null) shelfRenderer.sharedMaterial = materials.Floor;
 
                 var coast = island.Kind == IslandKind.Coast;
                 if (coast)
                 {
-                    // A sandy foreshore at the foot of the rock, so the land runs down into the water.
+                    // A rocky foreshore at the foot of the cliffs, so the land runs on down under the water.
                     var beach = new GameObject("Beach");
                     beach.transform.SetParent(holder.transform, false);
                     beach.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Beach(outline);
                     var beachRenderer = beach.AddComponent<MeshRenderer>();
-                    if (materials?.Sand != null) beachRenderer.sharedMaterial = materials.Sand;
+                    if (materials?.ShoreRock != null) beachRenderer.sharedMaterial = materials.ShoreRock;
                 }
+                ScatterBoulders(holder.transform, outline, island.X * 1.31 + island.Y * 0.77, coast);
 
                 // High rock throws breaking waves up as spray; low beaches only foam.
                 var spray = coast ? ShorelineSpray(holder.transform) : null;
@@ -699,7 +705,7 @@ namespace MorzaBogow.Presentation
 
             foreach (var node in World.Nodes)
             {
-                var site = ResourceSiteVisual.Create(node, materials);
+                var site = ResourceSiteVisual.Create(node, materials, LandAt(node.X, node.Y + Rules.SiteLandOffset)?.Outline);
                 siteViews[node.Id] = site;
                 nodeViews[node.Id] = site.gameObject;
                 mapObjects.Add(site.gameObject);
@@ -744,8 +750,10 @@ namespace MorzaBogow.Presentation
             // The same gentle mound with a beach as every islet, on the land's exact circle.
             var islet = new GameObject("Islet");
             islet.transform.SetParent(root.transform, false);
-            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius));
-            islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Sand, materials?.Foliage };
+            // The game's own irregular waterline of this land, so the shore drawn is the shore ships steer by.
+            var land = LandAt(landX, portY);
+            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(land != null ? OutlineOf(land) : ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius));
+            islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
 
             // The jetty runs from the beach toward the port, ending beside a moored hull.
             var towardPort = Mathf.Sign((float)portX - landX);
@@ -762,6 +770,101 @@ namespace MorzaBogow.Presentation
             return root;
         }
 
+
+        /// <summary>
+        /// Rocks fallen from the shore: some half out of the water at the waterline, some lying on the shallow floor,
+        /// seen dark through the clear water as on any rocky Aegean coast. Seeded, so the same land always gets the
+        /// same rocks. Presentation only; ships steer by the land's outline and shallows, not by these.
+        /// </summary>
+        public int BouldersPlaced { get; private set; }
+
+        /// <summary>A boulder model taken apart once: its meshes, their materials and placement, and its width.</summary>
+        sealed class BoulderModel
+        {
+            public (Mesh mesh, Material material, Matrix4x4 local)[] Parts;
+            public float Width;
+        }
+
+        readonly Dictionary<GameObject, BoulderModel> boulderModels = new Dictionary<GameObject, BoulderModel>();
+        readonly List<Mesh> generatedMeshes = new List<Mesh>();
+        readonly Dictionary<(Material, bool), List<CombineInstance>> boulderBatch = new Dictionary<(Material, bool), List<CombineInstance>>();
+
+        BoulderModel ModelOf(GameObject prefab)
+        {
+            if (boulderModels.TryGetValue(prefab, out var model)) return model;
+            var parts = new List<(Mesh, Material, Matrix4x4)>();
+            var bounds = new Bounds();
+            var first = true;
+            foreach (var filter in prefab.GetComponentsInChildren<MeshFilter>())
+            {
+                var renderer = filter.GetComponent<MeshRenderer>();
+                if (filter.sharedMesh == null || renderer == null) continue;
+                var local = prefab.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+                parts.Add((filter.sharedMesh, renderer.sharedMaterial, local));
+                var meshBounds = filter.sharedMesh.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var point = local.MultiplyPoint3x4(meshBounds.center + Vector3.Scale(meshBounds.extents, new Vector3((corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1)));
+                    if (first) { bounds = new Bounds(point, Vector3.zero); first = false; } else bounds.Encapsulate(point);
+                }
+            }
+            model = new BoulderModel { Parts = parts.ToArray(), Width = Mathf.Max(0.01f, Mathf.Max(bounds.size.x, bounds.size.z)) };
+            boulderModels[prefab] = model;
+            return model;
+        }
+
+        /// <summary>
+        /// Rocks of one shore are merged into a few meshes (one per material, with and without shadows), so hundreds
+        /// of boulders cost a handful of draws instead of thousands.
+        /// </summary>
+        void ScatterBoulders(Transform parent, float[] outline, double seed, bool coast)
+        {
+            var prefabs = materials?.Boulders;
+            if (prefabs == null || prefabs.Length == 0 || Array.IndexOf(Environment.GetCommandLineArgs(), "-morzaNoBoulders") >= 0) return;
+            var random = new System.Random((int)(seed * 1000.0) ^ 0x5BD1E995);
+            float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
+            foreach (var list in boulderBatch.Values) list.Clear();
+
+            foreach (var (point, _) in ShoreShape.SurfPoints(outline, coast ? 8f : 9f))
+            {
+                var outward = point.normalized;
+                var side = new Vector3(-outward.z, 0f, outward.x);
+                var shore = point - outward * 2f;
+                var count = random.Next(1, coast ? 3 : 2) + (random.NextDouble() < 0.3 ? 1 : 0);
+                for (var k = 0; k < count; k++)
+                {
+                    // From under the cliff foot out over the shallows; the further out, the deeper it lies.
+                    var out_ = Next(-1.5f, coast ? 9f : 7f);
+                    var size = Mathf.Lerp(1.1f, coast ? 4.2f : 2.8f, Mathf.Pow((float)random.NextDouble(), 2f)) * (out_ > 4f ? 1.3f : 1f);
+                    var depth = out_ < 1.5f ? Next(-0.35f, 0.05f) * size : -Mathf.Lerp(0.4f, 2.4f, Mathf.InverseLerp(1.5f, 9f, out_)) - size * 0.25f;
+                    var model = ModelOf(prefabs[random.Next(prefabs.Length)]);
+                    var at = shore + outward * out_ + side * Next(-2.5f, 2.5f);
+                    var placement = Matrix4x4.TRS(new Vector3(at.x, depth, at.z), Quaternion.Euler(Next(-8f, 8f), Next(0f, 360f), Next(-8f, 8f)), Vector3.one * (size / model.Width));
+                    var shadow = out_ < 2.5f;
+                    foreach (var (mesh, material, local) in model.Parts)
+                    {
+                        if (!boulderBatch.TryGetValue((material, shadow), out var list)) boulderBatch[(material, shadow)] = list = new List<CombineInstance>();
+                        list.Add(new CombineInstance { mesh = mesh, transform = placement * local });
+                    }
+                    BouldersPlaced++;
+                }
+            }
+
+            foreach (var pair in boulderBatch)
+            {
+                if (pair.Value.Count == 0) continue;
+                var combined = new Mesh { name = "Boulders", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                combined.CombineMeshes(pair.Value.ToArray(), true, true);
+                generatedMeshes.Add(combined);
+                var rocks = new GameObject("Boulders");
+                rocks.transform.SetParent(parent, false);
+                rocks.AddComponent<MeshFilter>().sharedMesh = combined;
+                var renderer = rocks.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = pair.Key.Item1;
+                renderer.shadowCastingMode = pair.Key.Item2 ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+
         static void AddViewPart(GameObject root, PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale)
         {
             var part = Primitive(type, name, material);
@@ -769,6 +872,9 @@ namespace MorzaBogow.Presentation
             part.transform.localPosition = position;
             part.transform.localScale = scale;
         }
+
+        /// <summary>The land whose centre lies at this point, if any.</summary>
+        Island LandAt(double x, double y) => World.Islands.FirstOrDefault(island => World.Distance(island.X, island.Y, x, y) < 0.5);
 
         /// <summary>The waterline of each land, as the radius around its centre at evenly spaced angles.</summary>
         float[] OutlineOf(Island island)
@@ -1729,6 +1835,7 @@ namespace MorzaBogow.Presentation
         void UpdateSmoke()
         {
             smokeElapsed += Time.unscaledDeltaTime;
+            if (smokeElapsed > 5f) { smokeFrames++; smokeFrameTime += Time.unscaledDeltaTime; smokeWorstFrame = Mathf.Max(smokeWorstFrame, Time.unscaledDeltaTime); }
             if (firstEnemySeenSeconds < 0 && World.Ships.Any(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship))) firstEnemySeenSeconds = World.Tick / (float)Rules.TickRate;
             smokeMaxVisibleEnemies = Mathf.Max(smokeMaxVisibleEnemies, World.Ships.Count(ship => ship.Owner != PlayerFaction && World.CanSee(PlayerFaction, ship)));
             UpdateSmokeShots();
@@ -1824,7 +1931,10 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"outposts\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed)},\n  \"outpostShipyards\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed && item.HasShipyard)},\n  \"merchants\": {World.Ships.Count(item => item.Class == ShipClass.Merchant)},\n");
             report.Append($"  \"waterSamples\": {(water != null ? water.Samples : 0)},\n  \"waterFailures\": {(water != null ? water.Failures : 0)},\n");
             report.Append($"  \"maxTiltDegrees\": {maxRollSeen.ToString("0.00", culture)},\n  \"maxHeaveMetres\": {maxHeaveSeen.ToString("0.00", culture)},\n");
-            report.Append($"  \"combatEvents\": {combatEvents}\n}}\n");
+            report.Append($"  \"combatEvents\": {combatEvents},\n");
+            report.Append($"  \"boulders\": {BouldersPlaced},\n");
+            report.Append($"  \"averageFrameMs\": {(smokeFrames > 0 ? smokeFrameTime / smokeFrames * 1000f : 0f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
+            report.Append($"  \"worstFrameMs\": {(smokeWorstFrame * 1000f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}\n}}\n");
             File.WriteAllText(smokeReport, report.ToString());
             smokeReport = null;
         }

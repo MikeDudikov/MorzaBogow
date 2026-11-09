@@ -52,6 +52,14 @@ namespace MorzaBogow.Editor
                 Sand = Material("Placeholder_Sand", new Color(0.6f, 0.54f, 0.4f), 0f, 0.1f),
                 FoamDisk = WaterDecalMaterial("Placeholder_WaterFoamDisk", DiskType, deformation: false, foam: true),
             };
+            var shore = ShoreArt.Prepare();
+            if (shore != null)
+            {
+                materials.Limestone = shore.Limestone;
+                materials.Seabed = shore.Seabed;
+                materials.Meadow = shore.Meadow;
+                materials.Boulders = shore.Boulders;
+            }
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -69,6 +77,9 @@ namespace MorzaBogow.Editor
             light.lightUnit = LightUnit.Lux;
             light.intensity = 100000f;
             light.shadows = LightShadows.Soft;
+            // Warm Mediterranean afternoon light: golden on limestone, deepening the blue of the sea by contrast.
+            light.useColorTemperature = true;
+            light.colorTemperature = 5600f;
 
             var profiles = GraphicsProfiles.All
                 .Select(profile => AssetDatabase.LoadAssetAtPath<VolumeProfile>($"{SettingsFolder}/Volume_{profile}.asset")).ToArray();
@@ -88,7 +99,10 @@ namespace MorzaBogow.Editor
 
             // From this view the sky reflects weakly, so the water's own color has to carry the sea and its waves.
             // Lower gloss turns sun glints into a soft shimmer instead of white flashes.
-            ocean.scatteringColor = new Color(0.045f, 0.125f, 0.155f);
+            // Open water a deep Aegean navy; over a bright shallow floor the light comes back turquoise.
+            ocean.scatteringColor = new Color(0.012f, 0.055f, 0.14f);
+            ocean.refractionColor = new Color(0.12f, 0.6f, 0.66f);
+            ocean.maxRefractionDistance = 1.5f;
             ocean.ambientScattering = 0.25f;
             ocean.heightScattering = 0.5f;
             ocean.displacementScattering = 0.6f;
@@ -107,7 +121,7 @@ namespace MorzaBogow.Editor
             ocean.foamPersistenceMultiplier = 0.3f;
 
             // Clearer water, so shelves and submerged hulls read through it; light falling on the floor ripples.
-            ocean.absorptionDistance = 8f;
+            ocean.absorptionDistance = 12f;
             ocean.caustics = true;
             ocean.causticsIntensity = 0.8f;
 

@@ -16,7 +16,8 @@ namespace MorzaBogow.Presentation
         public int VisiblePileParts { get; private set; }
         public int TotalPileParts => pile.Count;
 
-        public static ResourceSiteVisual Create(ResourceNode node, PlaceholderMaterials materials)
+        /// <param name="landOutline">The islet's waterline from the game; null uses the plain ellipse.</param>
+        public static ResourceSiteVisual Create(ResourceNode node, PlaceholderMaterials materials, double[] landOutline = null)
         {
             var root = new GameObject($"{node.Type} site {node.Id} [PLACEHOLDER]");
             var visual = root.AddComponent<ResourceSiteVisual>();
@@ -30,7 +31,7 @@ namespace MorzaBogow.Presentation
             model.localPosition = new Vector3(0f, 0f, (float)Rules.SiteLandOffset - IsletZ);
             visual.modelRoot = model;
             visual.Kind = node.Type;
-            visual.outline = System.Array.ConvertAll(LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth), value => (float)value);
+            visual.outline = System.Array.ConvertAll(landOutline ?? LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth), value => (float)value);
             CurrentMaterials = materials;
 
             var random = new System.Random(node.Id * 7919);
@@ -108,14 +109,14 @@ namespace MorzaBogow.Presentation
             islet.transform.localPosition = new Vector3(0f, 0f, IsletZ);
             islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline);
             var renderer = islet.AddComponent<MeshRenderer>();
-            renderer.sharedMaterials = new[] { CurrentMaterials?.Sand, land };
+            renderer.sharedMaterials = new[] { CurrentMaterials?.ShoreRock, land };
         }
 
         static PlaceholderMaterials CurrentMaterials;
 
         void BuildForestYard(Transform model, PlaceholderMaterials materials, System.Random random)
         {
-            BuildIslet(model, materials?.Foliage);
+            BuildIslet(model, materials?.Ground(materials.Foliage));
             Jetty(model, materials);
             stackSpot = new Vector3(0f, Ground(0f, -1f), -3f);
 

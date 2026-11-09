@@ -158,9 +158,10 @@ namespace MorzaBogow.Editor
             var tonemapping = profile.Add<Tonemapping>(true);
             tonemapping.mode.Override(TonemappingMode.Neutral);
 
-            // Neutral tonemapping washes colors out; this brings the water back to its earlier blue-green.
+            // Neutral tonemapping washes colors out a little; textured limestone and grass need only a light lift,
+            // while the sea gets its depth from the water's own colours.
             var color = profile.Add<ColorAdjustments>(true);
-            color.saturation.Override(35f);
+            color.saturation.Override(12f);
 
             var shadows = profile.Add<HDShadowSettings>(true);
             shadows.cascadeShadowSplitCount.Override(tier >= GraphicsProfile.ExtraHigh ? 4 : tier == GraphicsProfile.High ? 3 : 2);

@@ -1,3 +1,5 @@
+using System;
+
 namespace MorzaBogow.Simulation
 {
     /// <summary>
@@ -65,8 +67,47 @@ namespace MorzaBogow.Simulation
         static void AddSite(World world, double x, double y)
         {
             world.Sites.Add(new BuildSite { Id = world.NextId++, X = x, Y = y });
-            world.Islands.Add(new Island { X = Rules.LandX(x), Y = y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
+            world.Islands.Add(SettlementLand(x, y));
         }
+
+        /// <summary>
+        /// A port's islet: an irregular rocky shore around the land's centre. Toward the port, where the jetty and
+        /// both slipways run out, the shore stays at the usual distance; on the far side capes and bays come and go.
+        /// </summary>
+        public static Island SettlementLand(double portX, double portY)
+        {
+            var landX = Rules.LandX(portX);
+            var toward = portX >= landX ? 0.0 : Math.PI;
+            var circle = new double[LandShape.Samples];
+            for (var i = 0; i < circle.Length; i++) circle[i] = Rules.SettlementLandRadius;
+            var outline = LandShape.Irregular(circle, Seed(landX, portY), angle =>
+            {
+                var d = LandShape.AngleBetween(angle, toward);
+                return d < Math.PI * 0.6
+                    ? LandShape.Blend((0.96, 1.02), (0.93, 1.06), d, Math.PI * 0.2, Math.PI * 0.3)
+                    : LandShape.Blend((0.93, 1.06), (0.84, 1.32), d, Math.PI * 0.6, Math.PI * 0.72);
+            });
+            return new Island { X = landX, Y = portY, Radius = LandShape.MaxRadius(outline), Outline = outline, Kind = IslandKind.Settlement };
+        }
+
+        /// <summary>
+        /// A work point's islet, beyond the point from the berth. The jetty side stays as it was; the far half,
+        /// where the trees or the mine stand, only grows, and the flanks may draw in toward small bays.
+        /// </summary>
+        public static Island SiteLand(double nodeX, double nodeY)
+        {
+            var islet = LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth);
+            var jetty = -Math.PI / 2;
+            var outline = LandShape.Irregular(islet, Seed(nodeX, nodeY), angle =>
+            {
+                var d = LandShape.AngleBetween(angle, jetty);
+                if (Math.Sin(angle) >= 0) return (0.98, 1.38);
+                return LandShape.Blend((0.96, 1.04), (0.84, 1.28), d, Math.PI * 0.18, Math.PI * 0.3);
+            });
+            return new Island { X = nodeX, Y = nodeY + Rules.SiteLandOffset, Radius = LandShape.MaxRadius(outline), Outline = outline, Kind = IslandKind.ResourceSite };
+        }
+
+        static uint Seed(double x, double y) => (uint)((int)Math.Round(x * 7.0) * 73856093 ^ (int)Math.Round(y * 7.0) * 19349663);
 
         static void AddSide(World world, int owner, double x, int direction)
         {
@@ -77,7 +118,7 @@ namespace MorzaBogow.Simulation
             };
             world.Settlements.Add(settlement);
             AddCoast(world, x - direction * 75, 0, 50, direction < 0);
-            world.Islands.Add(new Island { X = Rules.SettlementLandX(settlement), Y = settlement.Y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
+            world.Islands.Add(SettlementLand(settlement.X, settlement.Y));
 
             var mask = 1 << owner;
             var wood = AddNode(world, ResourceType.Wood, x + direction * 80, 45, 3000, mask);
@@ -103,8 +144,7 @@ namespace MorzaBogow.Simulation
         {
             var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, KnownMask = knownMask };
             world.Nodes.Add(node);
-            var islet = LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth);
-            world.Islands.Add(new Island { X = x, Y = y + Rules.SiteLandOffset, Radius = LandShape.MaxRadius(islet), Outline = islet, Kind = IslandKind.ResourceSite });
+            world.Islands.Add(SiteLand(x, y));
             return node.Id;
         }
     }

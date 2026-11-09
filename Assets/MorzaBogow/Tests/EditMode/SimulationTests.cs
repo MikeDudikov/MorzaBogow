@@ -598,6 +598,56 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Land_EveryIsletHasAnIrregularNaturalShoreThatKeepsItsQuays()
+        {
+            var world = MapFactory.CreateSkirmish(1);
+            var again = MapFactory.CreateSkirmish(2);
+            var islets = world.Islands.Where(island => island.Kind != IslandKind.Coast).ToList();
+            Assert.That(islets.Count, Is.GreaterThan(10));
+            for (var n = 0; n < islets.Count; n++)
+            {
+                var island = islets[n];
+                Assert.That(island.Outline, Is.Not.Null, $"{island.Kind} at {island.X},{island.Y} has a real waterline.");
+                Assert.That(again.Islands.Where(item => item.Kind != IslandKind.Coast).ElementAt(n).Outline, Is.EqualTo(island.Outline), "The same place always gets the same shore.");
+
+                var plain = island.Kind == IslandKind.ResourceSite ? LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth) : Enumerable.Repeat(Rules.SettlementLandRadius, LandShape.Samples).ToArray();
+                var ratios = island.Outline.Select((radius, i) => radius / plain[i]).ToArray();
+                var bends = 0;
+                for (var i = 0; i < ratios.Length; i++)
+                {
+                    var before = ratios[(i + ratios.Length - 1) % ratios.Length] - ratios[i];
+                    var after = ratios[(i + 1) % ratios.Length] - ratios[i];
+                    if (before * after > 0) bends++;
+                }
+                Assert.That(ratios.Max() - ratios.Min(), Is.GreaterThan(0.1), "Capes and bays, not a plain ellipse or circle.");
+                Assert.That(bends, Is.GreaterThanOrEqualTo(6), "A ragged shore with several capes and bays.");
+            }
+
+            // Toward the port and along the slipways the shore stays where jetty and ramps cross it.
+            foreach (var settlement in world.Settlements)
+            {
+                var land = world.Islands.First(item => Math.Abs(item.X - Rules.SettlementLandX(settlement)) < 0.5 && Math.Abs(item.Y - settlement.Y) < 0.5);
+                var toward = Math.Sign(settlement.X - land.X);
+                Assert.That(LandShape.SignedDistance(land, land.X + toward * 21.5, land.Y), Is.GreaterThan(0), "The jetty end stands in water.");
+                Assert.That(LandShape.SignedDistance(land, land.X + toward * 15, land.Y), Is.LessThan(0), "The jetty starts on land.");
+                foreach (var side in new[] { -1, 1 })
+                {
+                    Assert.That(LandShape.SignedDistance(land, land.X + toward * Rules.SlipAlong, land.Y + side * 23), Is.GreaterThan(0), "The slipway runs into water.");
+                    Assert.That(LandShape.SignedDistance(land, land.X + toward * Rules.SlipAlong, land.Y + side * 15), Is.LessThan(0), "The slipway starts on land.");
+                }
+            }
+
+            // On a work point's islet, the trees or the mine stand on land and the jetty reaches the berth.
+            foreach (var node in world.Nodes)
+            {
+                var land = world.Islands.First(item => Math.Abs(item.X - node.X) < 0.5 && Math.Abs(item.Y - (node.Y + Rules.SiteLandOffset)) < 0.5);
+                foreach (var (x, z) in new[] { (-13.0, 3.0), (15.0, 3.0), (0.0, 9.0), (-10.0, -5.0), (10.0, -5.0), (0.0, -11.0) })
+                    Assert.That(LandShape.SignedDistance(land, land.X + x, land.Y + z), Is.LessThan(0), $"Land under the yard at {x},{z}.");
+                Assert.That(LandShape.SignedDistance(land, land.X, land.Y - 24), Is.GreaterThan(0), "The jetty end stands in water.");
+            }
+        }
+
+        [Test]
         public void Land_DeeperHullsKeepFurtherFromTheShore()
         {
             var cutter = new World(1).SpawnShip(0, ShipClass.Cutter, 0, 0);

@@ -40,7 +40,11 @@ namespace MorzaBogow.Tests
 
                 var islet = view.transform.Find("Islet").GetComponent<Renderer>().bounds;
                 // The beach runs out under the water just past the waterline; at the water it matches the land circle.
-                Assert.That(islet.extents.x, Is.EqualTo((float)Rules.SettlementLandRadius * 1.1f).Within(0.05f), "The islet matches the collision circle.");
+                var land = battle.World.Islands.First(item => item.Kind == IslandKind.Settlement && Mathf.Abs((float)(item.X - Rules.SettlementLandX(settlement))) < 0.5f && Mathf.Abs((float)(item.Y - settlement.Y)) < 0.5f);
+                Assert.That(land.Outline, Is.Not.Null, "Settlement land has an irregular waterline.");
+                // The mound's outer ring runs at 1.1 of the waterline; half its width is half the span across.
+                var xs = Enumerable.Range(0, LandShape.Samples).Select(i => Mathf.Cos((float)LandShape.Angle(i)) * (float)land.Outline[i] * 1.1f).ToArray();
+                Assert.That(islet.extents.x, Is.EqualTo((xs.Max() - xs.Min()) * 0.5f).Within(0.3f), "The islet matches the game's waterline.");
 
                 // The nearest point a cutter's hull can reach is the land edge plus nothing more than the jetty tip.
                 var jetty = view.transform.Find("Jetty").GetComponent<Renderer>().bounds;

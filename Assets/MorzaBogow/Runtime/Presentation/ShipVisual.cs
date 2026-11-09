@@ -39,6 +39,22 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Soft white droplets thrown up at the stem.</summary>
         public Material Spray;
+
+        /// <summary>
+        /// Surfaces of the Aegean shore (CC0 textures, world-mapped): pale limestone where land meets the sea, a
+        /// sandy floor strewn with stones under the shallows, and dry grass over rock on the land. Null falls back
+        /// to the plain placeholders.
+        /// </summary>
+        public Material Limestone;
+        public Material Seabed;
+        public Material Meadow;
+
+        /// <summary>Boulders (CC0 models) scattered along the waterline and over the shallows.</summary>
+        public GameObject[] Boulders = System.Array.Empty<GameObject>();
+
+        public Material ShoreRock => Limestone != null ? Limestone : Sand;
+        public Material Floor => Seabed != null ? Seabed : Sand;
+        public Material Ground(Material fallback) => Meadow != null ? Meadow : fallback;
     }
 
     /// <summary>
