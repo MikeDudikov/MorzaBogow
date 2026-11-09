@@ -97,7 +97,7 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - PreToolUse reaguje na narzędzie TaskUpdate, którego ta aplikacja nie używa. Automatyczne wywołanie hooków: NOT_RUN.
 - Profile różnią się na razie funkcjami HDRP, kaskadami i ustawieniami objętości. Limity świateł, detal wody i gęstość VFX z V10 nie są wdrożone.
 - Menu rozdzielczości (F10) i profili (F9) to robocze panele IMGUI.
-- Jeden przebieg na 11 wystartował na Intel Iris Xe z Direct3D 11. HDRP nie uruchomił się wtedy (`Kernel 'KDepthDownsample8DualUav' not found`), obraz był czarny, a gra działała dalej. Powtórka na RTX 3050 Ti przeszła. Przyczyny wyboru karty nie ustalono.
+- Jeden z 57 przebiegów w logach z 2026-11-09 wystartował na Intel Iris Xe z Direct3D 11. HDRP nie uruchomił się wtedy (`Kernel 'KDepthDownsample8DualUav' not found`), obraz był czarny, a gra działała dalej. Powtórka na RTX 3050 Ti przeszła. Przyczyny wyboru karty nie ustalono.
 - Pierwsze uruchomienie po przebudowie bywa bardzo wolne: 68 kroków w 16 s przy drugiej działającej kopii gry. Przyczyny nie potwierdzono.
 - Modele składu drewna, kopalni i osady nie mają kolizji w symulacji, więc statki potrafią przez nie przepływać.
 
