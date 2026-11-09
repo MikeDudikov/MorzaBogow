@@ -40,7 +40,9 @@ namespace MorzaBogow.Simulation
         }
 
         public ResourceNode FindNode(int id) => Nodes.FirstOrDefault(node => node.Id == id);
-        public Settlement SettlementOf(int faction) => Settlements.FirstOrDefault(item => item.Owner == faction);
+
+        /// <summary>The faction's main settlement. Its loss ends the match; a bridgehead's loss does not.</summary>
+        public Settlement SettlementOf(int faction) => Settlements.FirstOrDefault(item => item.Owner == faction && !item.IsOutpost);
         public void Issue(Command command) => Pending.Add(command);
 
         public Ship SpawnShip(int owner, ShipClass shipClass, double x, double y, bool fullCrew = true)
@@ -126,8 +128,9 @@ namespace MorzaBogow.Simulation
         {
             switch (command.Kind)
             {
-                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class); return;
-                case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue); return;
+                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId); return;
+                case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue, command.TargetId); return;
+                case CommandKind.BuildShipyard: BeginShipyard(command.Faction, command.TargetId); return;
             }
 
             foreach (var id in command.ShipIds.OrderBy(value => value))
@@ -185,11 +188,14 @@ namespace MorzaBogow.Simulation
                     ship.Order = OrderKind.Repair;
                     break;
                 case CommandKind.Scrap:
-                    if (ship.Cargo > 0) return;
+                    if (ship.Cargo > 0 || ship.HoldWood + ship.HoldSilver > 0) return;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Scrap;
                     ship.ScrapTicks = 0;
                     break;
+                case CommandKind.Transfer: BeginTransfer(ship, command); break;
+                case CommandKind.FoundOutpost: BeginExpedition(ship, command); break;
+                case CommandKind.Escort: BeginEscort(ship, command); break;
                 case CommandKind.AttackSettlement:
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
                     if (settlement == null || settlement.Owner == ship.Owner || settlement.Destroyed || ship.Definition.LightSlots == 0) return;
@@ -206,6 +212,7 @@ namespace MorzaBogow.Simulation
             Boardings.RemoveAll(link => link.AttackerId == ship.Id);
             ReleaseDock(ship);
             LeaveNode(ship);
+            ReleaseTransport(ship);
             ship.Order = OrderKind.Idle;
             ship.TargetId = -1;
             ship.NodeId = -1;
@@ -230,6 +237,9 @@ namespace MorzaBogow.Simulation
                     case OrderKind.Salvage: StepSalvage(ship); break;
                     case OrderKind.Repair: StepRepair(ship); break;
                     case OrderKind.Scrap: StepScrap(ship); break;
+                    case OrderKind.Transfer:
+                    case OrderKind.Expedition: StepTransport(ship); break;
+                    case OrderKind.Escort: StepEscort(ship); break;
                     case OrderKind.AttackShip:
                         var target = FindShip(ship.TargetId);
                         if (target == null || !CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; break; }
@@ -296,35 +306,6 @@ namespace MorzaBogow.Simulation
             return crew >= minimum ? 1.0 : (double)crew / minimum;
         }
 
-        (double x, double y) AvoidIslands(Ship ship, double x, double y)
-        {
-            Island blocker = null;
-            var nearest = double.MaxValue;
-            foreach (var island in Islands)
-            {
-                var clearance = island.Radius + ship.Definition.Radius + 12;
-                var dx = x - ship.X;
-                var dy = y - ship.Y;
-                var length2 = dx * dx + dy * dy;
-                if (length2 < 1e-6) continue;
-                var along = ((island.X - ship.X) * dx + (island.Y - ship.Y) * dy) / length2;
-                if (along < 0 || along > 1) continue;
-                var closestX = ship.X + along * dx;
-                var closestY = ship.Y + along * dy;
-                if (Distance(closestX, closestY, island.X, island.Y) >= clearance) continue;
-                var distance = along * Math.Sqrt(length2);
-                if (distance < nearest) { nearest = distance; blocker = island; }
-            }
-            if (blocker == null) return (x, y);
-
-            var radius = blocker.Radius + ship.Definition.Radius + 30;
-            var toShip = Math.Atan2(ship.Y - blocker.Y, ship.X - blocker.X);
-            var toTarget = Math.Atan2(y - blocker.Y, x - blocker.X);
-            var side = NormalizeAngle(toTarget - toShip) >= 0 ? 1 : -1;
-            var aimAngle = toShip + side * 0.7;
-            return (blocker.X + Math.Cos(aimAngle) * radius, blocker.Y + Math.Sin(aimAngle) * radius);
-        }
-
         void Integrate(Ship ship)
         {
             ship.X += Math.Cos(ship.Heading) * ship.Speed * Rules.Dt;
@@ -337,7 +318,10 @@ namespace MorzaBogow.Simulation
                 if (distance >= minimum || distance < 1e-6) continue;
                 ship.X = island.X + (ship.X - island.X) / distance * minimum;
                 ship.Y = island.Y + (ship.Y - island.Y) / distance * minimum;
-                ship.Speed *= 0.5;
+
+                // Only heading into the land costs speed; a ship sliding along the shore keeps moving.
+                var inward = (Math.Cos(ship.Heading) * (island.X - ship.X) + Math.Sin(ship.Heading) * (island.Y - ship.Y)) / minimum;
+                if (inward > 0.5) ship.Speed *= 0.5;
             }
         }
 
@@ -629,6 +613,7 @@ namespace MorzaBogow.Simulation
                 }
                 ReleaseDock(ship);
                 LeaveNode(ship);
+                ReleaseTransport(ship);
                 Boardings.RemoveAll(link => link.AttackerId == ship.Id || link.TargetId == ship.Id);
                 foreach (var other in Ships.Where(item => item.Order != OrderKind.Idle && item.Order != OrderKind.Move && item.Order != OrderKind.AttackSettlement && item.Order != OrderKind.Harvest && item.TargetId == ship.Id))
                 {
@@ -643,10 +628,10 @@ namespace MorzaBogow.Simulation
         {
             var settlement = SettlementOf(faction);
             if (settlement == null || settlement.Destroyed) return true;
-            if (Ships.Any(ship => ship.Owner == faction) || settlement.WarQueue.Count > 0 || settlement.PortQueue.Count > 0) return false;
+            if (Ships.Any(ship => ship.Owner == faction)) return false;
             var cutter = ShipCatalog.Get(ShipClass.Cutter);
-            return settlement.Available(ResourceType.Wood) < cutter.CostWood * Rules.Centi
-                   || settlement.Available(ResourceType.Silver) < cutter.CostSilver * Rules.Centi;
+            return !PortsOf(faction).Any(port => port.WarQueue.Count > 0 || port.PortQueue.Count > 0
+                || (port.Available(ResourceType.Wood) >= cutter.CostWood * Rules.Centi && port.Available(ResourceType.Silver) >= cutter.CostSilver * Rules.Centi));
         }
 
         void CheckVictory()

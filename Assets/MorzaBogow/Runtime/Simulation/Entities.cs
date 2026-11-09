@@ -2,7 +2,8 @@ using System.Collections.Generic;
 
 namespace MorzaBogow.Simulation
 {
-    public enum OrderKind { Idle, Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Salvage, Repair, Scrap }
+    public enum OrderKind { Idle, Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Salvage, Repair, Scrap, Transfer, Expedition, Escort }
+    public enum TransportPhase { ToSource, WaitSourceBerth, Loading, ToDestination, WaitDestinationBerth, Unloading, Building }
     public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked }
     public enum RamPhase { Approach, Recoil, Cooldown }
 
@@ -29,6 +30,15 @@ namespace MorzaBogow.Simulation
         public readonly List<int> Waiting = new List<int>();
     }
 
+    /// <summary>A free shore where a bridgehead can rise (E05). The point lies on water, its land is beside it.</summary>
+    public sealed class BuildSite
+    {
+        public int Id;
+        public double X, Y;
+        public int SettlementId = -1;
+        public int BuilderShipId = -1;
+    }
+
     public sealed class BuildOrder
     {
         public ShipClass Class;
@@ -47,6 +57,13 @@ namespace MorzaBogow.Simulation
         public readonly List<BuildOrder> PortQueue = new List<BuildOrder>();
         public readonly List<int> DockedShips = new List<int>();
         public readonly List<int> PortWaiting = new List<int>();
+
+        /// <summary>A bridgehead has its own store, port and port queue, but no war line until it gets a shipyard.</summary>
+        public bool IsOutpost;
+        public bool HasShipyard = true;
+        public BuildOrder ShipyardBuild;
+
+        public double MaxHull => IsOutpost ? Rules.OutpostHull : Rules.SettlementHull;
         public bool Destroyed => Hull <= 0;
 
         public long Stock(ResourceType type) => type == ResourceType.Wood ? Wood : Silver;
@@ -82,6 +99,20 @@ namespace MorzaBogow.Simulation
         public ResourceType CargoType;
         public long Cargo;
         public double WorkRemainder, UnloadRemainder;
+        public int PortId = -1;
+
+        // The next point of a route around land, and the target it was planned for.
+        public bool HasWaypoint;
+        public double WaypointX, WaypointY, RouteX, RouteY;
+        public int ReplanTick;
+
+        // A merchant's hold carries both resources at once (E02, E03).
+        public long HoldWood, HoldSilver;
+        public long WantWood, WantSilver;
+        public TransportPhase Transport;
+        public int SourceId = -1, DestinationId = -1, SiteId = -1, EscortId = -1;
+        public int BuildTicks;
+        public long BuildUsedWood, BuildUsedSilver;
 
         public double RepairWoodRemainder, RepairSilverRemainder;
         public int ScrapTicks;
@@ -110,7 +141,7 @@ namespace MorzaBogow.Simulation
         public bool Hooked;
     }
 
-    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap }
+    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard }
 
     public sealed class Command
     {
@@ -122,6 +153,10 @@ namespace MorzaBogow.Simulation
         public ShipClass Class;
         public int QueueIndex;
         public bool PortQueue;
+
+        /// <summary>Transfer: the source port and amounts in 0.01 units. Zero amounts let the order pick a load.</summary>
+        public int SourceId = -1;
+        public long Wood, Silver;
     }
 
     public enum OutcomeKind { InProgress, Won, Draw }

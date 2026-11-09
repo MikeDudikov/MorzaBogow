@@ -490,7 +490,7 @@ namespace MorzaBogow.Tests
         {
             var world = MapFactory.CreateSkirmish(1);
             Assert.That(world.Islands.Count(item => item.Kind == IslandKind.ResourceSite), Is.EqualTo(world.Nodes.Count));
-            Assert.That(world.Islands.Count(item => item.Kind == IslandKind.Settlement), Is.EqualTo(world.Settlements.Count));
+            Assert.That(world.Islands.Count(item => item.Kind == IslandKind.Settlement), Is.EqualTo(world.Settlements.Count + world.Sites.Count));
 
             var cutter = ShipCatalog.Get(ShipClass.Cutter).Radius;
             foreach (var node in world.Nodes)

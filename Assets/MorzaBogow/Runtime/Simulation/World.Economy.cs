@@ -14,6 +14,7 @@ namespace MorzaBogow.Simulation
             var total = Nodes.Where(node => node.Type == type).Sum(node => node.Stock)
                         + Settlements.Sum(settlement => settlement.Stock(type))
                         + Ships.Where(ship => ship.CargoType == type).Sum(ship => ship.Cargo)
+                        + Ships.Sum(ship => type == ResourceType.Wood ? ship.HoldWood : ship.HoldSilver)
                         + Wrecks.Sum(wreck => type == ResourceType.Wood ? wreck.Wood : wreck.Silver);
             return type == ResourceType.Wood
                 ? total + SpentWood + LostWood - ReturnedWood
@@ -22,14 +23,16 @@ namespace MorzaBogow.Simulation
 
         // ---------- Production: complete templates, reserved in full, consumed with progress ----------
 
-        void QueueShip(int faction, ShipClass shipClass)
+        /// <summary>Orders pay from the local store of the chosen port; without a target the main settlement builds.</summary>
+        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1)
         {
-            var settlement = SettlementOf(faction);
-            if (settlement == null || settlement.Destroyed) return;
-            var queued = settlement.WarQueue.Count + settlement.PortQueue.Count;
+            var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
+            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return;
+            var queued = PortsOf(faction).Sum(port => port.WarQueue.Count + port.PortQueue.Count);
             if (Ships.Count(ship => ship.Owner == faction) + queued >= Rules.FleetLimit) return;
 
             var definition = ShipCatalog.Get(shipClass);
+            if (!definition.IsEconomic && !settlement.HasShipyard) return;
             var wood = definition.CostWood * Rules.Centi;
             var silver = definition.CostSilver * Rules.Centi;
             if (settlement.Available(ResourceType.Wood) < wood || settlement.Available(ResourceType.Silver) < silver) return;
@@ -40,10 +43,10 @@ namespace MorzaBogow.Simulation
             queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate) });
         }
 
-        void CancelQueue(int faction, int index, bool portQueue)
+        void CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
         {
-            var settlement = SettlementOf(faction);
-            if (settlement == null) return;
+            var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
+            if (settlement == null || settlement.Owner != faction) return;
             var queue = portQueue ? settlement.PortQueue : settlement.WarQueue;
             if (index < 0 || index >= queue.Count) return;
 
@@ -71,6 +74,10 @@ namespace MorzaBogow.Simulation
                 if (settlement.Destroyed) continue;
                 StepLine(settlement, settlement.WarQueue);
                 StepLine(settlement, settlement.PortQueue);
+                if (settlement.ShipyardBuild == null || !AdvanceOrder(settlement, settlement.ShipyardBuild)) continue;
+                settlement.ShipyardBuild = null;
+                settlement.HasShipyard = true;
+                Emit("shipyard_built", settlement.Id, settlement.Id, settlement.X, settlement.Y, 0);
             }
         }
 
@@ -78,6 +85,16 @@ namespace MorzaBogow.Simulation
         {
             if (queue.Count == 0) return;
             var order = queue[0];
+            if (!AdvanceOrder(settlement, order)) return;
+            queue.RemoveAt(0);
+            var direction = settlement.IsOutpost ? (settlement.X < 0 ? 1 : -1) : settlement.Owner == 0 ? 1 : -1;
+            var ship = SpawnShip(settlement.Owner, order.Class, settlement.X + direction * 45, settlement.Y + (Tick % 5 - 2) * 25);
+            Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, 0);
+        }
+
+        /// <summary>One tick of paid work. Returns true when the order is complete.</summary>
+        bool AdvanceOrder(Settlement settlement, BuildOrder order)
+        {
             order.Started = true;
             order.DoneTicks++;
 
@@ -92,12 +109,7 @@ namespace MorzaBogow.Simulation
             settlement.ReservedSilver -= silver;
             SpentWood += wood;
             SpentSilver += silver;
-
-            if (order.DoneTicks < order.TotalTicks) return;
-            queue.RemoveAt(0);
-            var direction = settlement.Owner == 0 ? 1 : -1;
-            var ship = SpawnShip(settlement.Owner, order.Class, settlement.X + direction * 45, settlement.Y + (Tick % 5 - 2) * 25);
-            Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, 0);
+            return order.DoneTicks >= order.TotalTicks;
         }
 
         // ---------- Gathering: two berths, FIFO, shared cap, finite stock ----------
@@ -105,7 +117,11 @@ namespace MorzaBogow.Simulation
         void StepHarvest(Ship ship)
         {
             var node = FindNode(ship.NodeId);
-            var settlement = SettlementOf(ship.Owner);
+
+            // A cutter delivers to its nearest own port; once in a port's queue it stays with that port.
+            var settlement = ship.Harvest == HarvestPhase.WaitingPort || ship.Harvest == HarvestPhase.Docked
+                ? FindSettlement(ship.PortId) ?? SettlementOf(ship.Owner)
+                : ClosestPort(ship);
             var definition = ship.Definition;
 
             if (ship.Harvest == HarvestPhase.ToNode)
@@ -163,6 +179,7 @@ namespace MorzaBogow.Simulation
                 {
                     StopShip(ship);
                     settlement.PortWaiting.Add(ship.Id);
+                    ship.PortId = settlement.Id;
                     ship.Harvest = HarvestPhase.WaitingPort;
                 }
                 else Steer(ship, settlement.X, settlement.Y, definition.Speed, Rules.PortRange * 0.8);
@@ -296,17 +313,19 @@ namespace MorzaBogow.Simulation
 
         void CreateWreck(Ship ship)
         {
-            if (ship.Cargo <= 0) return;
-            var kept = (long)(ship.Cargo * Rules.WreckCargoFraction);
-            var lost = ship.Cargo - kept;
-            if (ship.CargoType == ResourceType.Wood) LostWood += lost; else LostSilver += lost;
-            ship.Cargo = 0;
-            if (kept <= 0) return;
+            var carriedWood = ship.HoldWood + (ship.CargoType == ResourceType.Wood ? ship.Cargo : 0);
+            var carriedSilver = ship.HoldSilver + (ship.CargoType == ResourceType.Silver ? ship.Cargo : 0);
+            if (carriedWood + carriedSilver <= 0) return;
+
+            var keptWood = (long)(carriedWood * Rules.WreckCargoFraction);
+            var keptSilver = (long)(carriedSilver * Rules.WreckCargoFraction);
+            LostWood += carriedWood - keptWood;
+            LostSilver += carriedSilver - keptSilver;
+            ship.Cargo = ship.HoldWood = ship.HoldSilver = 0;
+            if (keptWood + keptSilver <= 0) return;
             Wrecks.Add(new Wreck
             {
-                Id = NextId++, X = ship.X, Y = ship.Y,
-                Wood = ship.CargoType == ResourceType.Wood ? kept : 0,
-                Silver = ship.CargoType == ResourceType.Silver ? kept : 0,
+                Id = NextId++, X = ship.X, Y = ship.Y, Wood = keptWood, Silver = keptSilver,
                 ExpiresTick = Tick + (int)(Rules.WreckLifeSeconds * Rules.TickRate),
             });
         }
@@ -368,7 +387,7 @@ namespace MorzaBogow.Simulation
 
         void StepRepair(Ship ship)
         {
-            var settlement = SettlementOf(ship.Owner);
+            var settlement = ClosestYard(ship);
             var definition = ship.Definition;
             if (settlement == null || settlement.Destroyed || ship.Hull >= definition.Hull)
             {
@@ -377,9 +396,9 @@ namespace MorzaBogow.Simulation
                 return;
             }
 
-            if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) > Rules.PortRange)
+            if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) > PortReach(ship))
             {
-                Steer(ship, settlement.X, settlement.Y, definition.Speed, Rules.PortRange * 0.8);
+                Steer(ship, settlement.X, settlement.Y, definition.Speed, PortReach(ship) * 0.8);
                 return;
             }
 
@@ -410,11 +429,11 @@ namespace MorzaBogow.Simulation
 
         void StepScrap(Ship ship)
         {
-            var settlement = SettlementOf(ship.Owner);
+            var settlement = ClosestYard(ship);
             if (settlement == null || settlement.Destroyed) { ship.Order = OrderKind.Idle; return; }
-            if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) > Rules.PortRange)
+            if (Distance(ship.X, ship.Y, settlement.X, settlement.Y) > PortReach(ship))
             {
-                Steer(ship, settlement.X, settlement.Y, ship.Definition.Speed, Rules.PortRange * 0.8);
+                Steer(ship, settlement.X, settlement.Y, ship.Definition.Speed, PortReach(ship) * 0.8);
                 return;
             }
 

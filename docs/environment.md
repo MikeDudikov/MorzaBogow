@@ -60,9 +60,11 @@ GPU zgłasza DXR. Tryby monitora obejmują w zakresie V13 wyłącznie 1920×1080
 
 | Kontrola | Wynik | Zakres |
 |---|---|---|
-| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 95/95, PlayMode 36/36 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
+| Bramka uruchomiona ręcznie zdarzeniem TaskCompleted | PASS, EditMode 121/121, PlayMode 36/36 | gospodarka D/S, logika i integracja, raport w `qa/reports` |
 | Testy bramki | 45/45 PASS | sam mechanizm, syntetyczny runner |
-| Build Windows64 Mono, scena M1_Battle | Success, 261875864 B, 0 błędów, 0 ostrzeżeń | |
+| Build Windows64 Mono, scena M1_Battle | Success, 261899192 B, 0 błędów, 0 ostrzeżeń | |
+| Build, 300 s rozgrywki SI kontra SI | 3 przyczółki, 0 stoczni na przyczółkach, 2 handlowce, 845 zdarzeń walki, mecz nierozstrzygnięty | jeden przebieg; nie dowód balansu ekspansji |
+| Mecz SI kontra SI, seed 9, 12000 kroków, test | Bilans D i S stały w każdym kroku, magazyny nieujemne, 2 przyczółki | jeden seed |
 | Mecz SI kontra SI, seed 9, 6000 kroków, test | Żaden statek nie wszedł na ląd, punkty pracy nadal działają | sprawdzane co krok dla kół kolizji, jeden seed |
 | Build, 130 s rozgrywki SI z próbkowaniem wody | 118645 odczytów, 8 błędów, przechył do 11,96°, wznoszenie do 0,98 m | odczyty liczbowe, ruch na ekranie nie był oceniany |
 | Kolor wody w buildzie, profil Ultra, widok domyślny | RGB 42 71 84, 0% przepaleń; zaakceptowana wersja perspektywiczna 34 68 75 | średnia z wycinka zrzutu, inny kadr niż we wzorcu |
@@ -79,15 +81,16 @@ Obraz: stała ekspozycja EV 12,25, mapowanie tonów Neutral, nasycenie +35, sło
 
 Paski HP pojawiają się tylko po zaznaczeniu myszą, także dla wielu okrętów i widocznych wrogów. Znaczniki to cienkie, półprzezroczyste okręgi z lekko zmiękczoną krawędzią: zaznaczenie i cel ruchu mają krycie 42%, atakowany wróg czerwony okrąg o kryciu 70%. Mgła wojny jest widoczna w trzech stanach, a odkrycie należy do zapisu gry. Animacje, efekty oraz modele składu drewna i kopalni srebra to prezentacja zbudowana z prostych brył, do zastąpienia docelową grafiką.
 
-Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 4. Zapisy z wcześniejszych buildów nie wczytują się.
+Wdrożone z gospodarki E00–E11: drewno i srebro, skończone punkty z dwoma stanowiskami i kolejką FIFO, magazyn z rezerwacjami, port na trzy statki, osobna linia wojenna i kolejka portu, zużycie kosztu wraz z postępem, rozdział ceny szablonu, remont, złomowanie, wrak z połową ładunku, księga świata i zapis w wersji 6. Zapisy z wcześniejszych buildów nie wczytują się.
 
 Budżety kampanii M01–M14 i ładunek misji (E12) są tylko w dokumentach i danych. Sceny misji nie istnieją.
 
 Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 
-- Następny etap z E00: handlowiec, druga wyspa, eskorta, przyczółek, konwoje i lokalna produkcja.
-- Nie ma inwestycji z E05, kolejnej stoczni, ostrzeżeń o nasyceniu ani rezerwy gracza; rezerwy 60 D/20 S przestrzega tylko SI.
-- Nawigacja omija koła lądu: wybrzeża, składy, kopalnie i osady. Port i punkt pracy leżą na wodzie obok swojego lądu; osada stoi na zastępczej wysepce o promieniu koła kolizji, z pomostem w stronę portu. Tylko wybrzeże blokuje strzały. Kolizja to koło, więc nie odwzorowuje dokładnie kształtu modelu. Cel ruchu na lądzie przesuwa się na najbliższą wodę. Statki nie zderzają się ze sobą. Nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
+- Wdrożono z drugiego etapu E00: handlowca z ładownią na oba zasoby, osiem wolnych brzegów, wyprawę na przyczółek (300 D/100 S, 35 s na miejscu), lokalne magazyny i kolejki portu, stocznię na przyczółku (200 D/100 S, 40 s), dostawy na rozkaz między portami, eskortę i rozbudowę SI. Dostawa to jeden kurs, a eskorta strzela tylko łucznikami.
+- Nie ma automatycznych konwojów z E03: obszaru pracy, portu priorytetowego, poziomu ryzyka, trybów stoczni, grup do trzech handlowców i minimalnego zapasu źródła. Dostawa automatyczna zostawia jedynie rezerwę 60 D/20 S. Nie ma anulowania budowy stoczni ani kolejnej stoczni w osadzie głównej.
+- Nie ma pozostałych inwestycji z E05, ostrzeżeń o nasyceniu ani rezerwy gracza; rezerwy 60 D/20 S przy zamówieniach wojskowych przestrzega tylko SI. Stracony przyczółek nie zostawia łupu, a jego niewydane zapasy są niedostępne.
+- Nawigacja wyznacza trasę po grafie widoczności wokół kół lądu, osobno dla każdej wielkości kadłuba. Test sprawdza przejazd kutra do każdego punktu pracy i handlowca z obu baz na każdy brzeg oraz dojście tarana i abordażowca do stoczni, z jednego punktu startowego. Omijane są wybrzeża, składy, kopalnie, osady i wolne brzegi. Port i punkt pracy leżą na wodzie obok swojego lądu; osada stoi na zastępczej wysepce o promieniu koła kolizji, z pomostem w stronę portu. Tylko wybrzeże blokuje strzały. Kolizja to koło, więc nie odwzorowuje dokładnie kształtu modelu. Cel ruchu na lądzie przesuwa się na najbliższą wodę. Statki nie zderzają się ze sobą. Nie ma grafu akwenów, głębokości, zanurzenia, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
 - Jedyna broń to łucznicy z rzutem seedowanym, bez lotu pocisku, sektorów i wyboru wyposażenia. Wyposażenie z szablonu nie jest osobnym przedmiotem, więc 30% szansy jego przetrwania we wraku nie jest wdrożone.
 - Osada łączy port i stocznię w jednym obiekcie, więc zniszczenia samego portu nie ma; łup 30% ze zniszczonej osady nie jest wdrożony, bo jej zniszczenie kończy mecz.
 - SI jest prosta i zna pozycję startową wroga oraz położenie punktów pracy. Balans: NOT_RUN.
@@ -99,6 +102,7 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - Profile różnią się na razie funkcjami HDRP, kaskadami i ustawieniami objętości. Limity świateł, detal wody i gęstość VFX z V10 nie są wdrożone.
 - Menu rozdzielczości (F10) i profili (F9) to robocze panele IMGUI.
 - Jeden z 57 przebiegów w logach z 2026-11-09 wystartował na Intel Iris Xe z Direct3D 11. HDRP nie uruchomił się wtedy (`Kernel 'KDepthDownsample8DualUav' not found`), obraz był czarny, a gra działała dalej. Powtórka na RTX 3050 Ti przeszła. Przyczyny wyboru karty nie ustalono.
+- SI zakłada przyczółki, ale nie dowozi na nie zapasów dostawami, więc w próbie 300 s żaden nie dostał stoczni. Na zrzucie przyczółek gracza miał 0 D i 120 S.
 - Pierwsze uruchomienie po przebudowie bywa bardzo wolne: 68 kroków w 16 s przy drugiej działającej kopii gry. Przyczyny nie potwierdzono.
 ## Nieuruchomione
 

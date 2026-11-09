@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 4;
+        public const int Version = 6;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -88,6 +88,10 @@ namespace MorzaBogow.Simulation
                     WriteQueue(writer, settlement.PortQueue);
                     WriteIds(writer, settlement.DockedShips);
                     WriteIds(writer, settlement.PortWaiting);
+                    writer.Write(settlement.IsOutpost); writer.Write(settlement.HasShipyard);
+                    var yard = new List<BuildOrder>();
+                    if (settlement.ShipyardBuild != null) yard.Add(settlement.ShipyardBuild);
+                    WriteQueue(writer, yard);
                 }
 
                 writer.Write(world.Ships.Count);
@@ -103,6 +107,12 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.WorkRemainder); writer.Write(ship.UnloadRemainder);
                     writer.Write(ship.RepairWoodRemainder); writer.Write(ship.RepairSilverRemainder); writer.Write(ship.ScrapTicks);
                     writer.Write((int)ship.RamState); writer.Write(ship.RamTimer); writer.Write(ship.LastRamTick);
+                    writer.Write(ship.PortId); writer.Write(ship.HoldWood); writer.Write(ship.HoldSilver);
+                    writer.Write(ship.WantWood); writer.Write(ship.WantSilver); writer.Write((int)ship.Transport);
+                    writer.Write(ship.SourceId); writer.Write(ship.DestinationId); writer.Write(ship.SiteId); writer.Write(ship.EscortId);
+                    writer.Write(ship.BuildTicks); writer.Write(ship.BuildUsedWood); writer.Write(ship.BuildUsedSilver);
+                    writer.Write(ship.HasWaypoint); writer.Write(ship.WaypointX); writer.Write(ship.WaypointY);
+                    writer.Write(ship.RouteX); writer.Write(ship.RouteY); writer.Write(ship.ReplanTick);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -117,6 +127,13 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(link.AttackerId); writer.Write(link.TargetId); writer.Write(link.HookTicks);
                     writer.Write(link.CycleTicks); writer.Write(link.ControlTicks); writer.Write(link.Hooked);
+                }
+
+                writer.Write(world.Sites.Count);
+                foreach (var site in world.Sites)
+                {
+                    writer.Write(site.Id); writer.Write(site.X); writer.Write(site.Y);
+                    writer.Write(site.SettlementId); writer.Write(site.BuilderShipId);
                 }
 
                 writer.Flush();
@@ -175,6 +192,11 @@ namespace MorzaBogow.Simulation
                     ReadQueue(reader, settlement.PortQueue);
                     ReadIds(reader, settlement.DockedShips);
                     ReadIds(reader, settlement.PortWaiting);
+                    settlement.IsOutpost = reader.ReadBoolean();
+                    settlement.HasShipyard = reader.ReadBoolean();
+                    var yard = new List<BuildOrder>();
+                    ReadQueue(reader, yard);
+                    if (yard.Count > 0) settlement.ShipyardBuild = yard[0];
                     world.Settlements.Add(settlement);
                 }
 
@@ -193,6 +215,12 @@ namespace MorzaBogow.Simulation
                         WorkRemainder = reader.ReadDouble(), UnloadRemainder = reader.ReadDouble(),
                         RepairWoodRemainder = reader.ReadDouble(), RepairSilverRemainder = reader.ReadDouble(), ScrapTicks = reader.ReadInt32(),
                         RamState = (RamPhase)reader.ReadInt32(), RamTimer = reader.ReadInt32(), LastRamTick = reader.ReadInt32(),
+                        PortId = reader.ReadInt32(), HoldWood = reader.ReadInt64(), HoldSilver = reader.ReadInt64(),
+                        WantWood = reader.ReadInt64(), WantSilver = reader.ReadInt64(), Transport = (TransportPhase)reader.ReadInt32(),
+                        SourceId = reader.ReadInt32(), DestinationId = reader.ReadInt32(), SiteId = reader.ReadInt32(), EscortId = reader.ReadInt32(),
+                        BuildTicks = reader.ReadInt32(), BuildUsedWood = reader.ReadInt64(), BuildUsedSilver = reader.ReadInt64(),
+                        HasWaypoint = reader.ReadBoolean(), WaypointX = reader.ReadDouble(), WaypointY = reader.ReadDouble(),
+                        RouteX = reader.ReadDouble(), RouteY = reader.ReadDouble(), ReplanTick = reader.ReadInt32(),
                     });
                 }
 
@@ -213,6 +241,16 @@ namespace MorzaBogow.Simulation
                     {
                         AttackerId = reader.ReadInt32(), TargetId = reader.ReadInt32(), HookTicks = reader.ReadInt32(),
                         CycleTicks = reader.ReadInt32(), ControlTicks = reader.ReadInt32(), Hooked = reader.ReadBoolean(),
+                    });
+                }
+
+                count = reader.ReadInt32();
+                for (var i = 0; i < count; i++)
+                {
+                    world.Sites.Add(new BuildSite
+                    {
+                        Id = reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
+                        SettlementId = reader.ReadInt32(), BuilderShipId = reader.ReadInt32(),
                     });
                 }
                 return world;

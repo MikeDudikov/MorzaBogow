@@ -28,6 +28,7 @@ namespace MorzaBogow.Presentation
         readonly Dictionary<int, Vector3> previous = new Dictionary<int, Vector3>();
         readonly Dictionary<int, GameObject> nodeViews = new Dictionary<int, GameObject>();
         readonly Dictionary<int, GameObject> settlementViews = new Dictionary<int, GameObject>();
+        readonly Dictionary<int, GameObject> freeShoreViews = new Dictionary<int, GameObject>();
         readonly HashSet<int> selected = new HashSet<int>();
         readonly Dictionary<int, int[]> groups = new Dictionary<int, int[]>();
         readonly List<GameObject> mapObjects = new List<GameObject>();
@@ -82,6 +83,9 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Samples only some ships each frame; between samples the hull smoothly follows its last pose.</summary>
         const int WaterShipsPerFrame = 24;
+
+        /// <summary>Bottom panels: a template list with a merchant and a shipyard button needs this much room.</summary>
+        const float HudHeight = 190f;
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
         public IReadOnlyDictionary<int, GameObject> SettlementViews => settlementViews;
         public IReadOnlyCollection<int> TargetedShips => targetedShips;
@@ -194,6 +198,18 @@ namespace MorzaBogow.Presentation
                 var seen = World.CanSee(PlayerFaction, item.X, item.Y);
                 switch (item.Type)
                 {
+                    case "order_rejected":
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Notify("Rozkazu nie można wykonać: brak ładunku w porcie, nieodkryty lub zajęty brzeg.");
+                        break;
+                    case "store_full":
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Notify("Magazyn pełny: reszta ładunku została na statku.");
+                        break;
+                    case "outpost_built":
+                        if (World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) Notify("Przyczółek gotowy: ma własny magazyn, port i kolejkę portu.");
+                        break;
+                    case "shipyard_built":
+                        if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Notify("Stocznia na przyczółku gotowa.");
+                        break;
                     case "volley":
                         if (seen && lastPositions.TryGetValue(item.SubjectId, out var shooter)) effects.Arrows(shooter, at, (int)item.Amount);
                         break;
@@ -234,6 +250,7 @@ namespace MorzaBogow.Presentation
             previous.Clear();
             nodeViews.Clear();
             settlementViews.Clear();
+            freeShoreViews.Clear();
             mapObjects.Clear();
             selected.Clear();
             foreach (var view in wreckViews.Values) if (view != null) Destroy(view);
@@ -262,6 +279,14 @@ namespace MorzaBogow.Presentation
                 mapObjects.Add(view);
             }
 
+            foreach (var shore in World.Sites)
+            {
+                var view = CreateShore(shore.X, shore.Y, "Free shore [PLACEHOLDER]");
+                view.SetActive(false);
+                freeShoreViews[shore.Id] = view;
+                mapObjects.Add(view);
+            }
+
             foreach (var node in World.Nodes)
             {
                 var site = ResourceSiteVisual.Create(node, materials);
@@ -271,34 +296,43 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        /// <summary>Replaceable placeholder: an islet exactly as wide as the land ships cannot enter, with a jetty to the port.</summary>
+        /// <summary>Replaceable placeholder: an islet with a jetty to the port, on the land ships cannot enter.</summary>
         GameObject CreateSettlementView(Settlement settlement)
         {
-            var landX = (float)Rules.SettlementLandX(settlement);
-            var root = new GameObject($"Settlement {settlement.Owner} [PLACEHOLDER]");
-            root.transform.position = new Vector3(landX, 0f, (float)settlement.Y);
+            var root = CreateShore(settlement.X, settlement.Y, $"Settlement {settlement.Owner} [PLACEHOLDER]");
+            var size = settlement.IsOutpost ? 16f : 26f;
+            var tall = settlement.IsOutpost ? 4f : 6f;
+            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 0.5f + tall * 0.5f, 0f), new Vector3(size, tall, size));
+            return root;
+        }
 
-            void Part(PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale)
-            {
-                var part = Primitive(type, name, material);
-                part.transform.SetParent(root.transform, false);
-                part.transform.localPosition = position;
-                part.transform.localScale = scale;
-            }
+        /// <summary>The islet exactly matches the land's collision circle. A free shore shows only this.</summary>
+        GameObject CreateShore(double portX, double portY, string name)
+        {
+            var landX = (float)Rules.LandX(portX);
+            var root = new GameObject(name);
+            root.transform.position = new Vector3(landX, 0f, (float)portY);
 
             var diameter = (float)Rules.SettlementLandRadius * 2f;
-            Part(PrimitiveType.Sphere, "Islet", materials?.Rock, new Vector3(0f, 0.4f, 0f), new Vector3(diameter, 3f, diameter));
-            Part(PrimitiveType.Sphere, "Islet grass", materials?.Foliage, new Vector3(0f, 0.5f, 0f), new Vector3(diameter - 4f, 3.2f, diameter - 4f));
-            Part(PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 3.5f, 0f), new Vector3(26f, 6f, 26f));
+            AddViewPart(root, PrimitiveType.Sphere, "Islet", materials?.Rock, new Vector3(0f, 0.4f, 0f), new Vector3(diameter, 3f, diameter));
+            AddViewPart(root, PrimitiveType.Sphere, "Islet grass", materials?.Foliage, new Vector3(0f, 0.5f, 0f), new Vector3(diameter - 4f, 3.2f, diameter - 4f));
 
             // The jetty points from the land toward the port on the water.
-            var towardPort = Mathf.Sign((float)settlement.X - landX);
-            Part(PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * 17f, 1.4f, 0f), new Vector3(8f, 0.4f, 5f));
+            var towardPort = Mathf.Sign((float)portX - landX);
+            AddViewPart(root, PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * 17f, 1.4f, 0f), new Vector3(8f, 0.4f, 5f));
             for (var side = -1; side <= 1; side += 2)
             {
-                Part(PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * 20.5f, 0.8f, side * 2.4f), new Vector3(0.45f, 1.5f, 0.45f));
+                AddViewPart(root, PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * 20.5f, 0.8f, side * 2.4f), new Vector3(0.45f, 1.5f, 0.45f));
             }
             return root;
+        }
+
+        static void AddViewPart(GameObject root, PrimitiveType type, string name, Material material, Vector3 position, Vector3 scale)
+        {
+            var part = Primitive(type, name, material);
+            part.transform.SetParent(root.transform, false);
+            part.transform.localPosition = position;
+            part.transform.localScale = scale;
         }
 
         GameObject CreateIsland(Island island)
@@ -424,7 +458,7 @@ namespace MorzaBogow.Presentation
                 case OrderKind.Harvest:
                     if (ship.Harvest == HarvestPhase.ToPort || ship.Harvest == HarvestPhase.WaitingPort || ship.Harvest == HarvestPhase.Docked)
                     {
-                        var home = World.SettlementOf(ship.Owner);
+                        var home = World.ClosestPort(ship);
                         if (home == null) return false;
                         target = new Vector3((float)home.X, 0f, (float)home.Y);
                         return true;
@@ -440,9 +474,29 @@ namespace MorzaBogow.Presentation
                     return true;
                 case OrderKind.Repair:
                 case OrderKind.Scrap:
-                    var yard = World.SettlementOf(ship.Owner);
+                    var yard = World.ClosestYard(ship);
                     if (yard == null) return false;
                     target = new Vector3((float)yard.X, 0f, (float)yard.Y);
+                    return true;
+                case OrderKind.Transfer:
+                case OrderKind.Expedition:
+                    if (ship.Transport <= TransportPhase.Loading)
+                    {
+                        var source = World.FindSettlement(ship.SourceId);
+                        if (source == null) return false;
+                        target = new Vector3((float)source.X, 0f, (float)source.Y);
+                        return true;
+                    }
+                    if (ship.Order == OrderKind.Expedition)
+                    {
+                        var shore = World.FindSite(ship.SiteId);
+                        if (shore == null) return false;
+                        target = new Vector3((float)shore.X, 0f, (float)shore.Y);
+                        return true;
+                    }
+                    var destination = World.FindSettlement(ship.DestinationId);
+                    if (destination == null) return false;
+                    target = new Vector3((float)destination.X, 0f, (float)destination.Y);
                     return true;
                 default:
                     return false;
@@ -559,8 +613,21 @@ namespace MorzaBogow.Presentation
 
             foreach (var settlement in World.Settlements)
             {
-                if (!settlementViews.TryGetValue(settlement.Id, out var view)) continue;
+                if (!settlementViews.TryGetValue(settlement.Id, out var view))
+                {
+                    // A bridgehead rises during the match.
+                    view = CreateSettlementView(settlement);
+                    settlementViews[settlement.Id] = view;
+                    mapObjects.Add(view);
+                }
                 var shown = !settlement.Destroyed && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
+                if (view.activeSelf != shown) view.SetActive(shown);
+            }
+
+            foreach (var shore in World.Sites)
+            {
+                if (!freeShoreViews.TryGetValue(shore.Id, out var view)) continue;
+                var shown = World.IsSiteFree(shore) && World.IsExplored(PlayerFaction, shore.X, shore.Y);
                 if (view.activeSelf != shown) view.SetActive(shown);
             }
         }
@@ -666,7 +733,7 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        bool PointerOverHud() => Input.mousePosition.y < 150f;
+        bool PointerOverHud() => Input.mousePosition.y < HudHeight;
 
         void FinishSelection(Vector2 end)
         {
@@ -755,11 +822,42 @@ namespace MorzaBogow.Presentation
             var enemy = NearestShip(point, ship => ship.Owner != PlayerFaction);
             if (enemy != null) { OrderAttack(ids, enemy); return; }
 
-            var enemyHome = World.SettlementOf(1 - PlayerFaction);
-            if (enemyHome != null && World.CanSee(PlayerFaction, enemyHome.X, enemyHome.Y) && IsOnSettlement(point, enemyHome))
+            // Warships ordered onto an own merchant stay with it as its escort.
+            var warships = ids.Where(id => World.FindShip(id)?.Definition.IsEconomic == false).ToArray();
+            var merchants = ids.Where(id => World.FindShip(id)?.Class == ShipClass.Merchant).ToArray();
+            var escorted = NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id));
+            if (escorted != null && warships.Length > 0)
             {
-                Send(CommandKind.AttackSettlement, ids, target: enemyHome.Id);
+                Send(CommandKind.Escort, warships, target: escorted.Id);
                 return;
+            }
+
+            var enemyPort = World.Settlements.FirstOrDefault(item => item.Owner != PlayerFaction && !item.Destroyed
+                && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item));
+            if (enemyPort != null)
+            {
+                Send(CommandKind.AttackSettlement, ids, target: enemyPort.Id);
+                return;
+            }
+
+            if (merchants.Length > 0)
+            {
+                var shore = World.Sites.FirstOrDefault(item => World.IsSiteFree(item) && World.IsExplored(PlayerFaction, item.X, item.Y)
+                    && (World.Distance(point.x, point.z, item.X, item.Y) < 25 || World.Distance(point.x, point.z, Rules.LandX(item.X), item.Y) < 25));
+                if (shore != null)
+                {
+                    Send(CommandKind.FoundOutpost, merchants.Take(1).ToArray(), target: shore.Id);
+                    Send(CommandKind.Move, ids.Except(merchants.Take(1)).ToArray(), point);
+                    return;
+                }
+
+                var ownPort = World.PortsOf(PlayerFaction).FirstOrDefault(item => IsOnSettlement(point, item));
+                if (ownPort != null)
+                {
+                    Send(CommandKind.Transfer, merchants, target: ownPort.Id);
+                    Send(CommandKind.Move, ids.Except(merchants).ToArray(), point);
+                    return;
+                }
             }
 
             var wreck = World.Wrecks.FirstOrDefault(item => World.CanSee(PlayerFaction, item.X, item.Y) && World.Distance(point.x, point.z, item.X, item.Y) < 20);
@@ -841,47 +939,61 @@ namespace MorzaBogow.Presentation
 
         void OnGUI()
         {
-            var settlement = World.SettlementOf(PlayerFaction);
+            // E03: the bar shows one local store, never a remote total. Clicking an own port makes it active.
+            var settlement = ActivePort;
             if (settlement != null)
             {
-                var transit = World.Ships.Where(ship => ship.Owner == PlayerFaction && ship.Cargo > 0).ToList();
-                var woodTransit = transit.Where(ship => ship.CargoType == ResourceType.Wood).Sum(ship => ship.Cargo) / Rules.Centi;
-                var silverTransit = transit.Where(ship => ship.CargoType == ResourceType.Silver).Sum(ship => ship.Cargo) / Rules.Centi;
-                var fleet = World.Ships.Count(ship => ship.Owner == PlayerFaction);
+                var own = World.Ships.Where(ship => ship.Owner == PlayerFaction).ToList();
+                var woodTransit = (own.Where(ship => ship.CargoType == ResourceType.Wood).Sum(ship => ship.Cargo) + own.Sum(ship => ship.HoldWood)) / Rules.Centi;
+                var silverTransit = (own.Where(ship => ship.CargoType == ResourceType.Silver).Sum(ship => ship.Cargo) + own.Sum(ship => ship.HoldSilver)) / Rules.Centi;
+                var portName = settlement.IsOutpost ? "Przyczółek" : "Osada";
                 GUI.Box(new Rect(0, 0, Screen.width, 26), string.Empty);
                 GUI.Label(new Rect(10, 3, Screen.width - 20, 24),
-                    $"Drewno {settlement.Available(ResourceType.Wood) / Rules.Centi} (rez. {settlement.ReservedWood / Rules.Centi}, w drodze {woodTransit})   Srebro {settlement.Available(ResourceType.Silver) / Rules.Centi} (rez. {settlement.ReservedSilver / Rules.Centi}, w drodze {silverTransit})   Flota {fleet}/{Rules.FleetLimit}   Osada {Mathf.CeilToInt((float)settlement.Hull)} HP   " +
+                    $"{portName}: drewno {settlement.Available(ResourceType.Wood) / Rules.Centi} (rez. {settlement.ReservedWood / Rules.Centi})   srebro {settlement.Available(ResourceType.Silver) / Rules.Centi} (rez. {settlement.ReservedSilver / Rules.Centi})   {Mathf.CeilToInt((float)settlement.Hull)} HP   " +
+                    $"W drodze: {woodTransit} D, {silverTransit} S   Porty {World.PortsOf(PlayerFaction).Count()}   Flota {own.Count}/{Rules.FleetLimit}   " +
                     $"Prędkość {Speed:0.#}x{(paused ? "  PAUZA" : string.Empty)}   Czas {World.Tick / Rules.TickRate / 60}:{World.Tick / Rules.TickRate % 60:00}");
 
-                GUILayout.BeginArea(new Rect(0, Screen.height - 150, 380, 150), GUI.skin.box);
-                GUILayout.Label("Cena kompletnego szablonu. Kuter: port. Okręty: stocznia.");
+                GUILayout.BeginArea(new Rect(0, Screen.height - HudHeight, 380, HudHeight), GUI.skin.box);
+                GUILayout.Label($"{portName}: cena kompletnego szablonu z lokalnego magazynu.");
                 foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
                 {
                     var definition = ShipCatalog.Get(shipClass);
+                    if (!definition.IsEconomic && !settlement.HasShipyard) continue;
                     var label = $"{ClassName(shipClass)}: {definition.CostWood} D / {definition.CostSilver} S, {definition.BuildSeconds:0} s";
-                    if (GUILayout.Button(label)) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass });
+                    if (GUILayout.Button(label)) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass, TargetId = settlement.Id });
+                }
+                if (settlement.ShipyardBuild != null)
+                {
+                    GUILayout.Label($"Stocznia: budowa {100 * settlement.ShipyardBuild.DoneTicks / settlement.ShipyardBuild.TotalTicks}%");
+                }
+                else if (!settlement.HasShipyard)
+                {
+                    if (GUILayout.Button($"Stocznia: {Rules.ShipyardWood / Rules.Centi} D / {Rules.ShipyardSilver / Rules.Centi} S, {Rules.ShipyardBuildSeconds:0} s"))
+                    {
+                        World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildShipyard, TargetId = settlement.Id });
+                    }
                 }
                 GUILayout.EndArea();
 
                 if (settlement.WarQueue.Count + settlement.PortQueue.Count > 0)
                 {
-                    GUILayout.BeginArea(new Rect(385, Screen.height - 150, 250, 150), GUI.skin.box);
+                    GUILayout.BeginArea(new Rect(385, Screen.height - HudHeight, 250, HudHeight), GUI.skin.box);
                     GUILayout.Label("Kolejki");
-                    QueueButtons(settlement.WarQueue, false);
-                    QueueButtons(settlement.PortQueue, true);
+                    QueueButtons(settlement, settlement.WarQueue, false);
+                    QueueButtons(settlement, settlement.PortQueue, true);
                     GUILayout.EndArea();
                 }
             }
 
             if (Event.current.type == EventType.Repaint) DrawHealthBars();
 
-            GUILayout.BeginArea(new Rect(640, Screen.height - 150, Mathf.Max(320, Screen.width - 640), 150), GUI.skin.box);
-            if (selected.Count == 0 && inspectedEnemies.Count == 0) GUILayout.Label("LPM: zaznacz (także wroga, by zobaczyć jego stan). PPM: rozkaz. Spacja: pauza. +/-: prędkość. F5/F8: zapis/wczytanie. R: remont. Alt+PPM: ostrzał abordażowcem.");
+            GUILayout.BeginArea(new Rect(640, Screen.height - HudHeight, Mathf.Max(320, Screen.width - 640), HudHeight), GUI.skin.box);
+            if (selected.Count == 0 && inspectedEnemies.Count == 0) GUILayout.Label("LPM: zaznacz (także wroga, by zobaczyć jego stan; własny port staje się aktywny). PPM: rozkaz; handlowiec na wolny brzeg: przyczółek, na własny port: dostawa; okręt na handlowca: eskorta. Spacja: pauza. +/-: prędkość. F5/F8: zapis/wczytanie. R: remont. Alt+PPM: ostrzał abordażowcem.");
             foreach (var id in selected.Take(5))
             {
                 var ship = World.FindShip(id);
                 if (ship == null) continue;
-                GUILayout.Label($"{ClassName(ship.Class)}: kadłub {Mathf.CeilToInt((float)ship.Hull)}/{ship.Definition.Hull}, marynarze {ship.Sailors}, żołnierze {ship.Soldiers}, morale {Mathf.RoundToInt((float)ship.Morale)}, ładunek {ship.Cargo / Rules.Centi}. {DescribeOrder(ship)}");
+                GUILayout.Label($"{ClassName(ship.Class)}: kadłub {Mathf.CeilToInt((float)ship.Hull)}/{ship.Definition.Hull}, marynarze {ship.Sailors}, żołnierze {ship.Soldiers}, morale {Mathf.RoundToInt((float)ship.Morale)}, ładunek {DescribeCargo(ship)}. {DescribeOrder(ship)}");
             }
             if (selected.Count > 5) GUILayout.Label($"oraz {selected.Count - 5} kolejnych");
             foreach (var id in inspectedEnemies.Take(3))
@@ -931,7 +1043,7 @@ namespace MorzaBogow.Presentation
                 if (settlement.Owner != PlayerFaction && !World.CanSee(PlayerFaction, settlement.X, settlement.Y)) continue;
                 var screen = strategicCamera.WorldToScreenPoint(new Vector3((float)Rules.SettlementLandX(settlement), 12f, (float)settlement.Y));
                 if (screen.z <= 0f) continue;
-                DrawBar(screen, 110f, 7f, (float)(settlement.Hull / Rules.SettlementHull), settlement.Owner == PlayerFaction ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.15f), 0f);
+                DrawBar(screen, 110f, 7f, (float)(settlement.Hull / settlement.MaxHull), settlement.Owner == PlayerFaction ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.15f), 0f);
             }
             GUI.color = previousColor;
         }
@@ -963,6 +1075,20 @@ namespace MorzaBogow.Presentation
                 case OrderKind.Ram:
                     return ship.RamState == RamPhase.Approach ? $"Rozkaz: szarża, {Enemy()}." : $"Rozkaz: taran, odskok i przygotowanie, {Enemy()}.";
                 case OrderKind.Board: return $"Rozkaz: abordaż, {Enemy()}.";
+                case OrderKind.Transfer:
+                case OrderKind.Expedition:
+                    var goal = ship.Order == OrderKind.Expedition ? "przyczółek" : "dostawa";
+                    switch (ship.Transport)
+                    {
+                        case TransportPhase.ToSource: return $"Rozkaz: {goal}, płynie po ładunek.";
+                        case TransportPhase.WaitSourceBerth: return $"Rozkaz: {goal}, czeka na miejsce w porcie.";
+                        case TransportPhase.Loading: return $"Rozkaz: {goal}, załadunek.";
+                        case TransportPhase.ToDestination: return ship.Order == OrderKind.Expedition ? "Rozkaz: przyczółek, płynie na brzeg." : "Rozkaz: dostawa, płynie do celu.";
+                        case TransportPhase.WaitDestinationBerth: return "Rozkaz: dostawa, czeka na miejsce w porcie.";
+                        case TransportPhase.Unloading: return "Rozkaz: dostawa, rozładunek.";
+                        default: return $"Rozkaz: buduje przyczółek, {100 * ship.BuildTicks / (int)(Rules.OutpostBuildSeconds * Rules.TickRate)}%.";
+                    }
+                case OrderKind.Escort: return "Rozkaz: eskorta handlowca.";
                 case OrderKind.Salvage: return "Rozkaz: zbiera wrak.";
                 case OrderKind.Repair: return "Rozkaz: remont w stoczni.";
                 case OrderKind.Scrap: return "Rozkaz: złomowanie.";
@@ -981,13 +1107,29 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        void QueueButtons(List<BuildOrder> queue, bool portQueue)
+        /// <summary>The own port clicked last, or the main settlement.</summary>
+        public Settlement ActivePort
+        {
+            get
+            {
+                var inspected = World.FindSettlement(inspectedSettlementId);
+                return inspected != null && inspected.Owner == PlayerFaction && !inspected.Destroyed ? inspected : World.SettlementOf(PlayerFaction);
+            }
+        }
+
+        static string DescribeCargo(Ship ship)
+        {
+            if (ship.HoldWood + ship.HoldSilver > 0) return $"{ship.HoldWood / Rules.Centi} D i {ship.HoldSilver / Rules.Centi} S";
+            return (ship.Cargo / Rules.Centi).ToString();
+        }
+
+        void QueueButtons(Settlement port, List<BuildOrder> queue, bool portQueue)
         {
             for (var i = 0; i < queue.Count; i++)
             {
                 var order = queue[i];
                 if (GUILayout.Button($"{ClassName(order.Class)} {100 * order.DoneTicks / order.TotalTicks}% (anuluj)"))
-                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = i, PortQueue = portQueue });
+                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelQueue, QueueIndex = i, PortQueue = portQueue, TargetId = port.Id });
             }
         }
 
@@ -996,6 +1138,7 @@ namespace MorzaBogow.Presentation
             switch (shipClass)
             {
                 case ShipClass.Cutter: return "Kuter";
+                case ShipClass.Merchant: return "Handlowiec";
                 case ShipClass.Ram: return "Taranowiec";
                 case ShipClass.CrewDestroyer: return "Niszczyciel załóg";
                 default: return "Abordażowiec";
@@ -1021,7 +1164,7 @@ namespace MorzaBogow.Presentation
         /// <summary>Test screenshots: a resource site up close, the whole map, then the fleet with bars and markers.</summary>
         void UpdateSmokeShots()
         {
-            if (smokeShotPrefix == null || smokeShots >= 4) return;
+            if (smokeShotPrefix == null || smokeShots >= 5) return;
             if (smokeShotAt > 0f)
             {
                 if (smokeElapsed < smokeShotAt) return;
@@ -1031,7 +1174,7 @@ namespace MorzaBogow.Presentation
                 Debug.Log($"[Smoke] shot {smokeShots}, selected {selected.Count}, player ships {World.Ships.Count(ship => ship.Owner == PlayerFaction)}");
                 return;
             }
-            if (smokeElapsed < smokeSeconds * (smokeShots + 1) / 5f) return;
+            if (smokeElapsed < smokeSeconds * (smokeShots + 1) / 6f) return;
 
             var home = World.SettlementOf(PlayerFaction);
             switch (smokeShots)
@@ -1050,11 +1193,20 @@ namespace MorzaBogow.Presentation
                     tilt = ObliqueCamera.MaxTilt;
                     break;
                 case 2:
-                    // The home port, where docking ships sit next to the settlement's land.
-                    pivot = new Vector3((float)home.X, 0f, (float)home.Y);
+                    // A bridgehead when one exists, otherwise the home port, with docking ships next to the land.
+                    var port = World.PortsOf(PlayerFaction).FirstOrDefault(item => item.IsOutpost) ?? home;
+                    pivot = new Vector3((float)port.X, 0f, (float)port.Y);
                     height = 120f;
                     yaw = ObliqueCamera.DefaultYaw;
                     tilt = ObliqueCamera.DefaultTilt;
+                    break;
+                case 4:
+                    // Late in the run: a bridgehead, made the active port so the panels show its local store.
+                    var outpost = World.PortsOf(PlayerFaction).FirstOrDefault(item => item.IsOutpost) ?? home;
+                    pivot = new Vector3((float)outpost.X, 0f, (float)outpost.Y);
+                    height = 90f;
+                    selected.Clear();
+                    inspectedSettlementId = outpost.Id;
                     break;
                 default:
                     var focus = World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Order == OrderKind.Ram)
@@ -1089,6 +1241,7 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"silver\": [{World.Settlements[0].Silver / Rules.Centi}, {World.Settlements[1].Silver / Rules.Centi}],\n");
             report.Append($"  \"firstEnemySeenSeconds\": {firstEnemySeenSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
             var culture = System.Globalization.CultureInfo.InvariantCulture;
+            report.Append($"  \"outposts\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed)},\n  \"outpostShipyards\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed && item.HasShipyard)},\n  \"merchants\": {World.Ships.Count(item => item.Class == ShipClass.Merchant)},\n");
             report.Append($"  \"waterSamples\": {(water != null ? water.Samples : 0)},\n  \"waterFailures\": {(water != null ? water.Failures : 0)},\n");
             report.Append($"  \"maxTiltDegrees\": {maxRollSeen.ToString("0.00", culture)},\n  \"maxHeaveMetres\": {maxHeaveSeen.ToString("0.00", culture)},\n");
             report.Append($"  \"combatEvents\": {combatEvents}\n}}\n");

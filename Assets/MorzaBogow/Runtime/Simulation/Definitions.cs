@@ -2,7 +2,7 @@ using System;
 
 namespace MorzaBogow.Simulation
 {
-    public enum ShipClass { Cutter, Ram, CrewDestroyer, Boarder }
+    public enum ShipClass { Cutter, Ram, CrewDestroyer, Boarder, Merchant }
     public enum ResourceType { Wood, Silver }
 
     /// <summary>Complete template values from ECONOMY_DESIGN.md E02 and E04. Radius, mass and turn rate are M1 tuning values.</summary>
@@ -13,7 +13,7 @@ namespace MorzaBogow.Simulation
         public int MaxCrew, CostWood, CostSilver, Capacity, WoodWork, SilverWork, LightSlots;
 
         public bool IsEconomic => Capacity > 0;
-        public bool CanHarvest => IsEconomic;
+        public bool CanHarvest => WoodWork > 0 || SilverWork > 0;
         public int BaseSailors => (int)Math.Ceiling(MaxCrew * 0.25);
         public int StandardSailors => IsEconomic ? MaxCrew : BaseSailors;
         public int StandardSoldiers => MaxCrew - StandardSailors;
@@ -27,6 +27,7 @@ namespace MorzaBogow.Simulation
             new ShipDefinition { Class = ShipClass.Ram, Hull = 760, Speed = 8.2, MaxCrew = 36, CostWood = 240, CostSilver = 100, BuildSeconds = 35, LightSlots = 1, Radius = 10, Mass = 760, TurnRadiansPerSecond = 0.55, Vision = 200 },
             new ShipDefinition { Class = ShipClass.CrewDestroyer, Hull = 520, Speed = 6.8, MaxCrew = 52, CostWood = 180, CostSilver = 90, BuildSeconds = 30, LightSlots = 4, Radius = 11, Mass = 520, TurnRadiansPerSecond = 0.5, Vision = 200 },
             new ShipDefinition { Class = ShipClass.Boarder, Hull = 780, Speed = 5.2, MaxCrew = 90, CostWood = 200, CostSilver = 180, BuildSeconds = 40, LightSlots = 2, Radius = 13, Mass = 780, TurnRadiansPerSecond = 0.35, Vision = 200 },
+            new ShipDefinition { Class = ShipClass.Merchant, Hull = 420, Speed = 7, MaxCrew = 12, CostWood = 140, CostSilver = 60, BuildSeconds = 28, Capacity = 480, LightSlots = 0, Radius = 12, Mass = 420, TurnRadiansPerSecond = 0.4, Vision = 200 },
         };
 
         public static ShipDefinition Get(ShipClass shipClass) => Definitions[(int)shipClass];
@@ -68,8 +69,24 @@ namespace MorzaBogow.Simulation
         public const double SettlementLandRadius = 20;
 
         /// <summary>A settlement's land lies on the side away from the map center.</summary>
-        public static double SettlementLandX(Settlement settlement) =>
-            settlement.X + (settlement.X < 0 ? -SettlementLandOffset : SettlementLandOffset);
+        public static double LandX(double portX) => portX + (portX < 0 ? -SettlementLandOffset : SettlementLandOffset);
+
+        public static double SettlementLandX(Settlement settlement) => LandX(settlement.X);
+
+        // E05: a bridgehead fits a merchant's hold and rises in 35 s after arrival. No warship line of its own.
+        public const long OutpostWood = 300 * Centi;
+        public const long OutpostSilver = 100 * Centi;
+        public const double OutpostBuildSeconds = 35;
+        public const double OutpostHull = 900;
+
+        // E04: another shipyard adds one war line.
+        public const long ShipyardWood = 200 * Centi;
+        public const long ShipyardSilver = 100 * Centi;
+        public const double ShipyardBuildSeconds = 40;
+
+        // E03: escorts stay with the transport and do not chase beyond their zone.
+        public const double EscortZone = 100;
+        public const double EscortStation = 30;
 
         public const int WorkBerths = 2;
         public const int WoodNodeCap = 12;

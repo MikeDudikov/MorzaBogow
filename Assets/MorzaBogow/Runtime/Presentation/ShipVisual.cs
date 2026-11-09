@@ -70,7 +70,7 @@ namespace MorzaBogow.Presentation
 
             var length = (float)definition.Radius * 2f;
             visual.size = length;
-            var beam = Mathf.Max(2f, length * (ship.Class == ShipClass.Boarder ? 0.42f : 0.28f));
+            var beam = Mathf.Max(2f, length * (ship.Class == ShipClass.Boarder || ship.Class == ShipClass.Merchant ? 0.42f : 0.28f));
             visual.beam = beam;
             var hull = Part(visual.model, PrimitiveType.Capsule, "Hull", materials?.Wood);
             hull.localRotation = Quaternion.Euler(90f, 0f, 0f);

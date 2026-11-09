@@ -24,11 +24,29 @@ namespace MorzaBogow.Simulation
             AddPair(world, 0, 210, 6000, 2000, 0);
             AddPair(world, 0, -210, 6000, 2000, 0);
 
+            // Free shores beside each pair, mirrored so neither side starts closer to any of them.
+            foreach (var y in new double[] { 300, -300 })
+            {
+                AddSite(world, -180, y);
+                AddSite(world, 180, y);
+            }
+            foreach (var y in new double[] { 210, -210 })
+            {
+                AddSite(world, -70, y);
+                AddSite(world, 70, y);
+            }
+
             world.Islands.Add(new Island { X = 0, Y = 0, Radius = 60 });
             world.Islands.Add(new Island { X = -150, Y = 130, Radius = 35 });
             world.Islands.Add(new Island { X = 150, Y = -130, Radius = 35 });
             world.RefreshExplored();
             return world;
+        }
+
+        static void AddSite(World world, double x, double y)
+        {
+            world.Sites.Add(new BuildSite { Id = world.NextId++, X = x, Y = y });
+            world.Islands.Add(new Island { X = Rules.LandX(x), Y = y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
         }
 
         static void AddSide(World world, int owner, double x, int direction)
