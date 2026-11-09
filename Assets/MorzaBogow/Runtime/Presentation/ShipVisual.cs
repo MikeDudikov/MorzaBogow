@@ -52,6 +52,9 @@ namespace MorzaBogow.Presentation
         /// <summary>Boulders (CC0 models) scattered along the waterline and over the shallows.</summary>
         public GameObject[] Boulders = System.Array.Empty<GameObject>();
 
+        /// <summary>Level ground high on the rocky coast model where trees can stand, in the model's own space.</summary>
+        public Vector3[] CoastTreeSpots = System.Array.Empty<Vector3>();
+
         public Material ShoreRock => Limestone != null ? Limestone : Sand;
         public Material Floor => Seabed != null ? Seabed : Sand;
         public Material Ground(Material fallback) => Meadow != null ? Meadow : fallback;

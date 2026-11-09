@@ -381,6 +381,7 @@ namespace MorzaBogow.Presentation
             foreach (var mesh in generatedMeshes) if (mesh != null) Destroy(mesh);
             generatedMeshes.Clear();
             BouldersPlaced = 0;
+            TreesPlanted = 0;
         }
 
         // ---------- Shipyards and launching ----------
@@ -721,7 +722,17 @@ namespace MorzaBogow.Presentation
             var width = settlement.IsOutpost ? 9f : 11f;
             var depth = settlement.IsOutpost ? 12f : 16f;
             var tall = settlement.IsOutpost ? 4f : 6f;
-            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(-toward * (width * 0.5f + 1.5f), 1.9f + tall * 0.5f, 0f), new Vector3(width, tall, depth));
+            // Set on the plateau above the cliffs, its foot at the highest ground under it.
+            var shape = ShoreOf(settlement.X, settlement.Y);
+            var centreX = -toward * (width * 0.5f + 1.5f);
+            var foot = 0f;
+            for (var corner = 0; corner < 4; corner++)
+            {
+                var x = centreX + ((corner & 1) == 0 ? -0.5f : 0.5f) * width;
+                var z = ((corner & 2) == 0 ? -0.5f : 0.5f) * depth;
+                foot = Mathf.Max(foot, ShoreShape.GroundAt(shape.outline, shape.lift, x, z));
+            }
+            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(centreX, foot + tall * 0.5f - 0.3f, 0f), new Vector3(width, tall, depth));
             yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);
             return root;
         }
@@ -747,13 +758,16 @@ namespace MorzaBogow.Presentation
             var root = new GameObject(name);
             root.transform.position = new Vector3(landX, 0f, (float)portY);
 
-            // The same gentle mound with a beach as every islet, on the land's exact circle.
+            // The game's own irregular waterline of this land, so the shore drawn is the shore ships steer by:
+            // a low landing toward the port, limestone cliffs dropping into the sea on the open side.
             var islet = new GameObject("Islet");
             islet.transform.SetParent(root.transform, false);
-            // The game's own irregular waterline of this land, so the shore drawn is the shore ships steer by.
-            var land = LandAt(landX, portY);
-            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(land != null ? OutlineOf(land) : ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius));
+            var shape = ShoreOf(portX, portY);
+            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(shape.outline, shape.lift);
             islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
+            PlantGrove(root.transform, shape.outline, shape.lift, portX * 3.1 + portY * 1.7, Mathf.Atan2(0f, (float)portX - landX), 115f, 0.24f, 0.82f, (x, z) =>
+                // Keep clear of where a settlement's buildings stand on the plateau.
+                Mathf.Abs(z) < 9.5f && x * Mathf.Sign((float)portX - landX) < 1f && x * Mathf.Sign((float)portX - landX) > -14.5f);
 
             // The jetty runs from the beach toward the port, ending beside a moored hull.
             var towardPort = Mathf.Sign((float)portX - landX);
@@ -873,6 +887,56 @@ namespace MorzaBogow.Presentation
             part.transform.localScale = scale;
         }
 
+        public int TreesPlanted { get; private set; }
+
+        /// <summary>
+        /// A grove of stone pines with a few cypresses on an islet's plateau, on the open side away from the port,
+        /// clear of whatever stands there. Seeded, so the same land always gets the same grove.
+        /// </summary>
+        void PlantGrove(Transform parent, float[] outline, float[] lift, double seed, float shelteredAngle, float minAway, float nearFraction, float farFraction, Func<float, float, bool> blocked)
+        {
+            var random = new System.Random((int)(seed * 100.0) ^ 0x2F6A1D3);
+            float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
+            var grove = new TreeModels.Grove();
+            var planted = new List<Vector2>();
+            for (var attempt = 0; attempt < 90 && planted.Count < 16; attempt++)
+            {
+                var angle = Next(0f, Mathf.PI * 2f);
+                if (Mathf.Abs(Mathf.DeltaAngle(angle * Mathf.Rad2Deg, shelteredAngle * Mathf.Rad2Deg)) < minAway) continue;
+                var radius = ShoreShape.At(outline, angle) * Next(nearFraction, farFraction);
+                var spot = new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
+                if (blocked != null && blocked(spot.x, spot.y)) continue;
+                if (planted.Exists(other => (other - spot).sqrMagnitude < 3.4f * 3.4f)) continue;
+                planted.Add(spot);
+                var kind = random.NextDouble() < 0.3 ? TreeKind.Cypress : TreeKind.StonePine;
+                var ground = ShoreShape.GroundAt(outline, lift, spot.x, spot.y) - 0.15f;
+                grove.Add(kind, random.Next(4), new Vector3(spot.x, ground, spot.y), Next(0f, 360f), kind == TreeKind.StonePine ? Next(0.5f, 0.75f) : Next(0.55f, 0.8f));
+            }
+            AddGrove(parent, grove);
+        }
+
+        void AddGrove(Transform parent, TreeModels.Grove grove)
+        {
+            var mesh = grove.Build("Grove");
+            if (mesh == null) return;
+            generatedMeshes.Add(mesh);
+            var trees = new GameObject("Grove");
+            trees.transform.SetParent(parent, false);
+            trees.AddComponent<MeshFilter>().sharedMesh = mesh;
+            trees.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
+            TreesPlanted += grove.Count;
+        }
+
+        /// <summary>A port's islet as drawn: the game's waterline and the cliffs on its open side, away from the port.</summary>
+        (float[] outline, float[] lift) ShoreOf(double portX, double portY)
+        {
+            var landX = Rules.LandX(portX);
+            var land = LandAt(landX, portY);
+            var outline = land != null ? OutlineOf(land) : ShoreShape.Ellipse((float)Rules.SettlementLandRadius, (float)Rules.SettlementLandRadius);
+            var toward = portX >= landX ? 0f : Mathf.PI;
+            return (outline, ShoreShape.Cliffs(toward, 95f, 150f, (float)(landX * 0.37 + portY * 0.11)));
+        }
+
         /// <summary>The land whose centre lies at this point, if any.</summary>
         Island LandAt(double x, double y) => World.Islands.FirstOrDefault(island => World.Distance(island.X, island.Y, x, y) < 0.5);
 
@@ -913,6 +977,22 @@ namespace MorzaBogow.Presentation
 
             // Coasts on the second side are turned half a turn, like their waterline in the simulation.
             root.transform.rotation = Quaternion.Euler(0f, (float)island.Yaw, 0f);
+
+            // Stone pines and cypresses over the high level ground of the rock, as on the wooded Aegean headlands.
+            var spots = materials?.CoastTreeSpots;
+            if (spots != null && spots.Length > 0)
+            {
+                var grove = new TreeModels.Grove();
+                var random = new System.Random((int)(island.X * 13 + island.Y * 7));
+                foreach (var spot in spots)
+                {
+                    var local = root.transform.InverseTransformPoint(coast.transform.TransformPoint(spot));
+                    var cypress = random.NextDouble() < 0.22;
+                    grove.Add(cypress ? TreeKind.Cypress : TreeKind.StonePine, random.Next(4), local - new Vector3(0f, 0.25f, 0f), (float)random.NextDouble() * 360f,
+                        cypress ? 0.6f + (float)random.NextDouble() * 0.3f : 0.65f + (float)random.NextDouble() * 0.35f);
+                }
+                AddGrove(root.transform, grove);
+            }
             return root;
         }
 

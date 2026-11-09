@@ -32,6 +32,8 @@ namespace MorzaBogow.Presentation
             visual.modelRoot = model;
             visual.Kind = node.Type;
             visual.outline = System.Array.ConvertAll(landOutline ?? LandShape.Ellipse(Rules.SiteIsletHalfWidth, Rules.SiteIsletHalfDepth), value => (float)value);
+            // A low landing at the jetty toward the berth; cliffs rise on the far side, where the trees or the mine stand.
+            visual.lift = ShoreShape.Cliffs(-Mathf.PI / 2f, 70f, 125f, node.Id * 0.73f);
             CurrentMaterials = materials;
 
             var random = new System.Random(node.Id * 7919);
@@ -43,10 +45,10 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Islet waterline in model space; the land's centre sits at model z = IsletZ.</summary>
         const float IsletZ = 4f;
-        float[] outline;
+        float[] outline, lift;
 
-        /// <summary>Ground under a model point, following the islet's gentle mound.</summary>
-        float Ground(float x, float z) => ShoreShape.GroundAt(outline, x, z - IsletZ);
+        /// <summary>Ground under a model point, following the islet's mound and cliffs.</summary>
+        float Ground(float x, float z) => ShoreShape.GroundAt(outline, lift, x, z - IsletZ);
 
         Transform modelRoot;
         readonly List<Transform> trees = new List<Transform>();
@@ -107,7 +109,7 @@ namespace MorzaBogow.Presentation
             var islet = new GameObject("Islet");
             islet.transform.SetParent(model, false);
             islet.transform.localPosition = new Vector3(0f, 0f, IsletZ);
-            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline);
+            islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline, lift);
             var renderer = islet.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = new[] { CurrentMaterials?.ShoreRock, land };
         }
@@ -125,13 +127,18 @@ namespace MorzaBogow.Presentation
             {
                 var x = -13f + i * 3.2f + (float)random.NextDouble() * 1.5f;
                 var z = 7f + (float)random.NextDouble() * 6f;
-                var tall = 6f + (float)random.NextDouble() * 4f;
                 var tree = new GameObject("Tree").transform;
                 tree.SetParent(model, false);
                 tree.localPosition = new Vector3(x, Ground(x, z) - 0.1f, z);
-                Part(tree, PrimitiveType.Cylinder, materials?.Timber, new Vector3(0f, tall * 0.15f, 0f), new Vector3(0.5f, tall * 0.3f, 0.5f), Vector3.zero);
-                Part(tree, PrimitiveType.Capsule, materials?.Foliage, new Vector3(0f, tall * 0.7f, 0f), new Vector3(2.8f, tall * 0.55f, 2.8f), Vector3.zero);
-                Part(tree, PrimitiveType.Capsule, materials?.Foliage, new Vector3(0f, tall * 1.05f, 0f), new Vector3(1.8f, tall * 0.35f, 1.8f), Vector3.zero);
+
+                // Cypresses and stone pines; each a single mesh that leans and falls as one when felled.
+                var cypress = i % 3 != 1;
+                var shape = new GameObject("Shape").transform;
+                shape.SetParent(tree, false);
+                shape.localRotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f);
+                shape.localScale = Vector3.one * (cypress ? 0.75f + (float)random.NextDouble() * 0.2f : 0.55f + (float)random.NextDouble() * 0.15f);
+                shape.gameObject.AddComponent<MeshFilter>().sharedMesh = TreeModels.Get(cypress ? TreeKind.Cypress : TreeKind.StonePine, i);
+                shape.gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
                 trees.Add(tree);
                 treeFall.Add(0f);
                 treeRegrow.Add(0f);
@@ -190,6 +197,25 @@ namespace MorzaBogow.Presentation
                 var rotation = new Vector3((float)random.NextDouble() * 90f, (float)random.NextDouble() * 90f, 0f);
                 var size = 0.7f + (float)random.NextDouble() * 0.9f;
                 Part(model, PrimitiveType.Cube, materials?.SilverOre, position, Vector3.one * size, rotation);
+            }
+
+            // Stone pines cling to the flanks of the rock, clear of the mine and the quay.
+            var grove = new TreeModels.Grove();
+            for (var i = 0; i < 7; i++)
+            {
+                var side = i % 2 == 0 ? -1f : 1f;
+                var x = side * (12.5f + (float)random.NextDouble() * 4.5f);
+                var z = -2f + (float)random.NextDouble() * 9f;
+                if (ShoreShape.GroundAt(outline, lift, x, z - IsletZ) < 0.4f) continue;
+                grove.Add(i % 3 == 0 ? TreeKind.Cypress : TreeKind.StonePine, i, new Vector3(x, Ground(x, z) - 0.15f, z), (float)random.NextDouble() * 360f, 0.5f + (float)random.NextDouble() * 0.2f);
+            }
+            var pines = grove.Build("Grove");
+            if (pines != null)
+            {
+                var holder = new GameObject("Grove");
+                holder.transform.SetParent(model, false);
+                holder.AddComponent<MeshFilter>().sharedMesh = pines;
+                holder.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
             }
 
             // Sealed chests on the quay: these shrink with the stock.

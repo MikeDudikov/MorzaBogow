@@ -22,10 +22,59 @@ namespace MorzaBogow.Presentation
         /// An islet rises gently: a wet beach from below the water to the dry sand, then grass or rock to a low
         /// crown. Fractions of the waterline radius, inner first; the land material starts at ring LandRings.
         /// </summary>
-        static readonly float[] MoundFraction = { 0.18f, 0.4f, 0.62f, 0.78f, 0.86f, 0.93f, 1.0f, 1.1f };
-        static readonly float[] MoundHeightAt = { 2.1f, 1.9f, 1.4f, 0.75f, 0.5f, 0.25f, -0.05f, -0.7f };
+        static readonly float[] MoundFraction = { 0.18f, 0.4f, 0.62f, 0.78f, 0.86f, 0.93f, 0.97f, 1.0f, 1.1f };
+        static readonly float[] MoundHeightAt = { 2.1f, 1.9f, 1.4f, 0.75f, 0.5f, 0.25f, 0.1f, -0.05f, -0.7f };
+
+        /// <summary>
+        /// Where the shore is a cliff: a limestone plateau that ends in a near-vertical face dropping straight into
+        /// deeper water, as on the rocky Aegean islets. Blended with the gentle profile by each direction's lift.
+        /// </summary>
+        static readonly float[] CliffHeightAt = { 5.6f, 5.5f, 5.2f, 4.8f, 4.4f, 3.7f, 2.2f, -0.3f, -2.6f };
         const int LandRings = 3;
-        const float CrownHeight = 2.15f;
+        const float CrownHeight = 2.15f, CliffCrown = 5.7f;
+
+        /// <summary>
+        /// How much of a cliff each direction has: none in the sheltered sector where jetties and slipways meet the
+        /// water, rising to full on the open side, with an uneven crest so the cliffs are not a ring.
+        /// </summary>
+        public static float[] Cliffs(float shelteredAngle, float clearDegrees, float fullDegrees, float seed)
+        {
+            var lift = new float[Samples];
+            for (var i = 0; i < Samples; i++)
+            {
+                var angle = Angle(i);
+                var away = Mathf.Abs(Mathf.DeltaAngle(angle * Mathf.Rad2Deg, shelteredAngle * Mathf.Rad2Deg));
+                var open = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(clearDegrees, fullDegrees, away));
+                var crest = 0.72f + 0.28f * Mathf.Sin(angle * 3f + seed) * Mathf.Sin(angle * 5f + seed * 1.7f);
+                lift[i] = Mathf.Clamp01(open * crest);
+            }
+            return lift;
+        }
+
+        static float Lifted(float gentle, float cliff, float lift) => Mathf.Lerp(gentle, cliff, lift);
+
+        /// <summary>Ground height at a fraction of the waterline radius, with this much cliff (0 none, 1 full).</summary>
+        public static float MoundHeight(float fraction, float lift)
+        {
+            if (lift <= 0f) return MoundHeight(fraction);
+            if (fraction <= MoundFraction[0]) return Mathf.Lerp(Lifted(CrownHeight, CliffCrown, lift), Lifted(MoundHeightAt[0], CliffHeightAt[0], lift), fraction / MoundFraction[0]);
+            for (var i = 1; i < MoundFraction.Length; i++)
+            {
+                if (fraction > MoundFraction[i]) continue;
+                var t = (fraction - MoundFraction[i - 1]) / (MoundFraction[i] - MoundFraction[i - 1]);
+                return Mathf.Lerp(Lifted(MoundHeightAt[i - 1], CliffHeightAt[i - 1], lift), Lifted(MoundHeightAt[i], CliffHeightAt[i], lift), t);
+            }
+            return Lifted(MoundHeightAt[MoundHeightAt.Length - 1], CliffHeightAt[CliffHeightAt.Length - 1], lift);
+        }
+
+        /// <summary>Ground height of an islet with cliffs at a point relative to its centre.</summary>
+        public static float GroundAt(float[] outline, float[] lift, float x, float z)
+        {
+            if (lift == null) return GroundAt(outline, x, z);
+            var angle = Mathf.Atan2(z, x);
+            var reach = At(outline, angle);
+            return MoundHeight(Mathf.Sqrt(x * x + z * z) / Mathf.Max(reach, 0.1f), At(lift, angle));
+        }
 
         /// <summary>A beach skirt around a rocky coast: it rises inland under the rock and runs out under the water.</summary>
         static readonly float[] BeachOffset = { -10f, -5f, -1.5f, 0f, 2.5f };
@@ -50,19 +99,22 @@ namespace MorzaBogow.Presentation
             return MoundHeight(Mathf.Sqrt(x * x + z * z) / Mathf.Max(reach, 0.1f));
         }
 
-        /// <summary>The islet itself: submesh 0 is the beach, submesh 1 the land on top.</summary>
-        public static Mesh Mound(float[] outline)
+        /// <summary>The islet itself: submesh 0 is the rocky shore and cliffs, submesh 1 the land on top.</summary>
+        public static Mesh Mound(float[] outline, float[] lift = null)
         {
             var rings = MoundFraction.Length;
             var vertices = new Vector3[1 + rings * Samples];
-            vertices[0] = new Vector3(0f, CrownHeight, 0f);
+            var crownLift = 0f;
+            if (lift != null) { foreach (var value in lift) crownLift += value; crownLift /= Samples; }
+            vertices[0] = new Vector3(0f, Lifted(CrownHeight, CliffCrown, crownLift), 0f);
             for (var ring = 0; ring < rings; ring++)
             {
                 for (var i = 0; i < Samples; i++)
                 {
                     var angle = Angle(i);
                     var radius = outline[i] * MoundFraction[ring];
-                    vertices[1 + ring * Samples + i] = new Vector3(Mathf.Cos(angle) * radius, MoundHeightAt[ring], Mathf.Sin(angle) * radius);
+                    var height = lift == null ? MoundHeightAt[ring] : Lifted(MoundHeightAt[ring], CliffHeightAt[ring], lift[i]);
+                    vertices[1 + ring * Samples + i] = new Vector3(Mathf.Cos(angle) * radius, height, Mathf.Sin(angle) * radius);
                 }
             }
 

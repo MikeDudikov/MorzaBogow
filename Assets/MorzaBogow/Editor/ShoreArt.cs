@@ -67,6 +67,64 @@ namespace MorzaBogow.Editor
             return material;
         }
 
+        /// <summary>
+        /// Spots for trees on a rocky coast model: level faces on its upper part, well above the waterline, spread
+        /// out evenly. In the model's own space; the battle places them with the coast.
+        /// </summary>
+        public static Vector3[] TreeSpots(GameObject coast)
+        {
+            if (coast == null) return new Vector3[0];
+            var candidates = new System.Collections.Generic.List<Vector3>();
+            var bounds = new Bounds();
+            var first = true;
+            var parts = new System.Collections.Generic.List<(Vector3[] vertices, int[] triangles)>();
+            foreach (var filter in coast.GetComponentsInChildren<MeshFilter>())
+            {
+                if (filter.sharedMesh == null) continue;
+                var matrix = coast.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+                var vertices = filter.sharedMesh.vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex)).ToArray();
+                foreach (var vertex in vertices)
+                {
+                    if (first) { bounds = new Bounds(vertex, Vector3.zero); first = false; } else bounds.Encapsulate(vertex);
+                }
+                parts.Add((vertices, filter.sharedMesh.triangles));
+            }
+            if (first) return new Vector3[0];
+
+            var highEnough = bounds.min.y + bounds.size.y * 0.42f;
+            foreach (var (vertices, triangles) in parts)
+            {
+                for (var t = 0; t < triangles.Length; t += 3)
+                {
+                    var a = vertices[triangles[t]];
+                    var b = vertices[triangles[t + 1]];
+                    var c = vertices[triangles[t + 2]];
+                    var normal = Vector3.Cross(b - a, c - a);
+                    if (normal.sqrMagnitude < 1e-12f) continue;
+                    normal.Normalize();
+                    if (Mathf.Abs(normal.y) < 0.86f) continue;
+                    var centre = (a + b + c) / 3f;
+                    if (centre.y < highEnough) continue;
+                    candidates.Add(centre);
+                }
+            }
+
+            // Spread out: no two closer than a small share of the coast's width, in a fixed order.
+            var spacing = Mathf.Max(bounds.size.x, bounds.size.z) * 0.045f;
+            var random = new System.Random(4242);
+            var shuffled = candidates.OrderBy(_ => random.Next()).ToList();
+            var chosen = new System.Collections.Generic.List<Vector3>();
+            foreach (var spot in shuffled)
+            {
+                if (chosen.Count >= 160) break;
+                var flat = new Vector2(spot.x, spot.z);
+                if (chosen.Any(other => (new Vector2(other.x, other.z) - flat).sqrMagnitude < spacing * spacing)) continue;
+                chosen.Add(spot);
+            }
+            Debug.Log($"[Shore] coast tree spots: {chosen.Count} of {candidates.Count} level faces");
+            return chosen.ToArray();
+        }
+
         static GameObject Boulder(string id)
         {
             var folder = $"{Source}/Models/{id}";

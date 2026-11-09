@@ -42,7 +42,8 @@ namespace MorzaBogow.Editor
                 WreckMarker = Material("Placeholder_Wreck", new Color(0.16f, 0.12f, 0.1f), 0f, 0.2f),
                 TargetRing = RingMaterial("Placeholder_TargetRing", new Color(1f, 0.15f, 0.1f, 0.7f)),
                 Timber = Material("Placeholder_Timber", new Color(0.42f, 0.27f, 0.13f), 0f, 0.25f),
-                Foliage = Material("Placeholder_Foliage", new Color(0.13f, 0.3f, 0.12f), 0f, 0.15f),
+                // Dark resinous green of stone pines and cypresses under strong sun.
+                Foliage = Material("Placeholder_Foliage", new Color(0.06f, 0.14f, 0.05f), 0f, 0.12f),
                 Rock = Material("Placeholder_Rock", new Color(0.2f, 0.19f, 0.2f), 0f, 0.15f),
                 SilverOre = Material("Placeholder_SilverOre", new Color(0.85f, 0.87f, 0.92f), 1f, 0.85f),
                 MineDark = Material("Placeholder_MineDark", new Color(0.02f, 0.02f, 0.02f), 0f, 0.05f),
@@ -60,6 +61,7 @@ namespace MorzaBogow.Editor
                 materials.Meadow = shore.Meadow;
                 materials.Boulders = shore.Boulders;
             }
+            materials.CoastTreeSpots = ShoreArt.TreeSpots(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Coast/Coast_Rocks_02.prefab"));
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
