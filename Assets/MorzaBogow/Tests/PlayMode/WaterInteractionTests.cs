@@ -29,7 +29,7 @@ namespace MorzaBogow.Tests
             Assert.That(ShipVisual.BowWaveFor(20f, 0f), Is.Zero);
             Assert.That(ShipVisual.BowWaveFor(20f, 1f), Is.GreaterThan(ShipVisual.BowWaveFor(20f, 0.5f)));
             Assert.That(ShipVisual.BowWaveFor(26f, 1f), Is.GreaterThan(ShipVisual.BowWaveFor(12f, 1f)));
-            Assert.That(ShipVisual.HullFoamFor(0f), Is.Zero);
+            Assert.That(ShipVisual.HullFoamFor(0f), Is.GreaterThan(0f).And.LessThan(0.5f), "A thin waterline even at rest.");
             Assert.That(ShipVisual.HullFoamFor(1f), Is.GreaterThan(ShipVisual.HullFoamFor(0.3f)));
         }
 
@@ -47,10 +47,10 @@ namespace MorzaBogow.Tests
 
                 view.Animate(0f, 0f, 0.1f);
                 Assert.That(view.BowWaveHeight, Is.Zero);
-                Assert.That(view.HullFoam, Is.Zero);
+                var restingFoam = view.HullFoam;
                 view.Animate(1f, 1f, 0.1f);
                 Assert.That(view.BowWaveHeight, Is.GreaterThan(0f));
-                Assert.That(view.HullFoam, Is.GreaterThan(0f));
+                Assert.That(view.HullFoam, Is.GreaterThan(restingFoam));
 
                 var emptyDraft = view.Draft;
                 view.SetLoad(1f);

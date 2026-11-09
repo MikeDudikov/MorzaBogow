@@ -294,7 +294,15 @@ namespace MorzaBogow.Presentation
                 holder.transform.position = new Vector3((float)island.X, 0f, (float)island.Y);
                 var decal = ShipVisual.WaterDecalAt(holder.transform, "Surf", materials?.FoamDisk, Vector3.zero, new Vector2(reach * 2f, reach * 2f));
                 decal.amplitude = 0f;
-                surf.Add((decal, coast ? 0.55f : 0.7f, (float)(island.X * 0.013 + island.Y * 0.021), island));
+                surf.Add((decal, coast ? 0.9f : 1f, (float)(island.X * 0.013 + island.Y * 0.021), island));
+
+                // Land does not end at the waterline: a sandy shelf and a deeper slope show through the water,
+                // so shallows turn pale near the shore and fade into deep sea, and caustics have a floor to fall on.
+                // One dome: 0.8 m deep at its top, falling to about 4 m at a berth and 9 m at its rim, where the water
+                // has absorbed it, so it fades out instead of ending in an edge. A rocky coast is not round, so
+                // its shelf stays well inside the outline.
+                var shelf = (float)island.Radius * (coast ? 0.7f : 1f) + 14f;
+                AddViewPart(holder, PrimitiveType.Sphere, "Underwater shelf", materials?.Sand, new Vector3(0f, -8.8f, 0f), new Vector3(shelf * 2f, 16f, shelf * 2f));
                 holder.SetActive(coast);
                 mapObjects.Add(holder);
             }

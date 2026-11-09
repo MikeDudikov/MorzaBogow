@@ -33,6 +33,9 @@ namespace MorzaBogow.Presentation
         /// <summary>HDRP water decals: a bow wave that lifts the surface, and a disk of foam used at hulls and shores.</summary>
         public Material BowWave;
         public Material FoamDisk;
+
+        /// <summary>Sea floor around land, seen through the water as shallows.</summary>
+        public Material Sand;
     }
 
     /// <summary>
@@ -76,8 +79,8 @@ namespace MorzaBogow.Presentation
             return (0.5f + length * 0.05f) * fraction * fraction;
         }
 
-        /// <summary>Foam where the hull breaks the surface; a ship at rest makes almost none.</summary>
-        public static float HullFoamFor(float speedFraction) => Mathf.Sqrt(Mathf.Clamp01(Mathf.Abs(speedFraction)));
+        /// <summary>Foam where the hull breaks the surface: a thin waterline at rest, much more under way.</summary>
+        public static float HullFoamFor(float speedFraction) => 0.25f + 0.75f * Mathf.Sqrt(Mathf.Clamp01(Mathf.Abs(speedFraction)));
 
         public int ShipId { get; private set; }
         public GameObject Selection { get; private set; }
@@ -232,7 +235,7 @@ namespace MorzaBogow.Presentation
             ApplyDraft();
             bowWave.amplitude = BowWaveFor(size, fraction);
             hullFoam.surfaceFoamDimmer = HullFoamFor(fraction);
-            hullFoam.deepFoamDimmer = HullFoamFor(fraction) * 0.5f;
+            hullFoam.deepFoamDimmer = HullFoamFor(fraction) * 0.8f;
 
             if (hasWater)
             {

@@ -48,6 +48,7 @@ namespace MorzaBogow.Editor
                 MineDark = Material("Placeholder_MineDark", new Color(0.02f, 0.02f, 0.02f), 0f, 0.05f),
                 Fog = FogMaterial(),
                 BowWave = WaterDecalMaterial("Placeholder_WaterBowWave", BowWaveType, deformation: true, foam: false),
+                Sand = Material("Placeholder_Sand", new Color(0.6f, 0.54f, 0.4f), 0f, 0.1f),
                 FoamDisk = WaterDecalMaterial("Placeholder_WaterFoamDisk", DiskType, deformation: false, foam: true),
             };
 
@@ -103,6 +104,11 @@ namespace MorzaBogow.Editor
 
             // Short-lived foam: water broken by a hull settles quickly instead of drawing a long strip behind it.
             ocean.foamPersistenceMultiplier = 0.3f;
+
+            // Clearer water, so shelves and submerged hulls read through it; light falling on the floor ripples.
+            ocean.absorptionDistance = 8f;
+            ocean.caustics = true;
+            ocean.causticsIntensity = 0.8f;
 
             var services = new GameObject("Services");
             services.AddComponent<GraphicsProfileController>().Configure(volume, profiles);
