@@ -117,6 +117,24 @@ namespace MorzaBogow.Simulation
         /// <summary>A loaded hold presses the hull deeper: up to this share of the empty draft.</summary>
         public const double DraftPerLoad = 0.65;
 
+        /// <summary>
+        /// A cutter at a work point first puts its crew ashore, and after the last load waits for them to come back
+        /// aboard: no work while landing, the berth kept while embarking. Manoeuvre detail the income model leaves out.
+        /// </summary>
+        public const double LandCrewSeconds = 3;
+        public const double EmbarkSeconds = 4;
+
+        /// <summary>How far a rowed hull's oars reach out from its side. Passing hulls leave room for them.</summary>
+        public static double OarReach(ShipDefinition definition) => Math.Max(2.5, definition.Radius * 2 * 0.28);
+
+        /// <summary>
+        /// Slipways stand on the settlement's land, across the shore from the land's centre toward the port, and run
+        /// out sideways from the jetty: the war line's to one side, the port line's to the other. A finished hull
+        /// slides down its slipway and floats off its end, bow to the sea.
+        /// </summary>
+        public const double SlipAlong = 6;
+        public const double SlipCentre = 12.5;
+
         /// <summary>A settlement's land lies on the side away from the map center.</summary>
         public static double LandX(double portX) => portX + (portX < 0 ? -SettlementLandOffset : SettlementLandOffset);
 

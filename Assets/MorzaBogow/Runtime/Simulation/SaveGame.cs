@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 7;
+        public const int Version = 8;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -119,6 +119,7 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.BuildTicks); writer.Write(ship.BuildUsedWood); writer.Write(ship.BuildUsedSilver);
                     writer.Write(ship.HasWaypoint); writer.Write(ship.WaypointX); writer.Write(ship.WaypointY);
                     writer.Write(ship.RouteX); writer.Write(ship.RouteY); writer.Write(ship.ReplanTick);
+                    writer.Write(ship.CrewTicks);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -238,6 +239,7 @@ namespace MorzaBogow.Simulation
                         BuildTicks = reader.ReadInt32(), BuildUsedWood = reader.ReadInt64(), BuildUsedSilver = reader.ReadInt64(),
                         HasWaypoint = reader.ReadBoolean(), WaypointX = reader.ReadDouble(), WaypointY = reader.ReadDouble(),
                         RouteX = reader.ReadDouble(), RouteY = reader.ReadDouble(), ReplanTick = reader.ReadInt32(),
+                        CrewTicks = reader.ReadInt32(),
                     });
                 }
 

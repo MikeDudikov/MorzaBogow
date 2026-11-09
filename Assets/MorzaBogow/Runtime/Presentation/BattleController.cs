@@ -274,6 +274,9 @@ namespace MorzaBogow.Presentation
                     case "outpost_built":
                         if (World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) Notify("Przyczółek gotowy: ma własny magazyn, port i kolejkę portu.");
                         break;
+                    case "ship_built":
+                        if (seen || World.FindSettlement(item.OtherId)?.Owner == PlayerFaction) BeginLaunch(item.SubjectId, item.OtherId, item.Amount == 1);
+                        break;
                     case "shipyard_built":
                         if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Notify("Stocznia na przyczółku gotowa.");
                         break;
@@ -308,6 +311,14 @@ namespace MorzaBogow.Presentation
 
         // ---------- Views ----------
 
+        /// <summary>The map, shores, crews and yards are root objects of their own: they go with the battle.</summary>
+        void OnDestroy()
+        {
+            ClearViews();
+            if (crewRoot != null) Destroy(crewRoot.gameObject);
+            crewRoot = null;
+        }
+
         void ClearViews()
         {
             foreach (var view in views.Values) if (view != null) Destroy(view.gameObject);
@@ -339,6 +350,96 @@ namespace MorzaBogow.Presentation
             docked.Clear();
             siteWorkplaces.Clear();
             portWorkplaces.Clear();
+            yards.Clear();
+            launches.Clear();
+            recalled.Clear();
+        }
+
+        // ---------- Shipyards and launching ----------
+
+        readonly Dictionary<int, ShipyardVisual> yards = new Dictionary<int, ShipyardVisual>();
+        public IReadOnlyDictionary<int, ShipyardVisual> Yards => yards;
+
+        /// <summary>A finished hull's run down its slipway into the sea, then afloat to where the game has it.</summary>
+        sealed class Launch
+        {
+            public Vector3 RestPosition, SeaEnd;
+            public Quaternion RestRotation;
+            public float Elapsed;
+            public bool Splashed;
+        }
+
+        const float SlideSeconds = 2.6f, FloatSeconds = 3.4f;
+        readonly Dictionary<int, Launch> launches = new Dictionary<int, Launch>();
+        public int LaunchesInProgress => launches.Count;
+        public int LaunchesCompleted { get; private set; }
+
+        void BeginLaunch(int shipId, int settlementId, bool war)
+        {
+            if (!yards.TryGetValue(settlementId, out var yard)) return;
+            var slip = yard.Line(war);
+            launches[shipId] = new Launch { RestPosition = slip.RestPosition, RestRotation = slip.RestRotation, SeaEnd = slip.SeaEnd };
+        }
+
+        /// <summary>
+        /// Places a launching hull: it slides bow first down the ramp, gathering speed, meets the sea with a burst of
+        /// spray, and then drifts out to its place in the game. False once it is done, when the game alone places it.
+        /// </summary>
+        bool PlaceLaunch(Ship ship, ShipVisual view, Vector3 gamePosition, Quaternion gameRotation, float delta)
+        {
+            if (!launches.TryGetValue(ship.Id, out var launch)) return false;
+            launch.Elapsed += delta;
+            if (launch.Elapsed < SlideSeconds)
+            {
+                var t = launch.Elapsed / SlideSeconds;
+                var run = launch.SeaEnd - launch.RestPosition;
+                var at = launch.RestPosition + run * (t * t);
+                // The model floats its keel at the waterline; on the ramp it rides on the cradle instead.
+                at.y += view.Draft;
+                view.transform.SetPositionAndRotation(at, launch.RestRotation);
+                return true;
+            }
+
+            if (!launch.Splashed)
+            {
+                launch.Splashed = true;
+                view.transform.SetPositionAndRotation(new Vector3(launch.SeaEnd.x, 0f, launch.SeaEnd.z), Quaternion.Euler(0f, launch.RestRotation.eulerAngles.y, 0f));
+                view.Splash(1f);
+            }
+
+            var drift = Mathf.Clamp01((launch.Elapsed - SlideSeconds) / FloatSeconds);
+            var ease = drift * drift * (3f - 2f * drift);
+            var from = new Vector3(launch.SeaEnd.x, 0f, launch.SeaEnd.z);
+            view.transform.SetPositionAndRotation(Vector3.Lerp(from, gamePosition, ease),
+                Quaternion.Slerp(Quaternion.Euler(0f, launch.RestRotation.eulerAngles.y, 0f), gameRotation, ease));
+            if (drift < 1f) return true;
+            launches.Remove(ship.Id);
+            LaunchesCompleted++;
+            return false;
+        }
+
+        /// <summary>Free water beside each side of a hull, to the nearest other hull, for its oars.</summary>
+        void UpdateOarRoom(Ship ship, ShipVisual view)
+        {
+            float port = float.MaxValue, starboard = float.MaxValue;
+            var cos = Math.Cos(ship.Heading);
+            var sin = Math.Sin(ship.Heading);
+            var reach = ship.Definition.Radius + Rules.OarReach(ship.Definition) + 2;
+            foreach (var other in World.Ships)
+            {
+                if (other == ship) continue;
+                var dx = other.X - ship.X;
+                var dy = other.Y - ship.Y;
+                if (dx * dx + dy * dy > Math.Pow(reach + other.Definition.Radius + Rules.OarReach(other.Definition), 2)) continue;
+                // The other's own oars count too while it rows.
+                var gap = (float)(World.HullGap(ship, other) - (Math.Abs(other.Speed) > 0.5 ? Rules.OarReach(other.Definition) : 0));
+                // Left of the heading in the game's plane is the hull's port side.
+                if (cos * dy - sin * dx > 0) port = Mathf.Min(port, gap);
+                else starboard = Mathf.Min(starboard, gap);
+            }
+
+            // A jetty or quay alongside: a moored hull has its oars in anyway, as at rest.
+            view.SetOarRoom(port, starboard);
         }
 
         // ---------- Shore parties ----------
@@ -373,7 +474,7 @@ namespace MorzaBogow.Presentation
         /// <summary>What a ship's crew does ashore now, read from its order. Nothing here feeds back into the game.</summary>
         (CrewJob job, Workplace place) CrewJobOf(Ship ship)
         {
-            if (ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Working)
+            if (ship.Order == OrderKind.Harvest && (ship.Harvest == HarvestPhase.Working || ship.Harvest == HarvestPhase.Landing))
             {
                 var node = World.FindNode(ship.NodeId);
                 if (node != null) return (node.Type == ResourceType.Wood ? CrewJob.Wood : CrewJob.Silver, SiteWorkplace(node));
@@ -394,6 +495,47 @@ namespace MorzaBogow.Presentation
             return (CrewJob.None, null);
         }
 
+        /// <summary>Ships whose crew has been called back aboard before the ship casts off. Cleared when its job ends.</summary>
+        readonly HashSet<int> recalled = new HashSet<int>();
+
+        /// <summary>
+        /// Game seconds until the ship's current shore job ends by the game's own rules: a full hold or an empty
+        /// stock at a work point, or the last of the cargo handled in port. Read only from the game's state.
+        /// </summary>
+        double SecondsUntilDeparture(Ship ship)
+        {
+            var handling = Rules.HandlingPerSecond * Rules.Centi;
+            if (ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition)
+            {
+                if (ship.Transport == TransportPhase.Loading) return (ship.WantWood + ship.WantSilver) / handling;
+                if (ship.Transport == TransportPhase.Unloading) return (ship.HoldWood + ship.HoldSilver) / handling;
+                return double.MaxValue;
+            }
+            if (ship.Order != OrderKind.Harvest) return double.MaxValue;
+            if (ship.Harvest == HarvestPhase.Embarking) return ship.CrewTicks * Rules.Dt;
+            if (ship.Harvest != HarvestPhase.Working && ship.Harvest != HarvestPhase.Landing) return double.MaxValue;
+            // Landing still to finish before any work, and the embarking wait still to come after it.
+            var fixedPart = Rules.EmbarkSeconds + (ship.Harvest == HarvestPhase.Landing ? ship.CrewTicks * Rules.Dt : 0);
+
+            var node = World.FindNode(ship.NodeId);
+            if (node == null) return 0;
+            double Rate(Ship worker) => node.Type == ResourceType.Wood ? worker.Definition.WoodWork : worker.Definition.SilverWork;
+            var total = 0.0;
+            foreach (var id in node.Workers)
+            {
+                var worker = World.FindShip(id);
+                if (worker != null && worker.Harvest == HarvestPhase.Working) total += Rate(worker);
+            }
+            var cap = node.Type == ResourceType.Wood ? Rules.WoodNodeCap : Rules.SilverNodeCap;
+            var share = total > cap ? cap / total : 1.0;
+            var own = Rate(ship) * share * Rules.Centi;
+            if (own <= 0) return double.MaxValue;
+            var room = ship.Definition.Capacity * Rules.Centi - ship.Cargo;
+            var untilFull = room / own;
+            var untilEmpty = total > 0 ? node.Stock / (total * share * Rules.Centi) : double.MaxValue;
+            return fixedPart + Math.Min(untilFull, untilEmpty);
+        }
+
         void UpdateCrews(float delta)
         {
             if (crewRoot == null) crewRoot = new GameObject("Shore parties").transform;
@@ -403,15 +545,23 @@ namespace MorzaBogow.Presentation
             {
                 if (!views.TryGetValue(ship.Id, out var view)) continue;
                 var (job, place) = CrewJobOf(ship);
+                if (job == CrewJob.None) recalled.Remove(ship.Id);
                 if (!crews.TryGetValue(ship.Id, out var crew))
                 {
-                    if (job == CrewJob.None || place == null) continue;
+                    if (job == CrewJob.None || place == null || recalled.Contains(ship.Id)) continue;
                     crew = new ShipCrew(crewRoot, materials, ship.Owner, ship.Class == ShipClass.Merchant ? 6 : 4, ship.Id);
                     crews[ship.Id] = crew;
                 }
+                var deck = view.DeckToward(crew.JettyEnd);
+
+                // The crew heads back aboard in time: when the hold will be full, the stock spent or the cargo moved
+                // before they could walk back, they stop and board, so the hull never leaves anyone ashore.
+                if (job != CrewJob.None && SecondsUntilDeparture(ship) <= crew.SecondsToBoard(deck) + 1.5f) recalled.Add(ship.Id);
+                if (recalled.Contains(ship.Id)) job = CrewJob.None;
+
                 crew.Assign(job, place);
                 var visible = view.gameObject.activeSelf;
-                crew.Update(view.DeckToward(crew.JettyEnd), delta, visible);
+                crew.Update(deck, delta, visible);
                 if (job == CrewJob.None && crew.AllAboard)
                 {
                     crew.Destroy();
@@ -537,9 +687,13 @@ namespace MorzaBogow.Presentation
         GameObject CreateSettlementView(Settlement settlement)
         {
             var root = CreateShore(settlement.X, settlement.Y, $"Settlement {settlement.Owner} [PLACEHOLDER]");
-            var size = settlement.IsOutpost ? 16f : 22f;
+            // The buildings keep to the landward half; the seaward half holds the jetty and the two slipways.
+            var toward = Mathf.Sign((float)settlement.X - (float)Rules.SettlementLandX(settlement));
+            var width = settlement.IsOutpost ? 9f : 11f;
+            var depth = settlement.IsOutpost ? 12f : 16f;
             var tall = settlement.IsOutpost ? 4f : 6f;
-            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(0f, 1.9f + tall * 0.5f, 0f), new Vector3(size, tall, size));
+            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(-toward * (width * 0.5f + 1.5f), 1.9f + tall * 0.5f, 0f), new Vector3(width, tall, depth));
+            yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);
             return root;
         }
 
@@ -893,8 +1047,10 @@ namespace MorzaBogow.Presentation
                 if (!visible) continue;
 
                 var current = ToWorld(ship);
-                view.transform.position = previous.TryGetValue(ship.Id, out var last) ? Vector3.Lerp(last, current, blend) : current;
-                view.transform.rotation = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
+                var gamePosition = previous.TryGetValue(ship.Id, out var last) ? Vector3.Lerp(last, current, blend) : current;
+                var gameRotation = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
+                if (!PlaceLaunch(ship, view, gamePosition, gameRotation, paused ? 0f : delta * Speed)) view.transform.SetPositionAndRotation(gamePosition, gameRotation);
+                UpdateOarRoom(ship, view);
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));
                 var capacity = ship.Definition.Capacity * Rules.Centi;
                 view.SetLoad(capacity > 0 ? (float)(ship.Cargo + ship.HoldWood + ship.HoldSilver) / capacity : 0f);
@@ -922,6 +1078,7 @@ namespace MorzaBogow.Presentation
                 }
                 var shown = !settlement.Destroyed && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
                 if (view.activeSelf != shown) view.SetActive(shown);
+                if (shown && yards.TryGetValue(settlement.Id, out var yard)) yard.Update(settlement, paused ? 0f : delta * Speed);
             }
 
             foreach (var shore in World.Sites)
@@ -1418,7 +1575,9 @@ namespace MorzaBogow.Presentation
                     {
                         case HarvestPhase.ToNode: return $"Rozkaz: płynie po {resource}.";
                         case HarvestPhase.WaitingBerth: return $"Rozkaz: {resource}, czeka na stanowisko.";
+                        case HarvestPhase.Landing: return $"Rozkaz: {resource}, załoga schodzi na ląd.";
                         case HarvestPhase.Working: return $"Rozkaz: ładuje {resource}.";
+                        case HarvestPhase.Embarking: return $"Rozkaz: {resource}, załoga wraca na pokład.";
                         case HarvestPhase.ToPort: return "Rozkaz: wiezie ładunek do portu.";
                         case HarvestPhase.WaitingPort: return "Rozkaz: czeka na miejsce w porcie.";
                         default: return "Rozkaz: rozładunek w porcie.";

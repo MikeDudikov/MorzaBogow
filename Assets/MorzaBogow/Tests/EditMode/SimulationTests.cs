@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MorzaBogow.Simulation;
@@ -99,7 +100,7 @@ namespace MorzaBogow.Tests
             var node = AddNode(world, ResourceType.Wood, 0, 0, 3000);
             var ships = Enumerable.Range(0, 4).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
             foreach (var ship in ships) Harvest(world, ship, node);
-            Run(world, 1);
+            Run(world, 1 + Rules.LandCrewSeconds);
             var before = node.Stock;
             Run(world, 4);
             var perSecond = (before - node.Stock) / (double)Rules.Centi / 4.0;
@@ -113,7 +114,7 @@ namespace MorzaBogow.Tests
             var node = AddNode(world, ResourceType.Silver, 0, 0, 1000);
             var ships = Enumerable.Range(0, 2).Select(i => world.SpawnShip(0, ShipClass.Cutter, i, 0)).ToArray();
             foreach (var ship in ships) Harvest(world, ship, node);
-            Run(world, 1);
+            Run(world, 1 + Rules.LandCrewSeconds);
             var before = node.Stock;
             Run(world, 5);
             Assert.That((before - node.Stock) / (double)Rules.Centi / 5.0, Is.EqualTo(Rules.SilverNodeCap).Within(0.1));
@@ -134,6 +135,70 @@ namespace MorzaBogow.Tests
             Assert.That(node.Stock, Is.EqualTo(0));
             Assert.That(first.Cargo + second.Cargo, Is.EqualTo(total));
             Assert.That(first.Harvest, Is.Not.EqualTo(HarvestPhase.Working));
+        }
+
+        [Test]
+        public void Cutter_LandsItsCrewBeforeWorkAndWaitsForThemBeforeCastingOff()
+        {
+            var world = Empty();
+            var node = AddNode(world, ResourceType.Wood, -430, 0, 3000);
+            var ship = world.SpawnShip(0, ShipClass.Cutter, -440, 0);
+            Harvest(world, ship, node);
+            var phases = new List<(HarvestPhase phase, int tick, long cargo)>();
+            for (var i = 0; i < 40 * Rules.TickRate; i++)
+            {
+                world.Step();
+                if (phases.Count == 0 || phases[phases.Count - 1].phase != ship.Harvest) phases.Add((ship.Harvest, world.Tick, ship.Cargo));
+                if (ship.Harvest == HarvestPhase.Landing) Assert.That(ship.Cargo, Is.EqualTo(0), "Nothing is gathered while the crew lands.");
+                if (ship.Harvest == HarvestPhase.Embarking)
+                {
+                    Assert.That(Math.Abs(ship.Speed), Is.LessThan(0.5), "It waits for its crew instead of casting off.");
+                    Assert.That(node.Workers, Does.Contain(ship.Id), "It keeps its berth until all are aboard.");
+                }
+            }
+
+            var order = phases.Select(item => item.phase).ToList();
+            var landing = order.IndexOf(HarvestPhase.Landing);
+            Assert.That(order.Skip(landing).Take(4), Is.EqualTo(new[] { HarvestPhase.Landing, HarvestPhase.Working, HarvestPhase.Embarking, HarvestPhase.ToPort }));
+            int TickOf(HarvestPhase phase) => phases.First(item => item.phase == phase).tick;
+            Assert.That(TickOf(HarvestPhase.Working) - TickOf(HarvestPhase.Landing), Is.EqualTo((int)(Rules.LandCrewSeconds * Rules.TickRate)));
+            Assert.That(TickOf(HarvestPhase.ToPort) - TickOf(HarvestPhase.Embarking), Is.EqualTo((int)(Rules.EmbarkSeconds * Rules.TickRate)));
+            Assert.That(phases.First(item => item.phase == HarvestPhase.ToPort).cargo, Is.EqualTo(ship.Definition.Capacity * Rules.Centi), "It leaves with a full hold.");
+        }
+
+        [Test]
+        public void Shipyard_LaunchesEachHullOffItsSlipwayWithoutOverlap()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            world.Islands.Add(new Island { X = Rules.SettlementLandX(home), Y = home.Y, Radius = Rules.SettlementLandRadius, Kind = IslandKind.Settlement });
+            home.Wood = home.Silver = 100000 * Rules.Centi;
+            for (var i = 0; i < 4; i++)
+            {
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram });
+            }
+
+            var launched = new List<(Ship ship, bool war)>();
+            for (var i = 0; i < 200 * Rules.TickRate; i++)
+            {
+                world.Step();
+                foreach (var built in world.Events.Where(item => item.Type == "ship_built"))
+                {
+                    var ship = world.FindShip(built.SubjectId);
+                    launched.Add((ship, built.Amount == 1));
+                    foreach (var other in world.Ships.Where(item => item != ship))
+                    {
+                        Assert.That(World.HullGap(ship, other), Is.GreaterThan(World.HullSpacing), $"{ship.Class} launched onto {other.Class}.");
+                    }
+                    var landSide = ship.Y - home.Y;
+                    Assert.That(Math.Sign(landSide), Is.EqualTo(built.Amount == 1 ? -1 : 1), "Each line launches off its own side of the jetty.");
+                    Assert.That(Math.Sin(ship.Heading) * Math.Sign(landSide), Is.GreaterThan(0.99), "Bow to the sea, away from the land.");
+                }
+                world.Events.Clear();
+            }
+            Assert.That(launched.Count(item => item.war), Is.EqualTo(4));
+            Assert.That(launched.Count(item => !item.war), Is.EqualTo(4));
         }
 
         [Test]

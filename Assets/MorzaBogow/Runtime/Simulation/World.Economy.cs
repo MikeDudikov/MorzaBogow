@@ -87,9 +87,47 @@ namespace MorzaBogow.Simulation
             var order = queue[0];
             if (!AdvanceOrder(settlement, order)) return;
             queue.RemoveAt(0);
-            var direction = settlement.IsOutpost ? (settlement.X < 0 ? 1 : -1) : settlement.Owner == 0 ? 1 : -1;
-            var ship = SpawnShip(settlement.Owner, order.Class, settlement.X + direction * 45, settlement.Y + (Tick % 5 - 2) * 25);
-            Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, 0);
+            var war = queue == settlement.WarQueue;
+            var (x, y, heading) = LaunchSpot(settlement, ShipCatalog.Get(order.Class), war);
+            var ship = SpawnShip(settlement.Owner, order.Class, x, y);
+            ship.Heading = heading;
+            Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, war ? 1 : 0);
+        }
+
+        /// <summary>
+        /// Where a finished hull floats off its slipway: on water just off the land, bow to the sea. Ships already
+        /// there are not overlapped: the hull comes to rest further out, or beside them, at the first free place.
+        /// </summary>
+        (double x, double y, double heading) LaunchSpot(Settlement settlement, ShipDefinition definition, bool war)
+        {
+            var landX = Rules.SettlementLandX(settlement);
+            var toward = settlement.X >= landX ? 1 : -1;
+            var side = war ? -1 : 1;
+            var clearance = definition.Radius + Seabed.ShoalWidth(definition.Draft);
+            var baseX = landX + toward * Rules.SlipAlong;
+            var baseY = settlement.Y + side * (Rules.SettlementLandRadius + clearance + 1);
+            var heading = side * Math.PI / 2;
+            var room = definition.Beam + Rules.OarReach(definition) * 2 + HullSpacing;
+            for (var ring = 0; ring < 6; ring++)
+            {
+                foreach (var lateral in new[] { 0, 1, -1, 2, -2 })
+                {
+                    var x = baseX + toward * lateral * room;
+                    var y = baseY + side * ring * (definition.Radius + HullSpacing + 2);
+                    if (LaunchFree(x, y, definition, clearance)) return (x, y, heading);
+                }
+            }
+            return (baseX, baseY + side * 6 * (definition.Radius + HullSpacing + 2), heading);
+        }
+
+        bool LaunchFree(double x, double y, ShipDefinition definition, double clearance)
+        {
+            if (ClearanceAt(x, y) < clearance) return false;
+            foreach (var other in Ships)
+            {
+                if (Distance(x, y, other.X, other.Y) < definition.Radius + other.Definition.Radius + HullSpacing + Rules.OarReach(definition)) return false;
+            }
+            return true;
         }
 
         /// <summary>One tick of paid work. Returns true when the order is complete.</summary>
@@ -158,17 +196,37 @@ namespace MorzaBogow.Simulation
                     LeaveNode(ship);
                     ship.Harvest = ship.Cargo > 0 ? HarvestPhase.ToPort : HarvestPhase.ToNode;
                 }
-                else if (node.Workers.Contains(ship.Id)) ship.Harvest = HarvestPhase.Working;
+                else if (node.Workers.Contains(ship.Id))
+                {
+                    ship.Harvest = HarvestPhase.Landing;
+                    ship.CrewTicks = (int)(Rules.LandCrewSeconds * Rules.TickRate);
+                    return;
+                }
+            }
+
+            if (ship.Harvest == HarvestPhase.Landing)
+            {
+                StopShip(ship);
+                if (node == null || node.Stock <= 0) { BeginEmbarking(ship); return; }
+                if (--ship.CrewTicks > 0) return;
+                ship.Harvest = HarvestPhase.Working;
+                return;
             }
 
             if (ship.Harvest == HarvestPhase.Working)
             {
                 StopShip(ship);
-                if (node == null || node.Stock <= 0 || ship.Cargo >= definition.Capacity * Rules.Centi)
-                {
-                    LeaveNode(ship);
-                    ship.Harvest = ship.Cargo > 0 ? HarvestPhase.ToPort : HarvestPhase.ToNode;
-                }
+                if (node == null || node.Stock <= 0 || ship.Cargo >= definition.Capacity * Rules.Centi) BeginEmbarking(ship);
+                return;
+            }
+
+            if (ship.Harvest == HarvestPhase.Embarking)
+            {
+                // The berth stays taken until the last of the crew is aboard.
+                StopShip(ship);
+                if (--ship.CrewTicks > 0) return;
+                LeaveNode(ship);
+                ship.Harvest = ship.Cargo > 0 ? HarvestPhase.ToPort : HarvestPhase.ToNode;
                 return;
             }
 
@@ -194,6 +252,12 @@ namespace MorzaBogow.Simulation
             }
 
             if (ship.Harvest == HarvestPhase.Docked) StepUnload(ship, settlement);
+        }
+
+        void BeginEmbarking(Ship ship)
+        {
+            ship.Harvest = HarvestPhase.Embarking;
+            ship.CrewTicks = (int)(Rules.EmbarkSeconds * Rules.TickRate);
         }
 
         void StepUnload(Ship ship, Settlement settlement)

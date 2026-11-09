@@ -352,21 +352,27 @@ namespace MorzaBogow.Simulation
                 return;
             }
 
-            if (Distance(ship.X, ship.Y, escorted.X, escorted.Y) > Rules.EscortStation)
+            // A transport at rest: close up to the station distance and wait there.
+            if (escorted.Speed < 0.5)
             {
-                Steer(ship, escorted.X, escorted.Y, ship.Definition.Speed, Rules.EscortStation);
+                if (Distance(ship.X, ship.Y, escorted.X, escorted.Y) > Rules.EscortStation) Steer(ship, escorted.X, escorted.Y, ship.Definition.Speed, Rules.EscortStation);
+                else StopShip(ship);
                 return;
             }
 
-            // On station: sail abeam of the transport on the side the escort already keeps, never across its bow.
-            if (escorted.Speed < 0.5) { StopShip(ship); return; }
+            // Under way: keep a station abeam of the transport on the side the escort already keeps, never across
+            // its bow. The station moves, so there is no slowing on arrival: behind it the escort makes full speed,
+            // ahead of it the escort eases off, and on it the escort matches the transport.
             var cos = Math.Cos(escorted.Heading);
             var sin = Math.Sin(escorted.Heading);
             var side = -(ship.X - escorted.X) * sin + (ship.Y - escorted.Y) * cos >= 0 ? 1 : -1;
             var abeam = Rules.EscortStation * 0.8;
             var stationX = escorted.X - sin * abeam * side + cos * abeam * 0.5;
             var stationY = escorted.Y + cos * abeam * side + sin * abeam * 0.5;
-            Steer(ship, stationX, stationY, Math.Min(ship.Definition.Speed, escorted.Speed * 1.15), 0);
+            var ahead = (ship.X - stationX) * cos + (ship.Y - stationY) * sin;
+            var off = Distance(ship.X, ship.Y, stationX, stationY);
+            var wanted = ahead > 3 ? escorted.Speed * 0.8 : off > 6 ? ship.Definition.Speed : escorted.Speed;
+            Steer(ship, stationX, stationY, Math.Min(ship.Definition.Speed, wanted), -25);
         }
     }
 }

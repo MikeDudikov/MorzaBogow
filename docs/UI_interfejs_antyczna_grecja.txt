@@ -1,0 +1,321 @@
+MORZA BOGÓW – WYTYCZNE INTERFEJSU ROZGRYWKI (STYLISTYKA ANTYCZNEJ GRECJI)
+==========================================================================
+
+Wersja robocza 1, 2026-11-09. Dotyczy ekranu bitwy (mapa morska, osady, flota).
+Dokument opisuje, CO interfejs ma pokazywać, GDZIE, JAK wyglądać i JAKIE dane
+z gry czytać. Nazwy i liczby pochodzą z obecnej wersji gry; wszystkie grafiki
+mają być oryginalne (własne lub na wolnych licencjach – patrz pkt 12).
+
+
+1. CEL I ZASADY NADRZĘDNE
+-------------------------
+1.1 Gracz w 1 sekundę ma wiedzieć: ile ma drewna (D) i srebra (S), co buduje,
+    co robi zaznaczona flota i czy coś go atakuje.
+1.2 Mapa jest najważniejsza. Interfejs zajmuje najwyżej 18% wysokości ekranu
+    (dolny pas) i 4% (górny pasek). Nic stałego nie leży na środku ekranu.
+1.3 Najpierw grafika, potem tekst: każda wartość ma ikonę; tekst objaśnia
+    w podpowiedzi (tooltip). Liczby zawsze cyframi arabskimi – cyfry greckie
+    tylko jako ozdobnik, nigdy jako jedyny nośnik informacji.
+1.4 Styl antyczny = materiały, ornament i sylwetki, NIE nieczytelne litery.
+    Nie podmieniamy łacińskich liter greckimi (np. „Σ” zamiast „E”).
+1.5 Zgodność z obecnymi zasadami gry (wymagania użytkownika):
+    - pasek kadłuba (HP) widoczny tylko po zaznaczeniu myszą,
+    - okręgi zaznaczenia cienkie, półprzezroczyste, z delikatnie rozmytą krawędzią,
+    - wróg oznaczony dopiero po wydaniu rozkazu ataku,
+    - brak smug kilwateru i linii rozkazów na mapie,
+    - widoczna mgła wojny w trzech stanach (nieznane / odkryte / widziane).
+1.6 Rozdzielczości 1920×1080 do 2560×1440, pełny ekran 16:9. Projektujemy
+    w siatce 1920×1080 i skalujemy jednolicie (×1,333 dla 1440p).
+
+
+2. STYL WIZUALNY
+----------------
+2.1 Inspiracje (tylko kierunek, bez kopiowania konkretnych dzieł):
+    ceramika czarno- i czerwonofigurowa, marmur i brąz, mozaiki,
+    malowane stele, pieczęcie i monety, mapy na pergaminie.
+
+2.2 Paleta (wartości startowe, do dostrojenia w teście kontrastu):
+    Terakota (tło paneli)         #A4522E
+    Glina ciemna (ramki, cienie)  #4A2416
+    Czerń wazowa (sylwetki, tekst na jasnym) #1C1512
+    Ochra (akcenty, aktywne)      #D9A441
+    Brąz patynowany (przyciski)   #8C6A3B   patyna #4F8A7A
+    Marmur (tło podpowiedzi)      #EDE6D6
+    Pergamin (karty informacji)   #E6D3A8
+    Błękit egejski (gracz)        #2F6DB5
+    Czerwień cynobrowa (wróg)     #B8322A
+    Zieleń oliwna (zdrowie OK)    #6E8B3D
+    Złoto (srebro w grze – ikona) #C9C3B4 z obwódką #7D776B (srebro, nie złoto!)
+    Kolor gracza i wroga zawsze z drugim wyróżnikiem: kształt tarczy
+    (gracz – okrągła hoplon, wróg – półksiężycowa pelta), aby rozróżniali
+    je także daltoniści.
+
+2.3 Ornamenty:
+    - meander (klucz grecki) jako obramowanie górnego paska i paneli,
+      grubość 6 px przy 1080p, w kolorze ochry na glinie,
+    - pas „jajo i strzałka” jako separator sekcji,
+    - palmeta w narożnikach paneli (9-slice: narożnik 48×48 px),
+    - fala (wąż morski / „running dog”) pod minimapą i panelem floty.
+    Ornament nigdy nie przecina tekstu ani liczb.
+
+2.4 Typografia (fonty na licencji SIL OFL, do sprawdzenia przed użyciem):
+    - nagłówki: Cinzel (wersaliki), 20–24 px przy 1080p,
+    - tekst i liczby: Alegreya Sans lub Source Sans 3, min. 16 px,
+      cyfry tabelaryczne (równej szerokości) w paskach zasobów,
+    - ozdobne napisy greckie (nazwa trybu, motto na ekranie tytułowym):
+      GFS Didot lub GFS Neohellenic.
+    Polskie znaki (ą, ę, ł, ó, ś, ż, ź, ć, ń) muszą być w każdym foncie.
+
+2.5 Ikony: sylwetki w stylu czarnofigurowym na jasnym medalionie (moneta),
+    format wektorowy SVG, eksport 32/48/64/128 px. Każda ikona czytelna
+    w 24 px. Zestaw minimalny w pkt 12.
+
+2.6 Materiały paneli: gładka terakota z lekkim szumem, ramka z brązu,
+    wewnętrzny cień 2 px. Przycisk aktywny = ochra, wciśnięty = ciemniejsza
+    glina z przesunięciem 1 px, nieaktywny = 45% krycia i ikona szara.
+
+
+3. UKŁAD EKRANU (siatka 1920×1080)
+-----------------------------------
++------------------------------------------------------------------------------+
+| [D 340/1000 (rez. 60)] [S 230/600 (rez. 20)] [W drodze D/S] [Flota 9/100]    |
+|                                       [Czas 12:41] [Prędkość ×2] [II] [Menu] |  <- górny pasek 44 px
+|                                                                              |
+|                                                       [Wiadomości herolda]  |  <- prawa kolumna 360 px
+|                           M A P A                     [max 4 na raz]        |
+|                                                                              |
+|                                                                              |
++--------------+--------------------------+--------------------+--------------+
+| MINIMAPA     | PANEL ZAZNACZENIA        | KOLEJKI STOCZNI    | ROZKAZY 4×3  |  <- dolny pas 190 px
+| 220×190      | 760×190                  | 380×190            | 300×190      |
++--------------+--------------------------+--------------------+--------------+
+
+3.1 Margines bezpieczny 16 px od krawędzi. Dolny pas ma półprzezroczyste
+    tło (85%), aby mapa przeświecała pod ornamentem.
+3.2 Przy 2560×1440 wszystko ×1,333; minimapa może urosnąć do 300 px.
+3.3 Panele można zwinąć (klawisz Tab) do samych ikon; mapa wtedy na pełnym
+    ekranie, zostaje górny pasek i alarmy.
+
+
+4. GÓRNY PASEK – ZASOBY I CZAS
+------------------------------
+4.1 Drewno (ikona: pień z toporem) i Srebro (ikona: sztabka / sowa na
+    monecie). Format: „340 / 1000”, pod spodem mniejszym drukiem
+    „rez. 60” (zarezerwowane na zamówienia) oraz pasek zapełnienia
+    magazynu (ochra → czerwień przy >90%).
+4.2 „W drodze”: ładunek na statkach (D i S osobno), ikona amfory na fali.
+4.3 Flota: „9 / 100” (limit floty), ikona trzech dziobów.
+4.4 Porty: liczba własnych portów (osada + przyczółki), ikona pomostu.
+4.5 Czas gry „mm:ss”, prędkość (×1, ×2, ×3) jako klepsydra, pauza (II).
+    Pauza przyciemnia mapę o 25% i pokazuje meander w ramce ekranu.
+4.6 Zmiana wartości: liczba błyska ochrą przez 0,4 s; spadek poniżej
+    rezerwy – pulsuje czerwienią i pojawia się wiadomość herolda.
+Dane z gry: Settlement.Wood/Silver, ReservedWood/ReservedSilver,
+Capacity(typ), ładunki statków (Cargo, HoldWood, HoldSilver), Fleet,
+World.Tick (30 ticków = 1 s).
+
+
+5. PANEL ZAZNACZENIA (środek dołu)
+----------------------------------
+5.1 Jeden statek – „karta na pergaminie”:
+    - po lewej portret-sylwetka klasy (Kuter, Taranowiec, Niszczyciel
+      załóg, Abordażowiec, Handlowiec) na medalionie w kolorze właściciela,
+    - kadłub: pasek z ornamentem fali, liczby „180/180”,
+    - załoga: marynarze i żołnierze (ikony wiosła i hełmu), morale
+      (ikona wieńca laurowego – im bardziej zwiędły, tym niższe),
+    - ładunek: pojemnik amfory wypełniany do poziomu, „52/60 D”,
+    - rozkaz i faza słowami (np. „drewno – załoga schodzi na ląd”,
+      „ładuje drewno”, „załoga wraca na pokład”, „wiezie ładunek”),
+    - przy budowie przyczółka: pasek postępu z kolumną rosnącą od bazy.
+5.2 Kilka statków – rząd medalionów (do 24, dalej „+N”), każdy z cienkim
+    paskiem kadłuba pod spodem; klik = zaznacz tylko ten, Shift+klik = usuń.
+    Grupowanie po klasach z licznikiem (np. „Taranowiec ×4”).
+5.3 Osada / przyczółek – karta z: kadłubem osady, magazynami, liczbą
+    zajętych stanowisk portu (3), kolejką czekających, stanem stoczni.
+5.4 Wróg (podgląd, gdy widoczny) – ta sama karta w czerwieni, bez rozkazów,
+    z ikoną oka (dane tylko widoczne teraz, nigdy ukryte we mgle).
+5.5 Wrak – ikona rozbitej burty, zawartość D/S i czas do zatonięcia.
+
+
+6. KOLEJKI STOCZNI
+------------------
+6.1 Dwie linie obok siebie: „Linia wojenna” (ikona trójzęba) i „Linia
+    portowa” (ikona kotwicy). Przyczółek bez stoczni pokazuje tylko portową,
+    a linię wojenną jako zarys z postępem budowy stoczni.
+6.2 Pozycja w kolejce: medalion klasy + pierścień postępu wokół medalionu.
+    Pierścień ma 6 znaczników – te same etapy, które widać na pochylni:
+      0–10% stępka, 10–35% wręgi, 35–70% poszycie, 70–85% pokład,
+      85–95% maszt (i taran), 95–100% wiosła i żagiel.
+    Podpowiedź: „Taranowiec – poszycie, 52%, 17 s”.
+6.3 Anulowanie: prawy klik na medalionie, potwierdzenie przy >50% postępu.
+    Zwrot kosztów zgodnie z regułami gry (pokazać kwoty przed potwierdzeniem).
+6.4 Przyciski zamówień w panelu osady: medalion klasy, koszt „240 D / 100 S”,
+    czas „35 s”. Gdy brak zasobów – brakująca kwota czerwienią; gdy
+    zamówienie naruszy rezerwę 60 D / 20 S – ostrzeżenie ochrą.
+6.5 Zakończenie budowy: krótki dźwięk trąbki (salpinx) i wiadomość herolda
+    „Zwodowano: Kuter”. Klik w wiadomość centruje kamerę na pochylni.
+
+
+7. ROZKAZY (prawy dolny róg, siatka 4×3)
+----------------------------------------
+Każdy przycisk: ikona + klawisz w rogu + podpowiedź z opisem i kosztem.
+Ikony i domyślne klawisze (do zmiany w ustawieniach):
+  Ruch (M)              – stopa na fali
+  Stop (S)              – otwarta dłoń
+  Atak (A)              – grot włóczni
+  Taranowanie (R)       – brązowy taran
+  Abordaż (B)           – hak abordażowy
+  Ostrzał (Alt+PPM)     – łuk
+  Zbiór (H)             – topór i kilof
+  Dostawa (D)           – amfora
+  Przyczółek (F)        – kolumna z fundamentem
+  Eskorta (E)           – tarcza hoplon
+  Remont (P)            – młotek cieśli
+  Złomowanie (X)        – rozbita burta (z potwierdzeniem)
+Przyciski nieaktywne dla danej klasy znikają (nie szarzeją), aby siatka
+była krótka. Kolejność w siatce stała dla wszystkich klas.
+
+7.1 Kursory kontekstowe (PPM robi „właściwą rzecz”):
+    nad wrogiem – grot włóczni; nad wrogiem z taranowcem – taran;
+    nad złożem – topór (drewno) / kilof (srebro); nad własnym portem
+    z handlowcem – amfora; nad wolnym brzegiem z handlowcem – kolumna;
+    nad własnym handlowcem z okrętem – tarcza; ląd niedostępny – przekreślone koło.
+7.2 Potwierdzenie rozkazu: krótki rozbłysk znaku w miejscu celu (0,6 s,
+    pierścień z meandra zanikający) – bez stałych linii rozkazów.
+
+
+8. ZNACZNIKI NA MAPIE
+---------------------
+8.1 Zaznaczenie: cienki, półprzezroczysty pierścień (2 px przy 1080p,
+    krycie 55%, rozmycie krawędzi 1 px), kolor gracza.
+8.2 Pasek kadłuba nad statkiem tylko po zaznaczeniu: 3 segmenty kolorów
+    (oliwka > 60%, ochra 30–60%, cynober < 30%).
+8.3 Cel ataku: pulsujący pierścień cynobrowy pod wrogiem po rozkazie.
+8.4 Złoża: przy zbliżeniu kamery mała tabliczka z ilością (np. „2 400 D”);
+    w oddaleniu ikona na medalionie.
+8.5 Wolne brzegi pod przyczółek: zarys kolumny tylko na odkrytym obszarze.
+8.6 Mgła wojny: nieznane – ciemny pergamin z ornamentem fali; odkryte –
+    przyciemnione, bez jednostek wroga; widziane – pełny obraz.
+
+
+9. MINIMAPA („PINAX”)
+---------------------
+9.1 Prostokąt z ramą z brązu, tło pergamin; woda błękitna, ląd ochra,
+    mgła jak w 8.6.
+9.2 Jednostki: kropki 3 px (gracz błękit, wróg cynober – tylko widoczne),
+    osady jako kwadrat z kolumną, złoża jako małe medaliony.
+9.3 Ramka widoku kamery (trapez – widok ukośny), klik = przesunięcie
+    kamery, PPM = rozkaz ruchu dla zaznaczonych.
+9.4 Alarm (atak na własny statek/osadę) – czerwony błysk w miejscu
+    na minimapie + dźwięk rogu; Spacja przeskakuje do ostatniego alarmu
+    (zmiana klawisza pauzy na Pause/P – do decyzji).
+
+
+10. WIADOMOŚCI HEROLDA (prawa kolumna)
+-------------------------------------
+10.1 Krótkie zwoje (pergamin), najwyżej 4, nowe od góry, znikają po 8 s.
+10.2 Priorytety: krytyczne (osada atakowana, utrata statku) – czerwona
+     pieczęć, zostają do kliknięcia; ważne (magazyn pełny, rozkaz
+     niewykonalny, zwodowano, przyczółek gotowy) – ochra; informacyjne – szare.
+10.3 Każda wiadomość klikalna – centruje kamerę.
+10.4 Obecne teksty gry przenieść 1:1 (np. „Magazyn pełny: reszta ładunku
+     została na statku.”, „Przyczółek gotowy…”, „Stocznia na przyczółku gotowa.”).
+
+
+11. MENU, PAUZA, USTAWIENIA
+--------------------------
+11.1 Menu główne: tło – fresk morza o świcie, przyciski jako tabliczki
+     z marmuru: „Nowa bitwa”, „Wczytaj”, „Ustawienia”, „Wyjście”.
+11.2 Pauza: rama z meandrem, „Wznów”, „Zapisz (F5)”, „Wczytaj (F8)”,
+     „Ustawienia”, „Wyjdź do menu”.
+11.3 Ustawienia obrazu: rozdzielczość (1920×1080 … 2560×1440), profil
+     (Ultra, Extra High, High, Medium, Low), tryb pełnoekranowy, skala
+     interfejsu (90–125%). Zmiana z podglądem i odliczaniem 15 s do cofnięcia.
+11.4 Sterowanie: lista klawiszy z możliwością zmiany, czułość przewijania,
+     odwrócenie obrotu kamery.
+11.5 Dźwięk: ogólna, efekty, muzyka, głosy, interfejs.
+
+
+12. ZASOBY GRAFICZNE DO PRZYGOTOWANIA
+------------------------------------
+Ikony SVG (sylwetki czarnofigurowe na medalionie):
+  zasoby: drewno, srebro, w drodze, flota, port, czas, pauza, prędkość
+  klasy: kuter, taranowiec, niszczyciel załóg, abordażowiec, handlowiec,
+         osada, przyczółek, stocznia, wrak, złoże drewna, złoże srebra
+  rozkazy: 12 z pkt 7
+  stan: marynarze, żołnierze, morale (3 stany wieńca), ładunek (amfora 0–100%)
+  etapy budowy: 6 z pkt 6.2
+Ramy 9-slice (PNG 2×, 256×256): panel terakota, karta pergamin, podpowiedź
+  marmur, wiadomość herolda (zwój), przycisk (4 stany).
+Ornamenty kafelkowe (PNG 2×, bezszwowe): meander 64×12, fala 96×16,
+  jajo i strzałka 64×10, palmeta narożna 48×48.
+Kursory (32×32 i 48×48, punkt aktywny opisany): 9 z pkt 7.1.
+Licencje: tylko własne prace lub CC0/OFL; zapisywać źródło i licencję
+  w docs/ obok pliku. Bez materiałów z innych gier.
+
+
+13. ANIMACJE I DŹWIĘKI INTERFEJSU
+---------------------------------
+- najechanie: podświetlenie ochrą 120 ms; wciśnięcie: 1 px w dół, 60 ms,
+- otwarcie panelu: rozwinięcie zwoju 180 ms (bez zasłaniania mapy),
+- postęp: pierścień jak cień zegara słonecznego obracający się zgodnie
+  z ruchem wskazówek,
+- dźwięki: klik – stuk drewna; błąd – stłumiony gong; zwodowanie – trąbka;
+  alarm – róg; zapis – pieczęć w wosku. Głośność interfejsu osobno.
+- Wszystkie animacje interfejsu w czasie rzeczywistym (działają w pauzie),
+  animacje świata (załogi, stocznia) w czasie gry.
+
+
+14. DOSTĘPNOŚĆ I CZYTELNOŚĆ
+--------------------------
+- kontrast tekstu ≥ 4,5:1 (WCAG AA); na terakocie używać marmuru/pergaminu,
+- min. 16 px tekstu przy 1080p; skala interfejsu 90–125%,
+- kolory właścicieli zawsze z kształtem (hoplon / pelta),
+- tryb dla daltonistów: zamiana cynobru na pomarańcz + wzór kreskowany,
+- każda akcja myszy ma odpowiednik klawiszowy; klawisze do zmiany,
+- podpowiedzi po 400 ms, z pełną nazwą, klawiszem, kosztem i skutkiem.
+
+
+15. DANE Z GRY → ELEMENT INTERFEJSU (dla programisty)
+----------------------------------------------------
+Interfejs tylko czyta stan (World) i wydaje rozkazy (Command); nie zmienia
+symulacji bezpośrednio.
+  Zasoby osady         Settlement.Wood, Silver, ReservedWood/Silver, Capacity()
+  W drodze             suma Ship.Cargo / HoldWood / HoldSilver własnych statków
+  Flota                liczba Ship.Owner == gracz, Rules.FleetLimit
+  Kolejki              Settlement.WarQueue, PortQueue: BuildOrder.Class,
+                       DoneTicks / TotalTicks; Settlement.ShipyardBuild
+  Port                 Settlement.DockedShips (max Rules.PortBerths), PortWaiting
+  Statek               Ship.Hull / Definition.Hull, Sailors, Soldiers, Morale,
+                       Cargo/Capacity, Order, Harvest (fazy: ToNode,
+                       WaitingBerth, Landing, Working, Embarking, ToPort,
+                       WaitingPort, Docked), Transport (fazy dostawy)
+  Przyczółek           Ship.BuildTicks / (Rules.OutpostBuildSeconds × 30)
+  Widoczność           World.CanSee, World.IsExplored (mgła i podgląd wroga)
+  Zdarzenia            World.Events: ship_built, outpost_built, shipyard_built,
+                       store_full, order_rejected, ship_sunk, ship_captured, …
+Odświeżanie: wartości liczbowe co klatkę, listy (kolejki, wiadomości) przy
+zmianie. Pola tekstowe bez alokacji co klatkę (formatowanie przy zmianie).
+
+
+16. PRIORYTETY WDROŻENIA I KRYTERIA ODBIORU
+------------------------------------------
+Etap A (czytelność): górny pasek, panel zaznaczenia, kolejki z etapami,
+  rozkazy z klawiszami, wiadomości herolda. Odbiór: nowy gracz w 5 minut
+  bez instrukcji buduje kuter, wysyła go po drewno i wie, ile ma zasobów.
+Etap B (orientacja): minimapa z mgłą i alarmami, kursory kontekstowe.
+  Odbiór: alarm o ataku zauważony w < 2 s w teście z 5 osobami.
+Etap C (oprawa): ornamenty, dźwięki, animacje, menu i ustawienia.
+  Odbiór: 60 kl./s utrzymane przy włączonym interfejsie na profilu High,
+  interfejs nie dodaje więcej niż 0,5 ms na klatkę.
+
+
+17. CZEGO UNIKAĆ
+----------------
+- przeładowania ornamentem (ornament ≤ 15% powierzchni panelu),
+- złota jako koloru srebra (myli zasoby),
+- „greckich” liter udających łacińskie,
+- tekstur z przypadkowych źródeł bez licencji,
+- stałych linii rozkazów, smug kilwateru i pasków HP bez zaznaczenia,
+- paneli zasłaniających środek mapy,
+- elementów w kolorze gracza/wroga bez drugiego wyróżnika.

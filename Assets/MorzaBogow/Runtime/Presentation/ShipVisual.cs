@@ -127,6 +127,7 @@ namespace MorzaBogow.Presentation
             mast.localPosition = new Vector3(0f, length * 0.3f, 0f);
 
             visual.ApplyOwner(ship.Owner, materials);
+            visual.oarReach = (float)Rules.OarReach(definition);
 
             var oarCount = ship.Class == ShipClass.Cutter ? 3 : 6;
             for (var side = -1; side <= 1; side += 2)
@@ -138,7 +139,7 @@ namespace MorzaBogow.Presentation
                     pivot.SetParent(visual.model, false);
                     pivot.localPosition = new Vector3(side * beam * 0.45f, 0.9f, along * length);
                     var blade = Part(pivot, PrimitiveType.Cube, "Blade", materials?.Wood);
-                    var reach = Mathf.Max(2.5f, length * 0.28f);
+                    var reach = (float)Rules.OarReach(definition);
                     blade.localScale = new Vector3(reach, 0.14f, 0.3f);
                     blade.localPosition = new Vector3(side * reach * 0.5f, 0f, 0f);
                     visual.oars.Add((pivot, side, i * 0.35f));
@@ -281,6 +282,44 @@ namespace MorzaBogow.Presentation
             hasWater = true;
         }
 
+        float oarReach;
+        float roomPort = float.MaxValue, roomStarboard = float.MaxValue;
+        readonly float[] shipped = { 1f, 1f };
+
+        public float OarReach => oarReach;
+
+        /// <summary>0 rowing, 1 drawn in along the side. Side -1 is port (left), +1 starboard.</summary>
+        public float OarsShipped(int side) => shipped[side < 0 ? 0 : 1];
+
+        /// <summary>Free water beside each side, up to the nearest other hull, from the simulation's positions.</summary>
+        public void SetOarRoom(float port, float starboard)
+        {
+            roomPort = port;
+            roomStarboard = starboard;
+        }
+
+        /// <summary>A hull meeting the sea at speed: a burst of spray along its length and foam around it.</summary>
+        public void Splash(float strength)
+        {
+            if (spray == null) return;
+            var count = Mathf.RoundToInt(40f * strength);
+            for (var i = 0; i < count; i++)
+            {
+                var along = Random.Range(-0.5f, 0.5f) * size;
+                var flank = Random.value < 0.5f ? -1f : 1f;
+                var at = transform.position + transform.forward * along + transform.right * flank * beam * Random.Range(0.4f, 0.8f);
+                spray.Emit(new ParticleSystem.EmitParams
+                {
+                    position = at,
+                    velocity = Vector3.up * Random.Range(3f, 8f) * strength + transform.right * flank * Random.Range(1f, 4f),
+                    startSize = Random.Range(0.8f, 2.4f),
+                    startLifetime = Random.Range(0.8f, 1.8f),
+                    applyShapeToPosition = false,
+                }, 1);
+            }
+            if (hullFoam != null) hullFoam.surfaceFoamDimmer = 1f;
+        }
+
         /// <summary>Red marker under an enemy ship the player ordered to attack.</summary>
         public void SetTargetMarker(bool marked)
         {
@@ -296,12 +335,22 @@ namespace MorzaBogow.Presentation
             var fraction = Mathf.Clamp01(Mathf.Abs(speedFraction));
             rowing += delta * (1.2f + fraction * 3.2f);
 
+            // Oars come in along the side where another hull lies within their reach, and both sides at rest:
+            // shipped, they lie along the gunwale pointing aft, so no oar ever strikes another hull or oar.
+            for (var s = 0; s < 2; s++)
+            {
+                var room = s == 0 ? roomPort : roomStarboard;
+                var target = fraction < 0.08f || room < oarReach + 0.8f ? 1f : 0f;
+                shipped[s] = Mathf.MoveTowards(shipped[s], target, delta * 1.6f + (target > shipped[s] && room < oarReach * 0.6f ? 1f : 0f));
+            }
             foreach (var (pivot, side, offset) in oars)
             {
                 var stroke = Mathf.Sin(rowing + offset);
                 var lift = Mathf.Cos(rowing + offset);
                 var strength = Mathf.Lerp(0.12f, 1f, fraction);
-                pivot.localRotation = Quaternion.Euler(0f, side * stroke * 24f * strength, side * (-14f + lift * 9f * strength));
+                var rowed = Quaternion.Euler(0f, side * stroke * 24f * strength, side * (-14f + lift * 9f * strength));
+                var stowed = Quaternion.Euler(0f, side * 84f, side * 6f);
+                pivot.localRotation = Quaternion.Slerp(rowed, stowed, OarsShipped(side));
             }
 
             // Loading and unloading change the draft over seconds, not in one jump.

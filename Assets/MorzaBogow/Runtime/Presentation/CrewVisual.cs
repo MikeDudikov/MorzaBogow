@@ -122,7 +122,11 @@ namespace MorzaBogow.Presentation
             if (Root.gameObject.activeSelf != shown) Root.gameObject.SetActive(shown);
         }
 
-        public void Destroy() => Object.Destroy(Root.gameObject);
+        /// <summary>Safe also when the scene is already being torn down and the figure is gone.</summary>
+        public void Destroy()
+        {
+            if (Root != null) Object.Destroy(Root.gameObject);
+        }
 
         static Transform Pivot(Transform parent, Vector3 position)
         {
@@ -288,6 +292,28 @@ namespace MorzaBogow.Presentation
             if (goal != Point.Deck) member.Route.Add(goal);
         }
 
+        /// <summary>
+        /// Seconds of game time the slowest member ashore needs to hurry back aboard along the jetty: those beyond
+        /// its foot walk to it first. Zero when everyone is aboard.
+        /// </summary>
+        public float SecondsToBoard(Vector3 deck)
+        {
+            if (place == null) return 0f;
+            var longest = 0f;
+            foreach (var member in members)
+            {
+                if (member.Aboard) continue;
+                var at = member.Figure.Position;
+                var inland = member.LastReached == Point.Pile || member.LastReached == Point.Work || member.LastReached == Point.Landing;
+                var path = inland
+                    ? Vector3.Distance(at, place.Landing) + Vector3.Distance(place.Landing, place.JettyEnd)
+                    : Vector3.Distance(at, place.JettyEnd);
+                path += Vector3.Distance(place.JettyEnd, deck);
+                longest = Mathf.Max(longest, path / HurrySpeed);
+            }
+            return longest;
+        }
+
         /// <summary>Trips left for a dock gang; each carried load counts one. Negative means no limit.</summary>
         public int TripsLeft { get; set; } = -1;
 
@@ -426,7 +452,7 @@ namespace MorzaBogow.Presentation
         public void Destroy()
         {
             foreach (var member in members) member.Figure.Destroy();
-            Object.Destroy(plank.gameObject);
+            if (plank != null) Object.Destroy(plank.gameObject);
         }
     }
 }

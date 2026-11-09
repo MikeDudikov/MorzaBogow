@@ -195,7 +195,8 @@ namespace MorzaBogow.Tests
                     })
                     .ToList();
                 Assert.That(hiddenSurf, Is.Not.Empty, "The map has unexplored islets at the start.");
-                Assert.That(hiddenSurf.All(decal => !decal.isActiveAndEnabled), Is.True);
+                var shownUnderFog = hiddenSurf.Where(decal => decal.isActiveAndEnabled).Select(decal => decal.transform.parent.position.ToString()).Distinct();
+                Assert.That(shownUnderFog, Is.Empty, "Surf shown under the fog at these shores.");
             }
             finally
             {

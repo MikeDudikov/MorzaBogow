@@ -51,6 +51,114 @@ namespace MorzaBogow.Tests
             }
         }
 
+        [Test]
+        public void Shipyard_ShowsEachBuildStageInTurn()
+        {
+            var parent = new GameObject("Yard under test");
+            try
+            {
+                var slip = new Slipway(parent.transform, null, 0, 1f, -1f);
+                slip.Show(ShipClass.Ram, 0.05f, 0.1f);
+                Assert.That(slip.FramesShown, Is.EqualTo(0), "First only the keel.");
+                Assert.That(slip.Scaffolded, Is.True);
+                Assert.That(slip.ShipwrightsAtWork, Is.GreaterThan(0));
+
+                slip.Show(ShipClass.Ram, 0.25f, 0.1f);
+                var some = slip.FramesShown;
+                Assert.That(some, Is.GreaterThan(0), "Frames rise.");
+                Assert.That(slip.PlankedFraction, Is.EqualTo(0f));
+
+                slip.Show(ShipClass.Ram, 0.5f, 0.1f);
+                Assert.That(slip.FramesShown, Is.GreaterThan(some), "All frames stand before planking is far along.");
+                Assert.That(slip.PlankedFraction, Is.InRange(0.1f, 0.9f), "Planking is half way up.");
+                Assert.That(slip.Decked, Is.False);
+
+                slip.Show(ShipClass.Ram, 0.8f, 0.1f);
+                Assert.That(slip.PlankedFraction, Is.EqualTo(1f));
+                Assert.That(slip.Decked, Is.True);
+                Assert.That(slip.Rigged, Is.False);
+
+                slip.Show(ShipClass.Ram, 0.99f, 0.1f);
+                Assert.That(slip.Rigged, Is.True, "Oars and sail at the end.");
+                Assert.That(slip.Scaffolded, Is.False, "Scaffolding down before launching.");
+                Assert.That(slip.ShipwrightsAtWork, Is.EqualTo(0));
+
+                slip.Show(null, 0f, 0.1f);
+                Assert.That(slip.Building, Is.Null, "An idle line shows an empty ramp.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(parent);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Launch_HullSlidesDownItsSlipwayThenTakesItsPlaceInTheGame()
+        {
+            yield return null;
+            var home = battle.World.SettlementOf(0);
+            home.Wood = home.Silver = 5000 * Rules.Centi;
+            var before = battle.World.Ships.Select(ship => ship.Id).ToList();
+            battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
+            Ship built = null;
+            for (var i = 0; i < 40 * Rules.TickRate && built == null; i++)
+            {
+                battle.RunTicks(1);
+                built = battle.World.Ships.FirstOrDefault(ship => ship.Class == ShipClass.Cutter && !before.Contains(ship.Id) && ship.Owner == 0);
+            }
+            Assert.That(built, Is.Not.Null);
+            Assert.That(battle.LaunchesInProgress, Is.EqualTo(1));
+
+            yield return null;
+            var view = battle.Views[built.Id];
+            var slip = battle.Yards[home.Id].Port;
+            var onRamp = new Vector2(view.transform.position.x - slip.RestPosition.x, view.transform.position.z - slip.RestPosition.z).magnitude;
+            Assert.That(onRamp, Is.LessThan(1.5f), "It starts on the cradle of its slipway, not out on the water.");
+
+            battle.Paused = false;
+            var waited = 0f;
+            while (battle.LaunchesCompleted == 0 && waited < 30f)
+            {
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            battle.Paused = true;
+            yield return null;
+            Assert.That(battle.LaunchesCompleted, Is.EqualTo(1), "The launch ends.");
+            var placed = new Vector2(view.transform.position.x - (float)built.X, view.transform.position.z - (float)built.Y).magnitude;
+            Assert.That(placed, Is.LessThan(2f), "Afloat, it is where the game has it.");
+        }
+
+        [UnityTest]
+        public IEnumerator Oars_AreDrawnInOnTheSideWhereAnotherHullLies()
+        {
+            yield return null;
+            // Open water between the home waters and the western rocky coast.
+            var a = battle.World.SpawnShip(0, ShipClass.Ram, -260, 150);
+            var b = battle.World.SpawnShip(0, ShipClass.Ram, -260, 150 + 5.6 + World.HullSpacing + 1);
+            a.Heading = b.Heading = 0;
+            a.Speed = b.Speed = a.Definition.Speed;
+            battle.RunTicks(1);
+            a.X = b.X = -260;
+            a.Y = 150;
+            b.Y = 150 + 5.6 + World.HullSpacing + 1;
+            a.Speed = b.Speed = a.Definition.Speed;
+            battle.Paused = false;
+            var watched = 0f;
+            while (watched < 2.5f)
+            {
+                a.Speed = b.Speed = a.Definition.Speed;
+                watched += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            battle.Paused = true;
+
+            // b lies on a's left (port) side in the game's plane; a's oars there are in, its other side rows.
+            var view = battle.Views[a.Id];
+            Assert.That(view.OarsShipped(-1), Is.GreaterThan(0.9f), "Oars toward the other hull are drawn in.");
+            Assert.That(view.OarsShipped(1), Is.LessThan(0.1f), "The free side keeps rowing.");
+        }
+
         [UnityTest]
         public IEnumerator Views_MatchSimulationShips()
         {

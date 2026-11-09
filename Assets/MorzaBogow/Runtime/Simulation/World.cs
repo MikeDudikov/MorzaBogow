@@ -328,7 +328,9 @@ namespace MorzaBogow.Simulation
 
                 var across = -rx * dy + ry * dx;
                 var otherHalf = Math.Max(0, otherDefinition.Radius - otherDefinition.Beam / 2);
-                var need = (definition.Beam + otherDefinition.Beam) / 2 + Math.Abs(Math.Sin(other.Heading - desired)) * otherHalf + 2;
+                // Room for the oars: one's own always while rowing, the other's while it is under way too.
+                var oars = Rules.OarReach(definition) + (Math.Abs(other.Speed) > 0.5 ? Rules.OarReach(otherDefinition) : 0);
+                var need = (definition.Beam + otherDefinition.Beam) / 2 + Math.Abs(Math.Sin(other.Heading - desired)) * otherHalf + oars + 1;
                 if (Math.Abs(across) >= need) continue;
                 closest = along;
                 // Pass with the other hull on the side it already lies, clearing its nearer end, so a ship close

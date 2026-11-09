@@ -4,7 +4,8 @@ namespace MorzaBogow.Simulation
 {
     public enum OrderKind { Idle, Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Salvage, Repair, Scrap, Transfer, Expedition, Escort }
     public enum TransportPhase { ToSource, WaitSourceBerth, Loading, ToDestination, WaitDestinationBerth, Unloading, Building }
-    public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked }
+    /// <summary>Landing: the crew goes ashore before work starts. Embarking: the crew is back aboard before the cutter casts off.</summary>
+    public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked, Landing, Embarking }
     public enum RamPhase { Approach, Recoil, Cooldown }
 
     public enum IslandKind { Coast, ResourceSite, Settlement }
@@ -127,6 +128,9 @@ namespace MorzaBogow.Simulation
 
         public double RepairWoodRemainder, RepairSilverRemainder;
         public int ScrapTicks;
+
+        /// <summary>Ticks left while the shore party lands or comes back aboard at a work point.</summary>
+        public int CrewTicks;
         public bool Scrapped;
 
         public RamPhase RamState;
