@@ -221,7 +221,15 @@ STATUS = {
     "prop.pithos": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
     "prop.anchor": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview "
                    "(an admiralty anchor) rejected",
-    "site.wood": "in progress: fir log stacks from the pipeline at the timber yards (AegeanArt), shrinking layer by layer with the stock",
+    "site.wood": "in progress: fir log stacks, Aleppo pines and columnar cypresses from the pipeline at the timber yards (AegeanArt); "
+                 "felled as before, no wind sway yet",
+    "site.silver": "in progress: 4th c. ore workshop (flat-washing platform, stand tank, channel, settling tanks), open cistern, "
+                   "mortars, schist rock behind the adit (R-LAURION-WORKSHOPS)",
+    "veg.pine.halepensis": "Meshy model in the timber yards (veg_pinus_halepensis_a); coast groves still the old meshes",
+    "veg.cypress.columnar": "Meshy model in the timber yards (veg_cupressus_sempervirens); coast groves still the old meshes",
+    "building.ruin": "collapse into the ruin when a settlement falls in sight: sinking walls, the roof falling in, dust, flying tiles",
+    "fx.building-destruction": "done: walls sink and lean, the roof falls in, two clouds of dust, tiles thrown, the ruin shows "
+                               "through the dust (2.6 s of game time; PortMasonryTests)",
     "materials.masonry": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources",
 }
 for _entry in ENTRIES:

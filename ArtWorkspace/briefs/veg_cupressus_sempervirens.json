@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "veg_cupressus_sempervirens",
+  "name": "Cyprys wiecznie zielony (kolumnowy)",
+  "category": "vegetation",
+  "description": "A Mediterranean cypress (Cupressus sempervirens) about 14 m tall with a narrow, dense columnar crown and a pointed top: the planted form of sanctuaries and gardens; beside the pines of the timber yards by decision of the game.",
+  "dimensions": { "height": 14.0 },
+  "generation": { "provider": "source", "model": "../meshy/veg_cupressus_sempervirens/veg_cupressus_sempervirens.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/veg_cupressus_sempervirens/veg_cupressus_sempervirens_textures/base_color.png",
+    "normal": "../meshy/veg_cupressus_sempervirens/veg_cupressus_sempervirens_textures/normal.png",
+    "metallic": "../meshy/veg_cupressus_sempervirens/veg_cupressus_sempervirens_textures/metallic.png",
+    "roughness": "../meshy/veg_cupressus_sempervirens/veg_cupressus_sempervirens_textures/roughness.png" } },
+  "lods": 3
+}

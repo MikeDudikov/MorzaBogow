@@ -70,6 +70,46 @@ def decimate(obj, ratio: float):
     bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
+def drop_small_parts(obj, target: int):
+    """Removes the smallest loose parts (by area) until the mesh has at most target triangles, keeping the largest.
+
+    Collapsing edges stalls on a mesh of many small closed parts (the needle tufts of a tree's crown): each keeps a few
+    faces. A farther level of detail then drops the smallest of them, so it is lighter where the parts would not show.
+    """
+    import bmesh
+    mesh = bmesh.new()
+    mesh.from_mesh(obj.data)
+    mesh.faces.ensure_lookup_table()
+    seen = set()
+    parts = []
+    for face in mesh.faces:
+        if face.index in seen:
+            continue
+        seen.add(face.index)
+        stack, part = [face], []
+        while stack:
+            current = stack.pop()
+            part.append(current)
+            for edge in current.edges:
+                for other in edge.link_faces:
+                    if other.index not in seen:
+                        seen.add(other.index)
+                        stack.append(other)
+        parts.append(part)
+    parts.sort(key=lambda part: sum(f.calc_area() for f in part))
+    total = sum(len(f.verts) - 2 for f in mesh.faces)
+    doomed = []
+    for part in parts[:-1]:
+        if total <= target:
+            break
+        doomed.extend(part)
+        total -= sum(len(f.verts) - 2 for f in part)
+    if doomed:
+        bmesh.ops.delete(mesh, geom=doomed, context="FACES")
+    mesh.to_mesh(obj.data)
+    mesh.free()
+
+
 def main():
     p = params()
     import_model(p["source"])
@@ -153,6 +193,11 @@ def main():
             copy.name = f"{stem}_LOD{level}"
             scene.collection.objects.link(copy)
             decimate(copy, ratio)
+            # Vegetation: each level lighter than the one before; where collapsing stalls on the tufts, the smallest go.
+            # Never on other models: a ship's oars and ropes must stay at every level.
+            target = int(triangles(obj) * ratio)
+            if p["category"] == "vegetation" and (triangles(copy) >= triangles(lods[-1]) * 0.9 or triangles(copy) > target * 1.5):
+                drop_small_parts(copy, min(target, int(triangles(lods[-1]) * 0.6)))
             lods.append(copy)
 
     out = p["out"].rstrip("/\\")

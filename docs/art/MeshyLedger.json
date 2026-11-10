@@ -185,7 +185,7 @@
    "meshyTask": "01a1c693-e018-7776-9e38-536fd3c76d3c",
    "via": "Meshy MCP",
    "credits": 5,
-   "result": "pending review"
+   "result": "kept: leaning trunk, open crown of needle tufts; refined"
   },
   {
    "date": "2026-11-10",
@@ -194,7 +194,25 @@
    "meshyTask": "01a1c693-f5ca-76f6-b907-88aa2b82290b",
    "via": "Meshy MCP",
    "credits": 5,
-   "result": "pending review"
+   "result": "kept: narrow columnar crown, pointed top; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "veg_pinus_halepensis_a",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c695-d950-76a8-afc7-051a8e7078a8",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/veg_pinus_halepensis_a (LOD 2449/932/293 after the vegetation LOD fallback); timber yards (AegeanArt); needles a little yellow"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "veg_cupressus_sempervirens",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c696-a9d0-7476-8c2b-ea8637adc4eb",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/veg_cupressus_sempervirens; timber yards (AegeanArt)"
   }
  ]
 }

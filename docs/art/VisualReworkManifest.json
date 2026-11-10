@@ -22,7 +22,7 @@
    "animation",
    "destruction"
   ],
-  "spentCredits": 130,
+  "spentCredits": 160,
   "tasksByAsset": {
    "ship_ram_retexture": [
     "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
@@ -66,6 +66,14 @@
    ],
    "prop_anchor_wood_lead": [
     "01a1c66a-78cb-70dc-8eac-db79a59eebbb"
+   ],
+   "veg_pinus_halepensis_a": [
+    "01a1c693-e018-7776-9e38-536fd3c76d3c",
+    "01a1c695-d950-76a8-afc7-051a8e7078a8"
+   ],
+   "veg_cupressus_sempervirens": [
+    "01a1c693-f5ca-76f6-b907-88aa2b82290b",
+    "01a1c696-a9d0-7476-8c2b-ea8637adc4eb"
    ]
   }
  },
@@ -909,7 +917,7 @@
     "break-up into modules, falling tiles, dust; follows the game's state"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "done: walls sink and lean, the roof falls in, two clouds of dust, tiles thrown, the ruin shows through the dust (2.6 s of game time; PortMasonryTests)"
   },
   {
    "assetId": "wreck.cargo",
@@ -1208,7 +1216,7 @@
     "rock, ore, concentrate and metal told apart"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "in progress: 4th c. ore workshop (flat-washing platform, stand tank, channel, settling tanks), open cistern, mortars, schist rock behind the adit (R-LAURION-WORKSHOPS)"
   },
   {
    "assetId": "site.wood",
@@ -1237,7 +1245,7 @@
     "fir and pine logs, hewn beams, planks, end grain (Theophrastus HP 5.7)"
    ],
    "covers": [],
-   "status": "in progress: fir log stacks from the pipeline at the timber yards (AegeanArt), shrinking layer by layer with the stock"
+   "status": "in progress: fir log stacks, Aleppo pines and columnar cypresses from the pipeline at the timber yards (AegeanArt); felled as before, no wind sway yet"
   },
   {
    "assetId": "environment.coast",
@@ -1372,7 +1380,7 @@
     "map topology unchanged"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "Meshy model in the timber yards (veg_pinus_halepensis_a); coast groves still the old meshes"
   },
   {
    "assetId": "veg.pine.brutia",
@@ -1453,7 +1461,7 @@
     "map topology unchanged"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "Meshy model in the timber yards (veg_cupressus_sempervirens); coast groves still the old meshes"
   },
   {
    "assetId": "veg.quercus.coccifera",

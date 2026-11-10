@@ -368,6 +368,8 @@ Gra bierze gotowe prefaby potoku z jednego zasobu w Resources: `Assets/MorzaBogo
 - **Brzegi:** skały z zestawu dochodzą do głazów sceny w `BattleController.ScatterBoulders`. Scena bez własnych głazów (testowa) zostaje bez nich.
 - **Scalanie głazów:** `ModelOf` brał wszystkie poziomy LOD, więc każdy głaz z Poly Haven był rysowany czterokrotnie. Teraz bierze tylko najdokładniejszy poziom (`AegeanArt.FinestMeshes`).
 - **Składy drewna:** stosy jodłowych kłód z potoku (po trzy obok siebie i jeden na wierzchu w każdej z dwóch sągów) zamiast walców. Sągi maleją z zasobem warstwami, wierzchnie pierwsze. Bez zestawu zostają walce.
+- **Drzewa składów:** sosna alepska (`veg_pinus_halepensis_a`) i cyprys kolumnowy (`veg_cupressus_sempervirens`) z Meshy, tej samej wysokości co dawne bryły, przechylają się i padają przy ścince jak dotąd. Nie kołyszą się na wietrze (dawne też nie); kołysze się tylko gaj oliwny z generatora środowiska. Kępy przybrzeżne zostają przy `TreeModels`.
+- **Kopalnia srebra:** skały z zestawu przyciemnione do łupku zamiast sześcianów za sztolnią.
 - **Testy:** `AegeanArtTests` (EditMode): zestaw zgodny z prefabami potoku, scalanie tylko LOD0.
 
 ## Ograniczenia
@@ -400,6 +402,7 @@ Gra bierze gotowe prefaby potoku z jednego zasobu w Resources: `Assets/MorzaBogo
     Pithos i kotwica powstały w kodzie (`PortBuildings.AddStoreYard`). Surowe podglądy (bez tekstur, przed dopracowaniem) renderuje obok siebie Blender w trybie Workbench: `blender -b --factory-startup -P Tools/asset_pipeline/blender/preview_glb.py -- wynik.png a.glb b.glb …`.
   - **Mapy większe niż budżet** (Meshy daje 2048 px) Blender zmniejsza w kopii zadania do `textureSize` budżetu (`blender/resize_maps.py`, `core/images.py`). Repozytorium nie trzyma map, których asset nigdy nie użyje: amfora i skała razem 5 MB zamiast 25 MB.
   - **Budżet skały:** 3 renderery, bo każdy z 3 poziomów LOD to osobny renderer.
+  - **LOD roślinności:** korona z dziesiątków drobnych kęp igieł nie daje się zdziesiątkować (sosna utknęła na ok. 935 trójkątach w LOD1 i LOD2, walidator: „LOD2 nie upraszcza LOD1”). Dla kategorii `vegetation` `prepare.py` odrzuca wtedy najmniejsze rozłączne części (największa, pień, zostaje zawsze), aż poziom jest lżejszy od poprzedniego: sosna 2449/932/293. Inne kategorie bez zmian: wiosła i liny okrętów muszą zostać na każdym poziomie.
   - **Wydatki:** `docs/art/MeshyLedger.json`.
 - **ComfyUI** nie zostało uruchomione na żywo: brak serwera. Text-, Image-to-3D, szkielet i animacje Meshy też bez próby na żywo. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
 - **Kierunek dziobu** modelu z Meshy jest nieznany, gdy brief ma `forward: auto`. Unity bierze dłuższą oś poziomą z dodatnim zwrotem, a raport ostrzega o konieczności sprawdzenia podglądu.

@@ -18,6 +18,10 @@ namespace MorzaBogow.Presentation
         /// <summary>Stacks of logs for the timber yards.</summary>
         public GameObject[] TimberStacks = System.Array.Empty<GameObject>();
 
+        /// <summary>Aleppo pines and columnar cypresses for the timber yards, felled as the yard's trees are.</summary>
+        public GameObject[] Pines = System.Array.Empty<GameObject>();
+        public GameObject[] Cypresses = System.Array.Empty<GameObject>();
+
         static AegeanArt loaded;
         static bool looked;
 

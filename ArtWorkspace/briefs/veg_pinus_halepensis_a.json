@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "veg_pinus_halepensis_a",
+  "name": "Sosna alepska A",
+  "category": "vegetation",
+  "description": "A mature Aleppo pine (Pinus halepensis) of the dry Attic coast, about 12 m tall: a leaning, slightly crooked trunk with fissured grey-red bark and an open, irregular crown of needle tufts; the pine of the timber yards and hillsides (R-THEOPHRASTUS-HP5: merchant ships of peuke, pine; Cyprus builds with Aleppo pine).",
+  "dimensions": { "height": 12.0 },
+  "generation": { "provider": "source", "model": "../meshy/veg_pinus_halepensis_a/veg_pinus_halepensis_a.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/veg_pinus_halepensis_a/veg_pinus_halepensis_a_textures/base_color.png",
+    "normal": "../meshy/veg_pinus_halepensis_a/veg_pinus_halepensis_a_textures/normal.png",
+    "metallic": "../meshy/veg_pinus_halepensis_a/veg_pinus_halepensis_a_textures/metallic.png",
+    "roughness": "../meshy/veg_pinus_halepensis_a/veg_pinus_halepensis_a_textures/roughness.png" } },
+  "lods": 3
+}

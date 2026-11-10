@@ -133,14 +133,29 @@ namespace MorzaBogow.Presentation
                 tree.SetParent(model, false);
                 tree.localPosition = new Vector3(x, Ground(x, z) - 0.1f, z);
 
-                // Cypresses and stone pines; each a single mesh that leans and falls as one when felled.
+                // Cypresses and pines; each leans and falls as one when felled. The pipeline's Aleppo pines and cypresses
+                // where the art set has them (AegeanArt), as tall as the plain ones; the plain meshes otherwise.
                 var cypress = i % 3 != 1;
                 var shape = new GameObject("Shape").transform;
                 shape.SetParent(tree, false);
                 shape.localRotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f);
-                shape.localScale = Vector3.one * (TreeModels.LifeSize * 0.85f) * (cypress ? 0.75f + (float)random.NextDouble() * 0.2f : 0.55f + (float)random.NextDouble() * 0.15f);
-                shape.gameObject.AddComponent<MeshFilter>().sharedMesh = TreeModels.Get(cypress ? TreeKind.Cypress : TreeKind.StonePine, i);
-                shape.gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
+                var scale = TreeModels.LifeSize * 0.85f * (cypress ? 0.75f + (float)random.NextDouble() * 0.2f : 0.55f + (float)random.NextDouble() * 0.15f);
+                var drawn = YardTree(cypress, i);
+                if (drawn != null)
+                {
+                    var bounds = AegeanArt.FinestBounds(drawn);
+                    var height = (cypress ? 11f : 8.75f) * scale;
+                    var item = Object.Instantiate(drawn, shape, false);
+                    item.name = cypress ? "Cypress" : "Pine";
+                    item.transform.localScale = Vector3.one * (height / Mathf.Max(0.01f, bounds.size.y));
+                    item.transform.localPosition = Vector3.down * (bounds.min.y * item.transform.localScale.y);
+                }
+                else
+                {
+                    shape.localScale = Vector3.one * scale;
+                    shape.gameObject.AddComponent<MeshFilter>().sharedMesh = TreeModels.Get(cypress ? TreeKind.Cypress : TreeKind.StonePine, i);
+                    shape.gameObject.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
+                }
                 trees.Add(tree);
                 treeFall.Add(0f);
                 treeRegrow.Add(0f);
@@ -411,6 +426,14 @@ namespace MorzaBogow.Presentation
                 var active = i < shown;
                 if (pile[i].activeSelf != active) pile[i].SetActive(active);
             }
+        }
+
+        /// <summary>The art set's tree for a yard: its cypresses or pines in turn by number; none without them.</summary>
+        static GameObject YardTree(bool cypress, int number)
+        {
+            var art = AegeanArt.Current;
+            var kinds = art == null ? null : cypress ? art.Cypresses : art.Pines;
+            return kinds != null && kinds.Length > 0 ? kinds[number % kinds.Length] : null;
         }
 
         /// <summary>

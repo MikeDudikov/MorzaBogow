@@ -17,3 +17,7 @@ MonoBehaviour:
   - {fileID: 4443414618749441720, guid: a605745278134894b98deea14d7d0cf4, type: 3}
   TimberStacks:
   - {fileID: 3256698879134898687, guid: 3b9632a15f69ca047944398f815a2bdd, type: 3}
+  Pines:
+  - {fileID: 7495711061767569529, guid: cc062ceaca8eb004281a72aefdd4fb1a, type: 3}
+  Cypresses:
+  - {fileID: 6032480844290076145, guid: 8870f20177dc75849938374c9ea692fe, type: 3}

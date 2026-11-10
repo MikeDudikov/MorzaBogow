@@ -61,6 +61,8 @@ namespace MorzaBogow.Tests
             Assert.That(logs.Length, Is.GreaterThanOrEqualTo(1));
             Assert.That(set.Rocks, Is.EqualTo(rocks), "the set is up to date with the pipeline's finished rocks (AegeanArtSet.Refresh)");
             Assert.That(set.TimberStacks, Is.EqualTo(logs));
+            Assert.That(set.Pines, Is.EqualTo(AegeanArtSet.Prefabs("veg_pinus_")), "the timber yards' pines");
+            Assert.That(set.Cypresses, Is.EqualTo(AegeanArtSet.Prefabs("veg_cupressus_")), "the timber yards' cypresses");
             var paths = rocks.Select(AssetDatabase.GetAssetPath).ToList();
             Assert.That(paths, Is.Ordered.Using((System.Collections.Generic.IComparer<string>)System.StringComparer.Ordinal), "in path order, so the same land gets the same rocks");
             foreach (var prefab in rocks.Concat(logs))
