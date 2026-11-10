@@ -42,6 +42,47 @@ namespace MorzaBogow.Editor
             if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
         }
 
+        /// <summary>
+        /// The resource sites as the battle builds them (ResourceSiteVisual): the silver mine with its washery and the
+        /// timber yard with its log stacks, and the School caught halfway through its fall.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.PreviewSites
+        /// </summary>
+        public static void PreviewSites()
+        {
+            var folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "artifacts-log", "buildings");
+            var failed = 0;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var materials = Materials();
+                foreach (var (type, id) in new[] { (ResourceType.Silver, 11), (ResourceType.Wood, 12) })
+                {
+                    var node = new ResourceNode { Id = id, Type = type, Stock = 1000, Capacity = 1000 };
+                    var site = ResourceSiteVisual.Create(node, materials);
+                    failed += Shot(site.gameObject, Path.Combine(folder, $"site-{type.ToString().ToLowerInvariant()}.png"), 38f, 20f, false) ? 0 : 1;
+                }
+                // The School halfway through its fall: sunk and leaning, the roof down, dust and tiles in the air.
+                var settlement = new Settlement { Id = 3, Owner = 0, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true };
+                var land = new GameObject("Port preview");
+                var buildings = new PortBuildings(land.transform, materials, settlement, 1f, null, null);
+                buildings.Update(settlement, false, 0f);
+                buildings.Update(settlement, true, 0f);
+                buildings.Update(settlement, true, PortBuildings.CollapseSeconds * 0.55f);
+                for (var i = buildings.Root.childCount - 1; i >= 0; i--)
+                {
+                    var child = buildings.Root.GetChild(i);
+                    if (!child.name.StartsWith("SageSchool") && !child.name.StartsWith("Collapse") && !child.name.StartsWith("Falling")) Object.DestroyImmediate(child.gameObject);
+                }
+                failed += Shot(land, Path.Combine(folder, "school-collapse.png"), 18f, -125f, false) ? 0 : 1;
+            }
+            catch (System.Exception error)
+            {
+                Debug.LogError($"[Buildings] {error}");
+                failed++;
+            }
+            if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
+        }
+
         /// <summary>The battle scene's materials for buildings: the palette of the previews and the shore's limestone, read only.</summary>
         static PlaceholderMaterials Materials()
         {
@@ -52,6 +93,15 @@ namespace MorzaBogow.Editor
             if (timber != null) materials.Timber = timber;
             materials.Flash = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Placeholders/Placeholder_Flash.mat");
             materials.Neutral = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Placeholders/Placeholder_Neutral.mat");
+            Material Placeholder(string name) => AssetDatabase.LoadAssetAtPath<Material>($"Assets/Art/Placeholders/Placeholder_{name}.mat");
+            materials.Rock = Placeholder("Rock");
+            materials.MineDark = Placeholder("MineDark");
+            materials.SilverOre = Placeholder("SilverOre");
+            materials.Foliage = Placeholder("Foliage");
+            materials.OliveLeaves = Placeholder("OliveLeaves");
+            materials.Sand = Placeholder("Sand");
+            // Read only: the collapse's dust is a copy of the spray material, never the asset itself.
+            materials.Spray = Placeholder("Spray");
             return materials;
         }
 

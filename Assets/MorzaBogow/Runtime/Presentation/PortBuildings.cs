@@ -1132,9 +1132,12 @@ namespace MorzaBogow.Presentation
                     piece.Root.localPosition = fall.Position[i] + Vector3.down * (p * p * piece.H * 0.9f);
                     piece.Root.localRotation = Quaternion.AngleAxis(p * 12f, fall.Lean[i]) * fall.Rotation[i];
                     if (piece.Roof == null) continue;
+                    // It tips about its own middle, not the building's foot, and drops in between the walls.
                     var q = Mathf.Clamp01(p * 1.7f);
-                    piece.Roof.localPosition = Vector3.down * (q * q * piece.H * 0.55f);
-                    piece.Roof.localRotation = Quaternion.AngleAxis(q * 18f, fall.Lean[i]);
+                    var tip = Quaternion.AngleAxis(q * 18f, fall.Lean[i]);
+                    var middle = Vector3.up * (piece.H * 0.85f);
+                    piece.Roof.localRotation = tip;
+                    piece.Roof.localPosition = middle - tip * middle + Vector3.down * (q * q * piece.H * 0.55f);
                 }
                 if (!fall.Struck && p >= 0.45f)
                 {

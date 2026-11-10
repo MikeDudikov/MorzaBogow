@@ -177,6 +177,24 @@
    "via": "Meshy MCP",
    "credits": 10,
    "result": "kept: mid-grey bark, pale cut ends, metallic map black (job prop_timber_fir_logs-20261110-173757-57a9); the timber yards' log stacks (AegeanArt)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "veg_pinus_halepensis_a",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c693-e018-7776-9e38-536fd3c76d3c",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "pending review"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "veg_cupressus_sempervirens",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c693-f5ca-76f6-b907-88aa2b82290b",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "pending review"
   }
  ]
 }

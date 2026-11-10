@@ -178,6 +178,10 @@ namespace MorzaBogow.Presentation
         {
             // Bare pale limestone, as on the Aegean mining islets; the dark ore-bearing blocks stand out on it.
             BuildIslet(model, materials?.ShoreRock ?? materials?.Rock);
+            // The ore-bearing rock behind the mine: the pipeline's rocks darkened to schist where the art set has them
+            // (AegeanArt), plain dark cubes otherwise; the same draws either way, so all that follows is placed alike.
+            var art = AegeanArt.Current;
+            var rocks = art != null && art.Rocks != null && art.Rocks.Length > 0 ? art.Rocks : null;
             for (var i = 0; i < 14; i++)
             {
                 var size = 3.5f + (float)random.NextDouble() * 5f;
@@ -185,7 +189,8 @@ namespace MorzaBogow.Presentation
                 var z = 9f + (float)random.NextDouble() * 4f;
                 var position = new Vector3(x, Ground(x, z) + size * 0.3f, z);
                 var rotation = new Vector3((float)random.NextDouble() * 70f, (float)random.NextDouble() * 180f, (float)random.NextDouble() * 70f);
-                Part(model, PrimitiveType.Cube, materials?.Rock, position, new Vector3(size, size * 1.3f, size * 0.85f), rotation);
+                if (rocks != null) SchistRock(model, rocks[i % rocks.Length], new Vector3(x, Ground(x, z), z), size, rotation.y * 2f, rotation.x * 0.15f);
+                else Part(model, PrimitiveType.Cube, materials?.Rock, position, new Vector3(size, size * 1.3f, size * 0.85f), rotation);
             }
             Jetty(model, materials);
             stackSpot = new Vector3(0f, Ground(0f, 0.6f), -1.5f);
@@ -238,7 +243,98 @@ namespace MorzaBogow.Presentation
             }
             if (!Landscape.Vegetation.PlainOlives) grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
             else PlainOlives(model, materials);
+            BuildWashery(model, materials);
             BuildChests(model, materials);
+        }
+
+        /// <summary>
+        /// The ore workshop of the 4th century BC beside the quay (R-LAURION-WORKSHOPS): ground ore washed with recycled
+        /// water on a flat-washing platform of hydraulic plaster below its stand tank, the water running off along a
+        /// channel into settling tanks at both ends; a large open cistern up the slope, and stone mortars for crushing by
+        /// the heap. A picture only, built once: the deposit's stock shows in the heap and the chests.
+        /// </summary>
+        void BuildWashery(Transform model, PlaceholderMaterials materials)
+        {
+            var b = new GreekShips.MeshBuilder(null) { Level = true };
+            const float cx = 7.4f, cz = 0.4f, w = 6f, d = 3.6f;
+            var g = Ground(cx, cz);
+            // The platform on its footing, and the washing table sloping gently toward the channel in front.
+            b.Box(GreekMaterial.Stone, new Vector3(cx, g - 0.6f, cz), new Vector3(w * 0.5f, 0.75f, d * 0.5f), Quaternion.identity);
+            b.Box(GreekMaterial.Paint, new Vector3(cx, g + 0.2f, cz + 0.1f), new Vector3(w * 0.5f - 0.3f, 0.06f, d * 0.5f - 0.65f), Quaternion.Euler(-3f, 0f, 0f));
+            // The stand tank along the back, its water, and the holes from which it runs onto the table.
+            var tank = cz + d * 0.5f - 0.35f;
+            b.Box(GreekMaterial.Stone, new Vector3(cx, g + 0.6f, tank + 0.27f), new Vector3(w * 0.5f, 0.5f, 0.08f), Quaternion.identity);
+            b.Box(GreekMaterial.Paint, new Vector3(cx, g + 0.5f, tank - 0.27f), new Vector3(w * 0.5f, 0.4f, 0.08f), Quaternion.identity);
+            foreach (var side in new[] { -1f, 1f })
+                b.Box(GreekMaterial.Stone, new Vector3(cx + side * (w * 0.5f - 0.08f), g + 0.6f, tank), new Vector3(0.08f, 0.5f, 0.35f), Quaternion.identity);
+            b.Box(GreekMaterial.Azure, new Vector3(cx, g + 0.86f, tank), new Vector3(w * 0.5f - 0.16f, 0.01f, 0.19f), Quaternion.identity);
+            for (var i = 0; i < 5; i++)
+                b.Box(GreekMaterial.Pitch, new Vector3(cx - w * 0.4f + i * w * 0.2f, g + 0.24f, tank - 0.36f), new Vector3(0.06f, 0.05f, 0.02f), Quaternion.identity);
+            // The channel along the front, and a settling tank at either end of it.
+            var front = cz - d * 0.5f + 0.25f;
+            b.Box(GreekMaterial.Paint, new Vector3(cx, g + 0.12f, front - 0.17f), new Vector3(w * 0.5f, 0.12f, 0.06f), Quaternion.identity);
+            b.Box(GreekMaterial.Azure, new Vector3(cx, g + 0.09f, front), new Vector3(w * 0.5f - 0.1f, 0.01f, 0.1f), Quaternion.identity);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var bx = cx + side * (w * 0.5f + 0.55f);
+                var basin = new Vector3(bx, Ground(bx, front + 0.3f), front + 0.3f);
+                foreach (var end in new[] { -1f, 1f })
+                {
+                    b.Box(GreekMaterial.Stone, basin + new Vector3(0f, 0.2f, end * 0.45f), new Vector3(0.5f, 0.3f, 0.06f), Quaternion.identity);
+                    b.Box(GreekMaterial.Stone, basin + new Vector3(end * 0.45f, 0.2f, 0f), new Vector3(0.06f, 0.3f, 0.4f), Quaternion.identity);
+                }
+                b.Box(GreekMaterial.Azure, basin + new Vector3(0f, 0.38f, 0f), new Vector3(0.4f, 0.01f, 0.4f), Quaternion.identity);
+            }
+            // The open cistern up the slope: a round wall, and its water near the brim.
+            var cistern = new Vector3(10.2f, Ground(10.2f, 4.6f), 4.6f);
+            b.Lathe(GreekMaterial.Stone, new[] { (-0.6f, 1.9f), (0.5f, 1.9f), (0.56f, 1.72f) }, 24, cistern);
+            b.Lathe(GreekMaterial.Azure, new[] { (0.42f, 1.72f), (0.44f, 0f) }, 24, cistern);
+            // Stone mortars for crushing, by the heap of sorted ore.
+            foreach (var (x, z) in new[] { (5.3f, 4.3f), (6.2f, 3.4f) })
+                b.Lathe(GreekMaterial.Stone, new[] { (-0.2f, 0.42f), (0.45f, 0.4f), (0.5f, 0.3f), (0.53f, 0f) }, 12, new Vector3(x, Ground(x, z), z));
+
+            var built = b.Build(GreekMaterial.Stone, GreekMaterial.Paint, GreekMaterial.Azure, GreekMaterial.Pitch);
+            var list = new Material[built.Slots.Length];
+            for (var i = 0; i < list.Length; i++)
+                list[i] = built.Slots[i] == GreekMaterial.Azure ? StandingWater(materials) : PortBuildings.MaterialFor(built.Slots[i], materials);
+            var washery = GreekShips.Attach(model, "Washery", built, list);
+            washery.gameObject.AddComponent<OwnedMeshes>().Meshes = new List<Mesh> { built.Mesh };
+        }
+
+        static Material standingWater;
+
+        /// <summary>Still water in the tanks and the cistern: dark and glossy, a copy of the scene's neutral material.</summary>
+        static Material StandingWater(PlaceholderMaterials materials)
+        {
+            if (standingWater != null) return standingWater;
+            var source = materials?.Neutral;
+            if (source == null) return null;
+            standingWater = new Material(source) { name = $"{source.name} (standing water)" };
+            if (standingWater.HasProperty("_BaseColor")) standingWater.SetColor("_BaseColor", new Color(0.13f, 0.2f, 0.22f));
+            if (standingWater.HasProperty("_Smoothness")) standingWater.SetFloat("_Smoothness", 0.92f);
+            return standingWater;
+        }
+
+        /// <summary>
+        /// A block of the ore-bearing rock from the pipeline's rocks (AegeanArt), darkened to the schist of Laurion and
+        /// set into the slope, in place of a plain cube of the same size and turn.
+        /// </summary>
+        static void SchistRock(Transform model, GameObject prefab, Vector3 foot, float size, float yaw, float tilt)
+        {
+            var bounds = AegeanArt.FinestBounds(prefab);
+            var width = Mathf.Max(0.01f, Mathf.Max(bounds.size.x, bounds.size.z));
+            var scale = size * 1.25f / width;
+            var item = Object.Instantiate(prefab, model, false);
+            item.name = "Ore rock";
+            item.transform.localScale = Vector3.one * scale;
+            item.transform.localRotation = Quaternion.Euler(tilt, yaw, tilt * 0.5f);
+            item.transform.localPosition = foot - Vector3.up * (size * 0.15f + bounds.min.y * scale);
+            foreach (var renderer in item.GetComponentsInChildren<Renderer>())
+            {
+                var shared = renderer.sharedMaterials;
+                for (var i = 0; i < shared.Length; i++) shared[i] = Landscape.LandscapeArt.Schist(shared[i]);
+                renderer.sharedMaterials = shared;
+            }
         }
 
         /// <summary>-morzaPlainOlives: the old one-mesh olives on the same flanks, to measure what the new trees cost.</summary>
