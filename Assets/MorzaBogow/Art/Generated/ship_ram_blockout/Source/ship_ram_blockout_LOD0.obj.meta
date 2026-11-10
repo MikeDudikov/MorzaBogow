@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: bronze
+    second: {fileID: 2100000, guid: 6725031122296e54d8618a2d3da17874, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: ochre
     second: {fileID: 2100000, guid: 8e6d2060b1a381c4fa3e8288c0f6aa64, type: 2}
   - first:

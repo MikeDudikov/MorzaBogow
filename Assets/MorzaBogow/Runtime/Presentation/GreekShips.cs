@@ -19,11 +19,12 @@ namespace MorzaBogow.Presentation
     }
 
     /// <summary>
-    /// The proportions of one class's ship after a type of the Aegean in the 12th century BC, the late Bronze Age of the
-    /// Mycenaeans and the war at Troy: a rowing boat, a thirty-oared galley with a spur at the forefoot, a galley with
-    /// raised platforms for archers, a fifty-oared galley with a latticed fighting rail, a round merchantman like the
-    /// Uluburun ship, a galley with great bows on its bow castle and a heavy galley with castles fore and aft. Length,
-    /// beam and draft come from the simulation's catalogue; everything else only shapes the picture.
+    /// The proportions of one class's ship after a Greek type of the 4th century BC: a rowing boat, a thirty-oared galley
+    /// (triakontoros) with a bronze ram, a galley with raised decks for archers, a broad decked heavy galley for boarding
+    /// (drawn after the fours and fives, shorter than they were), a round merchantman like the Kyrenia ship, a galley with
+    /// a bolt-shooter and a heavy galley with stone-throwers on castles fore and aft (ship-borne engines are known from the
+    /// siege of Tyre, 332 BC). Length, beam and draft come from the simulation's catalogue; everything else only shapes the
+    /// picture.
     /// </summary>
     public sealed class GreekShipForm
     {
@@ -45,7 +46,7 @@ namespace MorzaBogow.Presentation
         public float Lattice;
         /// <summary>A merchantman's wickerwork fence along the sides, its height; 0 for none.</summary>
         public float Fence;
-        public bool CrowsNest, Cargo, BirdAtStern;
+        public bool CrowsNest, Cargo;
         /// <summary>A wooden spur at the forefoot (the class can ram); its length.</summary>
         public bool Ram;
         public float RamLength;
@@ -109,13 +110,14 @@ namespace MorzaBogow.Presentation
     }
 
     /// <summary>
-    /// Aegean ships of the 12th century BC for every class, built from simple geometry into a few meshes: a pitch-black
-    /// hull ("black ships") with a red ochre wale and bow ("red-cheeked") and a white zigzag along it, a tall stem post
-    /// crowned with a bird's head, a stern post curling up and inboard, a wooden spur at the forefoot of the galleys
-    /// that ram, one bank of oars, a steering oar on each quarter, raised platforms fore and aft, a single mast with a
-    /// crow's nest, a yard and a loose-footed brailed square sail, and what marks each type (latticed rail, archers'
-    /// platforms, castles, a wickerwork fence with jars and oxhide ingots). Deterministic and cached; presentation only.
-    /// The asset pipeline exports the same meshes, so its models match the game.
+    /// Greek ships of the 4th century BC for every class (the project's anchor since 2026-11-10), built from simple geometry
+    /// into a few meshes: a dark pitched hull with a painted wale band, painted eyes on the bow, a cast bronze ram with
+    /// three blades at the waterline of the galleys that ram, a stem post curling back into a volute and a stern post
+    /// crowned by the aphlaston, one bank of oars, a steering oar on each quarter, raised decks fore and aft, a single mast
+    /// with a yard and a loose-footed brailed square sail, and what marks each type (latticed rail, archers' platforms,
+    /// castles, the merchantman's fence and cargo). The classes keep the game's dimensions, so the larger types are drawn
+    /// shorter than their historical models (docs/art/HistoricalConstraints.md). Deterministic and cached; presentation
+    /// only. The asset pipeline exports the same meshes, so its models match the game.
     /// </summary>
     public static class GreekShips
     {
@@ -181,7 +183,7 @@ namespace MorzaBogow.Presentation
                     break;
                 case ShipClass.Boarder:
                     Set(form, "pentekontoros", 0.86f, 1.15f + 0.11f * b, 0.1f, 9, 0.76f, 0.48f, 0.42f, 0.42f, 0.28f);
-                    form.Platforms = 0.5f; form.Lattice = 1.0f; form.CrowsNest = true; form.BirdAtStern = true; form.SternRise = 1.0f; form.BowRise = 0.4f;
+                    form.Platforms = 0.5f; form.Lattice = 1.0f; form.CrowsNest = true; form.SternRise = 1.0f; form.BowRise = 0.4f;
                     break;
                 case ShipClass.Merchant:
                     Set(form, "statek kupiecki", 0.94f, 1.3f + 0.13f * b, 0.4f, 2, 0.5f, 0.55f, 0.5f, 0.55f, 0.36f);
@@ -193,7 +195,7 @@ namespace MorzaBogow.Presentation
                     break;
                 default: // Bomber and any later heavy class
                     Set(form, "galera z kasztelami", 0.88f, 1.25f + 0.12f * b, 0.1f, 8, 0.8f, 0.5f, 0.4f, 0.4f, 0.26f);
-                    form.Castles = true; form.Platforms = 1.8f; form.CrowsNest = true; form.BirdAtStern = true; form.SternRise = 0.9f; form.BowRise = 0.35f;
+                    form.Castles = true; form.Platforms = 1.8f; form.CrowsNest = true; form.SternRise = 0.9f; form.BowRise = 0.35f;
                     break;
             }
             form.Banks = 1;
@@ -217,7 +219,7 @@ namespace MorzaBogow.Presentation
         }
 
         // Hull lines -----------------------------------------------------------------------------------------------
-        /// <summary>Where the hull ends at the bow: before the spur's tip, or before the stem post and its bird's head, so the
+        /// <summary>Where the hull ends at the bow: before the spur's tip, or before the stem post's head, so the
         /// whole ship is exactly as long as the simulation's hull.</summary>
         static float BowEnd(GreekShipForm f) => f.Length * 0.5f - (f.Ram ? f.RamLength : StemReach(f));
 
@@ -298,8 +300,8 @@ namespace MorzaBogow.Presentation
             if (f.Ram)
             {
                 var spur = new MeshBuilder(null);
-                BuildSpur(spur, f, detail);
-                parts.Ram = spur.Build(GreekMaterial.Pitch, GreekMaterial.Ochre);
+                BuildRam(spur, f, detail);
+                parts.Ram = spur.Build(GreekMaterial.Bronze);
             }
 
             var rig = new MeshBuilder(null);
@@ -448,7 +450,10 @@ namespace MorzaBogow.Presentation
             return made;
         }
 
-        /// <summary>The stern post curling up and inboard, as on the ships painted on Mycenaean kraters.</summary>
+        /// <summary>
+        /// The stern post curving up and forward over the stern, crowned on warships by the aphlaston: a fan of curved
+        /// timbers (4th century BC; interpretation of the classical form, docs/art/HistoricalConstraints.md).
+        /// </summary>
         static void BuildStern(MeshBuilder b, GreekShipForm f, int detail)
         {
             var top = new Vector3(0f, Sheer(f, 0f) - 0.15f, Z(f, 0f) + 0.1f);
@@ -457,47 +462,76 @@ namespace MorzaBogow.Presentation
             var path = new List<Vector3>();
             for (var j = 0; j <= steps; j++)
             {
-                var theta = Mathf.Deg2Rad * 170f * j / steps;
+                var theta = Mathf.Deg2Rad * 150f * j / steps;
                 var r = radius * (1f - 0.35f * j / steps);
                 path.Add(top + new Vector3(0f, r * Mathf.Sin(theta) + f.Freeboard * 0.25f * j / steps, r * (1f - Mathf.Cos(theta))));
             }
-            b.Ribbon(GreekMaterial.Pitch, path, 0.32f * Mathf.Max(0.6f, f.HullBeam / 6f), 0.16f, 0.45f);
-            if (f.BirdAtStern) BirdHead(b, path[path.Count - 1] + Vector3.up * 0.05f, -1f, f.Length * 0.012f + 0.12f, detail);
+            var width = 0.32f * Mathf.Max(0.6f, f.HullBeam / 6f);
+            b.Ribbon(GreekMaterial.Pitch, path, width, 0.16f, 0.6f);
+            if (f.Class == ShipClass.Merchant || detail >= 2) return;
+
+            // The aphlaston: thin curved slats fanning out from the post's crown, splayed a little to each side.
+            var crown = path[path.Count - 1];
+            var slats = detail == 0 ? 5 : 3;
+            var size = f.Length * 0.03f + 0.2f;
+            for (var k = 0; k < slats; k++)
+            {
+                var spread = (k - (slats - 1) * 0.5f) / Mathf.Max(1f, slats - 1f);
+                var slat = new List<Vector3>();
+                for (var j = 0; j <= 4; j++)
+                {
+                    var u = j / 4f;
+                    var angle = Mathf.Lerp(70f, 155f + spread * 25f, u) * Mathf.Deg2Rad;
+                    slat.Add(crown + new Vector3(spread * width * 0.9f * u, size * Mathf.Sin(angle) * u, size * (0.3f - Mathf.Cos(angle)) * u * 0.8f));
+                }
+                b.Ribbon(GreekMaterial.Pitch, slat, 0.06f, 0.05f, 0.5f);
+            }
         }
 
-        /// <summary>The tall stem post crowned with a bird's head looking out ahead.</summary>
+        /// <summary>
+        /// The stem post. On warships it rises over the ram and curls back at its head into a volute (akrostolion); on
+        /// the merchantman it is a plain post. Its reach ahead (StemReach) keeps the whole ship the simulation's length.
+        /// </summary>
         static void BuildStem(MeshBuilder b, GreekShipForm f, int detail)
         {
             var bow = new Vector3(0f, Sheer(f, 1f) - 0.1f, Z(f, 1f));
-            var rise = f.Freeboard * (f.Class == ShipClass.Merchant ? 0.55f : 0.95f);
+            var merchant = f.Class == ShipClass.Merchant;
+            var rise = f.Freeboard * (merchant ? 0.55f : 0.95f);
+            var reach = Mathf.Max(0.27f, StemReach(f) - 0.05f);
             var path = new List<Vector3>();
-            var steps = detail == 0 ? 6 : 3;
+            var steps = detail == 0 ? 8 : 4;
             for (var j = 0; j <= steps; j++)
             {
                 var u = j / (float)steps;
-                path.Add(bow + new Vector3(0f, rise * u, 0.15f + 0.12f * u * u));
+                // Up and out ahead, then (warships) back over the bow at the head.
+                var ahead = merchant ? 0.15f + 0.12f * u * u : 0.15f + (reach - 0.15f) * Mathf.Sin(u * Mathf.PI * 0.62f) / Mathf.Sin(Mathf.PI * 0.62f) - (u > 0.8f ? (u - 0.8f) * 1.6f : 0f);
+                path.Add(bow + new Vector3(0f, rise * u, ahead));
             }
-            b.Ribbon(GreekMaterial.Pitch, path, 0.26f, 0.18f, 0.75f);
-            if (f.Class != ShipClass.Merchant) BirdHead(b, path[path.Count - 1] + Vector3.up * 0.05f, 1f, f.Length * 0.014f + 0.14f, detail);
+            b.Ribbon(GreekMaterial.Pitch, path, 0.26f, 0.18f, merchant ? 0.75f : 0.55f);
+            if (!merchant && detail < 2)
+            {
+                var head = path[path.Count - 1];
+                foreach (var side in new[] { -1f, 1f })
+                    b.Ellipse(GreekMaterial.Ochre, head + new Vector3(side * 0.07f, -0.05f, 0f), Vector3.forward, Vector3.up, new Vector3(side, 0f, 0f), 0.12f, 0.12f, 8);
+            }
+            if (!merchant) BuildEyes(b, f, detail);
         }
 
-        /// <summary>A bird's head on a post: head, open beak, a small crest and a white eye with a dark pupil on each side.</summary>
-        static void BirdHead(MeshBuilder b, Vector3 neck, float facing, float size, int detail)
+        /// <summary>
+        /// The painted eyes (ophthalmoi) on each bow above the ram: a white almond with a dark pupil, as marble eye-plates
+        /// and vase paintings show on classical warships (docs/art/HistoricalConstraints.md).
+        /// </summary>
+        static void BuildEyes(MeshBuilder b, GreekShipForm f, int detail)
         {
-            var head = neck + new Vector3(0f, size * 1.3f, facing * size * 0.4f);
-            b.Box(GreekMaterial.Pitch, neck + new Vector3(0f, size * 0.6f, facing * size * 0.15f), new Vector3(size * 0.3f, size * 0.7f, size * 0.3f), Quaternion.Euler(facing * 15f, 0f, 0f));
-            b.Box(GreekMaterial.Pitch, head, new Vector3(size * 0.38f, size * 0.42f, size * 0.62f), Quaternion.identity);
-            var beak = head + new Vector3(0f, -size * 0.08f, facing * size * 0.95f);
-            b.Box(GreekMaterial.Ochre, beak, new Vector3(size * 0.16f, size * 0.12f, size * 0.42f), Quaternion.Euler(facing * 12f, 0f, 0f));
-            if (detail < 2)
+            if (detail >= 2) return;
+            const float s = 0.9f;
+            var size = 0.18f + f.Length * 0.008f;
+            foreach (var side in new[] { -1f, 1f })
             {
-                b.Box(GreekMaterial.Ochre, head + new Vector3(0f, size * 0.55f, -facing * size * 0.2f), new Vector3(size * 0.08f, size * 0.22f, size * 0.42f), Quaternion.Euler(-facing * 20f, 0f, 0f));
-                foreach (var side in new[] { -1f, 1f })
-                {
-                    var eye = head + new Vector3(side * size * 0.39f, size * 0.12f, facing * size * 0.25f);
-                    b.Ellipse(GreekMaterial.Paint, eye, Vector3.forward, Vector3.up, new Vector3(side, 0f, 0f), size * 0.16f, size * 0.12f, 8);
-                    b.Ellipse(GreekMaterial.Pitch, eye + new Vector3(side * 0.01f, 0f, 0f), Vector3.forward, Vector3.up, new Vector3(side, 0f, 0f), size * 0.07f, size * 0.07f, 6);
-                }
+                var centre = new Vector3(side * (HalfWidth(f, s) + 0.02f), Sheer(f, s) * 0.5f, Z(f, s));
+                var normal = new Vector3(side, 0f, -0.25f).normalized;
+                b.Ellipse(GreekMaterial.Paint, centre, Vector3.forward, Vector3.up, normal, size, size * 0.5f, 10);
+                b.Ellipse(GreekMaterial.Pitch, centre + normal * 0.01f + new Vector3(0f, 0f, size * 0.15f), Vector3.forward, Vector3.up, normal, size * 0.32f, size * 0.32f, 8);
             }
         }
 
@@ -662,30 +696,43 @@ namespace MorzaBogow.Presentation
 
         static readonly float[] CastleStations = { 0.115f, 0.885f };
 
-        /// <summary>A wooden spur at the forefoot, sheathed in pitch, with a red band: the galleys' cutwater used to ram.</summary>
-        static void BuildSpur(MeshBuilder b, GreekShipForm f, int detail)
+        /// <summary>
+        /// The cast bronze ram (embolon) over the forefoot at the waterline: a sleeve sheathing the timbers that tapers into
+        /// three horizontal blades and a vertical fin, as the classical rams recovered from the sea show (interpretation for
+        /// the 4th century BC, docs/art/HistoricalConstraints.md). Its tip is the hull's end, so the ship keeps the simulation's
+        /// length, and the view still bends it when the ram is damaged.
+        /// </summary>
+        static void BuildRam(MeshBuilder b, GreekShipForm f, int detail)
         {
             var heavy = f.Class == ShipClass.Boarder || f.Class == ShipClass.Bomber ? 1.25f : 1f;
             var baseZ = BowEnd(f) - 0.3f;
             var tipZ = f.Length * 0.5f;
             var y = -0.15f * f.Draft;
-            var halfW = 0.22f * heavy;
-            var halfH = 0.32f * heavy;
-            var body = new[]
-            {
-                new Vector3(-halfW, y - halfH, baseZ), new Vector3(halfW, y - halfH, baseZ), new Vector3(halfW, y + halfH, baseZ), new Vector3(-halfW, y + halfH, baseZ),
-            };
-            var tip = new Vector3(0f, y + halfH * 0.2f, tipZ);
-            var ids = new int[4];
-            for (var i = 0; i < 4; i++) ids[i] = b.Vertex(body[i], new Vector2(0.4f, 0.9f));
-            var t = b.Vertex(tip, new Vector2(0.45f, 0.95f));
+            var halfW = 0.24f * heavy;
+            var halfH = 0.34f * heavy;
+            var sleeveEnd = baseZ + (tipZ - baseZ) * 0.45f;
+
+            // The sleeve: a tapered box from the stem's foot to the blades' root.
+            var back = new[] { new Vector3(-halfW, y - halfH, baseZ), new Vector3(halfW, y - halfH, baseZ), new Vector3(halfW, y + halfH, baseZ), new Vector3(-halfW, y + halfH, baseZ) };
+            var front = new Vector3[4];
+            for (var i = 0; i < 4; i++) front[i] = new Vector3(back[i].x * 0.72f, y + (back[i].y - y) * 0.72f, sleeveEnd);
             for (var i = 0; i < 4; i++)
             {
-                var mid = (body[i] + body[(i + 1) % 4]) * 0.5f;
-                b.Triangle(GreekMaterial.Pitch, ids[i], ids[(i + 1) % 4], t, new Vector3(mid.x, mid.y - y, 0f));
+                var j = (i + 1) % 4;
+                var outward = (back[i] + back[j]) * 0.5f - new Vector3(0f, y, baseZ);
+                outward.z = 0f;
+                b.Quad(GreekMaterial.Bronze, b.Vertex(back[i], new Vector2(back[i].z, back[i].y)), b.Vertex(back[j], new Vector2(back[j].z, back[j].y)),
+                    b.Vertex(front[j], new Vector2(front[j].z, front[j].y)), b.Vertex(front[i], new Vector2(front[i].z, front[i].y)), outward);
             }
+            b.Quad(GreekMaterial.Bronze, b.Vertex(front[0], Vector2.zero), b.Vertex(front[1], Vector2.right), b.Vertex(front[2], Vector2.one), b.Vertex(front[3], Vector2.up), Vector3.forward);
+
+            // Three horizontal blades and, nearer, the vertical fin, running to the tip.
+            var bladeHalf = (tipZ - sleeveEnd) * 0.5f;
+            var bladeZ = sleeveEnd + bladeHalf;
+            for (var k = -1; k <= 1; k++)
+                b.Box(GreekMaterial.Bronze, new Vector3(0f, y + k * halfH * 0.6f, bladeZ), new Vector3(halfW * (k == 0 ? 0.95f : 0.8f), 0.035f * heavy, bladeHalf), Quaternion.identity);
             if (detail < 2)
-                b.Box(GreekMaterial.Ochre, new Vector3(0f, y + halfH + 0.02f, (baseZ + tipZ) * 0.5f - 0.2f), new Vector3(halfW * 0.6f, 0.03f, (tipZ - baseZ) * 0.3f), Quaternion.Euler(-4f, 0f, 0f));
+                b.Box(GreekMaterial.Bronze, new Vector3(0f, y, bladeZ), new Vector3(0.03f * heavy, halfH * 0.68f, bladeHalf), Quaternion.identity);
         }
 
         static void BuildRig(MeshBuilder b, GreekShipForm f, int detail, GreekShipParts parts)
