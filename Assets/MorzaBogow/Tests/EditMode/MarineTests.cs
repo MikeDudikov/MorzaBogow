@@ -851,6 +851,42 @@ namespace MorzaBogow.Tests
             Assert.That(Math.Abs(reaching.Side), Is.GreaterThan(Math.Abs(running.Side)), "A beam wind pushes her sideways.");
         }
 
+        [Test]
+        public void Sails_TheCrewShortensSailToKeepTheHeelWithinTheGuide()
+        {
+            foreach (var speed in new[] { 4.0, 10.0, 15.0, 20.0 })
+            {
+                var climate = Steady(speed);
+                var wind = new WindField(climate, 4, null).Sample(0, 0, false); // toward +X
+                foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
+                {
+                    var hull = HullForm.For(shipClass, 0, climate);
+                    var limit = SailForces.HeelLimit(hull);
+                    var gunwale = Math.Atan(hull.Freeboard / (hull.Beam / 2));
+                    Assert.That(limit, Is.EqualTo(Math.Min(16 * Math.PI / 180, 0.8 * gunwale)).Within(1e-12), "IMO's guide: 16° or 80% of the gunwale's angle.");
+                    // Beam, broad reach, before the wind.
+                    foreach (var heading in new[] { Math.PI / 2, Math.PI / 4, 0.0 })
+                    {
+                        var forces = SailForces.Compute(hull, heading, 0, 0, wind, climate.AirDensity);
+                        if (!forces.SailSet) continue;
+                        var heel = Math.Abs(Seakeeping.StaticHeel(hull, forces.HeelMoment));
+                        Assert.That(heel, Is.LessThanOrEqualTo(limit + 1e-9), $"{shipClass} at {speed} m/s: her sail never heels her past the guide.");
+                        Assert.That(forces.SailShare, Is.InRange(0.0, 1.0));
+                        if (speed <= 4) Assert.That(forces.SailShare, Is.EqualTo(1.0), $"{shipClass}: all sail set in a light wind.");
+                    }
+                }
+            }
+
+            // A cutter in a strong beam wind sails on with her sail shortened; the full sail would heel her past the guide.
+            var strong = Steady(15);
+            var cutter = HullForm.For(ShipClass.Cutter, 0, strong);
+            var sample = new WindField(strong, 4, null).Sample(0, 0, false);
+            var shortened = SailForces.Compute(cutter, Math.PI / 2, 0, 0, sample, strong.AirDensity);
+            Assert.That(shortened.SailSet, "She keeps some sail.");
+            Assert.That(shortened.SailShare, Is.InRange(0.05, 0.99), "…brailed up, not all of it.");
+            Assert.That(Math.Abs(Seakeeping.StaticHeel(cutter, shortened.HeelMoment)), Is.EqualTo(SailForces.HeelLimit(cutter)).Within(1e-6), "She heels to the guide and no further.");
+        }
+
         // The match: one clock, one owner of the ships, saved --------------------------------------------------------
 
         static World MarineMatch(ulong seed, bool movement, MarineClimate climate = null)

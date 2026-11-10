@@ -131,6 +131,7 @@
         "MorzaBogow.Tests.MarineTests.Seakeeping_ResponseDependsOnWavelengthAndHeading",
         "MorzaBogow.Tests.MarineTests.Seakeeping_MeanRollEqualsStaticHeel",
         "MorzaBogow.Tests.MarineTests.Planar_SailHelpsDownwindAndSlowsUpwind",
+        "MorzaBogow.Tests.MarineTests.Sails_TheCrewShortensSailToKeepTheHeelWithinTheGuide",
         "MorzaBogow.Tests.MarineTests.Marine_SameSeedSameSeaAndSaveContinuesIdentically",
         "MorzaBogow.Tests.MarineTests.Planar_SwitchOffLeavesMovementUnchanged",
         "MorzaBogow.Tests.MarineTests.Planar_WindChangesSpeedAndDriftWhenSwitchedOn",

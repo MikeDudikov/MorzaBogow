@@ -149,16 +149,89 @@ Zmierzone na modelu:
 - najgorszy tick 0,3–0,8 ms;
 - start z ustaleniem 300 s pogody: 0,7–1,2 s.
 
-**Jeszcze nie zrobione** (prezentacja, w toku):
-- `EnableMarine` przy starcie meczu;
-- deformacja HDRP z tych samych składowych (compute + `WaterDecal`) i maski pasm;
-- rozszerzenie `WeatherController`;
-- `SeakeepingDriver` zamiast sprężyn `HullMotion`;
-- piana brzegowa;
-- nakładka diagnostyczna;
-- pomiar GPU i czasu klatki w buildzie.
+**Prezentacja** (`Runtime/Presentation`; w toku weryfikacji w buildzie):
+- **Start meczu.** `World.EnableMarineForMatch()` losuje klimat z ziarna (`MarineClimate.ForMatch`): cisza 10%, bryza 20%, etezja umiarkowana 50%, silna 20%. Bez sztormu, bez użycia liczb losowych gry. Wczytana gra przynosi morze z zapisu.
+- **`SeaSurfaceRenderer`** (profile High i wyżej, gdzie HDRP rysuje decale wody):
+  - compute `Resources/SeaSurfaceHeights.compute` sumuje te same 144 składowe co symulacja do tekstury 512² (2 m na teksel) nad obszarem decali 1024 m wokół widoku;
+  - jeden `WaterDecal` w trybie tekstury (graf HDRP „Water Decal Sample”, materiał `Resources/SeaHeightsDecal.mat`, wariant `_TYPE_TEXTURE`) dodaje ją do wody;
+  - fazy liczone w podwójnej precyzji na CPU, ograniczenie 0,55·h/Hs z tekstury głębi, wygaszenie 32 m przy brzegu obszaru;
+  - pasmo duże HDRP wyłączone, średnie na ⅓ (tylko faktura), zmarszczki z wiatru meczu.
+- **Low i Medium** nie mają decali wody. Rysuje się tam pasmo HDRP z wiatrem i kierunkiem meczu: morze wygląda podobnie, ale grzbiety nie są tymi, na których kołyszą się kadłuby (jawne przybliżenie).
+- **`SeakeepingDriver`** zastępuje sprężyny `HullMotion`:
+  - model 3 stopni swobody z przechyłem i trymem od `SailForces` dla widocznych okrętów, raz na tick symulacji, pokazywany między dwoma tickami;
+  - stoi w pauzie i przyspiesza z prędkością gry;
+  - pasmo HDRP `timeMultiplier` dostaje prędkość gry, w pauzie 0,001 (0 psuje pianę HDRP).
+- **Przybój** przy brzegu bierze kierunek fal z wiatru meczu.
+- **Raport dymny:** `marineClimate`, `marineWindMs`, `marineHs`, `marineAmplitude`, `seakeepingMs`, `seakeepingShips`, `seaRenderCpuMs`, `seaCorrelation`.
+  - `seaCorrelation` to korelacja wysokości HDRP odczytanej z GPU (8 punktów 250 m od widoku, z dala od kadłubów) z wysokością morza symulacji; bliska 1 potwierdza, że decal rysuje te same fale we właściwej orientacji.
 
-Do tego czasu gra działa jak przed zmianą: symulacja nie włącza morza sama.
+**Pomiar w buildzie** (2026-11-10, ok. 12:00, RTX 3050 Ti Laptop, 1080p, test dymny 60 s, flaga `-morzaNoSea` w tym samym buildzie; pliki `artifacts-log/marine-ab2-*.json`):
+
+| Przebieg | Klatka | GPU | CPU główny | Sym. na klatkę | Prezentacja | Kołysanie / tick (8 okrętów) | Rysowanie fal CPU | `seaCorrelation` |
+|---|---|---|---|---|---|---|---|---|
+| Ultra z morzem | 47,3 ms | 27,9 ms | 31,3 ms | 7,3 ms | 3,5 ms | 0,71 ms | 0,18 ms | 0,849 |
+| Ultra bez morza | 45,0 ms | 38,3 ms | 17,8 ms | 2,0 ms | 2,4 ms | — | — | — |
+| Low z morzem | 23,1 ms | 20,0 ms | 8,2 ms | 2,2 ms | 1,2 ms | 0,38 ms | 0 (bez decali) | 0,133 |
+| Low bez morza | 27,5 ms | 20,7 ms | 13,6 ms | 2,3 ms | 2,4 ms | — | — | — |
+
+- **Decal rysuje fale symulacji we właściwej orientacji:** korelacja 0,85 na Ultra przy 9344 porównaniach. Różnicę do 1 tłumaczą opóźnienie odczytu z GPU i dekoracyjne pasmo średnie.
+- **Na Low** HDRP rysuje własne fale, które nie są falami kadłubów (korelacja 0,13): to opisane przybliżenie.
+- **Czasy klatki są zaszumione.** Test dymny gra AI z prędkością 2×, więc liczba ticków na klatkę zależy od długości klatki, a przebiegi różnią się przebiegiem gry. Pojedyncze 60 s nie rozstrzyga różnic kilku ms; potrzebny jest pomiar powtórzony lub z ustaloną kamerą i prędkością.
+- **Dlatego do raportu dodane jest pole `marineTickMs`** (bezpośredni koszt ticku morza) oraz koszt kołysania na tick.
+- **Wcześniejsza wersja rysowania** wysyłała energię okna na GPU co klatkę i kosztowała 1,3 ms CPU. Teraz energia idzie raz na krok fal, a mieszanie robi shader.
+- **Kołysanie:**
+  - pomija składowe poniżej 5% najsilniejszej;
+  - liczy 2 podkroki na tick;
+  - przekrój kadłuba czyta z tablicy;
+  - obejmuje tylko okręty do 700 m od środka widoku.
+  - W .NET kosztuje około 17 µs na okręt na tick (pomiar pod obciążeniem innych procesów), więc przy 50 okrętach na ekranie wychodzi około 0,9 ms na tick: ponad budżet 0,5 ms.
+
+**Zgłoszenie użytkownika (2026-11-10): „na łodzie wdziera się woda, a czasami w 90% są pod wodą”.**
+
+Diagnoza:
+- **Ustawienie w pionie.** Kod jest spójny: `ApplyDraft` obniża model tylko o przyrost zanurzenia od ładunku, a nurzanie z modelu to odchylenie od równowagi. Nie ma podwójnego zanurzenia.
+- **Rysowane fale.** Na Ultra zgadzają się z fizycznymi (korelacja 0,85).
+- **Przyczyny:**
+  1. HDRP rysuje płaszczyznę wody także wewnątrz otwartego kadłuba. Grzbiet krótszy niż kadłub, którego kadłub fizycznie nie nadąża śledzić (Hs 0,7–1,5 m wobec burt 0,75–0,87 m kutra), pokazuje się jako woda na pokładzie.
+  2. Kutry w rezonansie przechyłu (okres około 4,6 s, fala z boku Tp około 4,5 s) przy tłumieniu ζ = 0,08 przechylały się do 20,5°, kładąc krawędź burty przy wodzie.
+  3. **Pełny żagiel w silnym wietrze.** Załoga nie skracała żagla. Ustalony przechył kutra od żagla przy wietrze z boku (harness, okręt w miejscu): 5,7° przy 8 m/s, 14° przy 12,5 m/s, 20° przy 15 m/s. Porywy do 20 m/s zbliżały go do kąta zalania burty (35°). W meczu z silną etezją (12,5 m/s) kutry miały przechył RMS 11–17° i maksymalnie 30–42°: to obraz „łodzi w 90% pod wodą”.
+
+Poprawki:
+1. **Wykluczenie wody z wnętrza kadłuba.** Każdy kadłub ma `WaterExcluder` HDRP o kształcie spiczastego graniastosłupa wewnątrz linii wody, od stępki do burty. Jedzie z modelem kadłuba, tylko w obrazie.
+2. **Tłumienie przechyłu 0,15 krytycznego** (było 0,08): typowe dla małych otwartych kadłubów (opór stępki, kadłuba i wirów, składowe Ikedy 0,1–0,2). Rezonansowy przechył spada mniej więcej o połowę.
+3. **Załoga skraca żagiel** (`SailForces.HeelLimit`, symulacja). Gejtawy podciągają luźną stopę żagla rejowego (Casson 1995, s. 38–39; Whitewright 2018), a w porywie załoga luzuje szoty. Dzięki temu przechył od wiatru nie przekracza wytycznej IMO dla ustalonego wiatru: 16° albo 80% kąta zanurzenia krawędzi pokładu, zależnie od tego, która wartość jest mniejsza (rez. A.562(14), 1985; kodeks IS 2008). Za krawędź pokładu otwartego kadłuba przyjęta jest burta.
+   - Dla wszystkich klas wychodzi 16°. To reguła zapożyczona z norm stateczności statków (interpretacja): przechył, na jaki pozwalały starożytne załogi, nie jest znany.
+   - Kryterium dla łodzi otwartych (minimalna wolna burta około 400 mm; wytyczne brytyjskie, metoda Wolfson Unit) dawałoby kutrowi aż 24°, więc nie jest ostrzejsze.
+   - Siła wiatru na kadłub zostaje (załoga jej nie skróci). Udział żagla jest w `WindForces.SailShare`. Przy przełączniku ruchu słabszy żagiel daje też słabszy napęd.
+   - Wynik (harness, ten sam mecz): przy silnej etezji kutry mają maksymalnie 22–25,5° (było 30–42°), RMS 11–14,5°. Przy umiarkowanej bez zmian (maksymalnie 14–20°), bo przechył od żagla jest tam poniżej 16°.
+   - Test: `Sails_TheCrewShortensSailToKeepTheHeelWithinTheGuide`.
+4. **Pomiar w teście dymnym:**
+   - woda względem pokazywanej linii wody przy rufie, burtach i środku kadłuba (`hullWaterMean`, `hullWaterRms`, `hullWaterMax`, `hullDeckAwashShare`);
+   - skala fal rysowanych do fizycznych (`seaHeightRatio`).
+
+**Weryfikacja poprawek 1, 2 i 4 w buildzie** (2026-11-10, 12:48, test dymny 60 s, etezja umiarkowana 10,5 m/s, Hs 0,82 m; `artifacts-log/marine-ab3-*`):
+
+| Profil | `seaCorrelation` | `seaHeightRatio` | Woda nad linią wodną: średnio / RMS / maks. | Ponad pokład | Próbki | Największy przechył |
+|---|---|---|---|---|---|---|
+| Ultra | 0,827 | 1,02 | 0,06 / 0,42 / 1,32 m | 0,95% | 17 424 | 18,9° |
+| Low | −0,06 | 1,47 | −0,02 / 0,48 / 1,49 m | 1,6% | 34 172 | 18,9° |
+
+- **Zbliżenia z Ultra** (`marine-ab3-Ultra-sea-shot-2.png`, `-shot-5.png`): pokłady suche, bez wody wewnątrz kadłubów.
+- **Kadłub nie tonie:** średnia woda leży kilka centymetrów od linii wodnej.
+- **RMS 0,4 m to ruch względny wody przy burtach i rufie.** Obejmuje fale krótsze od kadłuba, przechył (punkty burt leżą na pół szerokości), falę dziobową HDRP i różnicę między falą rysowaną a fizyczną (korelacja 0,83).
+- **Na Low** HDRP rysuje własne fale, o 47% wyższe od fal symulacji i w innej fazie. Kadłuby kołyszą się na falach symulacji, więc tam woda częściej sięga burty. To opisane przybliżenie profili bez decali (Low, Medium).
+- **Poprawka 3** (żagiel) jest sprawdzona testami i harnessem, ale nie buildem: ten mecz ma etezję umiarkowaną, przy której skracanie żagla nie zachodzi.
+
+**Do oceny przez człowieka (ruchomy obraz):**
+- **Przechył kadłubów** po zmianie tłumienia i skracaniu żagla. Jeśli dalej wygląda przesadnie, do kalibracji są `HullForm.RollDamping`, wysokość metacentryczna (8–10% szerokości) i `SailForces.HeelLimit`.
+- **Żagiel** nie jest jeszcze rysowany jako skrócony: obraz pokazuje cały żagiel także przy `SailShare` < 1.
+- **Morze wokół widoku.** Fale wygaszają się na brzegu obszaru 1024 m wokół widoku (32 m). Przy największym oddaleniu i małym pochyleniu kamery dalsza woda ma tylko pasma dekoracyjne HDRP.
+
+**Jeszcze nie zrobione:**
+- nakładka diagnostyczna na ekranie (dane są w raporcie dymnym);
+- piana brzegowa z łamania Battjesa–Janssena w profilu poprzecznym (przybój ma tylko kierunek z wiatru);
+- kompensacja rozmycia 3×3 decala;
+- pomiar GPU i czasu klatki w buildzie przed i po.
 
 ## Ograniczenia znane z góry
 
@@ -200,3 +273,8 @@ Do tego czasu gra działa jak przed zmianą: symulacja nie włącza morza sama.
 - **Woda i pływy:**
   - Poulos S. i in. 1997;
   - Pytharouli S., Stiros S. 2012, doi:10.1179/1752270611Y.0000000035.
+- **Żagiel i przechył:**
+  - IMO, rezolucja A.562(14), 1985 (kryterium pogodowe: przechył pod ustalonym wiatrem 16° albo 80% kąta zanurzenia krawędzi pokładu); to samo w kodeksie IS 2008;
+  - Whitewright J. 2018, „Sailing and Sailing Rigs in the Ancient Mediterranean”, IJNA 47(1): 28–44, doi:10.1111/1095-9270.12278 (gejtawy, luźna stopa żagla rejowego, za Cassonem 1995, s. 38–39);
+  - Casson L. 1995, *Ships and Seamanship in the Ancient World* (nieodczytany bezpośrednio, cytowany za Whitewrightem);
+  - wytyczne brytyjskie dla małych kutrów rybackich i metoda Wolfson Unit (minimalna wolna burta łodzi otwartej około 400 mm; do porównania, projekt wytycznych).

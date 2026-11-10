@@ -168,6 +168,9 @@ namespace MorzaBogow.Simulation
     {
         public double Drive, Side, HeelMoment, TrimMoment;
         public double SailDrive, SailSide, YardAngle;
+
+        /// <summary>Share of the sail set: 1 all of it, less with the brails drawn up (SailForces.HeelLimit), 0 furled.</summary>
+        public double SailShare;
         public bool SailSet;
     }
 
@@ -177,6 +180,8 @@ namespace MorzaBogow.Simulation
     /// parametric fit to square-rig coefficients, Marchaj 1996, for calibration); the crew braces the yard within ±60° of
     /// athwartships for the most drive and furls the sail when no bracing drives the ship forward. Hull and rigging take
     /// drag 0.9 on their projected area at 2 m. The heeling arm runs from the centre of effort to half the draft.
+    /// The crew also shortens sail: the brails draw up the loose foot of the square sail (Casson 1995, 38–39; Whitewright
+    /// 2018, IJNA 47) and the sheets are eased in a gust, so the wind never heels the ship past HeelLimit.
     /// </summary>
     public static class SailForces
     {
@@ -184,6 +189,15 @@ namespace MorzaBogow.Simulation
 
         public static double Lift(double attack) => 1.1 * Math.Sin(2 * attack);
         public static double Drag(double attack) => 0.12 + 1.15 * Math.Sin(attack) * Math.Sin(attack);
+
+        /// <summary>
+        /// The steady heel the crew lets the wind give her: IMO's guide for heel under a steady wind, 16° or 80% of the
+        /// angle at which the deck edge goes under, whichever is less (Res. A.562(14), 1985, kept in the 2008 IS Code), with
+        /// the gunwale of an open hull for the deck edge. Borrowed from ships' stability standards: how far an ancient crew
+        /// let her heel is not recorded.
+        /// </summary>
+        public static double HeelLimit(HullForm hull) =>
+            Math.Min(16 * Math.PI / 180, 0.8 * Math.Atan(hull.Freeboard / (hull.Beam / 2)));
 
         /// <summary>
         /// Forces for a ship heading (radians, simulation plane) and moving with (vx, vy), in a wind sample.
@@ -196,6 +210,23 @@ namespace MorzaBogow.Simulation
             var speed = wind.Speed;
             var dx = speed > 1e-9 ? wind.X / speed : 1;
             var dy = speed > 1e-9 ? wind.Y / speed : 0;
+            var depthArm = hull.Draft / 2;
+
+            // Hull, crew and rigging: drag along the apparent wind near the water.
+            var low = wind.SpeedAt(2);
+            var hx = low * dx - vx;
+            var hy = low * dy - vy;
+            var hf = hx * ex + hy * ey;
+            var hp = -hx * ey + hy * ex;
+            var hullApparent = Math.Sqrt(hf * hf + hp * hp);
+            double windDrive = 0, windSide = 0;
+            if (hullApparent > 1e-6)
+            {
+                var projected = hull.WindageFront * Math.Abs(hf) / hullApparent + hull.WindageSide * Math.Abs(hp) / hullApparent;
+                var drag = 0.5 * airDensity * hullApparent * hullApparent * 0.9 * projected;
+                windDrive = drag * hf / hullApparent;
+                windSide = drag * hp / hullApparent;
+            }
 
             // Sail: apparent wind at the centre of effort, in the ship's frame (forward, port).
             var high = wind.SpeedAt(hull.SailHeight);
@@ -231,32 +262,27 @@ namespace MorzaBogow.Simulation
                 }
                 if (found && bestDrive > 0)
                 {
-                    result.SailSet = true;
-                    result.SailDrive = bestDrive;
-                    result.SailSide = bestSide;
-                    result.YardAngle = bestYard;
+                    // Shortened sail: the share that keeps the heel of sail and hull together within the limit (the
+                    // hull's own windage is not the crew's to shorten). All forces of the sail scale with its area.
+                    var limit = hull.RollStiffness * Math.Sin(HeelLimit(hull));
+                    var hullMoment = -windSide * (hull.WindageHeight + depthArm);
+                    var sailMoment = -bestSide * (hull.SailHeight + depthArm);
+                    var share = 1.0;
+                    if (Math.Abs(hullMoment + sailMoment) > limit && Math.Abs(sailMoment) > 1e-9)
+                        share = Math.Max(0, Math.Min(1, (limit - hullMoment * Math.Sign(sailMoment)) / Math.Abs(sailMoment)));
+                    if (share > 0)
+                    {
+                        result.SailSet = true;
+                        result.SailShare = share;
+                        result.SailDrive = bestDrive * share;
+                        result.SailSide = bestSide * share;
+                        result.YardAngle = bestYard;
+                    }
                 }
-            }
-
-            // Hull, crew and rigging: drag along the apparent wind near the water.
-            var low = wind.SpeedAt(2);
-            var hx = low * dx - vx;
-            var hy = low * dy - vy;
-            var hf = hx * ex + hy * ey;
-            var hp = -hx * ey + hy * ex;
-            var hullApparent = Math.Sqrt(hf * hf + hp * hp);
-            double windDrive = 0, windSide = 0;
-            if (hullApparent > 1e-6)
-            {
-                var projected = hull.WindageFront * Math.Abs(hf) / hullApparent + hull.WindageSide * Math.Abs(hp) / hullApparent;
-                var drag = 0.5 * airDensity * hullApparent * hullApparent * 0.9 * projected;
-                windDrive = drag * hf / hullApparent;
-                windSide = drag * hp / hullApparent;
             }
 
             result.Drive = result.SailDrive + windDrive;
             result.Side = result.SailSide + windSide;
-            var depthArm = hull.Draft / 2;
             // A force to port high up heels the ship to port (port side down: negative roll); forward drive trims her by the head.
             result.HeelMoment = -(result.SailSide * (hull.SailHeight + depthArm) + windSide * (hull.WindageHeight + depthArm));
             result.TrimMoment = -(result.SailDrive * (hull.SailHeight + depthArm) + windDrive * (hull.WindageHeight + depthArm));
