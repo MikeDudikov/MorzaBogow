@@ -77,3 +77,7 @@ Statusy:
   - okręt bez wojowników nie broni się na pokładzie i zostaje przejęty po utrzymaniu pokładu, bez strat atakującego;
   - przecięcie lin przed walką nie jest porażką na pokładzie: nikt nie przeszedł, więc nikt nie przepada.
 - **Dok i naprawa za srebro** ([BALANS_I_SKALA.md](BALANS_I_SKALA.md)): kadłub i moduły naprawia tylko port z dokiem, za srebro. Przegrupowanie załogi i wymiana broni działają w każdym porcie.
+
+## Druga paczka: system scenariuszy (`MorzaBogow.zip`)
+
+Decyzja użytkownika: tylko wskazówki. Mapy, obrazy, paleta, profil skali kafelkowej i kod z paczki nie trafiają do gry. Przyjęte zasady i ich etapy: [WSKAZOWKI_SCENARIUSZY.md](WSKAZOWKI_SCENARIUSZY.md).
