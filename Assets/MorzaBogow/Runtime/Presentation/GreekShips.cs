@@ -815,8 +815,7 @@ namespace MorzaBogow.Presentation
         /// </summary>
         static void BuildSteering(GreekShipForm f, GreekShipParts parts)
         {
-            // On the quarters, steep enough that the blades stay within the ship's length; the shafts end as deep as they
-            // always reached, unless a blade would then reach below the keel.
+            // On the quarters, steep enough that the blades stay within the ship's length; as deep as they always reached.
             const float s = 0.15f;
             var (helmS, platform, seated, men) = Helm(f);
             var floor = platform ? Sheer(f, 0.115f) + f.Platforms * (f.Castles ? 1f : 0.85f) : seated ? DeckAt(f, helmS) + f.Bulwark * 0.45f + 0.06f : DeckAt(f, helmS);
@@ -851,25 +850,14 @@ namespace MorzaBogow.Presentation
                 parts.SteeringAxes[i] = down;
                 parts.TillerGrips[i] = grip;
 
-                // The blade lies in the fore-and-aft plane of the shaft, so it steers when the shaft turns. Turned so, its broad
-                // edge reaches below the shaft's end; where it would pass under the keel the shaft ends higher, along its own
-                // line, as nothing of the ship reaches below its keel (the asset pipeline takes a model's lowest point for it).
-                var blade = Quaternion.LookRotation(down, Vector3.up);
-                var bladeHalf = new Vector3(0.05f, 0.42f, Mathf.Max(0.35f, length * 0.12f));
-                var end = pivot + down * length;
-                var bladeCentre = end - down * length * 0.12f;
-                var under = -f.Draft - (bladeCentre.y - DepthBelowCentre(blade, bladeHalf));
-                if (under > 0f)
-                {
-                    end -= down * (under / -down.y);
-                    bladeCentre -= down * (under / -down.y);
-                }
-
                 var single = new MeshBuilder(null);
                 foreach (var (b, offset) in new[] { (combined, Vector3.zero), (single, -pivot) })
                 {
+                    var end = pivot + down * length;
                     b.Tube(GreekMaterial.Wood, new List<Vector3> { top + offset, pivot + offset, end + offset }, 0.09f, 0.08f, 5);
-                    b.Box(GreekMaterial.Wood, bladeCentre + offset, bladeHalf, blade);
+                    // The blade lies in the fore-and-aft plane of the shaft, so it steers when the shaft turns.
+                    var blade = Quaternion.LookRotation(down, Vector3.up);
+                    b.Box(GreekMaterial.Wood, end - down * length * 0.12f + offset, new Vector3(0.05f, 0.42f, Mathf.Max(0.35f, length * 0.12f)), blade);
                     b.Tube(GreekMaterial.Wood, new List<Vector3> { top + offset, grip + offset }, 0.045f, 0.035f, 5);
                 }
                 parts.SteeringOars[i] = single.Build(GreekMaterial.Wood);
@@ -890,10 +878,6 @@ namespace MorzaBogow.Presentation
             parts.Steering = combined.Build(GreekMaterial.Wood);
             parts.SteeringMounts = mounts.Build(GreekMaterial.Wood);
         }
-
-        /// <summary>How far a box turned by <paramref name="turn"/>, with these half extents, reaches below its centre.</summary>
-        static float DepthBelowCentre(Quaternion turn, Vector3 half) =>
-            Mathf.Abs((turn * Vector3.right).y) * half.x + Mathf.Abs((turn * Vector3.up).y) * half.y + Mathf.Abs((turn * Vector3.forward).y) * half.z;
 
         /// <summary>
         /// A point of the unit sail (1 x 1, hanging down from Y = 0, bellied toward +Z) at u across (0..1) and v down (0..1).

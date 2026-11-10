@@ -506,5 +506,161 @@ namespace MorzaBogow.Tests
                 Object.DestroyImmediate(view.gameObject);
             }
         }
+
+        // The men at work ashore ----------------------------------------------------------------------------------------
+        /// <summary>Men at work ashore the player may see: the shown men of every shore party, dock gang and slipway in sight.</summary>
+        static int ShownAshore(BattleController battle)
+        {
+            var count = battle.Crews.Values.Sum(party => party.Men.Count(man => man.Shown)) + battle.DockGangs.Values.Sum(gang => gang.Men.Count(man => man.Shown));
+            foreach (var yard in battle.Yards.Values)
+                foreach (var slip in new[] { yard.War, yard.Port })
+                    if (slip.InSight) count += slip.Shipwrights.Count(man => man.Shown);
+            return count;
+        }
+
+        /// <summary>
+        /// The men ashore are drawn as the crews aboard are: a cutter's woodcutters walk off, fell and carry logs, a port's
+        /// dock gang carries a cutter's load into the store, each man an instanced body without a scene object of his own.
+        /// A party's men are the ship's own: each looks as he did on deck, and the deck leaves out exactly the men ashore.
+        /// The battle is paused, so the test gives the parties their game time as a running frame would.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Crew_K_ShorePartiesAndDockGangsAreDrawnOnTheCrewsBodies()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var dt = (float)Rules.Dt;
+                // A cutter beside a wood, sent to work it: its crew lands and goes ashore (BattleController.CrewJobOf).
+                var wood = battle.World.Nodes.First(node => node.Type == ResourceType.Wood && battle.SiteViews.ContainsKey(node.Id));
+                var cutter = battle.World.SpawnShip(0, ShipClass.Cutter, wood.X + 6, wood.Y);
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Harvest, ShipIds = new[] { cutter.Id }, TargetId = wood.Id });
+                for (var t = 0; t < 30 * Rules.TickRate && !battle.Crews.ContainsKey(cutter.Id); t++) Tick(battle, crews);
+                Assert.That(battle.Crews.ContainsKey(cutter.Id), $"The cutter's crew goes ashore (harvest {cutter.Harvest}).");
+                var party = battle.Crews[cutter.Id];
+                var view = battle.Views[cutter.Id];
+                var aboard = crews.Crews[cutter.Id];
+                var game = SaveGame.Hash(SaveGame.Serialize(battle.World));
+                var seen = new HashSet<CrewAction>();
+                var walkedWithLog = false;
+                var mostAshore = 0;
+                var looksChecked = 0;
+                for (var f = 0; f < 60 * Rules.TickRate; f++)
+                {
+                    party.Update(view.DeckToward(party.JettyEnd), dt, true);
+                    crews.Present(dt, null);
+                    Assert.That(crews.AshoreDrawn, Is.EqualTo(ShownAshore(battle)), $"frame {f}: every man ashore the player sees is drawn, and only they");
+                    mostAshore = Mathf.Max(mostAshore, party.Ashore);
+                    var hidden = new HashSet<int>();
+                    for (var i = 0; i < aboard.AshoreMen.Count; i++)
+                        if ((party.AshoreMask & 1 << i) != 0) hidden.Add(aboard.AshoreMen[i]);
+                    var onDeck = aboard.Men.Count(m => (m.Station >= 0 || m.RailStation >= 0) && !hidden.Contains(m.Man));
+                    Assert.That(aboard.DrawnFigures, Is.EqualTo(onDeck), $"frame {f}: the deck leaves out exactly the men ashore");
+                    foreach (var man in party.Men)
+                    {
+                        if (!man.Shown) continue;
+                        seen.Add(man.Action);
+                        if (man.Action == CrewAction.Walk && man.Load == CrewLoad.Log) walkedWithLog = true;
+                        if (man.Action == CrewAction.CutLine) Assert.That(man.Tool, Is.EqualTo(CrewTool.Axe), "Woodcutters fell with axes.");
+                        if (man.Index >= aboard.AshoreMen.Count) continue;
+                        var sailor = aboard.Men.First(m => m.Man == aboard.AshoreMen[man.Index]);
+                        Assert.That(man.Number, Is.EqualTo(sailor.Man), "Man i of the party is the i-th sailor the deck leaves out.");
+                        Assert.That(man.Look, Is.EqualTo(sailor.Look), "He looks ashore as he did on deck.");
+                        looksChecked++;
+                    }
+                }
+                Assert.That(mostAshore, Is.EqualTo(party.Men.Count), "The whole party went ashore.");
+                Assert.That(looksChecked, Is.GreaterThan(0), "The men ashore were the ship's own.");
+                Assert.That(seen, Does.Contain(CrewAction.Walk), "They walk the plank and the jetty.");
+                Assert.That(seen, Does.Contain(CrewAction.CutLine), "Woodcutters fell the trees.");
+                Assert.That(walkedWithLog, "Haulers carry the logs.");
+                Assert.That(party.Felled, Is.GreaterThan(0), "A tree came down.");
+                Assert.That(crews.Renderer.Instances, Is.GreaterThan(crews.FiguresDrawn * 8), "Each man drawn as his pieces.");
+                Assert.That(SaveGame.Hash(SaveGame.Serialize(battle.World)), Is.EqualTo(game), "The men ashore change nothing in the game.");
+
+                // A cutter home with a load of wood, sent to work silver: it makes for port first and lands the load there,
+                // and the port's dock gang carries it to the store (BattleController.Deliver).
+                var home = battle.World.SettlementOf(0);
+                var silver = battle.World.Nodes.First(node => node.Type == ResourceType.Silver);
+                var carrier = battle.World.SpawnShip(0, ShipClass.Cutter, home.X, home.Y);
+                carrier.CargoType = ResourceType.Wood;
+                carrier.Cargo = 40 * Rules.Centi;
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Harvest, ShipIds = new[] { carrier.Id }, TargetId = silver.Id });
+                for (var t = 0; t < 20 * Rules.TickRate && !battle.DockGangs.ContainsKey(home.Id); t++) Tick(battle, crews);
+                Assert.That(battle.DockGangs.ContainsKey(home.Id), $"The port's dock gang takes the load (harvest {carrier.Harvest}, cargo {carrier.Cargo}).");
+                var gang = battle.DockGangs[home.Id];
+                var carried = false;
+                for (var f = 0; f < 40 * Rules.TickRate; f++)
+                {
+                    gang.Update(gang.JettyEnd, dt, true);
+                    crews.Present(dt, null);
+                    Assert.That(crews.AshoreDrawn, Is.EqualTo(ShownAshore(battle)), $"frame {f}: the gang is drawn with the rest");
+                    foreach (var man in gang.Men)
+                    {
+                        if (!man.Shown || man.Load != CrewLoad.Log) continue;
+                        carried = true;
+                        Assert.That(man.Number, Is.EqualTo(CrewAshore.DockMen + man.Index), "A man of the port, by his place in the gang.");
+                    }
+                }
+                Assert.That(carried, "The gang carries the logs.");
+                Assert.That(gang.Delivered, Is.GreaterThan(0), "The logs reach the store.");
+
+                // Nothing of the men stands in the scene: the parties' root holds only the planks.
+                var root = GameObject.Find("Shore parties");
+                Assert.That(root, Is.Not.Null);
+                var objects = root.GetComponentsInChildren<Transform>(true);
+                Assert.That(objects.Count(item => item.name == "Crew" || item.name == "Pivot"), Is.Zero, "No scene object for any man ashore.");
+                Assert.That(objects.Count(item => item.name == "Gangplank"), Is.LessThanOrEqualTo(battle.Crews.Count + battle.DockGangs.Count), "One plank a party.");
+            }
+            finally { Clean(host); }
+        }
+
+        /// <summary>
+        /// The shipwrights at a slipway are the crews' bodies too: three men of the yard hew at the hull while it is built,
+        /// with axes, drawn as instances; their looks come from the yard and their places alone; they go when it is done.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Crew_L_ShipwrightsHewOnTheCrewsBodies()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var dt = (float)Rules.Dt;
+                var home = battle.World.SettlementOf(0);
+                home.Wood = home.Silver = 5000 * Rules.Centi;
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter });
+                Steps(battle, crews, 3);
+                var slip = battle.Yards[home.Id].Port;
+                Assert.That(slip.Building, Is.EqualTo(ShipClass.Cutter), "A cutter is laid down on the port line.");
+                Assert.That(slip.InSight, "The home yard is in sight.");
+                var phases = new HashSet<float>();
+                for (var f = 0; f < 30; f++)
+                {
+                    slip.Show(slip.Building, slip.Progress, dt);
+                    crews.Present(dt, null);
+                    Assert.That(crews.AshoreDrawn, Is.EqualTo(ShownAshore(battle)), $"frame {f}: the shipwrights are drawn with the crews");
+                    phases.Add(slip.Shipwrights[0].Phase);
+                }
+                Assert.That(slip.ShipwrightsAtWork, Is.EqualTo(3));
+                Assert.That(phases.Count, Is.GreaterThan(20), "The blows go on in game time.");
+                foreach (var wright in slip.Shipwrights)
+                {
+                    Assert.That(wright.Shown, "At work while the hull is built.");
+                    Assert.That(wright.Action, Is.EqualTo(CrewAction.CutLine), "Hewing.");
+                    Assert.That(wright.Tool, Is.EqualTo(CrewTool.Axe));
+                    Assert.That(wright.Number, Is.EqualTo(CrewAshore.YardMen + wright.Index), "A man of the yard, by his place at the slipway.");
+                    Assert.That(wright.Look, Is.EqualTo(CrewLooks.For(home.Id, wright.Number, CrewRole.LineHand, home.Owner, false)), "His look from that number alone.");
+                }
+                Assert.That(slip.Shipwrights.Select(wright => wright.Index).Distinct().Count(), Is.EqualTo(3), "Three different men.");
+
+                slip.Show(slip.Building, 0.99f, dt);
+                crews.Present(dt, null);
+                Assert.That(slip.Shipwrights.Any(wright => wright.Shown), Is.False, "The scaffolding down, they are gone.");
+                Assert.That(crews.AshoreDrawn, Is.EqualTo(ShownAshore(battle)));
+            }
+            finally { Clean(host); }
+        }
     }
 }

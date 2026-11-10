@@ -493,7 +493,8 @@ namespace MorzaBogow.Presentation
     /// A ship's shore party. When a cutter takes a berth, its crew walks the plank onto the jetty: woodcutters fell
     /// trees while others haul logs aboard, or miners break ore at the mine while others carry sealed chests. In
     /// port they carry the cargo from the hold along the jetty into the store, or from the store into the hold. When
-    /// the ship casts off they hurry back aboard. It reads the simulation only to choose the job.
+    /// the ship casts off they hurry back aboard. It reads the simulation only to choose the job. The men are state
+    /// only (ShoreMan), drawn with the crews' bodies by CrewDirector (CrewAshore); the plank is the party's one object.
     /// </summary>
     public sealed class ShipCrew
     {
@@ -504,7 +505,7 @@ namespace MorzaBogow.Presentation
 
         sealed class Member
         {
-            public CrewFigure Figure;
+            public ShoreMan Figure;
             public bool Hauler;
             public readonly List<Point> Route = new List<Point>();
             public Arrival AtEnd;
@@ -515,6 +516,7 @@ namespace MorzaBogow.Presentation
         }
 
         readonly List<Member> members = new List<Member>();
+        readonly List<ShoreMan> men = new List<ShoreMan>();
         readonly Transform plank;
         CrewJob job;
         Workplace place;
@@ -526,12 +528,22 @@ namespace MorzaBogow.Presentation
         public int Delivered { get; private set; }
         public int Felled { get; private set; }
 
+        /// <summary>The party's men in order, as drawn (CrewAshore); man i is the party's i-th.</summary>
+        public IReadOnlyList<ShoreMan> Men => men;
+
+        /// <summary>The side the party belongs to.</summary>
+        public int Owner { get; }
+
+        /// <summary>The men off the ship now, bit i for man i (CrewAboard.PartyAshore leaves them out on deck).</summary>
+        public int AshoreMask { get; private set; }
+
         public ShipCrew(Transform parent, PlaceholderMaterials materials, int owner, int size, int seed)
         {
+            Owner = owner;
             for (var i = 0; i < size; i++)
             {
-                var figure = new CrewFigure(parent, materials, owner);
-                figure.Show(false);
+                var figure = new ShoreMan(i);
+                men.Add(figure);
                 members.Add(new Member { Figure = figure, Hauler = i % 2 == 1, Spot = seed + i * 3 });
             }
             plank = CrewFigure.Part(parent, PrimitiveType.Cube, materials?.Timber, Vector3.zero, Vector3.one);
@@ -573,7 +585,7 @@ namespace MorzaBogow.Presentation
         {
             var figure = member.Figure;
             member.Route.Clear();
-            var loaded = figure.Carrying != CrewLoad.None;
+            var loaded = figure.Load != CrewLoad.None;
             switch (job)
             {
                 case CrewJob.Wood:
@@ -653,6 +665,7 @@ namespace MorzaBogow.Presentation
         public void Update(Vector3 deck, float delta, bool visible)
         {
             Ashore = Carrying = Working = 0;
+            AshoreMask = 0;
             if (place == null) { HideAll(); return; }
 
             foreach (var member in members)
@@ -669,7 +682,8 @@ namespace MorzaBogow.Presentation
                 Advance(member, deck, delta);
                 if (member.Aboard) { member.Figure.Show(false); continue; }
                 Ashore++;
-                if (member.Figure.Carrying != CrewLoad.None) Carrying++;
+                AshoreMask |= 1 << member.Figure.Index;
+                if (member.Figure.Load != CrewLoad.None) Carrying++;
                 if (member.Working) Working++;
                 member.Figure.Show(visible);
             }
@@ -712,7 +726,7 @@ namespace MorzaBogow.Presentation
 
             if (member.Route.Count > 0)
             {
-                var speed = member.AtEnd == Arrival.Aboard && job == CrewJob.None ? HurrySpeed : figure.Carrying != CrewLoad.None ? CarrySpeed : WalkSpeed;
+                var speed = member.AtEnd == Arrival.Aboard && job == CrewJob.None ? HurrySpeed : figure.Load != CrewLoad.None ? CarrySpeed : WalkSpeed;
                 if (!figure.WalkTo(Where(member.Route[0], member, deck), speed, delta)) return;
                 member.LastReached = member.Route[0];
                 member.Route.RemoveAt(0);
@@ -776,9 +790,10 @@ namespace MorzaBogow.Presentation
             if (plank.gameObject.activeSelf) plank.gameObject.SetActive(false);
         }
 
+        /// <summary>The men leave nothing in the scene; only the plank goes. Safe also when the scene is being torn down.</summary>
         public void Destroy()
         {
-            foreach (var member in members) member.Figure.Destroy();
+            foreach (var member in members) member.Figure.Show(false);
             if (plank != null) Object.Destroy(plank.gameObject);
         }
     }

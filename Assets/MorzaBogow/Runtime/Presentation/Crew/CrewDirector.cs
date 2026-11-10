@@ -44,6 +44,9 @@ namespace MorzaBogow.Presentation
         /// <summary>Men drawn in the last frame, ships whose crews were drawn, the level of detail; tests and the smoke report.</summary>
         public int FiguresDrawn { get; private set; }
         public int ShipsDrawn { get; private set; }
+
+        /// <summary>Men at work ashore drawn in the last frame: shore parties, dock gangs, shipwrights (CrewAshore); also in FiguresDrawn.</summary>
+        public int AshoreDrawn { get; private set; }
         public int Lod => lod;
         public CrewRenderer Renderer => renderer;
         public double PoseMilliseconds { get; private set; }
@@ -296,6 +299,29 @@ namespace MorzaBogow.Presentation
             costFrames++;
         }
 
+        /// <summary>
+        /// The shown men of one shore party, dock gang or slipway into the frame's figures, when the camera can see where
+        /// they stand: each as the man he is (CrewAshore.Identify), counted in the frame's signature and bounds.
+        /// </summary>
+        void EmitAshore(IReadOnlyList<ShoreMan> men, int place, CrewAshore.Group group, int owner, Camera camera, ref long sign, ref bool any)
+        {
+            if (!CrewAshore.BoxOf(men, out var box)) return;
+            if (camera != null && !GeometryUtility.TestPlanesAABB(frustum, box)) return;
+            CrewAboard aboard = null;
+            if (group == CrewAshore.Group.Party) crews.TryGetValue(place, out aboard);
+            for (var i = 0; i < men.Count; i++)
+            {
+                var man = men[i];
+                if (!man.Shown) continue;
+                CrewAshore.Identify(man, place, group, owner, aboard);
+                figures.Add(CrewAshore.Build(man, place, group, lod));
+                sign = sign * 31 + CrewAshore.Signature(man);
+                AshoreDrawn++;
+            }
+            if (!any) drawn = box; else drawn.Encapsulate(box);
+            any = true;
+        }
+
         /// <summary>Decides, poses and draws every crew in sight; public so tests can run a frame after RunTicks.</summary>
         public void Present(float delta, Camera camera)
         {
@@ -325,6 +351,8 @@ namespace MorzaBogow.Presentation
                 }
                 // Every crew keeps its stations and its ship's oars; only the crews in sight decide each man's doing.
                 var shown = view.gameObject.activeInHierarchy && (camera == null || Visible(frustum, view));
+                // The men of its shore party who are off the ship are drawn ashore (CrewAshore), not aboard.
+                crew.PartyAshore = battle.Crews.TryGetValue(id, out var party) ? party.AshoreMask : 0;
                 var before = System.Diagnostics.Stopwatch.GetTimestamp();
                 crew.Update(ship, view, world, clock, delta, shown);
                 var decided = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -334,6 +362,7 @@ namespace MorzaBogow.Presentation
                 crew.Emit(figures, lod, clock, shipModels.Count);
                 building += System.Diagnostics.Stopwatch.GetTimestamp() - decided;
                 sign = sign * 31 + id * 7 + crew.Version;
+                sign = sign * 31 + crew.PartyAshore;
                 var box = new Bounds(view.transform.position, new Vector3(view.Length + 6f, 12f, view.Length + 6f));
                 if (!any) drawn = box; else drawn.Encapsulate(box);
                 any = true;
@@ -353,6 +382,18 @@ namespace MorzaBogow.Presentation
                 sign = sign * 31 + pair.Key * 7 + crew.Version;
             }
             foreach (var id in gone) crews.Remove(id);
+            // The men at work ashore: ships' shore parties, ports' dock gangs and the shipwrights at the slipways, on the
+            // same bodies and in the same draws (CrewAshore); only those the player can see are shown.
+            AshoreDrawn = 0;
+            foreach (var pair in battle.Crews) EmitAshore(pair.Value.Men, pair.Key, CrewAshore.Group.Party, pair.Value.Owner, camera, ref sign, ref any);
+            foreach (var pair in battle.DockGangs) EmitAshore(pair.Value.Men, pair.Key, CrewAshore.Group.Dock, pair.Value.Owner, camera, ref sign, ref any);
+            foreach (var pair in battle.Yards)
+            {
+                var yard = pair.Value;
+                if (yard == null) continue;
+                if (yard.War.InSight) EmitAshore(yard.War.Shipwrights, pair.Key, CrewAshore.Group.Yard, yard.War.Owner, camera, ref sign, ref any);
+                if (yard.Port.InSight) EmitAshore(yard.Port.Shipwrights, pair.Key, CrewAshore.Group.Yard, yard.Port.Owner, camera, ref sign, ref any);
+            }
             FiguresDrawn = figures.Count;
             ShipsDrawn = 0;
             foreach (var id in order) if (crews.TryGetValue(id, out var c) && c.DrawnFigures > 0) ShipsDrawn++;

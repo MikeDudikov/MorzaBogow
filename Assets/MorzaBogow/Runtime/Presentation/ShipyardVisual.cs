@@ -32,7 +32,7 @@ namespace MorzaBogow.Presentation
         Transform[] ribs = new Transform[0];
         Transform[] scaffold = new Transform[0];
         Transform[] oars = new Transform[0];
-        readonly CrewFigure[] shipwrights;
+        readonly ShoreMan[] shipwrights;
         ShipClass? building;
         GreekShipParts parts;
         float length, beam, height, draft, workTime;
@@ -47,6 +47,17 @@ namespace MorzaBogow.Presentation
         public bool Rigged { get; private set; }
         public bool Scaffolded { get; private set; }
         public int ShipwrightsAtWork { get; private set; }
+
+        /// <summary>
+        /// The line's three shipwrights, as drawn with the crews' bodies (CrewAshore): men of the settlement, the war
+        /// line's numbered 0–2 and the port line's 4–6. No scene object stands for them.
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<ShoreMan> Shipwrights => shipwrights;
+
+        /// <summary>The ramp stands where the player can see it: its settlement in sight, a bridgehead's yard built or rising.</summary>
+        public bool InSight => root != null && root.gameObject.activeInHierarchy;
+
+        public int Owner => owner;
 
         /// <summary>Rest position of a hull's centre on the cradle and its orientation, bow down the ramp to the sea.</summary>
         public Vector3 RestPosition => cradle.position;
@@ -97,12 +108,11 @@ namespace MorzaBogow.Presentation
             cradle.localPosition = new Vector3(0f, RampHeight((float)Rules.SlipCentre) + 0.35f, side * (float)Rules.SlipCentre);
             cradle.localRotation = Quaternion.LookRotation(new Vector3(0f, -Slope, side));
 
-            shipwrights = new CrewFigure[3];
+            shipwrights = new ShoreMan[3];
             for (var i = 0; i < shipwrights.Length; i++)
             {
-                shipwrights[i] = new CrewFigure(root, materials, owner);
+                shipwrights[i] = new ShoreMan((side < 0f ? 0 : 4) + i);
                 shipwrights[i].SetTool(CrewTool.Axe);
-                shipwrights[i].Show(false);
             }
         }
 

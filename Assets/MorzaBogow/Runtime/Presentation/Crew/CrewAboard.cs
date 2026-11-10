@@ -250,13 +250,18 @@ namespace MorzaBogow.Presentation
             lastYaw = yaw;
             var charging = ship.Order == OrderKind.Ram && (ship.RamState == RamPhase.Approach || ship.RamState == RamPhase.Telegraph);
             view.SetStroke(RowingStroke.RateFor(speed, turnRate > 9f, charging));
-            // Men gone ashore with the shore party (BattleController's crews at work) are not drawn aboard twice.
+            // Men gone ashore with the shore party (BattleController's crews at work) are not drawn aboard twice: man i of
+            // the party is the i-th sailor at the oars, the sail, the lines or the bow (CrewAshore draws him ashore with his
+            // look), gone from the deck while that man of the party is ashore. Untold (-1), the job's whole party is away.
             ashore.Clear();
-            var away = Ashore(ship);
+            ashoreMen.Clear();
+            var away = PartyAshore < 0 ? Ashore(ship) : MostAshore;
             foreach (var man in Men)
             {
-                if (ashore.Count >= away) break;
-                if (man.Role == CrewRole.Rower || man.Role == CrewRole.LineHand || man.Role == CrewRole.SailHand || man.Role == CrewRole.BowHand) ashore.Add(man.Man);
+                if (ashoreMen.Count >= away) break;
+                if (man.Role != CrewRole.Rower && man.Role != CrewRole.LineHand && man.Role != CrewRole.SailHand && man.Role != CrewRole.BowHand) continue;
+                if (PartyAshore < 0 || (PartyAshore & 1 << ashoreMen.Count) != 0) ashore.Add(man.Man);
+                ashoreMen.Add(man.Man);
             }
             foreach (var bench in Profile.Of(StationKind.Bench)) view.SetOarCrewed(bench.Oar, false);
             foreach (var man in Men)
@@ -274,6 +279,23 @@ namespace MorzaBogow.Presentation
         }
 
         readonly HashSet<int> ashore = new HashSet<int>();
+        readonly List<int> ashoreMen = new List<int>();
+
+        /// <summary>The largest shore party, a merchantman's (BattleController: six from a merchantman, else four).</summary>
+        const int MostAshore = 6;
+
+        /// <summary>
+        /// The ship's own men a shore party is made of, in the party's order: man i of the party is AshoreMen[i], the
+        /// i-th sailor at the oars, the sail, the lines or the bow (CrewAshore draws him ashore with his look from here).
+        /// </summary>
+        public IReadOnlyList<int> AshoreMen => ashoreMen;
+
+        /// <summary>
+        /// Which men of the ship's shore party are ashore now (bit i for man i of the party, ShipCrew.AshoreMask), told by
+        /// CrewDirector each frame before Update; each of them is drawn ashore, not aboard. -1 (never told): the whole
+        /// party counts as ashore for as long as the job lasts (Ashore).
+        /// </summary>
+        public int PartyAshore { get; set; } = -1;
 
         /// <summary>
         /// Men ashore at work, as the battle draws its shore parties (BattleController.CrewJobOf): four from a boat at a

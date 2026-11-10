@@ -2,11 +2,10 @@
 
 Data: 2026-11-10. Tylko prezentacja; symulacja i zapis gry bez zmian.
 
-**Stan.** Załogi są widoczne na wszystkich 7 klasach i biorą udział w ataku według danych gry. Commity: b8ef3c5, 1a47397, a0616a2, 3bf48db.
+**Stan.** Załogi są widoczne na wszystkich 7 klasach i biorą udział w ataku według danych gry. Commity: b8ef3c5, 1a47397, a0616a2, 3bf48db. Ludzie przy pracy na lądzie (partie na brzegu, robotnicy doku, cieśle przy pochylniach) mają to samo ciało i ten sam renderer („Na lądzie”).
 
 **Poza zakresem:**
 - przejście przez relingi przy abordażu;
-- nowe ciało dla postaci na brzegu i w stoczni;
 - wypieczony LOD2;
 - pomiar GPU na cichej maszynie.
 
@@ -47,6 +46,19 @@ Szczegóły w „Ograniczeniach”.
   - barwy stron bez zużytych wersji.
 
   Hełmy, tarcze, budowa i barwy stron zostają. Z bliska (LOD0) widać pełną różnorodność.
+- **Na lądzie** (`Crew/CrewAshore.cs`) ludzie przy pracy mają to samo ciało, paletę, pozy i wywołania rysowania co załogi. Żaden człowiek nie ma własnego obiektu sceny: stan to `ShoreMan`, rysuje go `CrewDirector`.
+  - **Partia okrętu na brzegu** (`ShipCrew`, `BattleController.Crews`) to jego właśni marynarze:
+    - człowiek *i* partii to *i*-ty marynarz przy wiosłach, żaglu, linach albo na dziobie (`CrewAboard.AshoreMen`), z wyglądem z pokładu;
+    - pokład pomija go dokładnie wtedy, gdy schodzi na ląd, i pokazuje znowu, gdy wróci (`CrewAboard.PartyAshore`, maska z `ShipCrew.AshoreMask`). Wcześniej znikała od razu cała partia, na cały czas rozkazu.
+  - **Robotnicy doku** (`DockGangs`) i **cieśle przy pochylniach** (`Slipway`) to ludzie portu i stoczni. Numery biorą z miejsca i kolejności (`CrewAshore.DockMen`, `YardMen` + indeks), a wygląd z `CrewLooks`, bez `GetInstanceID` i bez losowości gry. Ubrani są jak marynarze, w niebarwione płótno i wełnę.
+  - **Czynności** z istniejących `CrewAction`:
+    - chód `Walk`, z fazą z przebytej drogi (cykl 1,8 m);
+    - postój `StandIdle`, z ładunkiem `Carry`;
+    - cios siekierą albo kilofem `CutLine`.
+  - **Poprawka w `BattleController.UpdateCrews`.** Przekazanie ładunku brygadzie doku (`Deliver`) stało za obsługą partii na brzegu, a okręt przy nabrzeżu partii nie ma, więc pętla go pomijała. Brygady doku nie powstawały wcześniej wcale. Teraz przekazanie jest sprawdzane przed partią.
+  - **Rytm pracy** w czasie gry jest jak dawniej: te same prędkości, progi dojścia, czasy ciosów i powrotu na pokład.
+  - **Narzędzie** jest w prawej dłoni, obrócone tak, że trzonek przedłuża przedramię: w zamachu nad głową, przy uderzeniu poziomo.
+  - **Ładunek** (polano, skrzynia rudy, kosz) jest przed brzuchem, obie dłonie na nim przez IK, w chodzie i na postoju.
 - **Tylko załogi w kadrze** decydują, co robi każdy człowiek. Pozostałe załogi utrzymują tylko stanowiska i wiosła swojego okrętu.
 - **Cele stanowisk** obsługa szuka raz na tick symulacji. Test mgły (`World.CanSee`) przegląda wszystkie okręty i porty, więc pada dopiero dla celu w zasięgu i sektorze. Machiny obracają się w każdej klatce.
 
@@ -60,6 +72,7 @@ World (symulacja, 30 Hz) ──► BattleController.StepOnce ──► Ticked(Wo
 BattleController.PresentFrame (kadłuby: poza z wody, Animate)
 CrewDirector.LateUpdate ──► CrewAboard.Update (rola → czynność ze stanu okrętu)
                          ──► CrewPoseJob (Burst: pozy, IK dłoni i stóp, macierze kości i gniazd)
+                         ──► CrewAshore (ludzie na lądzie: BattleController.Crews, DockGangs, Yards → te same figury)
                          ──► CrewRenderer (Burst: macierze części, Graphics.RenderMeshInstanced ≤ 511 na wywołanie)
 BattleEffects.SyncMissiles ──► CrewDirector.LaunchPoint (dłoń strzelca / wylot machiny)
 ```
@@ -89,6 +102,9 @@ BattleEffects.SyncMissiles ──► CrewDirector.LaunchPoint (dłoń strzelca /
 | `Runtime/Presentation/Crew/CrewDirector.cs` | zdarzenia z ticków, LOD, klatka |
 | `Runtime/Presentation/Crew/CrewAboard.cs` | załoga jednego okrętu: obsada, czynności, upadki, abordaż |
 | `Runtime/Presentation/Crew/RowingStroke.cs` | jeden rytm wioseł i wioślarzy |
+| `Runtime/Presentation/Crew/CrewAshore.cs` | `ShoreMan` (stan człowieka na lądzie), `CrewAshore`: tożsamość, wygląd, poza i części ludzi na lądzie |
+| `Runtime/Presentation/CrewVisual.cs` | `ShipCrew` (partie na brzegu i robotnicy doku) na `ShoreMan`; `DeckFight` i `GrappleLines` bez zmian |
+| `Runtime/Presentation/ShipyardVisual.cs` | cieśle `Slipway` na `ShoreMan` |
 | `Runtime/Presentation/BattleController.CrewShowcase.cs` | zrzuty załóg (`-morzaCrewShowcase`) |
 | `Editor/CrewAssetBuilder.cs` | materiał `Resources/Crew/CrewBody.mat` (instancing), atlas, prefaby podglądu ról |
 | `Editor/CrewExport.cs` | zapis macierzy i manifestu ról |
@@ -198,7 +214,13 @@ Z bliska widać wioślarzy przy wiosłach w jednym rytmie i ludzi w barwie stron
 
 - **Ray tracing.** Załogi rysowane przez `Graphics.RenderMeshInstanced` nie trafiają do odbić ray tracingu (profil Ultra).
 - **Tożsamość po wczytaniu.** Zapis gry nie ma numerów ludzi, więc po wczytaniu numeracja w każdym zawodzie liczy się od zera. Wygląd jest stały dla danego zapisu, ale może różnić się od wyglądu sprzed zapisu.
-- **Postacie poza okrętami.** Partie na brzegu i robotnicy stoczni (`CrewFigure`) mają jeszcze dawne postacie z prymitywów.
+- **Ludzie na lądzie** (zmiana z 2026-11-10). Partie na brzegu, robotnicy doku i cieśle przy pochylniach nie są już dawnymi `CrewFigure`: ok. 37 obiektów sceny z prymitywów na człowieka. Są instancjami ciała załóg (`CrewAshore`), bez obiektu sceny na człowieka. Granice zmiany:
+  - kładka zostaje jednym prymitywem na partię;
+  - `DeckFight` (bitwa bez `CrewDirector`) i `GrappleLines` są bez zmian;
+  - siekierę i kilof widać tylko z bliska (LOD0), jak włócznie;
+  - ładunek jest niesiony przed sobą, nie na ramieniu;
+  - cios zadaje jedna ręka;
+  - flaga `-morzaNoCrew` wyłącza także ludzi na lądzie.
 - **Front abordażu.** Na wąskim pomoście Ram front stoi w osi, czyli dalej od burty niż na szerokich galerach. Liczba miejsc na burtę ogranicza front obrazu, nie symulacji.
 - **Bez przejścia na drugi pokład.** Fronty walczą przez relingi ze swoich pokładów. Przejścia przez dwa relingi z kontaktem dłoni i stóp (IK) nie zrobiłem. Symulacja i tak nie przenosi ludzi między okrętami przed zdobyciem.
 - **Przejścia między stanowiskami** idą po prostej z interpolacją wysokości, nie po grafie pokładu. Przy krótkich przejściach (na reling, z ławy na pomost) przenikanie nie jest widoczne z kamery gry. Z bliska może być.

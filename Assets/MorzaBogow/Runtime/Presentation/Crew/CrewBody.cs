@@ -191,6 +191,9 @@ namespace MorzaBogow.Presentation
             // From afar (LOD2): the trunk, and each arm and leg in one along its upper bone.
             Trunk, ArmLong, LegLong,
             Hair, Beard, Helmet, Shield, Spear, Javelin, Bow, Quiver, Sword, Rope, Bailer, Pole, Stone, Bolt,
+            // Ashore (CrewAshore): the woodcutter's and shipwright's axe, the miner's pick, and the loads carried before
+            // the body: a trimmed log, a sealed chest of ore, a crate of goods.
+            Axe, Pick, Log, OreChest, Crate,
         }
 
         static readonly Dictionary<long, Mesh> cache = new Dictionary<long, Mesh>();
@@ -544,6 +547,31 @@ namespace MorzaBogow.Presentation
                     break;
                 case Piece.Bolt:
                     b.Loft(new Vector3(0f, 0f, -0.45f), new Vector3(0f, 0f, 0.45f), _ => new Vector2(0.018f, 0.018f), 1, 3, One, Vector3.up);
+                    break;
+                case Piece.Axe:
+                    // Held near the end of its haft (the fist at the origin): the haft along +Y, the bronze head at its top
+                    // with the edge toward +Z, the side that leads the blow (CrewAshore turns it in the hand).
+                    b.Loft(new Vector3(0f, -0.1f, 0f), new Vector3(0f, 0.64f, 0f), _ => new Vector2(0.017f, 0.017f), 1, lod == 0 ? 5 : 3, One, Vector3.forward);
+                    b.Box(new Vector3(0f, 0.57f, 0.06f), new Vector3(0.012f, 0.055f, 0.08f), Quaternion.identity, C(second));
+                    break;
+                case Piece.Pick:
+                    // The same haft; a head across it, pointed toward +Z (the blow), with a short butt behind.
+                    b.Loft(new Vector3(0f, -0.1f, 0f), new Vector3(0f, 0.62f, 0f), _ => new Vector2(0.017f, 0.017f), 1, lod == 0 ? 5 : 3, One, Vector3.forward);
+                    b.Loft(new Vector3(0f, 0.58f, -0.1f), new Vector3(0f, 0.58f, 0.22f), t => new Vector2(Mathf.Lerp(0.024f, 0.006f, t), Mathf.Lerp(0.03f, 0.008f, t)), 2, 4, _ => C(second), Vector3.up);
+                    break;
+                case Piece.Log:
+                    // A trimmed trunk carried across the arms, along +X, in its bark.
+                    b.Loft(new Vector3(-0.55f, 0f, 0f), new Vector3(0.55f, 0f, 0f), t => new Vector2(0.1f - 0.012f * t, 0.1f - 0.012f * t), 2, lod == 0 ? 8 : 5, One, Vector3.up);
+                    break;
+                case Piece.OreChest:
+                    // A sealed chest of ore: a wooden box with two bronze bands round it.
+                    b.Box(Vector3.zero, new Vector3(0.22f, 0.13f, 0.15f), Quaternion.identity, C(first));
+                    foreach (var x in new[] { -0.12f, 0.12f }) b.Box(new Vector3(x, 0f, 0f), new Vector3(0.02f, 0.137f, 0.157f), Quaternion.identity, C(second));
+                    break;
+                case Piece.Crate:
+                    // A wicker crate of goods, lashed with a rope round its middle.
+                    b.Box(Vector3.zero, new Vector3(0.2f, 0.17f, 0.18f), Quaternion.identity, C(first));
+                    b.Box(Vector3.zero, new Vector3(0.207f, 0.02f, 0.187f), Quaternion.identity, C(second));
                     break;
             }
             return b.Build();

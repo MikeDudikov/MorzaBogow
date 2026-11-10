@@ -1215,6 +1215,17 @@ namespace MorzaBogow.Presentation
             foreach (var ship in World.Ships)
             {
                 if (!views.TryGetValue(ship.Id, out var view)) continue;
+
+                // A cutter moored in port hands its cargo over the gunwale; the port's dock gang carries it to the store.
+                // Before the shore party below: a moored ship has none, and must not be skipped with it.
+                var inPort = ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Docked && ship.Cargo > 0;
+                if (inPort && docked.Add(ship.Id))
+                {
+                    var port = World.FindSettlement(ship.PortId);
+                    if (port != null) Deliver(port, GoodsOf(ship.CargoType), (int)Mathf.Clamp(ship.Cargo / (20 * Rules.Centi), 1, 4));
+                }
+                else if (!inPort) docked.Remove(ship.Id);
+
                 var (job, place) = CrewJobOf(ship);
                 if (job == CrewJob.None) recalled.Remove(ship.Id);
                 if (!crews.TryGetValue(ship.Id, out var crew))
@@ -1238,15 +1249,6 @@ namespace MorzaBogow.Presentation
                     crew.Destroy();
                     crews.Remove(ship.Id);
                 }
-
-                // A cutter moored in port hands its cargo over the gunwale; the port's dock gang carries it to the store.
-                var inPort = ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.Docked && ship.Cargo > 0;
-                if (inPort && docked.Add(ship.Id))
-                {
-                    var port = World.FindSettlement(ship.PortId);
-                    if (port != null) Deliver(port, GoodsOf(ship.CargoType), (int)Mathf.Clamp(ship.Cargo / (20 * Rules.Centi), 1, 4));
-                }
-                else if (!inPort) docked.Remove(ship.Id);
             }
 
             foreach (var id in crews.Keys.Where(id => World.FindShip(id) == null).ToList())
