@@ -720,6 +720,7 @@ namespace MorzaBogow.Presentation
             if (showcase >= 0 && showcase + 1 < arguments.Length) showcasePrefix = arguments[showcase + 1];
             ReadCrewShowcase(arguments);
             ReadLandscapeShowcase(arguments);
+            ReadCollapseArguments(arguments);
             var index = Array.IndexOf(arguments, "-morzaSmokeReport");
             if (index < 0 || index + 2 >= arguments.Length) return;
             smokeReport = arguments[index + 1];
@@ -748,6 +749,7 @@ namespace MorzaBogow.Presentation
                 PresentFrame();
                 UpdateCamera();
                 if (showcasePrefix != null) UpdateShowcase();
+                if (collapseReport != null) UpdateCollapse();
                 return;
             }
 

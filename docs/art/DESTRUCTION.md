@@ -153,9 +153,33 @@ Przy upadku całego portu bryły w powietrzu dostaje najpierw Szkoła, potem mia
 | I, pula | zrobione | `Destruction_I_…`, `Ship_ADockRepairStepsANewMastAndAReusedViewHasNoWreckage` |
 | J, załoga | sprawdzone w kodzie, bez testu | stanowiska załogi stoją na pokładzie i nie sięgają do olinowania (`CrewLayout.AddMast`); ludzie nie wiszą w powietrzu, ale mogą stać tam, gdzie leży maszt |
 | K, woda | zrobione | `water_guard check` (76 części bez zmian) |
-| L, wydajność | częściowo | `Destruction_L_AFallStaysWithinItsBudgets`; pomiar w edytorze niżej; pomiar w buildzie nie wykonany |
+| L, wydajność | zrobione | `Destruction_L_AFallStaysWithinItsBudgets`; pomiar w buildzie Windows i w edytorze niżej |
 | M, wielka bitwa | zrobione dla budżetu | `Destruction_M_ManyPortsFallingAtOnceShareOneBudget` |
 | rozszerzenie na port | zrobione | `Destruction_N_HousesTheWorkshopAndTheWallBreakToo`, `Destruction_O_TheShotsDrawTheDamageToWhatTheyStruck`, `Destruction_P_ShotsElsewhereNeverPutBackWhatFell`, `Destruction_Q_InSightTheBuildingsAreTakenApartAFewAFrame` |
+
+## Pomiar w buildzie Windows (RTX 3050 Ti Laptop, 1920×1080)
+
+`MorzaBogow.exe -morzaProfile Ultra|Low -morzaCollapseReport plik.json` (`BattleController.CollapseReport`). Na wolnym brzegu obok portu macierzystego powstaje inscenizowane miasto ze wszystkimi budowlami. Kamera stoi na nim.
+
+**Przebieg:**
+- 4 s stoi;
+- potem 14 trafień przy magazynie i kadłub spada do 40% (pomiar przez 6 s);
+- potem upada (4 s);
+- na końcu 4 s ruiny.
+
+Rozgrzewka startu gry (12 s) nie wlicza się do pomiaru. Dwa przebiegi Ultra i jeden Low (`artifacts-log/collapse-*.json`):
+
+| Faza | Ultra: klatka / CPU główny / GPU | Ultra: najgorsza klatka | Low: klatka / CPU główny / GPU | Low: najgorsza klatka |
+|---|---|---|---|---|
+| stoi | 43,5–43,8 / 7,5 / 41,6–41,9 ms | 50 ms | 19,0 / 4,8 / 17,2 ms | 22 ms |
+| ostrzał do 40% | 43,2–44,2 / 8,9 / 40,4–41,5 ms | 50–67 ms | 19,4 / 5,6 / 17,1 ms | 50,5 ms |
+| upadek | 43,7–44,6 / 8,5 / 40,4–41,5 ms | 67–83 ms | 19,6 / 5,3 / 17,6 ms | 27 ms |
+| ruina | 43,3–44,4 / 7,6 / 41,4–42,5 ms | 50 ms | 19,7 / 4,8 / 17,8 ms | 22 ms |
+
+**Wnioski:**
+- **Średnio:** zniszczenia dokładają 0,5–1,4 ms CPU głównego wątku w trakcie ostrzału i upadku. Po spoczynku dokładają ok. 0, a GPU się nie zmienia.
+- **Pojedyncze skoki:** jednorazowo 1–2 klatki. Na Low najgorsza klatka to 50 ms w chwili, gdy kadłub spada skokowo o 60% i 14 trafień przychodzi naraz. Na Ultra najgorsza to 67–83 ms przy starcie upadku.
+- **Cel 60 FPS:** nie jest spełniony już bez zniszczeń. Ultra jest ograniczona przez GPU (ok. 41 ms), co mierzono wcześniej.
 
 ## Pomiary całego portu (edytor, informacyjnie)
 
