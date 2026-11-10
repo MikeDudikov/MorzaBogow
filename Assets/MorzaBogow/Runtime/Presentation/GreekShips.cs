@@ -1723,6 +1723,9 @@ namespace MorzaBogow.Presentation
                     }
                     mesh.normals = normals;
                 }
+                // Tangents follow the UVs (metres along planks, spars and cloths), so the ship paint's normal maps lie
+                // along the grain and the weave.
+                mesh.RecalculateTangents();
                 mesh.RecalculateBounds();
                 return new GreekMesh { Mesh = mesh, Slots = used.ToArray() };
             }

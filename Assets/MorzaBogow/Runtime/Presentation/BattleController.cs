@@ -3036,6 +3036,8 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"silver\": [{World.Settlements[0].Silver / Rules.Centi}, {World.Settlements[1].Silver / Rules.Centi}],\n");
             report.Append($"  \"firstEnemySeenSeconds\": {firstEnemySeenSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");
             var culture = System.Globalization.CultureInfo.InvariantCulture;
+            var shipPaint = ShipPaints.PaintBase;
+            report.Append($"  \"lookShader\": \"{(shipPaint != null ? shipPaint.shader.name : "none")}\",\n  \"lookShaderSupported\": {(shipPaint != null && shipPaint.shader.isSupported ? "true" : "false")},\n");
             report.Append($"  \"outposts\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed)},\n  \"outpostShipyards\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed && item.HasShipyard)},\n  \"merchants\": {World.Ships.Count(item => item.Class == ShipClass.Merchant)},\n");
             report.Append($"  \"waterSamples\": {(water != null ? water.Samples : 0)},\n  \"waterFailures\": {(water != null ? water.Failures : 0)},\n");
             report.Append($"  \"waterMs\": {Ms(smokeWaterMs, smokeWaterFrames)},\n  \"waterMostHulls\": {(water != null ? water.MostHulls : 0)},\n");

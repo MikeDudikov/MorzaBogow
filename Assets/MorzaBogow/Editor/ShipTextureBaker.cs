@@ -1,19 +1,27 @@
 using System.IO;
+using MorzaBogow.Presentation;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace MorzaBogow.Editor
 {
     /// <summary>
     /// Bakes the shared textures of the ships' looks from code, the same bytes every time (no downloads, no Random): four
-    /// wood grains, four sail cloths, two of worn pitch, rope and wicker. They are base colour only and near white, so
-    /// each material's tone gives the hue. Planks run along U as the generator's UVs follow the planks, a sail's cloths run
-    /// down V, and every texture tiles without a seam. Run from the menu or with
-    /// -executeMethod MorzaBogow.Editor.ShipTextureBaker.Run; the runtime loads them from Resources/ShipLook.
+    /// wood grains, four sail cloths, two of worn pitch, rope and wicker. Each has three maps: the base colour (near white,
+    /// so each material's tone gives the hue), a tangent-space normal map and a mask map packed as HDRP Lit packs it
+    /// (R metallic, G occlusion, B detail mask, here where the ship's wear shows, A smoothness relative to the tone's).
+    /// The normal and mask maps come from a relief, wear and gloss made with the same recipe as the colour, so seams,
+    /// grain, weave and strands line up in all three. Planks run along U as the generator's UVs follow the planks, a sail's
+    /// cloths run down V, and every texture tiles without a seam. Run from the menu or with
+    /// -executeMethod MorzaBogow.Editor.ShipTextureBaker.Run, which also makes the ship paint material the palette clones;
+    /// the runtime loads all of it from Resources/ShipLook.
     /// </summary>
     public static class ShipTextureBaker
     {
         public const string Folder = "Assets/MorzaBogow/Art/Ships/Resources/ShipLook";
+        public const string PaintGraph = "Assets/MorzaBogow/Art/Ships/Shaders/ShipPaint.shadergraph";
+        public static string PaintMaterialPath => $"{Folder}/{ShipPaints.PaintMaterial}.mat";
 
         public static readonly (string name, int size)[] Textures =
         {
@@ -22,23 +30,46 @@ namespace MorzaBogow.Editor
             ("worn_a", 256), ("worn_b", 256), ("rope", 256), ("wicker", 256),
         };
 
+        /// <summary>The maps of each texture: its colour (sRGB), its normal map and its mask map (both linear).</summary>
+        public enum Map { Colour, Normal, Mask }
+
+        public static readonly Map[] Maps = { Map.Colour, Map.Normal, Map.Mask };
+
+        public static string FileName(string name, Map map) =>
+            map == Map.Normal ? name + ShipPaints.NormalSuffix : map == Map.Mask ? name + ShipPaints.MaskSuffix : name;
+
+        public static string PathOf(string name, Map map) => $"{Folder}/{FileName(name, map)}.png";
+
         [MenuItem("Morza Bogów/Okręty/Wypal tekstury wariantów")]
         public static void Run()
         {
             Directory.CreateDirectory(Folder);
-            foreach (var (name, size) in Textures) File.WriteAllBytes($"{Folder}/{name}.png", Encode(name, size));
+            foreach (var (name, size) in Textures)
+            foreach (var map in Maps)
+                File.WriteAllBytes(PathOf(name, map), Encode(name, size, map));
             AssetDatabase.Refresh();
-            foreach (var (name, size) in Textures) Configure($"{Folder}/{name}.png", name, size);
-            Debug.Log($"[ShipTextureBaker] {Textures.Length} textures in {Folder}");
+            foreach (var (name, size) in Textures)
+            foreach (var map in Maps)
+                Configure(PathOf(name, map), name, size, map);
+            MakePaintMaterial();
+            Debug.Log($"[ShipTextureBaker] {Textures.Length * Maps.Length} textures and {ShipPaints.PaintMaterial}.mat in {Folder}");
         }
 
         /// <summary>Colour textures with mipmaps and anisotropic filtering, compressed at high quality; worn pitch is clamped (one patch, 0..1), the rest repeats.</summary>
-        public static void Configure(string path, string name, int size)
+        public static void Configure(string path, string name, int size) => Configure(path, name, size, Map.Colour);
+
+        /// <summary>
+        /// As the colour, except that the normal map is imported as one (linear, BC5 on Windows) and the mask map is linear
+        /// data with its own alpha (smoothness), never treated as transparency.
+        /// </summary>
+        public static void Configure(string path, string name, int size, Map map)
         {
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            importer.textureType = TextureImporterType.Default;
-            importer.sRGBTexture = true;
-            importer.alphaSource = TextureImporterAlphaSource.None;
+            importer.textureType = map == Map.Normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            importer.convertToNormalmap = false;
+            importer.sRGBTexture = map == Map.Colour;
+            importer.alphaSource = map == Map.Mask ? TextureImporterAlphaSource.FromInput : TextureImporterAlphaSource.None;
+            importer.alphaIsTransparency = false;
             importer.mipmapEnabled = true;
             importer.wrapMode = name.StartsWith("worn") ? TextureWrapMode.Clamp : TextureWrapMode.Repeat;
             importer.filterMode = FilterMode.Trilinear;
@@ -48,12 +79,56 @@ namespace MorzaBogow.Editor
             importer.SaveAndReimport();
         }
 
+        /// <summary>
+        /// The material every palette material is cloned from: the ship paint graph with neutral values (white, no map,
+        /// smoothness 0.5, full wear response). It lives in Resources, so the build carries the graph and the variant this
+        /// material uses, and every clone keeps the same keywords.
+        /// </summary>
+        public static Material MakePaintMaterial()
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(PaintGraph);
+            if (shader == null) throw new System.InvalidOperationException("Ship paint graph not found: " + PaintGraph);
+            var material = AssetDatabase.LoadAssetAtPath<Material>(PaintMaterialPath);
+            if (material == null)
+            {
+                material = new Material(shader) { name = ShipPaints.PaintMaterial };
+                AssetDatabase.CreateAsset(material, PaintMaterialPath);
+            }
+            material.shader = shader;
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Smoothness", 0.5f);
+            material.SetFloat("_Metallic", 0f);
+            material.SetFloat("_NormalScale", 1f);
+            material.SetFloat(ShipPaints.WearStrength, 1f);
+            HDMaterial.ValidateMaterial(material);
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+            return material;
+        }
+
         public static byte[] Encode(string name, int size)
         {
             var texture = new Texture2D(size, size, TextureFormat.RGB24, false);
             try
             {
                 texture.SetPixels32(Pixels(name, size));
+                texture.Apply(false);
+                return texture.EncodeToPNG();
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
+        /// <summary>One map of a texture as PNG bytes: the colour as above, the normal map as RGB, the mask map as RGBA.</summary>
+        public static byte[] Encode(string name, int size, Map map)
+        {
+            if (map == Map.Colour) return Encode(name, size);
+            var texture = new Texture2D(size, size, map == Map.Mask ? TextureFormat.RGBA32 : TextureFormat.RGB24, false, true);
+            try
+            {
+                texture.SetPixels32(map == Map.Normal ? NormalPixels(name, size) : MaskPixels(name, size));
                 texture.Apply(false);
                 return texture.EncodeToPNG();
             }
@@ -219,6 +294,271 @@ namespace MorzaBogow.Editor
             }
             return pixels;
         }
+
+        // Relief, wear and gloss -----------------------------------------------------------------------------------------
+        /// <summary>
+        /// What a texture's normal and mask maps are made from, per pixel: the relief in pixel units (a rise of one over one
+        /// pixel is a 45° slope), where the ship's wear shows (0..1), the smoothness relative to the tone's (0.3..1: a seam or
+        /// grime dulls it, never to nothing) and the occlusion of grooves and gaps (0..1). The texture repeats along the axes
+        /// marked to wrap; a sail's height does not.
+        /// </summary>
+        public sealed class Surface
+        {
+            public readonly int Size;
+            public readonly bool WrapU, WrapV;
+            public readonly float[] Height, Wear, Gloss, Occlusion;
+
+            public Surface(int size, bool wrapU, bool wrapV)
+            {
+                Size = size;
+                WrapU = wrapU;
+                WrapV = wrapV;
+                Height = new float[size * size];
+                Wear = new float[size * size];
+                Gloss = new float[size * size];
+                Occlusion = new float[size * size];
+            }
+
+            public void Set(int x, int y, float height, float wear, float gloss, float occlusion)
+            {
+                var i = y * Size + x;
+                Height[i] = height;
+                Wear[i] = Mathf.Clamp01(wear);
+                Gloss[i] = Mathf.Clamp(gloss, 0.3f, 1f);
+                Occlusion[i] = Mathf.Clamp01(occlusion);
+            }
+        }
+
+        /// <summary>The colour's recipes (Pixels) with the same seeds and numbers, so relief and masks match what the colour shows.</summary>
+        public static Surface SurfaceOf(string name, int size) => name switch
+        {
+            "grain_fine" => GrainSurface(size, 11, 0.24f, 0.10f, 0, 0.02f, 0.04f),
+            "grain_straight" => GrainSurface(size, 23, 0.2f, 0.16f, 1, 0.03f, 0.06f),
+            "grain_knotty" => GrainSurface(size, 37, 0.18f, 0.2f, 6, 0.04f, 0.08f),
+            "grain_weathered" => GrainSurface(size, 53, 0.22f, 0.27f, 3, 0.05f, 0.15f),
+            "canvas_narrow" => CanvasSurface(size, 61, 8, false, 0.12f),
+            "canvas_wide" => CanvasSurface(size, 67, 5, false, 0.12f),
+            "canvas_band" => CanvasSurface(size, 71, 6, true, 0.14f),
+            "canvas_grimy" => CanvasSurface(size, 79, 6, false, 0.38f),
+            "worn_a" => WornSurface(size, 83),
+            "worn_b" => WornSurface(size, 89),
+            "rope" => RopeSurface(size),
+            "wicker" => WickerSurface(size),
+            _ => throw new System.ArgumentException($"No such ship texture: {name}"),
+        };
+
+        /// <summary>Tangent-space normals from the relief by central differences, wrapping where the texture repeats; +Y is +V.</summary>
+        public static Color32[] NormalPixels(string name, int size)
+        {
+            var surface = SurfaceOf(name, size);
+            var height = surface.Height;
+            var pixels = new Color32[size * size];
+            for (var y = 0; y < size; y++)
+            {
+                var (down, up, spanV) = Neighbours(y, size, surface.WrapV);
+                for (var x = 0; x < size; x++)
+                {
+                    var (left, right, spanU) = Neighbours(x, size, surface.WrapU);
+                    var slopeU = (height[y * size + right] - height[y * size + left]) / spanU;
+                    var slopeV = (height[up * size + x] - height[down * size + x]) / spanV;
+                    var normal = new Vector3(-slopeU, -slopeV, 1f).normalized;
+                    pixels[y * size + x] = new Color32(Byte(normal.x * 0.5f + 0.5f), Byte(normal.y * 0.5f + 0.5f), Byte(normal.z * 0.5f + 0.5f), 255);
+                }
+            }
+            return pixels;
+        }
+
+        /// <summary>HDRP Lit packing: R metallic (none of this is metal), G occlusion, B detail mask (where wear shows), A smoothness.</summary>
+        public static Color32[] MaskPixels(string name, int size)
+        {
+            var surface = SurfaceOf(name, size);
+            var pixels = new Color32[size * size];
+            for (var i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color32(0, Byte(surface.Occlusion[i]), Byte(surface.Wear[i]), Byte(surface.Gloss[i]));
+            return pixels;
+        }
+
+        static (int before, int after, float span) Neighbours(int i, int size, bool wrap)
+        {
+            if (wrap) return ((i - 1 + size) % size, (i + 1) % size, 2f);
+            var before = Mathf.Max(0, i - 1);
+            var after = Mathf.Min(size - 1, i + 1);
+            return (before, after, after - before);
+        }
+
+        /// <summary>
+        /// A groove's profile at a distance (pixels) from its middle: 1 in the cut, then 0.6 falling to 0 over the rounded
+        /// shoulder beside it.
+        /// </summary>
+        static float Groove(float distance, float halfWidth, float shoulder)
+        {
+            if (distance <= halfWidth) return 1f;
+            var fall = 1f - Mathf.Clamp01((distance - halfWidth) / shoulder);
+            return fall * fall * 0.6f;
+        }
+
+        /// <summary>
+        /// Planking: planks rounded at their edges with a groove at each seam and butt joint, each plank a little proud of or
+        /// below its neighbours, latewood standing out of the grain (more on weathered timber), the adze's scallops and
+        /// raised knots. Wear shows on the plank edges, the grain's ridges and its streaks, never down in a seam; seams and
+        /// joints are dull and shaded.
+        /// </summary>
+        static Surface GrainSurface(int size, int seed, float plankWidth, float contrast, int knots, float toolMarks, float wear)
+        {
+            const float tile = 4f;
+            var planks = Mathf.Max(4, Mathf.RoundToInt(tile / plankWidth));
+            var surface = new Surface(size, true, true);
+            var knotAt = new Vector2[knots];
+            for (var k = 0; k < knots; k++) knotAt[k] = new Vector2(Hash01(seed, k, 1) * tile, (Mathf.Floor(Hash01(seed, k, 2) * planks) + 0.5f) * tile / planks);
+            var scallops = Mathf.RoundToInt(tile / 0.06f);
+            var plankPixels = (float)size / planks;
+            var pixelsPerMetre = size / tile;
+            for (var y = 0; y < size; y++)
+            {
+                var vn = (y + 0.5f) / size;
+                var v = vn * tile;
+                var plank = Mathf.Min(planks - 1, (int)(vn * planks));
+                var inPlank = vn * planks - plank;
+                var butt = Hash01(seed, plank, 4) * tile;
+                var proud = (Hash01(seed, plank, 6) - 0.5f) * 0.5f;
+                var edge = Mathf.Min(inPlank, 1f - inPlank);
+                var seam = Groove(edge * plankPixels, 0.035f * plankPixels, 3f);
+                var worn = Mathf.Clamp01(1f - edge * 8f);
+                for (var x = 0; x < size; x++)
+                {
+                    var un = (x + 0.5f) / size;
+                    var u = un * tile;
+                    var fibre = Noise(un * 3f, vn * 36f + plank * 3.1f, 3f, 36f, seed);
+                    var lines = Mathf.Sin((vn * 64f + fibre * 4f + Noise(un * 8f, vn * 8f, 8f, 8f, seed + 1) * 2.5f) * Mathf.PI);
+                    var streaks = Noise(un * 24f, vn * 160f, 24f, 160f, seed + 3) - 0.5f;
+                    var adze = Mathf.Sin(un * scallops * Mathf.PI * 2f + Hash01(seed, plank, 5) * 6f) * (0.5f + 0.5f * Noise(un * 4f, vn * 16f, 4f, 16f, seed + 2));
+                    var knotted = 0f;
+                    foreach (var knot in knotAt)
+                    {
+                        var d = new Vector2(Wrap(u - knot.x, tile) * 2.2f, Wrap(v - knot.y, tile) * 6f).magnitude;
+                        if (d < 0.35f) knotted = Mathf.Max(knotted, 1f - d / 0.35f);
+                    }
+                    var joint = Groove(Mathf.Abs(Wrap(u - butt, tile)) * pixelsPerMetre, 0.012f * pixelsPerMetre, 2f);
+                    var cut = Mathf.Max(seam, joint);
+                    var inCut = cut >= 1f ? 1f : 0f;
+                    var height = proud + lines * contrast * 1.2f + streaks * contrast * 0.8f + adze * toolMarks * 3f + knotted * 0.9f - cut * 1.4f;
+                    var wearMask = (0.2f + worn * 0.6f + Mathf.Max(0f, lines) * 0.35f + streaks * 0.6f + wear * 1.5f) * (1f - inCut * 0.9f);
+                    var gloss = 0.9f + streaks * 0.15f - worn * 0.25f + knotted * 0.05f - cut * 0.5f;
+                    var occlusion = 1f - cut * 0.5f - Mathf.Max(0f, -lines) * contrast * 0.25f;
+                    surface.Set(x, y, height, wearMask, gloss, occlusion);
+                }
+            }
+            return surface;
+        }
+
+        /// <summary>
+        /// A sail: the doubled cloth along each seam stands up as a ridge, the strip sewn on below the yard is a thicker band
+        /// with its stitching sunk in, a fine weave over all and the cloth's soft puckering. Wear shows on the seams, the
+        /// weave's raised threads and toward the grimy foot, which is also duller. The height (V) does not repeat.
+        /// </summary>
+        static Surface CanvasSurface(int size, int seed, int cloths, bool band, float grime)
+        {
+            var surface = new Surface(size, true, false);
+            var clothPixels = (float)size / cloths;
+            var seamHalf = 0.02f * cloths / 6f * clothPixels;
+            for (var y = 0; y < size; y++)
+            {
+                var v = (y + 0.5f) / size;
+                var foot = Mathf.Clamp01((v - 0.72f) / 0.28f);
+                for (var x = 0; x < size; x++)
+                {
+                    var u = (x + 0.5f) / size;
+                    var cloth = Mathf.Min(cloths - 1, (int)(u * cloths));
+                    var inCloth = u * cloths - cloth;
+                    var ridge = Mathf.Clamp01(1f - Mathf.Min(inCloth, 1f - inCloth) * clothPixels / (seamHalf * 2.5f));
+                    ridge = ridge * ridge * (3f - 2f * ridge);
+                    var weave = Noise(u * 160f, v * 120f, 160f, 120f, seed) - 0.5f;
+                    var pucker = Noise(u * 12f, v * 6f, 12f, 6f, seed + 1) - 0.5f;
+                    var height = ridge * 0.9f + weave * 0.35f + pucker * 2f;
+                    var stitched = 0f;
+                    if (band && v < 0.07f)
+                    {
+                        height += 0.7f;
+                        if (v > 0.064f)
+                        {
+                            height -= 0.5f;
+                            stitched = 1f;
+                        }
+                    }
+                    var dirt = foot * foot * grime * (0.6f + 0.8f * Noise(u * 8f, v * 5f, 8f, 5f, seed + 2));
+                    var wearMask = 0.15f + ridge * 0.5f + Mathf.Max(0f, weave) * 0.5f + dirt * 1.5f;
+                    var gloss = 0.95f - ridge * 0.1f - dirt * 1.2f;
+                    var occlusion = 1f - ridge * (1f - ridge) * 0.4f - Mathf.Max(0f, -weave) * 0.2f - stitched * 0.3f;
+                    surface.Set(x, y, height, wearMask, gloss, occlusion);
+                }
+            }
+            return surface;
+        }
+
+        /// <summary>
+        /// Worn pitch: the pitch is a layer on the planks, so where it is worn through the wood lies lower and shows its
+        /// grain; the rim of each bare island is shaded, wear shows on the bare wood, and the pitch keeps more gloss.
+        /// </summary>
+        static Surface WornSurface(int size, int seed)
+        {
+            var surface = new Surface(size, false, false);
+            for (var y = 0; y < size; y++)
+            {
+                var v = (y + 0.5f) / size;
+                for (var x = 0; x < size; x++)
+                {
+                    var u = (x + 0.5f) / size;
+                    var edge = Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v)) * 2f;
+                    var ragged = Noise(u * 6f, v * 6f, 6f, 6f, seed) * 0.6f + Noise(u * 17f, v * 17f, 17f, 17f, seed + 1) * 0.4f;
+                    var bare = Mathf.Clamp01((edge * 1.6f + ragged - 0.95f) * 4f);
+                    var grain = Mathf.Sin((v * 14f + Noise(u * 2f, v * 5f, 2f, 5f, seed + 2) * 3f) * Mathf.PI);
+                    var fibres = Noise(u * 12f, v * 48f, 12f, 48f, seed + 3) - 0.5f;
+                    var height = (1f - bare) * 1.6f + bare * (grain * 0.25f + fibres * 0.3f);
+                    var rim = bare * (1f - bare) * 4f;
+                    surface.Set(x, y, height, 0.25f + bare * 0.75f, 1f - bare * 0.35f + fibres * 0.1f, 1f - rim * 0.2f - bare * Mathf.Max(0f, -grain) * 0.1f);
+                }
+            }
+            return surface;
+        }
+
+        /// <summary>Three-strand rope: round strands with a sharp groove between them and fibres along them; the crowns wear.</summary>
+        static Surface RopeSurface(int size)
+        {
+            var surface = new Surface(size, true, true);
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var u = (x + 0.5f) / size;
+                var v = (y + 0.5f) / size;
+                var strand = Mathf.Sin(Mathf.Repeat(u * 6f + v * 3f, 1f) * Mathf.PI);
+                var fibre = Noise(u * 64f, v * 16f, 64f, 16f, 97) - 0.5f;
+                surface.Set(x, y, strand * 6f + fibre * 0.6f, strand * strand * 0.8f + fibre * 0.5f, 0.55f + strand * 0.4f, 0.45f + 0.55f * Mathf.Sqrt(strand));
+            }
+            return surface;
+        }
+
+        /// <summary>Basketwork: round weavers rising where they pass over and dipping where they go under, gaps between them.</summary>
+        static Surface WickerSurface(int size)
+        {
+            const int cells = 8;
+            var surface = new Surface(size, true, true);
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var u = (x + 0.5f) / size * cells;
+                var v = (y + 0.5f) / size * cells;
+                int cu = (int)u, cv = (int)v;
+                var over = (cu + cv) % 2 == 0;
+                var round = Mathf.Sin((over ? v - cv : u - cu) * Mathf.PI);
+                var rise = Mathf.Sin((over ? u - cu : v - cv) * Mathf.PI);
+                var noise = Noise(u * 6f, v * 6f, cells * 6f, cells * 6f, 101) - 0.5f;
+                surface.Set(x, y, round * 3.5f + rise * 1.2f + noise * 0.4f, round * (0.4f + 0.4f * rise) + noise * 0.4f, 0.5f + round * 0.45f,
+                    (0.5f + 0.5f * round) * (0.85f + 0.15f * rise));
+            }
+            return surface;
+        }
+
+        static byte Byte(float value) => (byte)Mathf.RoundToInt(Mathf.Clamp01(value) * 255f);
 
         // Deterministic noise --------------------------------------------------------------------------------------------
         static Color32 Grey(float value)

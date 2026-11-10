@@ -658,7 +658,7 @@ namespace MorzaBogow.Presentation
                 for (var i = 0; i < pieces.Length; i++)
                 {
                     // The pieces keep the ship's own pitch, ochre and timber.
-                    pieces[i] = GreekShips.Attach(model, $"Broken piece {i}", parts.Sections[i], view.MaterialsFor(parts.Sections[i]));
+                    pieces[i] = view.AttachPiece(model, $"Broken piece {i}", parts.Sections[i]);
                     var end = i - 1;
                     pieceDrift[i] = new Vector3(((float)random.NextDouble() - 0.5f) * 1.5f, 0f, end * length * 0.08f);
                     // The ends rear up as the middle goes down first.
@@ -667,7 +667,7 @@ namespace MorzaBogow.Presentation
                 }
                 if (parts.Ram != null)
                 {
-                    var ram = GreekShips.Attach(pieces[pieces.Length - 1], "Ram", parts.Ram, view.MaterialsFor(parts.Ram));
+                    var ram = view.AttachPiece(pieces[pieces.Length - 1], "Ram", parts.Ram);
                     ram.localPosition = Vector3.zero;
                 }
                 var cuts = new[] { -length * 0.5f + length * 0.36f, -length * 0.5f + length * 0.68f };

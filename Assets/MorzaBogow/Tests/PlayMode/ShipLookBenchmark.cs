@@ -30,6 +30,10 @@ namespace MorzaBogow.Tests
 
         static bool Requested => Array.IndexOf(Environment.GetCommandLineArgs(), "-morzaBenchmark") >= 0;
 
+        /// <summary>
+        /// The scene's placeholder paints as BattleSceneBuilder makes them: HDRP/Lit, validated as HDRP validates a material
+        /// asset (keywords, passes, the render queue of a paint that receives decals), so every mode draws what the game draws.
+        /// </summary>
         static PlaceholderMaterials Materials()
         {
             var lit = Shader.Find("HDRP/Lit");
@@ -38,6 +42,7 @@ namespace MorzaBogow.Tests
                 var material = new Material(lit) { name = name };
                 material.SetColor("_BaseColor", colour);
                 material.SetFloat("_Smoothness", smoothness);
+                HDMaterial.ValidateMaterial(material);
                 return material;
             }
             return new PlaceholderMaterials
@@ -51,7 +56,8 @@ namespace MorzaBogow.Tests
 
         sealed class Measured
         {
-            public int Ships, Renderers, Blocks;
+            public int Ships, Renderers, Blocks, Converted;
+            public bool MapKeywords;
         }
 
         [UnityTest]
@@ -63,7 +69,10 @@ namespace MorzaBogow.Tests
             Assert.That(measured.Renderers, Is.GreaterThan(measured.Ships), "Every ship draws its hull, deck, rig, sail and oars.");
         }
 
-        /// <summary>Every ship in its own look from the shared palette: what the game does.</summary>
+        /// <summary>
+        /// Every ship in its own look from the shared palette: what the game does. The palette's materials are the ship paint
+        /// graph with its colour, normal and mask maps, and each ship's wear is in its renderers' values.
+        /// </summary>
         [UnityTest]
         public IEnumerator Benchmark_LooksFromThePalette()
         {
@@ -85,6 +94,91 @@ namespace MorzaBogow.Tests
             var run = Run("mpb", measured);
             while (run.MoveNext()) yield return run.Current;
             Assert.That(measured.Blocks, Is.GreaterThan(measured.Ships), "Every ship's look is carried by property blocks.");
+        }
+
+        /// <summary>
+        /// The palette as it was before the ship paint (9ab5039): each paint drawn by an HDRP/Lit copy with its colour map
+        /// only, no normal or mask map and no wear.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Benchmark_LooksFromTheLitPalette()
+        {
+            var measured = new Measured();
+            var run = Run("lit", measured);
+            while (run.MoveNext()) yield return run.Current;
+            Assert.That(measured.Converted, Is.GreaterThan(measured.Ships), "Every ship's look is drawn by HDRP/Lit copies of its palette.");
+        }
+
+        /// <summary>
+        /// HDRP/Lit with the same colour, normal and mask maps (keywords _NORMALMAP and _MASKMAP): the paint's picture without
+        /// the wear, so the graph is priced against Lit doing the same work.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Benchmark_LooksFromTheLitPaletteWithMaps()
+        {
+            var measured = new Measured();
+            var run = Run("litmaps", measured);
+            while (run.MoveNext()) yield return run.Current;
+            Assert.That(measured.Converted, Is.GreaterThan(measured.Ships), "Every ship's look is drawn by HDRP/Lit copies with its maps.");
+            Assert.That(measured.MapKeywords, Is.True, "The copies with maps use HDRP/Lit's normal and mask map variants.");
+        }
+
+        /// <summary>
+        /// Puts each ship paint material of a view into an HDRP/Lit copy (one copy per palette material, shared like the
+        /// palette): its colour, smoothness and colour map, and with maps also its normal and mask maps, smoothness from the
+        /// mask's alpha up to the tone's as the paint reads it.
+        /// </summary>
+        static int ToLit(ShipVisual view, bool maps, Dictionary<Material, Material> copies)
+        {
+            var lit = Shader.Find("HDRP/Lit");
+            var converted = 0;
+            foreach (var renderer in view.GetComponentsInChildren<Renderer>(true))
+            {
+                var list = renderer.sharedMaterials;
+                var changed = false;
+                for (var i = 0; i < list.Length; i++)
+                {
+                    var paint = list[i];
+                    if (paint == null || !paint.HasProperty(ShipPaints.WearStrength)) continue;
+                    if (!copies.TryGetValue(paint, out var copy))
+                    {
+                        copy = new Material(lit) { name = paint.name };
+                        copy.SetColor("_BaseColor", paint.GetColor("_BaseColor"));
+                        copy.SetFloat("_Smoothness", paint.GetFloat("_Smoothness"));
+                        copy.SetFloat("_Metallic", paint.GetFloat("_Metallic"));
+                        var colour = paint.GetTexture("_BaseColorMap");
+                        if (colour != null)
+                        {
+                            copy.SetTexture("_BaseColorMap", colour);
+                            copy.SetTextureScale("_BaseColorMap", paint.GetTextureScale("_BaseColorMap"));
+                        }
+                        var normal = maps ? paint.GetTexture("_NormalMap") : null;
+                        var mask = maps ? paint.GetTexture("_MaskMap") : null;
+                        if (normal != null)
+                        {
+                            copy.SetTexture("_NormalMap", normal);
+                            copy.SetFloat("_NormalScale", paint.GetFloat("_NormalScale"));
+                        }
+                        if (mask != null)
+                        {
+                            copy.SetTexture("_MaskMap", mask);
+                            copy.SetFloat("_SmoothnessRemapMin", 0f);
+                            copy.SetFloat("_SmoothnessRemapMax", paint.GetFloat("_Smoothness"));
+                            copy.SetFloat("_AORemapMin", 0f);
+                            copy.SetFloat("_AORemapMax", 1f);
+                        }
+                        // As HDRP validates a material asset: the keywords of its maps (_NORMALMAP, _MASKMAP) and the queue
+                        // of a paint that receives decals, the same as the ship paint's.
+                        HDMaterial.ValidateMaterial(copy);
+                        copies[paint] = copy;
+                    }
+                    list[i] = copy;
+                    changed = true;
+                    converted++;
+                }
+                if (changed) renderer.sharedMaterials = list;
+            }
+            return converted;
         }
 
         /// <summary>Puts each palette material back to its scene material and carries its tone in a property block.</summary>
@@ -131,6 +225,7 @@ namespace MorzaBogow.Tests
             var materials = Materials();
             var world = new World(1);
             var views = new List<ShipVisual>();
+            var litCopies = new Dictionary<Material, Material>();
             var root = new GameObject("Benchmark fleet");
             var camera = new GameObject("Benchmark camera").AddComponent<Camera>();
             camera.gameObject.AddComponent<HDAdditionalCameraData>();
@@ -148,6 +243,7 @@ namespace MorzaBogow.Tests
                     var ship = world.SpawnShip(i % 2, ShipClass.Ram, x, y);
                     var view = ShipVisual.Create(ship, materials, mode == "plain" ? null : ShipLookComposer.Compose(ship.Id, ship.Class, ship.Owner));
                     if (mode == "mpb") measured.Blocks += ToPropertyBlocks(view, materials);
+                    if (mode == "lit" || mode == "litmaps") measured.Converted += ToLit(view, mode == "litmaps", litCopies);
                     view.transform.SetParent(root.transform, false);
                     view.transform.SetPositionAndRotation(new Vector3(x, 0f, y), Quaternion.Euler(0f, i * 37f % 360f, 0f));
                     views.Add(view);
@@ -169,6 +265,7 @@ namespace MorzaBogow.Tests
                 Assert.That(views.Count, Is.EqualTo(count));
                 measured.Ships = count;
                 measured.Renderers = renderers.Count;
+                measured.MapKeywords = litCopies.Values.Any(c => c.IsKeywordEnabled("_NORMALMAP")) && litCopies.Values.Any(c => c.IsKeywordEnabled("_MASKMAP"));
                 if (!Requested) yield break;
 
                 var counters = new (string key, ProfilerCategory category, string name)[]
@@ -215,6 +312,10 @@ namespace MorzaBogow.Tests
                 json.Append($"  \"device\": \"{SystemInfo.graphicsDeviceName}\",\n  \"quality\": \"{QualitySettings.names[QualitySettings.GetQualityLevel()]}\",\n");
                 json.Append($"  \"srpBatcher\": {(GraphicsSettings.useScriptableRenderPipelineBatching ? "true" : "false")},\n  \"resolution\": \"1920x1080\",\n");
                 json.Append($"  \"renderersPerShip\": {(renderers.Count / (double)count).ToString("0.00", culture)},\n  \"distinctMaterials\": {distinctMaterials},\n  \"propertyBlocks\": {measured.Blocks},\n");
+                var paints = renderers.SelectMany(r => r.sharedMaterials).Where(m => m != null && m.name.Contains(" [")).Distinct().ToList();
+                var paintShaders = paints.Select(m => m.shader.name).Distinct().OrderBy(n => n);
+                var paintQueues = paints.Select(m => m.renderQueue).Distinct().OrderBy(q => q);
+                json.Append($"  \"paintShaders\": \"{string.Join(", ", paintShaders)}\",\n  \"paintQueues\": \"{string.Join(", ", paintQueues)}\",\n  \"convertedToLit\": {measured.Converted},\n");
                 json.Append($"  \"createMsPerShip\": {(createMs / count).ToString("0.000", culture)},\n  \"animateMsPerFrame\": {(animateMs / Frames).ToString("0.000", culture)},\n");
                 for (var c = 0; c < counters.Length; c++)
                 {
@@ -230,6 +331,7 @@ namespace MorzaBogow.Tests
             finally
             {
                 foreach (var view in views) if (view != null) Object.Destroy(view.gameObject);
+                foreach (var copy in litCopies.Values) Object.Destroy(copy);
                 Object.Destroy(root);
                 Object.Destroy(camera.gameObject);
                 Object.Destroy(sun);

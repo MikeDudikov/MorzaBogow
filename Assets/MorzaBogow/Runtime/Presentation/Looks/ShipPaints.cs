@@ -5,17 +5,45 @@ namespace MorzaBogow.Presentation
 {
     /// <summary>
     /// The materials of one ship's look, from a small shared palette. Each tone of the profile (with its grain or cloth
-    /// texture) becomes one material, made once from the scene's material for that paint (or the palette's fallback) and
-    /// shared by every ship that has the tone: no material per ship and none per frame, and the SRP Batcher batches them
-    /// like any other. The sail takes the owner's dye in the ship's own cloth, so a ship that is taken keeps its cloth,
-    /// patches and timber and changes only its colours. The plain look uses the scene's materials unchanged.
+    /// texture) becomes one material, made once and shared by every ship that has the tone: no material per ship and none
+    /// per frame, and the SRP Batcher batches them like any other. A palette material is a clone of the ship paint
+    /// material (Resources/ShipLook/ShipPaint, the ship paint Shader Graph) with the tone's colour and smoothness and its
+    /// texture's colour, normal and mask maps; what differs ship to ship (wear) is not in the material but in each
+    /// renderer's value (ShipSurface), which ShipVisual sets. Without the paint material the scene's material for the
+    /// paint is cloned instead, base colour only. The sail takes the owner's dye in the ship's own cloth, so a ship that is
+    /// taken keeps its cloth, patches and timber and changes only its colours. The plain look uses the scene's materials
+    /// unchanged.
     /// </summary>
     public sealed class ShipPaints
     {
+        /// <summary>The ship paint material in Resources/ShipLook, and the suffixes of each texture's normal and mask maps there.</summary>
+        public const string PaintMaterial = "ShipPaint", NormalSuffix = "_normal", MaskSuffix = "_mask";
+        /// <summary>How much of the ship's wear a paint shows: 1 where its mask says, a little everywhere on a paint without texture.</summary>
+        public const string WearStrength = "_WearStrength";
+        public const float PlainWearStrength = 0.35f;
+
         readonly ShipLook look;
         readonly PlaceholderMaterials materials;
         static readonly Dictionary<(Material source, string key), Material> palette = new Dictionary<(Material, string), Material>();
         static readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>();
+        static Material paintMaterial;
+
+        /// <summary>
+        /// The material every palette material is cloned from, or null when the ship paint is missing or its shader cannot
+        /// run here. Loaded again if Resources let it go, since no palette material keeps it.
+        /// </summary>
+        public static Material PaintBase
+        {
+            get
+            {
+                if (paintMaterial == null)
+                {
+                    var loaded = Resources.Load<Material>("ShipLook/" + PaintMaterial);
+                    paintMaterial = loaded != null && loaded.shader.isSupported ? loaded : null;
+                }
+                return paintMaterial;
+            }
+        }
 
         public ShipPaints(ShipLook look, PlaceholderMaterials materials)
         {
@@ -116,17 +144,34 @@ namespace MorzaBogow.Presentation
             return made;
         }
 
+        /// <summary>
+        /// One palette material: a clone of the ship paint (or, without it, of the scene's material) named after the scene's
+        /// material and the tone, so it reads the same in every list. The paint takes the source's metal (none for the
+        /// paints the looks vary), the tone's colour and smoothness, and the texture's colour, normal and mask maps.
+        /// </summary>
         static Material Make(Material source, string key, Color colour, float smoothness, string texture, Vector2 tiling)
         {
-            var made = new Material(source) { name = $"{source.name} [{key}]" };
+            var basis = PaintBase;
+            var made = new Material(basis != null ? basis : source) { name = $"{source.name} [{key}]" };
             if (made.HasProperty("_BaseColor")) made.SetColor("_BaseColor", colour);
             made.color = colour;
             if (made.HasProperty("_Smoothness")) made.SetFloat("_Smoothness", smoothness);
+            if (basis != null && made.HasProperty("_Metallic")) made.SetFloat("_Metallic", source.HasProperty("_Metallic") ? source.GetFloat("_Metallic") : 0f);
             var map = Texture(texture);
             if (map != null && made.HasProperty("_BaseColorMap"))
             {
                 made.SetTexture("_BaseColorMap", map);
                 made.SetTextureScale("_BaseColorMap", tiling);
+            }
+            if (basis != null)
+            {
+                // The paint always samples its normal and mask maps (no keyword to strip): a tone without texture keeps the
+                // flat normal and white mask of the paint material and shows the ship's wear only lightly, all over.
+                var normal = map != null ? Texture(texture + NormalSuffix) : null;
+                var mask = map != null ? Texture(texture + MaskSuffix) : null;
+                if (normal != null) made.SetTexture("_NormalMap", normal);
+                if (mask != null) made.SetTexture("_MaskMap", mask);
+                made.SetFloat(WearStrength, mask != null ? 1f : PlainWearStrength);
             }
             return made;
         }

@@ -80,8 +80,9 @@ namespace MorzaBogow.Presentation
     ///
     /// Its look (ShipLook) is its own and lasting: the workshop's band and tones, its timber, cloth, patches, old repairs
     /// and gear. The layers are put together in one order, each by this class alone: the type (shared meshes), then the
-    /// look (once, at creation or on an explicit ApplyLook), then the state of the fight (events and SetCondition), then
-    /// the owner's colours (SetOwner). Nothing of the look is computed per frame.
+    /// look (once, at creation or on an explicit ApplyLook: the palette's materials and the ship's renderer value, its
+    /// wear, which the ship paint reads), then the state of the fight (events and SetCondition), then the owner's colours
+    /// (SetOwner, the sail's materials only). Nothing of the look is computed per frame.
     /// </summary>
     public sealed class ShipVisual : MonoBehaviour
     {
@@ -95,6 +96,8 @@ namespace MorzaBogow.Presentation
         readonly List<(Transform plank, Mesh mesh)> freshRepairs = new List<(Transform, Mesh)>();
         ShipLook look;
         ShipPaints paints;
+        /// <summary>What the ship paint shows of this ship (ShipSurface): on every renderer of its model, never per frame.</summary>
+        uint surface;
         Transform lookRoot, band, sailPatches;
         Mesh repairsMesh, wearMesh, patchesMesh;
         int owner, sailOwner, pendingOwner = -1;
@@ -229,6 +232,7 @@ namespace MorzaBogow.Presentation
             visual.materials = materials;
             visual.look = look ?? ShipLookComposer.Plain(ship.Id, ship.Class, ship.Owner);
             visual.paints = new ShipPaints(visual.look, materials);
+            visual.surface = ShipSurface.Of(visual.look);
             visual.owner = visual.sailOwner = ship.Owner;
             var definition = ship.Definition;
             visual.model = new GameObject("Model").transform;
@@ -333,17 +337,41 @@ namespace MorzaBogow.Presentation
         /// <summary>A part of the type, drawn in the look's paints and remembered so another look can repaint it.</summary>
         Transform Paint(Transform parent, string name, GreekMesh mesh)
         {
-            var part = GreekShips.Attach(parent, name, mesh, paints.For(mesh, sailOwner));
+            var part = Dress(GreekShips.Attach(parent, name, mesh, paints.For(mesh, sailOwner)), surface);
             painted.Add((part.GetComponent<Renderer>(), mesh));
             return part;
         }
 
         Renderer AttachLook(Transform parent, string name, GreekMesh mesh, Material[] list)
         {
-            var renderer = GreekShips.Attach(parent, name, mesh, list).GetComponent<Renderer>();
+            var renderer = Dress(GreekShips.Attach(parent, name, mesh, list), surface).GetComponent<Renderer>();
             lookRenderers.Add(renderer);
             return renderer;
         }
+
+        /// <summary>A part drawn in this ship's paints, carrying a renderer value (ShipSurface) for the ship paint to read.</summary>
+        static Transform Dress(Transform part, uint value)
+        {
+            part.GetComponent<MeshRenderer>().SetShaderUserValue(value);
+            return part;
+        }
+
+        /// <summary>
+        /// The ship's renderer value on every renderer of its model — the type's parts, the look's pieces and the marks of
+        /// the fight — and on the dock's new planks the same without wear. Done when the look changes, never per frame.
+        /// </summary>
+        void ApplySurface()
+        {
+            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true)) renderer.SetShaderUserValue(surface);
+            foreach (var (plank, _) in freshRepairs)
+                if (plank != null) Dress(plank, ShipSurface.Unworn(surface));
+        }
+
+        /// <summary>
+        /// A piece of this ship drawn outside its own parts, such as the hull breaking up as it sinks (BattleEffects): in
+        /// the ship's paints and with its renderer value, so the pieces look like the ship they were.
+        /// </summary>
+        public Transform AttachPiece(Transform parent, string name, GreekMesh mesh) => Dress(GreekShips.Attach(parent, name, mesh, MaterialsFor(mesh)), surface);
 
         /// <summary>
         /// The look's own pieces: the band on the wale; old repairs and worn pitch on the hull (one small mesh each, made for
@@ -462,6 +490,7 @@ namespace MorzaBogow.Presentation
         {
             look = newLook ?? ShipLookComposer.Plain(ShipId, Class, owner);
             paints = new ShipPaints(look, materials);
+            surface = ShipSurface.Of(look);
             ClearLook();
             foreach (var (renderer, mesh) in painted)
             {
@@ -471,6 +500,7 @@ namespace MorzaBogow.Presentation
             }
             sailMaterial = paints.Sail(sailOwner);
             BuildLook();
+            ApplySurface();
         }
 
         /// <summary>
@@ -839,7 +869,7 @@ namespace MorzaBogow.Presentation
             var height = waterline ? 0.2f : Mathf.Lerp(0.35f, top * 0.8f, (float)random.NextDouble());
             var (point, normal) = SurfaceAt(form, s, height, side);
             var hole = GreekShips.Prop($"breach{random.Next(4)}");
-            var breach = GreekShips.Attach(model, "Breach", hole, paints.For(hole, sailOwner));
+            var breach = Dress(GreekShips.Attach(model, "Breach", hole, paints.For(hole, sailOwner)), surface);
             breach.localPosition = point + normal * 0.04f;
             breach.localRotation = Quaternion.LookRotation(-normal, Vector3.up) * Quaternion.Euler(0f, 0f, (float)random.NextDouble() * 360f);
             breach.localScale = Vector3.one * Mathf.Clamp(size, 0.4f, 2.6f);
@@ -895,7 +925,7 @@ namespace MorzaBogow.Presentation
                 }
                 else (point, normal) = SurfaceAt(form, s, Mathf.Lerp(0.4f, GreekShips.Sheer(form, s) * 0.9f, (float)random.NextDouble()), side);
                 var shaft = GreekShips.Prop("arrow");
-                var arrow = GreekShips.Attach(model, "Arrow", shaft, paints.For(shaft, sailOwner));
+                var arrow = Dress(GreekShips.Attach(model, "Arrow", shaft, paints.For(shaft, sailOwner)), surface);
                 var slant = Quaternion.Euler(((float)random.NextDouble() - 0.5f) * 40f, ((float)random.NextDouble() - 0.5f) * 40f, 0f);
                 arrow.localRotation = Quaternion.LookRotation(-(slant * normal), Vector3.up);
                 arrow.localPosition = point + normal * 0.32f;
@@ -954,7 +984,7 @@ namespace MorzaBogow.Presentation
             while (sailHoles.Count < wanted && sail != null)
             {
                 var torn = GreekShips.Prop("breach" + (sailHoles.Count + 1));
-                var hole = GreekShips.Attach(sail, "Tear", torn, paints.For(torn, sailOwner));
+                var hole = Dress(GreekShips.Attach(sail, "Tear", torn, paints.For(torn, sailOwner)), surface);
                 var u = new[] { -0.22f, 0.18f, 0.02f }[sailHoles.Count];
                 var v = new[] { -0.55f, -0.3f, -0.75f }[sailHoles.Count];
                 hole.localPosition = new Vector3(u, v, 0.85f);
@@ -985,7 +1015,8 @@ namespace MorzaBogow.Presentation
             };
             var mended = GreekShips.HullPatches(form, new[] { patch });
             if (mended == null) return;
-            var planks = GreekShips.Attach(model, "Fresh repair", mended, new[] { paints.FreshWood });
+            // New planks: not weathered yet, whatever the hull's wear.
+            var planks = Dress(GreekShips.Attach(model, "Fresh repair", mended, new[] { paints.FreshWood }), ShipSurface.Unworn(surface));
             freshRepairs.Add((planks, mended.Mesh));
             while (freshRepairs.Count > MaxFreshRepairs)
             {

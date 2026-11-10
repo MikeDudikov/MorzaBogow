@@ -128,6 +128,13 @@
         "MorzaBogow.Tests.ShipVariantRulesTests.Looks_AFleetDiffersShipToShipYetKeepsItsWorkshopAndColours",
         "MorzaBogow.Tests.ShipVariantRulesTests.Looks_StayWithinTheirLimitsAndNeverLookLikeDamage",
         "MorzaBogow.Tests.ShipVariantRulesTests.Textures_BakerIsDeterministicAndImportSettingsFitTheirUse",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Textures_PbrMapsAreBakedAndImportedAsData",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Textures_MasksAndNormalsFollowTheHdrpLitPackingAndTile",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Surface_ValuePacksWearAndKeepsWetnessAndSootReserved",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Surface_WearFollowsTheFinishFromTheLookAlone",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Paint_TheGraphCompilesWithoutMapKeywordsAndKeepsTheSrpBatcher",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Paint_PaletteMaterialsComeFromThePaintTheBuildCarries",
+        "MorzaBogow.Tests.ShipPaintRulesTests.Ships_MeshesCarryTangentsForTheirNormalMaps",
         "MorzaBogow.Tests.GreekShipsTests.Ships_UvsRunAlongPlanksAndSpars",
         "MorzaBogow.Tests.GreekShipsTests.Ships_TheWaleBandIsItsOwnMeshInEveryApprovedPattern",
         "MorzaBogow.Tests.MarineTests.Wind_GustPeaksReachDownwindPointLater",
@@ -233,8 +240,12 @@
         "MorzaBogow.Tests.ShipVariantTests.Variant_ChangesNoStatsPointsOrColliders",
         "MorzaBogow.Tests.ShipVariantTests.Variant_FarAwayKeepsTheEssentialLook",
         "MorzaBogow.Tests.ShipVariantTests.Variant_StaysInItsMeasuredBudget",
+        "MorzaBogow.Tests.ShipPaintTests.Paint_EveryRendererOfAShipCarriesItsWear",
+        "MorzaBogow.Tests.ShipPaintTests.Paint_TheRendererValueChangesThePicture",
         "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_PlainLook",
         "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromThePalette",
+        "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromTheLitPalette",
+        "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromTheLitPaletteWithMaps",
         "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromPropertyBlocks"
       ]
     }
