@@ -5,6 +5,24 @@
   "profiles": {
     "EditMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.TreeTests.Trees_SameIdGivesTheSameTreeAndAnotherIdAnother",
+        "MorzaBogow.Tests.TreeTests.Trees_StayWithinTheirSpecies",
+        "MorzaBogow.Tests.TreeTests.Trees_LevelsShareOneSkeletonWithinTheirBudgets",
+        "MorzaBogow.Tests.TreeTests.Trees_TheFootStaysPutWhileTheCrownBends",
+        "MorzaBogow.Tests.TreeTests.Trees_ChangingLevelKeepsTheBend",
+        "MorzaBogow.Tests.TreeTests.TreeWind_TheTwoOliveFormsDifferInFrequency",
+        "MorzaBogow.Tests.TreeTests.TreeWind_AStrongerGustyWindSwaysTheCrownMore",
+        "MorzaBogow.Tests.TreeTests.TreeWind_ModesStayWithinTheirRanges",
+        "MorzaBogow.Tests.TreeTests.TreeWind_SteadyBendFollowsUToTheTwoPlusV",
+        "MorzaBogow.Tests.TreeTests.TreeWind_AGustSwaysTheTreeWhileASteadyWindOnlyBendsIt",
+        "MorzaBogow.Tests.TreeTests.TreeWind_AfterTheGustTheSwayDiesAway",
+        "MorzaBogow.Tests.TreeTests.TreeWind_NearTreesSwayTogetherAndDownwindTreesLater",
+        "MorzaBogow.Tests.TreeTests.Grove_WithoutAWindModelTheTreesStandStill",
+        "MorzaBogow.Tests.TreeTests.Grove_WindBendsTheBonesAndAPauseFreezesThem",
+        "MorzaBogow.Tests.TreeTests.Leaves_AtlasIsRepeatableWithSilverUndersides",
+        "MorzaBogow.Tests.TreeTests.Trees_SpeciesCiteTheirSources",
+        "MorzaBogow.Tests.TreeTests.Manifest_IsMadeFromTheCodeAndListsNoLaterIntroductions",
+        "MorzaBogow.Tests.TreeTests.Environment_ProfilesFollowTheirSources",
         "MorzaBogow.Tests.CrewGeometryTests.Oars_EveryRowerReachesHisHandleFromHisSeatInsideTheHull",
         "MorzaBogow.Tests.CrewGeometryTests.Steering_HelmsmanHoldsTheTillersAndTheBladesReachTheWater",
         "MorzaBogow.Tests.CrewGeometryTests.Stroke_TheBladeDrivesAftInTheWaterAndReturnsAboveIt",
@@ -147,6 +165,8 @@
     },
     "PlayMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.LandscapeTests.Landscape_OlivesOfTheBattleAreTreesTheMatchWindBends",
+        "MorzaBogow.Tests.LandscapeTests.Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AllPullTogetherAndDriveAftInTheWater",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AnOarWithoutARowerIsDrawnInOnItsOwn",
         "MorzaBogow.Tests.CrewPresentationTests.Helm_SteeringOarsTurnWithTheHullAndCarryTheTillers",

@@ -200,26 +200,22 @@ namespace MorzaBogow.Presentation
                 Part(model, PrimitiveType.Cube, materials?.SilverOre, position, Vector3.one * size, rotation);
             }
 
-            // Low olives and scrub cling to the flanks of the rock, clear of the mine and the quay: dry hillside, not wood.
-            var grove = new TreeModels.Grove();
+            // Wild olives of the maquis cling to the flanks of the rock, clear of the mine and the quay: dry hillside,
+            // not wood. Each is a tree of its own whose bones the match's wind bends (Presentation.Landscape).
+            var grove = new Landscape.TreeGroveBuilder();
+            var leeward = model.InverseTransformDirection(Landscape.Vegetation.Leeward);
+            var siteId = (uint)Mathf.RoundToInt(model.position.x * 13f + model.position.z * 7f) ^ 0x51A7u;
             for (var i = 0; i < 7; i++)
             {
                 var side = i % 2 == 0 ? -1f : 1f;
                 var x = side * (12.5f + (float)random.NextDouble() * 4.5f);
                 var z = -2f + (float)random.NextDouble() * 9f;
                 if (ShoreShape.GroundAt(outline, lift, x, z - IsletZ) < 0.4f) continue;
-                // Every other one a bush of the maquis, the rest olives.
-                var scale = i % 2 == 0 ? 0.25f + (float)random.NextDouble() * 0.1f : 0.45f + (float)random.NextDouble() * 0.15f;
-                grove.Add(TreeKind.Olive, i, new Vector3(x, Ground(x, z) - 0.15f, z), (float)random.NextDouble() * 360f, scale);
+                random.NextDouble();
+                var yaw = (float)random.NextDouble() * 360f;
+                grove.Add(Landscape.TreeSpecies.OliveWild, Landscape.StableHash.Mix(siteId, (uint)i), new Vector3(x, Ground(x, z) - 0.15f, z), yaw, leeward, 1f);
             }
-            var olives = grove.Build("Grove");
-            if (olives != null)
-            {
-                var holder = new GameObject("Grove");
-                holder.transform.SetParent(model, false);
-                holder.AddComponent<MeshFilter>().sharedMesh = olives;
-                holder.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.OliveFoliage };
-            }
+            grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
 
             // Sealed chests on the quay: these shrink with the stock.
             for (var row = 0; row < 3; row++)

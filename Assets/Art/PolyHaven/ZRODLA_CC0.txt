@@ -6,6 +6,10 @@ Tekstury 2K (kolor, normalne OpenGL, chropowatość):
 - coast_sand_rocks_02   https://polyhaven.com/a/coast_sand_rocks_02   – dno mielizn: piasek z kamieniami
 - aerial_grass_rock     https://polyhaven.com/a/aerial_grass_rock     – zbocza: trawa ze skałą
 
+Tekstury 2K dla środowiska (kolor, normalne OpenGL, chropowatość, okluzja), pobrane 2026-11-10
+przez dl.polyhaven.org, sumy MD5 sprawdzone (ArtWorkspace/cc0/polyhaven/downloads.csv):
+- bark_willow_02        https://polyhaven.com/a/bark_willow_02        – kora oliwki (zamiennik: szara, bruzdowana kora wierzby)
+
 Modele 1K (FBX z teksturami):
 - boulder_01              https://polyhaven.com/a/boulder_01
 - namaqualand_boulder_02  https://polyhaven.com/a/namaqualand_boulder_02

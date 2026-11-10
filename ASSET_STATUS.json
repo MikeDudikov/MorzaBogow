@@ -46,6 +46,23 @@
       ]
     },
     {
+      "id": "bark_willow_02",
+      "name": "Bark Willow 02 (kora oliwki w zestawie środowiska)",
+      "status": "DOWNLOADED",
+      "license": "CC0 1.0 (Poly Haven)",
+      "url": "https://polyhaven.com/a/bark_willow_02",
+      "downloaded": "2026-11-10",
+      "directory": "Assets/Art/PolyHaven/Textures",
+      "textureResolution": "2K",
+      "textureFormat": "JPG",
+      "files": [
+        { "path": "Assets/Art/PolyHaven/Textures/bark_willow_02_ao_2k.jpg", "bytes": 3648331, "sha256": "90bef89e48b0954f7c7aca7fa69c7facf30dfac30170c66178defdb5cc19609e" },
+        { "path": "Assets/Art/PolyHaven/Textures/bark_willow_02_diff_2k.jpg", "bytes": 4010319, "sha256": "6bec05b58cad3907ba2704010f2d6878152b679e5f5ab5c6c6ff7d449c373a76" },
+        { "path": "Assets/Art/PolyHaven/Textures/bark_willow_02_nor_gl_2k.jpg", "bytes": 5216489, "sha256": "53a852294a3cd51d55579615d33c73a6d439e380c375af627247b8ef39c38936" },
+        { "path": "Assets/Art/PolyHaven/Textures/bark_willow_02_rough_2k.jpg", "bytes": 2172857, "sha256": "360bfce5b6f8ff6fd6ab5c8b61dcdaa4bcc36c86c920964c71d38e8fc671ebcb" }
+      ]
+    },
+    {
       "id": "ancient_ships_hdrp",
       "name": "Ancient Ships [HDRP]",
       "status": "NOT_PURCHASED",

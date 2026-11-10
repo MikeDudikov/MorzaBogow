@@ -244,6 +244,10 @@ namespace MorzaBogow.Presentation
                 World.Marine.Wind.SynopticWind(out var windX, out var windY);
                 if (windX * windX + windY * windY > 1e-6) waveTravel = new Vector3((float)windX, 0f, (float)windY).normalized;
             }
+            // Trees sway in the match's wind on the game's clock (still in a pause); exposed crowns lean from the Etesian.
+            Landscape.Vegetation.Wind = new Landscape.MarineTreeWind(() => World);
+            Landscape.Vegetation.Clock = () => paused ? 0f : Time.unscaledDeltaTime * Speed;
+            Landscape.Vegetation.Leeward = Landscape.Vegetation.LeewardOf(World.Marine?.Wind.Climate);
             if (fog == null) fog = new BattleFog(materials?.Fog);
             opponent = new Opponent(1) { BuildIndex = opponentBuildIndex };
             BuildStaticViews();
@@ -1530,7 +1534,11 @@ namespace MorzaBogow.Presentation
             var random = new System.Random((int)(seed * 100.0) ^ 0x2F6A1D3);
             float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
             var dark = new TreeModels.Grove();
-            var olive = new TreeModels.Grove();
+            // Olives are trees of their own (Presentation.Landscape): bones the match's wind bends, a form from a stable id.
+            var olive = new Landscape.TreeGroveBuilder();
+            var groveId = (uint)((int)(seed * 100.0) ^ 0x2F6A1D3);
+            var leeward = parent != null ? parent.InverseTransformDirection(Landscape.Vegetation.Leeward) : Vector3.zero;
+            var profile = Landscape.EnvironmentProfile.Default;
             var planted = new List<Vector2>();
             var cypresses = 0;
             var pines = 0;
@@ -1550,10 +1558,24 @@ namespace MorzaBogow.Presentation
                 if (kind == TreeKind.StonePine) pines++;
                 var ground = ShoreShape.GroundAt(outline, lift, spot.x, spot.y) - 0.15f;
                 var scale = kind == TreeKind.StonePine ? Next(0.5f, 0.75f) : kind == TreeKind.Olive ? Next(0.5f, 0.65f) : olives ? Next(0.5f, 0.62f) : Next(0.55f, 0.8f);
-                (kind == TreeKind.Olive ? olive : dark).Add(kind, random.Next(4), new Vector3(spot.x, ground, spot.y), Next(0f, 360f), scale);
+                var variant = random.Next(4);
+                var yaw = Next(0f, 360f);
+                if (kind == TreeKind.Olive)
+                {
+                    var id = Landscape.StableHash.Mix(groveId, (uint)planted.Count);
+                    var species = Landscape.StableHash.Unit(Landscape.StableHash.Mix(id, 5u)) < profile.CultivatedOliveShare ? Landscape.TreeSpecies.OliveCultivated : Landscape.TreeSpecies.OliveWild;
+                    // Trees near the waterline stand in the wind; those inland are sheltered.
+                    var exposure = Mathf.Clamp01(1f - (ShoreShape.At(outline, angle) - radius) / 25f);
+                    olive.Add(species, id, new Vector3(spot.x, ground, spot.y), yaw, leeward, exposure);
+                }
+                else dark.Add(kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale);
             }
             AddGrove(parent, dark, materials?.Foliage);
-            AddGrove(parent, olive, materials?.OliveFoliage);
+            if (olive.Count > 0)
+            {
+                olive.Build(parent, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
+                TreesPlanted += olive.Count;
+            }
             return (planted.Count, pines);
         }
 
