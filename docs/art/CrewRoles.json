@@ -3,108 +3,99 @@
     "role": [
         {
             "rola": "Helmsman",
-            "nazwa": "sternik",
-            "funkcjaHistoryczna": "steruje dwoma wiosłami sterowymi za rumple; podaje rytm wioślarzom (bez osobnego keleustesa)",
-            "pewnosc": "ustalenie (sternik przy wiośle sterowym, Kynos A91); interpretacja (dwa wiosła, podawanie rytmu)",
-            "wyposazenie": "krótka tunika lub przepaska, czasem hełm; bez pancerza",
+            "nazwa": "sternik (kybernetes)",
+            "funkcjaHistoryczna": "steruje dwoma wiosłami sterowymi za rumple na rufie",
+            "pewnosc": "interpretacja (dwa wiosła sterowe okrętów klasycznych, rekonstrukcja Olympias; tytuł klasyczny, tekst do odczytu)",
+            "wyposazenie": "exomis lub chiton z niebarwionego lnu, czasem filcowa czapka; bez pancerza",
             "zawodyWGrze": [
                 "Sailor"
             ],
             "zrodla": [
-                "R-KYNOS",
-                "R-MEDINET"
+                "R-OLYMPIAS"
             ]
         },
         {
             "rola": "Rower",
             "nazwa": "wioślarz",
-            "funkcjaHistoryczna": "e-re-ta z tabliczek z Pylos: siedzi nisko przy burcie twarzą ku rufie i ciągnie jedno wiosło",
-            "pewnosc": "ustalenie (wioślarze w tabliczkach i na wazach); spekulacja (strój)",
-            "wyposazenie": "przepaska lub krótka tunika z niebarwionego lnu albo wełny, nagi tors; bez broni",
+            "funkcjaHistoryczna": "siedzi na ławie twarzą ku rufie i ciągnie jedno wiosło; rytm podają keleustes i flecista (wygląd ludzi z obsady, bez dodatkowych ludzi)",
+            "pewnosc": "rekonstrukcja (triera Olympias, jeden rząd w grze); spekulacja (strój)",
+            "wyposazenie": "przepaska lub exomis z niebarwionego lnu albo wełny, często nagi tors; bez broni",
             "zawodyWGrze": [
                 "Sailor"
             ],
             "zrodla": [
-                "R-PYLOS-AN",
-                "R-BADEMGEDIGI",
-                "R-MEDINET"
+                "R-OLYMPIAS"
             ]
         },
         {
             "rola": "WarriorRower",
-            "nazwa": "wojownik przy wiośle",
-            "funkcjaHistoryczna": "wojownik bez stanowiska siada w rejsie do wolnego wiosła i odchodzi na stanowisko w gotowości bojowej",
-            "pewnosc": "interpretacja (Homer, Il. 2.718–720; Tukidydes 1.10.4)",
-            "wyposazenie": "jak wojownik, broń i tarcza odłożone przy ławie",
+            "nazwa": "żołnierz przy wiośle",
+            "funkcjaHistoryczna": "żołnierz bez stanowiska siada w rejsie do wolnego wiosła i odchodzi na stanowisko w gotowości bojowej",
+            "pewnosc": "interpretacja (dana gry; żołnierze przy wiosłach w potrzebie)",
+            "wyposazenie": "jak epibates, broń i tarcza odłożone przy ławie",
             "zawodyWGrze": [
                 "Swordsman",
                 "Javelin",
                 "Archer"
             ],
             "zrodla": [
-                "R-HOMER",
                 "R-THUCYDIDES"
             ]
         },
         {
             "rola": "Lookout",
-            "nazwa": "obserwator",
-            "funkcjaHistoryczna": "ktoś czuwa na dziobie: funkcja tak, osobny tytuł nie",
-            "pewnosc": "interpretacja (Kynos A91–A92; Od. 12.228–229); tytuł prōireus jest późniejszy",
-            "wyposazenie": "wojownik z oszczepami na galerze; marynarz na statku i łodzi",
+            "nazwa": "oficer dziobowy (prorates)",
+            "funkcjaHistoryczna": "czuwa na dziobie i podaje znaki sternikowi",
+            "pewnosc": "interpretacja (tytuł klasyczny, tekst do odczytu)",
+            "wyposazenie": "peltasta lub marynarz",
             "zawodyWGrze": [
                 "Javelin",
                 "Archer",
                 "Swordsman",
                 "Sailor"
             ],
-            "zrodla": [
-                "R-KYNOS",
-                "R-HOMER"
-            ]
+            "zrodla": []
         },
         {
             "rola": "Commander",
-            "nazwa": "dowódca",
-            "funkcjaHistoryczna": "przywódca na pomoście rufowym; jedyny w pełnym rynsztunku",
-            "pewnosc": "interpretacja (Waza Wojowników; groby wojowników LH IIIC w Achai; tytuł na okręcie nieznany)",
-            "wyposazenie": "napierśnik, nagolenniki, hełm, tarcza, włócznia i miecz typu Naue II",
+            "nazwa": "dowódca (trierarcha)",
+            "funkcjaHistoryczna": "dowodzi z rufy; jedyny w pancerzu z brązu",
+            "pewnosc": "interpretacja (trierarchowie ateńskiej floty IV w.; strój z ikonografii do odczytu)",
+            "wyposazenie": "pancerz mięśniowy z brązu, nagolenniki, hełm koryncki lub beocki z grzebieniem, aspis, włócznia i miecz",
             "zawodyWGrze": [
                 "Swordsman",
                 "Javelin",
                 "Archer"
             ],
             "zrodla": [
-                "R-WARRIORVASE",
-                "R-ACHAEA"
+                "R-NAVALLISTS"
             ]
         },
         {
             "rola": "Skipper",
-            "nazwa": "szyper",
-            "funkcjaHistoryczna": "właściciel lub prowadzący statek kupiecki przy sterniku",
-            "pewnosc": "spekulacja (funkcja konieczna na statku handlowym, bez źródła dla XII w.)",
-            "wyposazenie": "dłuższa tunika, płaszcz; bez broni",
+            "nazwa": "szyper (naukleros)",
+            "funkcjaHistoryczna": "prowadzi statek kupiecki przy sterniku",
+            "pewnosc": "interpretacja (statek z Kyrenii; tytuł klasyczny)",
+            "wyposazenie": "dłuższy chiton, płaszcz (himation); bez broni",
             "zawodyWGrze": [
                 "Sailor"
             ],
             "zrodla": [
-                "R-ULUBURUN"
+                "R-KYRENIA"
             ]
         },
         {
             "rola": "SailHand",
             "nazwa": "marynarz przy żaglu",
-            "funkcjaHistoryczna": "ciągnie gejtawy przy zwijaniu i stawianiu żagla; cała załoga stawia maszt i żagiel",
-            "pewnosc": "ustalenie (żagiel z gejtawami, Medinet Habu, Kynos); interpretacja (osobni ludzie przy żaglu)",
+            "funkcjaHistoryczna": "ciągnie gejtawy przy zwijaniu i stawianiu żagla; przed walką żagiel zwinięty",
+            "pewnosc": "ustalenie (żagiel z gejtawami: Kyrenia; duże żagle zostawiane przed walką: Hellenika 6.2.27); interpretacja (osobni ludzie przy żaglu)",
             "wyposazenie": "jak wioślarz",
             "zawodyWGrze": [
                 "Sailor"
             ],
             "zrodla": [
-                "R-MEDINET",
-                "R-KYNOS",
-                "R-HOMER"
+                "R-KYRENIA",
+                "R-XENOPHON-HELLENICA"
             ]
         },
         {
@@ -117,7 +108,7 @@
                 "Sailor"
             ],
             "zrodla": [
-                "R-ULUBURUN"
+                "R-KYRENIA"
             ]
         },
         {
@@ -134,61 +125,57 @@
         {
             "rola": "BankArcher",
             "nazwa": "łucznik stanowiska",
-            "funkcjaHistoryczna": "czterech łuczników na stanowisku za plecionym przedpiersiem strzela salwami w cyklu broni",
-            "pewnosc": "spekulacja/interpretacja (łucznicy na okrętach egejskich rzadcy: Kynos A92; wioślarze-łucznicy u Homera); stanowisko to dana gry",
-            "wyposazenie": "krótka tunika, łuk, kołczan, czasem hełm",
+            "funkcjaHistoryczna": "czterech łuczników na stanowisku za przedpiersiem strzela salwami w cyklu broni",
+            "pewnosc": "interpretacja (łucznicy na okrętach klasycznych; łucznicy kreteńscy, źródło do odczytu); stanowisko to dana gry",
+            "wyposazenie": "krótki chiton, łuk, kołczan; bez hełmu albo w czapce",
             "zawodyWGrze": [
                 "Archer"
             ],
-            "zrodla": [
-                "R-KYNOS",
-                "R-HOMER",
-                "R-MEDINET"
-            ]
+            "zrodla": []
         },
         {
             "rola": "BankJavelin",
-            "nazwa": "oszczepnik stanowiska",
-            "funkcjaHistoryczna": "czterech oszczepników na stanowisku rzuca w cyklu broni",
-            "pewnosc": "ustalenie (wojownicy z oszczepami na okrętach, Kynos); stanowisko to dana gry",
-            "wyposazenie": "tunika, hełm, mała tarcza, pęk oszczepów",
+            "nazwa": "peltasta stanowiska",
+            "funkcjaHistoryczna": "czterech peltastów na stanowisku rzuca oszczepami w cyklu broni",
+            "pewnosc": "ustalenie (peltaści IV w.: Diodor 15.44, Ksenofont, Hellenika 4.5.13); stanowisko to dana gry",
+            "wyposazenie": "tunika, czapka lub pilos, tarcza pelte, pęk oszczepów",
             "zawodyWGrze": [
                 "Javelin"
             ],
             "zrodla": [
-                "R-KYNOS",
-                "R-BADEMGEDIGI"
+                "R-IPHICRATES"
             ]
         },
         {
             "rola": "MachineCrew",
             "nazwa": "obsługa machiny",
             "funkcjaHistoryczna": "napina, ładuje, celuje i wyzwala machinę stanowiska",
-            "pewnosc": "anachronizm gry (machiny miotające nie istniały w XII w. p.n.e.)",
-            "wyposazenie": "tunika i hełm; tarcza i broń odłożone przy stanowisku",
-            "zawodyWGrze": [
-                "Swordsman",
-                "Javelin",
-                "Archer"
-            ],
-            "zrodla": []
-        },
-        {
-            "rola": "Marine",
-            "nazwa": "wojownik pokładowy",
-            "funkcjaHistoryczna": "wojownicy na pokładzie i pomostach: walka wręcz przy abordażu; zapasowi łucznicy i oszczepnicy wspierają zza frontu",
-            "pewnosc": "ustalenie (wojownicy na pokładach, Kynos, Bademgediği, Medinet Habu)",
-            "wyposazenie": "tunika w barwie strony (konwencja gry), hełm jeżowy, pierzasty lub rogaty, tarcza okrągła lub klepsydrowa, włócznia lub oszczepy albo łuk",
+            "pewnosc": "wczesna interpretacja (katapulta od 399 r.: Diodor 14.42; machiny na okrętach pod Tyrem 332 r.: Arrian 2.21)",
+            "wyposazenie": "tunika, filcowa czapka lub pilos; tarcza i broń odłożone przy stanowisku",
             "zawodyWGrze": [
                 "Swordsman",
                 "Javelin",
                 "Archer"
             ],
             "zrodla": [
-                "R-KYNOS",
-                "R-BADEMGEDIGI",
-                "R-MEDINET",
-                "R-WARRIORVASE"
+                "R-DIODORUS-14",
+                "R-ARRIAN-TYRE"
+            ]
+        },
+        {
+            "rola": "Marine",
+            "nazwa": "epibates (żołnierz okrętowy)",
+            "funkcjaHistoryczna": "żołnierze na pokładzie i pomostach: walka wręcz przy abordażu; zapasowi łucznicy i peltaści wspierają zza frontu",
+            "pewnosc": "interpretacja (epibatai okrętów klasycznych; pilos: R-PILOS, lniany pancerz: Nepos)",
+            "wyposazenie": "tunika w barwie strony (konwencja gry), hełm pilos (część koryncki lub beocki), część w lnianym pancerzu, tarcza aspis, włócznia, miecz",
+            "zawodyWGrze": [
+                "Swordsman",
+                "Javelin",
+                "Archer"
+            ],
+            "zrodla": [
+                "R-PILOS",
+                "R-IPHICRATES"
             ]
         },
         {

@@ -2,7 +2,12 @@
 
 Profil środowiska to ustawienie prezentacji: wybiera, jak wygląda roślinność, wybrzeże, ruda i stocznie. Nie jest scenariuszem ani regułą gry. W kodzie odpowiada mu `EnvironmentProfile` (`Runtime/Presentation/Environment/EnvironmentProfiles.cs`, przestrzeń nazw `MorzaBogow.Presentation.Landscape`). Źródła twierdzeń są w [SrodowiskoZrodla.md](SrodowiskoZrodla.md), w numerowanych wierszach tabel.
 
-**Aktywny profil:** E1 + R-LAD, czyli XII w. p.n.e. na południowym lądzie (kotwica projektu). Wyspy różnią się w obrębie profilu rodzajem, wielkością i ekspozycją na wiatr, wszystko ze stabilnego id.
+**Aktywny profil od 2026-11-10:** E6 + R-LAD, czyli Grecja IV w. p.n.e. (późna klasyka, 400–323) w Attyce: Pireus, Zea, Laurion. To decyzja użytkownika. W kodzie odpowiada mu `Era.LateClassical`, dopisana jako ostatnia, żeby zapisane wartości innych epok się nie przesunęły.
+- **Skutki:** narzędzia z żelaza (`IronTools`) i oliwki w 90% uprawne.
+- **Pozycje E5** (przodek z regularnym chodnikiem, płuczka, hangar w Zei) obejmują teraz także E6.
+- **Dawny profil** E1 + R-LAD (XII w.) zostaje do wyboru.
+
+Wyspy różnią się w obrębie profilu rodzajem, wielkością i ekspozycją na wiatr, wszystko ze stabilnego id. Ustalenia IV w. są w [HistoricalConstraints.md](HistoricalConstraints.md).
 
 ## Epoki
 

@@ -111,7 +111,7 @@ namespace MorzaBogow.Presentation
 
     /// <summary>
     /// Greek ships of the 4th century BC for every class (the project's anchor since 2026-11-10), built from simple geometry
-    /// into a few meshes: a dark pitched hull with a painted wale band, painted eyes on the bow, a cast bronze ram with
+    /// into a few meshes: a dark pitched hull with a painted wale band, marble eye-plates on the bow, a cast bronze ram with
     /// three blades at the waterline of the galleys that ram, a stem post curling back into a volute and a stern post
     /// crowned by the aphlaston, one bank of oars, a steering oar on each quarter, raised decks fore and aft, a single mast
     /// with a yard and a loose-footed brailed square sail, and what marks each type (latticed rail, archers' platforms,
@@ -518,8 +518,8 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>
-        /// The painted eyes (ophthalmoi) on each bow above the ram: a white almond with a dark pupil, as marble eye-plates
-        /// and vase paintings show on classical warships (docs/art/HistoricalConstraints.md).
+        /// The eyes (ophthalmoi) on each bow above the ram: carved white marble plates with a dark iris, as the classical
+        /// eye-plates from the Agora, Zea and the Tektas Burnu wreck show (R-OPHTHALMOI, docs/art/HistoricalConstraints.md).
         /// </summary>
         static void BuildEyes(MeshBuilder b, GreekShipForm f, int detail)
         {

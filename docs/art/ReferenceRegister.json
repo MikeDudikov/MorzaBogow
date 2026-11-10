@@ -11,8 +11,14 @@
       "id": "R-ULUBURUN",
       "object": "Uluburun shipwreck",
       "sources": [
-        { "url": "https://nauticalarch.org/projects/uluburun-late-bronze-age-shipwreck-excavation/", "access": "read-web" },
-        { "url": "https://en.wikipedia.org/wiki/Uluburun_shipwreck", "access": "read-web-last-resort" }
+        {
+          "url": "https://nauticalarch.org/projects/uluburun-late-bronze-age-shipwreck-excavation/",
+          "access": "read-web"
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/Uluburun_shipwreck",
+          "access": "read-web-last-resort"
+        }
       ],
       "claims": [
         "Date of wreck: Late Bronze Age, ca. 1320 +/- 15 B.C. (INA)",
@@ -26,21 +32,42 @@
       ],
       "dating": "ca. 1320 +/- 15 BC",
       "certainty": "date and construction stated by INA; hull size is an estimate; anchors, jars and rope from the Wikipedia page text, to be checked in INA publications",
-      "assets": ["ship.Merchant", "shipyard.slipway", "wreck.cargo", "ship.variants (gear: stone anchors, water jar, rope coil)"]
+      "assets": [
+        "ship.Merchant",
+        "shipyard.slipway",
+        "wreck.cargo",
+        "ship.variants (gear: stone anchors, water jar, rope coil)"
+      ]
     },
     {
       "id": "R-GELIDONYA",
       "object": "Cape Gelidonya shipwreck",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/Cape_Gelidonya_shipwreck", "access": "read-web-last-resort" }],
-      "claims": ["Late Bronze Age shipwreck, c. 1200 BC", "Cargo of scrap copper, copper and tin ingots, merchant weights"],
+      "sources": [
+        {
+          "url": "https://en.wikipedia.org/wiki/Cape_Gelidonya_shipwreck",
+          "access": "read-web-last-resort"
+        }
+      ],
+      "claims": [
+        "Late Bronze Age shipwreck, c. 1200 BC",
+        "Cargo of scrap copper, copper and tin ingots, merchant weights"
+      ],
       "dating": "c. 1200 BC (another page gives late 13th to early 12th c. BC)",
       "certainty": "dating approximate",
-      "assets": ["ship.Merchant", "wreck.cargo"]
+      "assets": [
+        "ship.Merchant",
+        "wreck.cargo"
+      ]
     },
     {
       "id": "R-WARRIORVASE",
       "object": "Warrior Vase (Warrior Krater), Mycenae; National Archaeological Museum, Athens",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/Warrior_Vase", "access": "read-web-last-resort" }],
+      "sources": [
+        {
+          "url": "https://en.wikipedia.org/wiki/Warrior_Vase",
+          "access": "read-web-last-resort"
+        }
+      ],
       "claims": [
         "Warriors in short chitons, breastplates, helmets and greaves, armed with spears and carrying shields",
         "One side shows helmets with horns, the other 'hedgehog' helmets",
@@ -48,25 +75,57 @@
       ],
       "dating": "early LH IIIC (c. 1200 BC), discussed",
       "certainty": "inventory number inconsistent across sources (NAMA 1426); museum catalogue not read; shield cut-out not stated",
-      "assets": ["character.warrior", "character.archer"]
+      "assets": [
+        "character.warrior",
+        "character.archer"
+      ]
     },
     {
       "id": "R-MEDINET",
       "object": "Medinet Habu, naval battle relief of Ramesses III against the Sea Peoples",
       "sources": [
-        { "url": "https://en.wikipedia.org/wiki/Battle_of_the_Delta", "access": "read-web-last-resort" },
-        { "url": "https://en.wikipedia.org/wiki/Medinet_Habu_(temple)", "access": "read-web-last-resort" }
+        {
+          "url": "https://en.wikipedia.org/wiki/Battle_of_the_Delta",
+          "access": "read-web-last-resort"
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/Medinet_Habu_(temple)",
+          "access": "read-web-last-resort"
+        }
       ],
-      "claims": ["Battle of the Delta c. 1175 BC (between 1179 and 1175 BC)"],
+      "claims": [
+        "Battle of the Delta c. 1175 BC (between 1179 and 1175 BC)"
+      ],
       "dating": "c. 1175 BC",
       "certainty": "ship features (bird-head posts, crow's nest, brailed loose-footed sail) NOT stated in the pages read; to verify in the Epigraphic Survey publication",
-      "assets": ["ship.*.stem", "ship.*.rig"]
+      "assets": [
+        "ship.*.stem",
+        "ship.*.rig"
+      ]
     },
     {
       "id": "R-KYRENIA",
-      "object": "Kyrenia ship",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/The_Kyrenia_Ship", "access": "read-web-last-resort" }],
-      "claims": ["4th-century BC Greek merchant ship that sank c. 294 BC (amphora stamps and coins)"],
+      "object": "Kyrenia shipwreck, off north Cyprus",
+      "sources": [
+        {
+          "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0302645",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Navires/Kyrenia/Kyrenia2-Katzev1987.pdf",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Navires/Kyrenia/KyreniaLiberty-Katzev2008.pdf",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Sinking 306-271 BC (95.4%), most likely 287/286-272 BC (Manning et al. 2024); the final report argues about 294-290 BC from a coin",
+        "Built or repaired most likely 346/340-312/308 BC: a late 4th-century-built merchantman",
+        "About 14 m long; 384 amphorae (about 220 large Rhodian), 29 volcanic millstones over the keel, a cache of almonds",
+        "A single square sail raised by brails: more than 150 lead brail rings; replica Kyrenia II (1982-85) sailed Piraeus-Paphos 1986 at about 2.9 knots"
+      ],
       "dating": "c. 294-291 BC",
       "certainty": "approximate; outside the project's anchor period, used for comparison only",
       "assets": []
@@ -74,17 +133,43 @@
     {
       "id": "R-OLYMPIAS",
       "object": "Olympias, full-size reconstruction of an Athenian trireme (1985-1987), Hellenic Navy",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/Olympias_(trireme)", "access": "read-web-last-resort" }],
-      "claims": ["Experimental-archaeology reconstruction to drawings by John Coates with John Morrison", "170 oarsmen in three banks: 62 thranitai, 54 zygitai, 54 thalamitai"],
+      "sources": [
+        {
+          "url": "https://en.wikipedia.org/wiki/Olympias_(trireme)",
+          "access": "read-web-last-resort"
+        }
+      ],
+      "claims": [
+        "Experimental-archaeology reconstruction to drawings by John Coates with John Morrison",
+        "170 oarsmen in three banks: 62 thranitai, 54 zygitai, 54 thalamitai"
+      ],
       "dating": "reconstruction of a 5th-century BC type",
       "certainty": "a reconstruction, not a surviving ship; comparison only",
       "assets": []
     },
     {
       "id": "R-ZEA",
-      "object": "Ship sheds at Zea, Piraeus",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/Trireme", "access": "read-web-last-resort" }, { "url": "https://en.wikipedia.org/wiki/Piraeus", "access": "read-web-last-resort" }],
-      "claims": ["Ship sheds ca. 40 m long and 6 m wide; 372 trireme sheds in the classical naval base"],
+      "object": "Zea harbour ship sheds, Piraeus (Loven 2011, Ancient Harbours of the Piraeus I.1)",
+      "sources": [
+        {
+          "url": "https://tidsskrift.dk/MoDIA/article/download/122892/169984/257832",
+          "access": "read-web"
+        },
+        {
+          "url": "https://tidsskrift.dk/MoDIA/article/download/122900/169992/257851",
+          "access": "read-web"
+        },
+        {
+          "url": "https://bmcr.brynmawr.edu/?p=37698",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Phase 1: unroofed slipways about 6.6 m wide, up to about 57 m long (tentatively late 480s/early 470s BC)",
+        "Phase 2: roofed sheds, colonnade spacing 6.48 m (5th c.); phase 3: double sheds after 375-350 BC, spacing 6.51 m, clear width about 5.87 m, keel ramp 3.12 m",
+        "Limestone colonnades, walls and a tiled roof (Loven p. 2); 196 sheds at Zea in 330/29 (IG II2 1627)",
+        "A shed's clear width (about 5.9 m) holds no ship of the game's beam (up to 10.9 m): game buildings show the type, not the size"
+      ],
       "dating": "classical (5th-4th c. BC)",
       "certainty": "Zea Harbour Project publications not read",
       "assets": []
@@ -93,9 +178,20 @@
       "id": "R-KYNOS",
       "object": "Kynos (Pyrgos Livanaton), Late Helladic IIIC finds",
       "sources": [
-        { "url": "https://en.wikipedia.org/wiki/Cynus", "access": "read-web-last-resort" },
-        { "url": "https://ancmed.ulb.be/Bibliography/Dakoronia%2C%20War-ships%20on%20Sherds%20of%20LH%20IIIC%20Kraters%20from%20Kynos%20%281990%29.pdf", "access": "read-web", "note": "F. Dakoronia 1990, War-ships on Sherds of LH IIIC Kraters from Kynos, Tropis II (full text read by the crews' research, 2026-11-10)" },
-        { "url": "https://ancmed.ulb.be/details.php?row=136", "access": "read-web", "note": "ULB catalogue, entries A91-A95" }
+        {
+          "url": "https://en.wikipedia.org/wiki/Cynus",
+          "access": "read-web-last-resort"
+        },
+        {
+          "url": "https://ancmed.ulb.be/Bibliography/Dakoronia%2C%20War-ships%20on%20Sherds%20of%20LH%20IIIC%20Kraters%20from%20Kynos%20%281990%29.pdf",
+          "access": "read-web",
+          "note": "F. Dakoronia 1990, War-ships on Sherds of LH IIIC Kraters from Kynos, Tropis II (full text read by the crews' research, 2026-11-10)"
+        },
+        {
+          "url": "https://ancmed.ulb.be/details.php?row=136",
+          "access": "read-web",
+          "note": "ULB catalogue, entries A91-A95"
+        }
       ],
       "claims": [
         "Excavated 1985-1995 by the 14th Ephorate, Lamia; findings known from preliminary reports",
@@ -105,15 +201,30 @@
       ],
       "dating": "LH IIIC Middle",
       "certainty": "what is painted: established; readings of details marked as interpretation",
-      "assets": ["ship.*", "crew.*"]
+      "assets": [
+        "ship.*",
+        "crew.*"
+      ]
     },
     {
       "id": "R-PYLOS-AN",
       "object": "Pylos rower tablets PY An 1, An 610, An 724 (Linear B)",
       "sources": [
-        { "url": "https://sites.utexas.edu/scripts/wp-content/uploads/sites/3428/2020/08/1991-TGP-MaritimeMattersInTheLinearBTablets-03.pdf", "access": "read-web", "note": "T. G. Palaima 1991, Maritime Matters in the Linear B Tablets, Aegaeum 7 (full text read by the crews' research, 2026-11-10)" },
-        { "url": "https://ancmed.ulb.be/Bibliography/Wachsmann%2C%20The%20Pylos%20Rower%20Tablets%20Reconsidered%20%281999%29.pdf", "access": "read-web", "note": "S. Wachsmann 1999, The Pylos Rower Tablets Reconsidered, Tropis V (full text read)" },
-        { "url": "https://revistas.usal.es/index.php/0544-3733/article/view/3029", "access": "read-web", "note": "J. T. Killen 1983, PY An 1, Minos 18 (abstract only)" }
+        {
+          "url": "https://sites.utexas.edu/scripts/wp-content/uploads/sites/3428/2020/08/1991-TGP-MaritimeMattersInTheLinearBTablets-03.pdf",
+          "access": "read-web",
+          "note": "T. G. Palaima 1991, Maritime Matters in the Linear B Tablets, Aegaeum 7 (full text read by the crews' research, 2026-11-10)"
+        },
+        {
+          "url": "https://ancmed.ulb.be/Bibliography/Wachsmann%2C%20The%20Pylos%20Rower%20Tablets%20Reconsidered%20%281999%29.pdf",
+          "access": "read-web",
+          "note": "S. Wachsmann 1999, The Pylos Rower Tablets Reconsidered, Tropis V (full text read)"
+        },
+        {
+          "url": "https://revistas.usal.es/index.php/0544-3733/article/view/3029",
+          "access": "read-web",
+          "note": "J. T. Killen 1983, PY An 1, Minos 18 (abstract only)"
+        }
       ],
       "claims": [
         "An 1 heads e-re-ta pe-re-u-ro-na-de i-jo-te, 'rowers going to Pleuron', about 30 men from five places (text); one thirty-oared crew is a reading",
@@ -122,14 +233,24 @@
       ],
       "dating": "end of the palatial period, about 1200 BC",
       "certainty": "text: established; status and ship readings: interpretation",
-      "assets": ["crew.rower"]
+      "assets": [
+        "crew.rower"
+      ]
     },
     {
       "id": "R-BADEMGEDIGI",
       "object": "Bademgediği Tepe ship krater (LH IIIB2/IIIC or IIIC Middle, dating disputed)",
       "sources": [
-        { "url": "https://ancmed.ulb.be/details.php?row=134", "access": "read-web", "note": "ULB Ancient Mediterranean Digital Project catalogue (entries A89-A95, A174)" },
-        { "url": "https://www.aegeussociety.org/wp-content/uploads/2017/10/Aegean-Studies-vol1-2-Emanuel.pdf", "access": "read-web", "note": "J. P. Emanuel 2014, Aegean Studies 1:21-56 (pp. 21-45 read)" }
+        {
+          "url": "https://ancmed.ulb.be/details.php?row=134",
+          "access": "read-web",
+          "note": "ULB Ancient Mediterranean Digital Project catalogue (entries A89-A95, A174)"
+        },
+        {
+          "url": "https://www.aegeussociety.org/wp-content/uploads/2017/10/Aegean-Studies-vol1-2-Emanuel.pdf",
+          "access": "read-web",
+          "note": "J. P. Emanuel 2014, Aegean Studies 1:21-56 (pp. 21-45 read)"
+        }
       ],
       "claims": [
         "Two ships face each other; rows of warriors on the decks with round shields, spears, fringed garments and 'feathered' helmets",
@@ -137,13 +258,20 @@
       ],
       "dating": "LH IIIB2/IIIC or IIIC Middle",
       "certainty": "what is painted: established; that rowers sat low along the sides: interpretation",
-      "assets": ["crew.rower", "crew.warrior"]
+      "assets": [
+        "crew.rower",
+        "crew.warrior"
+      ]
     },
     {
       "id": "R-ACHAEA",
       "object": "LH IIIC warrior graves of Achaea",
       "sources": [
-        { "url": "https://www.aegeussociety.org/wp-content/uploads/2022/12/Aegean-Studies-%CE%9D%CE%BF1-5-Giannopoulos.pdf", "access": "read-web", "note": "T. Giannopoulos 2022, Aegean Studies 1:127-195 (excerpts read)" }
+        {
+          "url": "https://www.aegeussociety.org/wp-content/uploads/2022/12/Aegean-Studies-%CE%9D%CE%BF1-5-Giannopoulos.pdf",
+          "access": "read-web",
+          "note": "T. Giannopoulos 2022, Aegean Studies 1:127-195 (excerpts read)"
+        }
       ],
       "claims": [
         "Always a Naue II sword and almost always a spear; sometimes greaves, a round shield with a central boss, a boar's tusk helmet",
@@ -151,14 +279,25 @@
       ],
       "dating": "LH IIIC",
       "certainty": "finds: established; links to leadership: interpretation",
-      "assets": ["crew.commander", "crew.warrior"]
+      "assets": [
+        "crew.commander",
+        "crew.warrior"
+      ]
     },
     {
       "id": "R-HOMER",
       "object": "Homer, Iliad and Odyssey (passages on ships and crews)",
       "sources": [
-        { "url": "https://el.wikisource.org/", "access": "read-web", "note": "Greek text: Il. 1, 15, 19; Od. 2, 3, 4, 12" },
-        { "url": "https://en.wikisource.org/", "access": "read-web", "note": "S. Butler's translation: Il. 2, 15, 16; Od. 12" }
+        {
+          "url": "https://el.wikisource.org/",
+          "access": "read-web",
+          "note": "Greek text: Il. 1, 15, 19; Od. 2, 3, 4, 12"
+        },
+        {
+          "url": "https://en.wikisource.org/",
+          "access": "read-web",
+          "note": "S. Butler's translation: Il. 2, 15, 16; Od. 12"
+        }
       ],
       "claims": [
         "Philoctetes' ships: fifty oarsmen, all good archers (Il. 2.718-720); 120 young men to a Boeotian ship (Il. 2.509-510)",
@@ -168,39 +307,303 @@
       ],
       "dating": "epic text, 8th-7th c. BC, about an earlier age",
       "certainty": "content of the text: established; as a picture of the 12th century: interpretation",
-      "assets": ["crew.*"]
+      "assets": [
+        "crew.*"
+      ]
     },
     {
       "id": "R-THUCYDIDES",
       "object": "Thucydides 1.10.4 and 2.93",
-      "sources": [{ "url": "https://en.wikisource.org/wiki/History_of_the_Peloponnesian_War", "access": "read-web", "note": "R. Crawley's translation" }],
+      "sources": [
+        {
+          "url": "https://en.wikisource.org/wiki/History_of_the_Peloponnesian_War",
+          "access": "read-web",
+          "note": "R. Crawley's translation"
+        }
+      ],
       "claims": [
         "From Homer he reasons that the men at the oar were also fighters, and that early ships had no full decks (1.10.4)",
         "A classical rower carried his oar, cushion and the thong of his rowlock (2.93)"
       ],
       "dating": "5th c. BC, reasoning about the heroic age",
       "certainty": "interpretation for the 12th century",
-      "assets": ["crew.warrior-rower"]
+      "assets": [
+        "crew.warrior-rower"
+      ]
     },
     {
       "id": "R-KOUKLI",
       "object": "Koukli, Siegmund, Papageorgopoulou 2023, stature in ancient Greece, Archaeological and Anthropological Sciences 15:53",
-      "sources": [{ "url": "https://link.springer.com/journal/12520", "access": "read-web", "note": "abstract and supplementary tables S1-S2 read; no value for the 12th century alone could be read" }],
-      "claims": ["Mean male stature across ten thousand years of ancient Greece ranged 159.7-170.6 cm, female 153.1-160.4 cm; stature rose from the Bronze Age to the classical period"],
+      "sources": [
+        {
+          "url": "https://link.springer.com/journal/12520",
+          "access": "read-web",
+          "note": "abstract and supplementary tables S1-S2 read; no value for the 12th century alone could be read"
+        }
+      ],
+      "claims": [
+        "Mean male stature across ten thousand years of ancient Greece ranged 159.7-170.6 cm, female 153.1-160.4 cm; stature rose from the Bronze Age to the classical period"
+      ],
       "dating": "Neolithic to Roman",
       "certainty": "range: established",
-      "assets": ["crew.body"]
+      "assets": [
+        "crew.body"
+      ]
     },
     {
       "id": "B-WINTER",
       "object": "D. A. Winter, Biomechanics and Motor Control of Human Movement (segment proportions after Drillis and Contini)",
       "access": "metadata-only",
       "note": "the standard proportions used for the rig are known from the literature; not read in this session",
-      "assets": ["crew.body"]
+      "assets": [
+        "crew.body"
+      ]
     },
-    { "id": "B-MORRISON", "object": "J. S. Morrison, J. F. Coates, N. B. Rankov, The Athenian Trireme", "access": "metadata-only", "assets": [] },
-    { "id": "B-CASSON", "object": "L. Casson, Ships and Seamanship in the Ancient World", "access": "metadata-only", "assets": [] },
-    { "id": "B-LAWRENCE", "object": "A. W. Lawrence, Greek Architecture", "access": "metadata-only", "assets": [] },
-    { "id": "B-COULTON", "object": "J. J. Coulton, Ancient Greek Architects at Work", "access": "metadata-only", "assets": [] }
+    {
+      "id": "B-MORRISON",
+      "object": "J. S. Morrison, J. F. Coates, N. B. Rankov, The Athenian Trireme",
+      "access": "metadata-only",
+      "assets": []
+    },
+    {
+      "id": "B-CASSON",
+      "object": "L. Casson, Ships and Seamanship in the Ancient World",
+      "access": "metadata-only",
+      "assets": []
+    },
+    {
+      "id": "B-LAWRENCE",
+      "object": "A. W. Lawrence, Greek Architecture",
+      "access": "metadata-only",
+      "assets": []
+    },
+    {
+      "id": "B-COULTON",
+      "object": "J. J. Coulton, Ancient Greek Architects at Work",
+      "access": "metadata-only",
+      "assets": []
+    },
+    {
+      "id": "R-DIODORUS-14",
+      "object": "Diodorus Siculus 14.38-43 (Oldfather, LacusCurtius)",
+      "sources": [
+        {
+          "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Diodorus_Siculus/14D*.html",
+          "access": "read-web"
+        },
+        {
+          "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Diodorus_Siculus/14C*.html",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "14.42.1: the catapult was invented at Syracuse in this year (archon Aristocrates, 399/8 BC, 14.38.1)",
+        "14.42: Dionysius began building quadriremes and quinqueremes; fir and pine cut on Etna and brought from Italy",
+        "Diodorus is the only explicit literary source for the invention (certain for what he says, not for the origin)"
+      ]
+    },
+    {
+      "id": "R-ARRIAN-TYRE",
+      "object": "Arrian, Anabasis 2.21-2.24 (Chinnock, Wikisource): the siege of Tyre, 332 BC",
+      "sources": [
+        {
+          "url": "https://en.wikisource.org/wiki/The_Anabasis_of_Alexander/Book_II/Chapter_XXI",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Engines built on the mole, on horse-transports and on slow triremes (2.21.1)",
+        "Ships carrying engines breached the wall; two vessels carried the bridges laid across the breach (2.22-2.23)"
+      ]
+    },
+    {
+      "id": "R-THEOPHRASTUS-HP5",
+      "object": "Theophrastus, Enquiry into Plants 5.7.1-3 (Hort 1916, topostext)",
+      "sources": [
+        {
+          "url": "https://topostext.org/work/242",
+          "access": "read-web"
+        },
+        {
+          "url": "https://kosmossociety.org/trees-and-wood-part-2-theophrastus-on-the-uses-of-timber",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Triremes and long ships of silver-fir (elate) for lightness; merchant ships of peuke (often taken as pine)",
+        "Syria and Phoenicia use cedar, Cyprus Aleppo pine; a trireme's keel is oak, a merchantman's of peuke, small craft beech",
+        "Bent timbers of mulberry, manna-ash, elm or plane; some make them of Aleppo pine for triremes"
+      ]
+    },
+    {
+      "id": "R-PLATO-CRITIAS",
+      "object": "Plato, Critias 111b-c (Perseus)",
+      "sources": [
+        {
+          "url": "http://www.perseus.tufts.edu/hopper/text?doc=Perseus%3Atext%3A1999.01.0180%3Atext%3DCriti.%3Asection%3D111c",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Attica's mountains once had forests; rafters from trees felled there still roof large buildings; the land like the skeleton of a sick man",
+        "A mythical frame (9000 years earlier); the loss blamed on soil washed away by floods; a 4th-century perception, not data"
+      ]
+    },
+    {
+      "id": "R-NAVALLISTS",
+      "object": "Athenian naval inventories IG II2 1627-1631 (330s-320s BC)",
+      "sources": [
+        {
+          "url": "https://tidsskrift.dk/pdia/article/download/24130/21168/55831",
+          "access": "read-web"
+        },
+        {
+          "url": "https://atticinscriptions.com/inscription/IGII2/1629",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "330/29 (IG II2 1627): 392 triremes, 18 quadriremes (first appearance)",
+        "325/4 (IG II2 1629): 360 triremes, 50 quadriremes, 7 quinqueremes (total 417); its decree also names triaconters",
+        "323/2 (IG II2 1631): about 315 triremes, about 50 quadriremes, no quinqueremes listed (Gabrielsen 2014, PDIA 7, 37-48)"
+      ]
+    },
+    {
+      "id": "R-LAURION-WORKSHOPS",
+      "object": "Laurion ore workshops and leases",
+      "sources": [
+        {
+          "url": "https://warwick.ac.uk/fac/arts/classics/intranets/staff/rowan/bsanumismatics/kakavoyannis_workshops.pdf",
+          "access": "read-web"
+        },
+        {
+          "url": "https://hmsjournal.org/index.php/home/article/download/245/237/237",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.atticinscriptions.com/inscription/RO/36",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Galena and cerussite are the main silver-bearing lead ores (Kakavoyannis 2001, BSA 96)",
+        "Ground ore washed with recycled water through channels and settling tanks on flat-washing platforms with a stand tank; hydraulic plaster; large open cisterns; crushing tables and mills",
+        "Flat-washing platforms typical of the 5th and 4th c. (Kepper 2004, Historical Metallurgy 38); the Kordellas workshop is 4th-century",
+        "Mine leases recorded from 367/6 BC; production intensified from the 340s (more than 80 mines in 342/1, AIO RO 36 n. 14)"
+      ]
+    },
+    {
+      "id": "R-OLYNTHUS",
+      "object": "Olynthus houses, Chalcidice (destroyed 348 BC)",
+      "sources": [
+        {
+          "url": "https://tpsalomonreinach.mom.fr/files/original/87f0d806b101d20668e643dbb566bf679ca49c4e.pdf",
+          "access": "read-web"
+        },
+        {
+          "url": "https://chronique.efa.gr/index.php/fiches/voir/6508",
+          "access": "read-web"
+        },
+        {
+          "url": "https://bmcr.brynmawr.edu/?p=22765",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Rubble foundations with mud-brick walls above; many houses of two storeys (Robinson, AJA 36, 1932)",
+        "Rooms round a court with a portico (pastas), usually on the north side facing south; walls stuccoed and painted",
+        "Fallen roof tiles in the houses; tiles lying flat in the destruction layer of house B ix 6 (2017)",
+        "Pottery mostly of the first half of the 4th c.; nothing clearly later than 348 BC"
+      ]
+    },
+    {
+      "id": "R-IPHICRATES",
+      "object": "Iphicrates' reform of infantry equipment",
+      "sources": [
+        {
+          "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Diodorus_Siculus/15B*.html",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.attalus.org/translate/nepos11.html",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Diodorus 15.44 (374/3 BC): smaller shields, spears lengthened by half, swords nearly doubled, iphicratid boots; former hoplites renamed peltasts",
+        "Nepos, Iphicrates 1.3-4: linen corselets in place of bronze cuirasses or chain armour (Nepos alone)",
+        "Iphicrates already commanded peltasts in the Corinthian War (Xenophon, Hellenica 4.5.13, conventionally 390 BC)"
+      ]
+    },
+    {
+      "id": "R-PILOS",
+      "object": "The pilos helmet",
+      "sources": [
+        {
+          "url": "http://www.perseus.tufts.edu/hopper/text?doc=Perseus:text:1999.01.0200:book=4:chapter=34",
+          "access": "read-web"
+        },
+        {
+          "url": "https://thescholarship.ecu.edu/server/api/core/bitstreams/7bc8e0ff-7dba-46ac-a3de-9657e43f5276/content",
+          "access": "read-web-last-resort"
+        }
+      ],
+      "claims": [
+        "Spartan piloi at Sphacteria, 425 BC (Thucydides 4.34.3; possibly felt caps)",
+        "Its prevalence in the 4th century rests on an MA thesis (Hasapis 2012, p. 33, citing Anderson 1970): an interpretation, not an established fact"
+      ]
+    },
+    {
+      "id": "R-XENOPHON-HELLENICA",
+      "object": "Xenophon, Hellenica (Brownson, Perseus) and Thucydides 4.12.1",
+      "sources": [
+        {
+          "url": "http://www.perseus.tufts.edu/hopper/text?doc=Perseus:text:1999.01.0206:book=6:chapter=2:section=27",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "6.2.27: Iphicrates left his large sails at Athens, since he expected to fight (373/2 BC conventionally); 2.1.29: Conon took the cruising sails of Lysander's ships (405 BC)",
+        "1.6.19: side screens (pararrymata) used for concealment (406 BC); protection against missiles is the translator's note",
+        "Thucydides 4.12.1: the parexeiresia (outrigger, oar-box in LSJ), 425 BC"
+      ]
+    },
+    {
+      "id": "R-OPHTHALMOI",
+      "object": "Ships' eyes of the classical period",
+      "sources": [
+        {
+          "url": "https://ascsa.edu.gr/publications/hesperia/article/78/3/347-366",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Classical ships' eyes are carved marble plates fixed to the bow (Agora, Zea, Tektas Burnu wreck; Carlson, Hesperia 78, 2009)",
+        "That they were painted is not confirmed: the game's eyes are drawn as white marble plates with a dark iris"
+      ]
+    },
+    {
+      "id": "R-VERGINA-PELLA",
+      "object": "Painting at Aigai (Vergina) and pebble mosaics at Pella",
+      "sources": [
+        {
+          "url": "https://www.zougla.gr/Uploads/old_root/mazanis/91114/PNAS-2015-Bartsiokas-1510906112.pdf",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.greeknewsagenda.gr/?p=19539",
+          "access": "read-web"
+        },
+        {
+          "url": "https://www.cambridge.org/core/product/6ACE559B194589102EB43AD3E46EAD6B/core-reader",
+          "access": "read-web"
+        }
+      ],
+      "claims": [
+        "Tomb II hunt frieze 5.56 x 1.16 m, six hunting scenes; dated 336-316 BC (Philip II or Philip III Arrhidaeus, disputed)",
+        "A wider palette than the traditional four colours (ReVis 2025); bluish triglyphs on the Tomb II and III facades (PNAS 2015)",
+        "Pella pebble mosaics: probably the last quarter of the 4th c.; graded stones, lead or terracotta outlines, dark ground"
+      ]
+    }
   ]
 }

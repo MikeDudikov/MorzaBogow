@@ -579,8 +579,8 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>
-        /// Helmets of the 4th century BC (docs/art/HistoricalConstraints.md): 1 the conical pilos, the common bronze helmet of
-        /// the century's infantry; 2 a closed Corinthian-type helmet with a crest (the officers'); 3 a Boeotian helmet with its
+        /// Helmets of the 4th century BC (docs/art/HistoricalConstraints.md): 1 the conical pilos (known from 425 BC; that it was
+        /// the century's common infantry helmet is an interpretation, R-PILOS); 2 a closed Corinthian-type helmet with a crest (the officers'); 3 a Boeotian helmet with its
         /// folded brim; 4 a soft felt cap (pilos of felt) for crews at work.
         /// </summary>
         static void BuildHelmet(Builder b, int lod, int variant, CrewPalette.Cell first, CrewPalette.Cell second)

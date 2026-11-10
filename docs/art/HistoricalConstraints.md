@@ -16,9 +16,52 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 
 ## Zakres
 
-- **Daty:** kotwica XII w. p.n.e., czyli późna epoka brązu w Egei (Late Helladic IIIC). Polecenie dopuszcza ramę XII–V w. p.n.e. Użytkownik wskazał XII w. tam, gdzie się da, więc okręty, załogi, ładunki i port idą za XII w.
-- **Regiony:** wybrzeża Morza Egejskiego, kontakty z Lewantem i Cyprem (handel miedzią i cyną).
-- **Okres V w. p.n.e.** (triera, szopy okrętowe w Pireusie): **nie jest kotwicą** tej wersji. Służy wyłącznie jako materiał porównawczy (R-OLYMPIAS, R-ZEA). Klasy gry nie przedstawiają trier.
+- **Kotwica od 2026-11-10: Grecja IV w. p.n.e.** Późna klasyka, ok. 400–323 p.n.e., profil E6. Decyzja użytkownika: najpierw VII w., potem korekta na IV w.
+  - Region roboczy: Attyka, czyli Pireus i hangary w Zei, Laurion i Thorikos.
+  - Ustalenia IV w. są w sekcji niżej.
+  - Tabele dalej w pliku („Okręty”, „Załogi”, „Uzbrojenie i ubiór”, „Architektura…”) opisują dawny profil E1, czyli XII w. (LH IIIC). Są nieaktywne i zostają jako zapis historii projektu.
+- **Regiony:** wybrzeża Morza Egejskiego, kontakty z Lewantem i Cyprem.
+
+## Kotwica IV w. p.n.e. (profil E6, od 2026-11-10)
+
+Źródła: [ReferenceRegister.json](ReferenceRegister.json). Pozycje oznaczone „read-web” zostały odczytane w tej sesji. Pozycje oznaczone „read-web-last-resort” to praca dyplomowa albo Wikipedia: przyjęte, ale do sprawdzenia w publikacjach.
+
+### Okręty, machiny i drewno
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Flota ateńska lat 330–320: przewaga trier; czwororzędowce od 330/29 (18, potem ok. 50); pięciorzędowce wymienione tylko w 325/4 (7); w uchwale także triakontory | ustalenie (inwentarze IG II² 1627–1631, za Gabrielsenem 2014) | R-NAVALLISTS | klasy gry: taranowiec jako triakontor, abordażowiec jako czworo- lub pięciorzędowiec |
+| Klasy mają wymiary z katalogu gry (12–28 m), a triera miała ok. 37 m; większe typy rysujemy krótsze | kompromis skali gry, decyzja artystyczna | — | `GreekShips` |
+| Oczy okrętów (ophthalmoi) to rzeźbione marmurowe płytki na dziobie | ustalenie (Agora, Zea, wrak Tektaş Burnu; Carlson 2009); malowanie niepotwierdzone | R-OPHTHALMOI | `GreekShips.BuildEyes`: biała płytka z ciemną źrenicą |
+| Wysięgnik górnego rzędu wioseł (parexeiresia) | ustalenie (Tukidydes 4.12.1, 425 r.; LSJ: wysięgnik, skrzynia wioseł) | R-XENOPHON-HELLENICA | okręty wojenne (do zrobienia) |
+| Zasłony burtowe (pararrymata); w źródle służą ukryciu, osłona przed pociskami to przypis tłumacza | ustalenie (Ksenofont, *Hellenika* 1.6.19, 406 r.) z zastrzeżeniem | R-XENOPHON-HELLENICA | okręty wojenne (do zrobienia) |
+| Duże żagle zostawiano na lądzie przed walką | ustalenie (*Hellenika* 6.2.27, Ifikrates; 2.1.29, 405 r.) | R-XENOPHON-HELLENICA | żagiel zwinięty w walce (obsada już brajluje) |
+| Spiżowy taran z płetwami | interpretacja dla IV w. (rzeźbione i odlewane tarany klasyczne i hellenistyczne; wzór sprawdzić w publikacji) | — | `GreekShips.BuildRam` |
+| Katapulta wynaleziona w Syrakuzach w 399/8 r. | ustalenie (Diodor 14.42.1, jedyne wyraźne źródło literackie) | R-DIODORUS-14 | machiny okrętów gry: od 399 r. to nie anachronizm, ale na okręcie wczesna interpretacja |
+| Machiny na okrętach przy oblężeniu Tyru, 332 r. | ustalenie (Arrian 2.21–23) | R-ARRIAN-TYRE | `ShipKiller` (miotacz bełtów), `Bomber` (miotacz kamieni) |
+| Statek handlowy jak z Kyrenii: ok. 14 m, jeden żagiel czworokątny z gejtawami (ponad 150 ołowianych kółek), 384 amfory (ok. 220 dużych rodyjskich), kamienie młyńskie, migdały | ustalenie; zbudowany pod koniec IV w. (najpewniej 346/340–312/308), **zatonął na początku III w.** (najpewniej 287/286–272) | R-KYRENIA | statek handlowy, ładunek, wraki (`prop_amphora_rhodian`) |
+| Triery i okręty długie z jodły pospolitej (elatē); statki kupieckie z peuke (sosna); kil triery z dębu; elementy gięte z morwy, jesionu mannowego, wiązu, platanu | ustalenie (Teofrast, *Historia roślin* 5.7.1–3) | R-THEOPHRASTUS-HP5 | skład drewna, pochylnia, tekstury drewna okrętu |
+
+### Ludzie i uzbrojenie
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Reforma Ifikratesa: mniejsze tarcze, dłuższe włócznie i miecze, buty; dawni hoplici nazwani peltastami (Diodor 15.44, 374/3) | ustalenie (tekst); szczegóły sporne | R-IPHICRATES | peltaści przy stanowiskach oszczepów |
+| Lniane pancerze zamiast brązowych | ustalenie tylko u Neposa (*Ifikrates* 1.3–4) | R-IPHICRATES | linothorax u części epibatów |
+| Hełm pilos | ustalenie dla 425 r. (Tukidydes 4.34.3, może filcowe czapki); **powszechność w IV w. to interpretacja** (praca magisterska za Andersonem 1970) | R-PILOS | `CrewLooks`: pilos u większości epibatów |
+| Tarcza aspis z godłem, hełm koryncki lub beocki u oficerów, pancerz mięśniowy | interpretacja epoki (ikonografia do odczytu) | — | dowódca, epibatai |
+| Godła stron to konwencja gry (barwy stron), nie symbole miast | decyzja artystyczna | — | `ShieldPaint` |
+
+### Budowle, srebro i krajobraz
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Domy w Olintos: fundamenty z łamanego kamienia, ściany z cegły suszonej, często piętrowe, pokoje wokół dziedzińca z portykiem (pastas) od północy, tynk malowany, dachówki | ustalenie (Robinson 1932; wykopaliska 2017); koniec 348 r. | R-OLYNTHUS | domy portu, magazyn |
+| Hangary w Zei: kolumnady z wapienia, ściany, dach z dachówek; faza 3 po 375–350 r., światło ok. 5,87 m; 196 hangarów w 330/29 | ustalenie (Lovén 2011) | R-ZEA | dok i stocznia: typ, nie wymiar; okręty gry (do 10,9 m) zostają widoczne, hangar nie przykrywa pochylni |
+| Laurion: galena i cerusyt; płuczki płaskie ze zbiornikiem, kanałami i osadnikami, tynk hydrauliczny, duże cysterny, stoły do kruszenia i żarna | ustalenie (Kakavoyannis 2001; Kepper 2004) | R-LAURION-WORKSHOPS | złoże srebra, `ore.washery.E5` (E5 i E6) |
+| Dzierżawy kopalń od 367/6 r., ożywienie od lat 340 (ponad 80 kopalń w 342/1) | ustalenie (AIO RO 36) | R-LAURION-WORKSHOPS | wygląd czynnej kopalni IV w. |
+| Wylesienie Attyki w odczuciu IV w. (Platon, *Kritiasz* 111) | opis w ramie mitycznej: postrzeganie, nie dane | R-PLATO-CRITIAS | krajobraz: wyręby i nagie zbocza obok gajów |
+| Malarstwo Verginy (fryz łowiecki 5,56 × 1,16 m, 336–316 r., datowanie sporne) i mozaiki z Pelli (ostatnia ćwierć IV w.) | ustalenie (PNAS 2015; Martin 2017) | R-VERGINA-PELLA | paleta i polichromia budowli, malowane tynki |
 
 ## Okręty
 

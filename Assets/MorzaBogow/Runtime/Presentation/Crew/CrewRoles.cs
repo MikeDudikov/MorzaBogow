@@ -35,11 +35,12 @@ namespace MorzaBogow.Presentation
     }
 
     /// <summary>
-    /// The roles of the crews and their grounds, after the evidence for Aegean galleys of the 12th century BC
-    /// (docs/art/HistoricalConstraints.md): rowers levied from settlements (the Pylos rower tablets), seated low along the
-    /// sides facing aft; a steersman at the steering oars in the stern; warriors on deck with helmets, shields, spears and
-    /// javelins, full armour for a leader only; a man watching at the bow. No master of the rowers: the keleustes belongs to
-    /// the classical trireme. Machines are the game's anachronism; the men who work them wear the age's kit.
+    /// The roles of the crews and their grounds for Greek ships of the 4th century BC, the project's anchor since 2026-11-10
+    /// (docs/art/HistoricalConstraints.md): rowers on benches facing aft; a helmsman (kybernetes) at the steering oars;
+    /// marines (epibatai) with the pilos, some in linen corselets, and the aspis; peltasts with the pelte and javelins after
+    /// Iphicrates' reform; archers; an officer (trierarch) in a bronze cuirass; a bow officer watching ahead. Ship-borne
+    /// engines are known from Tyre, 332 BC: an early interpretation, no longer an anachronism. The keleustes and the
+    /// piper are looks of men already aboard, never extra men.
     /// </summary>
     public static class CrewRoles
     {
@@ -48,45 +49,45 @@ namespace MorzaBogow.Presentation
 
         public static readonly CrewRoleInfo[] All =
         {
-            new CrewRoleInfo { Role = CrewRole.Helmsman, Name = "sternik", Trades = Sailors,
-                Function = "steruje dwoma wiosłami sterowymi za rumple; podaje rytm wioślarzom (bez osobnego keleustesa)", Certainty = "ustalenie (sternik przy wiośle sterowym, Kynos A91); interpretacja (dwa wiosła, podawanie rytmu)",
-                Sources = new[] { "R-KYNOS", "R-MEDINET" }, Kit = "krótka tunika lub przepaska, czasem hełm; bez pancerza" },
+            new CrewRoleInfo { Role = CrewRole.Helmsman, Name = "sternik (kybernetes)", Trades = Sailors,
+                Function = "steruje dwoma wiosłami sterowymi za rumple na rufie", Certainty = "interpretacja (dwa wiosła sterowe okrętów klasycznych, rekonstrukcja Olympias; tytuł klasyczny, tekst do odczytu)",
+                Sources = new[] { "R-OLYMPIAS" }, Kit = "exomis lub chiton z niebarwionego lnu, czasem filcowa czapka; bez pancerza" },
             new CrewRoleInfo { Role = CrewRole.Rower, Name = "wioślarz", Trades = Sailors,
-                Function = "e-re-ta z tabliczek z Pylos: siedzi nisko przy burcie twarzą ku rufie i ciągnie jedno wiosło", Certainty = "ustalenie (wioślarze w tabliczkach i na wazach); spekulacja (strój)",
-                Sources = new[] { "R-PYLOS-AN", "R-BADEMGEDIGI", "R-MEDINET" }, Kit = "przepaska lub krótka tunika z niebarwionego lnu albo wełny, nagi tors; bez broni" },
-            new CrewRoleInfo { Role = CrewRole.WarriorRower, Name = "wojownik przy wiośle", Trades = Fighters,
-                Function = "wojownik bez stanowiska siada w rejsie do wolnego wiosła i odchodzi na stanowisko w gotowości bojowej", Certainty = "interpretacja (Homer, Il. 2.718–720; Tukidydes 1.10.4)",
-                Sources = new[] { "R-HOMER", "R-THUCYDIDES" }, Kit = "jak wojownik, broń i tarcza odłożone przy ławie" },
-            new CrewRoleInfo { Role = CrewRole.Lookout, Name = "obserwator", Trades = new[] { CrewTrade.Javelin, CrewTrade.Archer, CrewTrade.Swordsman, CrewTrade.Sailor },
-                Function = "ktoś czuwa na dziobie: funkcja tak, osobny tytuł nie", Certainty = "interpretacja (Kynos A91–A92; Od. 12.228–229); tytuł prōireus jest późniejszy",
-                Sources = new[] { "R-KYNOS", "R-HOMER" }, Kit = "wojownik z oszczepami na galerze; marynarz na statku i łodzi" },
-            new CrewRoleInfo { Role = CrewRole.Commander, Name = "dowódca", Trades = Fighters,
-                Function = "przywódca na pomoście rufowym; jedyny w pełnym rynsztunku", Certainty = "interpretacja (Waza Wojowników; groby wojowników LH IIIC w Achai; tytuł na okręcie nieznany)",
-                Sources = new[] { "R-WARRIORVASE", "R-ACHAEA" }, Kit = "napierśnik, nagolenniki, hełm, tarcza, włócznia i miecz typu Naue II" },
-            new CrewRoleInfo { Role = CrewRole.Skipper, Name = "szyper", Trades = Sailors,
-                Function = "właściciel lub prowadzący statek kupiecki przy sterniku", Certainty = "spekulacja (funkcja konieczna na statku handlowym, bez źródła dla XII w.)",
-                Sources = new[] { "R-ULUBURUN" }, Kit = "dłuższa tunika, płaszcz; bez broni" },
+                Function = "siedzi na ławie twarzą ku rufie i ciągnie jedno wiosło; rytm podają keleustes i flecista (wygląd ludzi z obsady, bez dodatkowych ludzi)", Certainty = "rekonstrukcja (triera Olympias, jeden rząd w grze); spekulacja (strój)",
+                Sources = new[] { "R-OLYMPIAS" }, Kit = "przepaska lub exomis z niebarwionego lnu albo wełny, często nagi tors; bez broni" },
+            new CrewRoleInfo { Role = CrewRole.WarriorRower, Name = "żołnierz przy wiośle", Trades = Fighters,
+                Function = "żołnierz bez stanowiska siada w rejsie do wolnego wiosła i odchodzi na stanowisko w gotowości bojowej", Certainty = "interpretacja (dana gry; żołnierze przy wiosłach w potrzebie)",
+                Sources = new[] { "R-THUCYDIDES" }, Kit = "jak epibates, broń i tarcza odłożone przy ławie" },
+            new CrewRoleInfo { Role = CrewRole.Lookout, Name = "oficer dziobowy (prorates)", Trades = new[] { CrewTrade.Javelin, CrewTrade.Archer, CrewTrade.Swordsman, CrewTrade.Sailor },
+                Function = "czuwa na dziobie i podaje znaki sternikowi", Certainty = "interpretacja (tytuł klasyczny, tekst do odczytu)",
+                Sources = new string[0], Kit = "peltasta lub marynarz" },
+            new CrewRoleInfo { Role = CrewRole.Commander, Name = "dowódca (trierarcha)", Trades = Fighters,
+                Function = "dowodzi z rufy; jedyny w pancerzu z brązu", Certainty = "interpretacja (trierarchowie ateńskiej floty IV w.; strój z ikonografii do odczytu)",
+                Sources = new[] { "R-NAVALLISTS" }, Kit = "pancerz mięśniowy z brązu, nagolenniki, hełm koryncki lub beocki z grzebieniem, aspis, włócznia i miecz" },
+            new CrewRoleInfo { Role = CrewRole.Skipper, Name = "szyper (naukleros)", Trades = Sailors,
+                Function = "prowadzi statek kupiecki przy sterniku", Certainty = "interpretacja (statek z Kyrenii; tytuł klasyczny)",
+                Sources = new[] { "R-KYRENIA" }, Kit = "dłuższy chiton, płaszcz (himation); bez broni" },
             new CrewRoleInfo { Role = CrewRole.SailHand, Name = "marynarz przy żaglu", Trades = Sailors,
-                Function = "ciągnie gejtawy przy zwijaniu i stawianiu żagla; cała załoga stawia maszt i żagiel", Certainty = "ustalenie (żagiel z gejtawami, Medinet Habu, Kynos); interpretacja (osobni ludzie przy żaglu)",
-                Sources = new[] { "R-MEDINET", "R-KYNOS", "R-HOMER" }, Kit = "jak wioślarz" },
+                Function = "ciągnie gejtawy przy zwijaniu i stawianiu żagla; przed walką żagiel zwinięty", Certainty = "ustalenie (żagiel z gejtawami: Kyrenia; duże żagle zostawiane przed walką: Hellenika 6.2.27); interpretacja (osobni ludzie przy żaglu)",
+                Sources = new[] { "R-KYRENIA", "R-XENOPHON-HELLENICA" }, Kit = "jak wioślarz" },
             new CrewRoleInfo { Role = CrewRole.LineHand, Name = "marynarz przy linach i ładunku", Trades = Sailors,
                 Function = "pilnuje lin i ładunku, wylewa wodę", Certainty = "interpretacja",
-                Sources = new[] { "R-ULUBURUN" }, Kit = "jak wioślarz, czasem czerpak lub lina" },
+                Sources = new[] { "R-KYRENIA" }, Kit = "jak wioślarz, czasem czerpak lub lina" },
             new CrewRoleInfo { Role = CrewRole.BowHand, Name = "dziobowy łodzi", Trades = Sailors,
                 Function = "na dziobie łodzi z bosakiem, wypatruje mielizn i podaje liny przy brzegu", Certainty = "interpretacja",
                 Sources = new string[0], Kit = "jak wioślarz, z bosakiem" },
             new CrewRoleInfo { Role = CrewRole.BankArcher, Name = "łucznik stanowiska", Trades = new[] { CrewTrade.Archer },
-                Function = "czterech łuczników na stanowisku za plecionym przedpiersiem strzela salwami w cyklu broni", Certainty = "spekulacja/interpretacja (łucznicy na okrętach egejskich rzadcy: Kynos A92; wioślarze-łucznicy u Homera); stanowisko to dana gry",
-                Sources = new[] { "R-KYNOS", "R-HOMER", "R-MEDINET" }, Kit = "krótka tunika, łuk, kołczan, czasem hełm" },
-            new CrewRoleInfo { Role = CrewRole.BankJavelin, Name = "oszczepnik stanowiska", Trades = new[] { CrewTrade.Javelin },
-                Function = "czterech oszczepników na stanowisku rzuca w cyklu broni", Certainty = "ustalenie (wojownicy z oszczepami na okrętach, Kynos); stanowisko to dana gry",
-                Sources = new[] { "R-KYNOS", "R-BADEMGEDIGI" }, Kit = "tunika, hełm, mała tarcza, pęk oszczepów" },
+                Function = "czterech łuczników na stanowisku za przedpiersiem strzela salwami w cyklu broni", Certainty = "interpretacja (łucznicy na okrętach klasycznych; łucznicy kreteńscy, źródło do odczytu); stanowisko to dana gry",
+                Sources = new string[0], Kit = "krótki chiton, łuk, kołczan; bez hełmu albo w czapce" },
+            new CrewRoleInfo { Role = CrewRole.BankJavelin, Name = "peltasta stanowiska", Trades = new[] { CrewTrade.Javelin },
+                Function = "czterech peltastów na stanowisku rzuca oszczepami w cyklu broni", Certainty = "ustalenie (peltaści IV w.: Diodor 15.44, Ksenofont, Hellenika 4.5.13); stanowisko to dana gry",
+                Sources = new[] { "R-IPHICRATES" }, Kit = "tunika, czapka lub pilos, tarcza pelte, pęk oszczepów" },
             new CrewRoleInfo { Role = CrewRole.MachineCrew, Name = "obsługa machiny", Trades = Fighters,
-                Function = "napina, ładuje, celuje i wyzwala machinę stanowiska", Certainty = "anachronizm gry (machiny miotające nie istniały w XII w. p.n.e.)",
-                Sources = new string[0], Kit = "tunika i hełm; tarcza i broń odłożone przy stanowisku" },
-            new CrewRoleInfo { Role = CrewRole.Marine, Name = "wojownik pokładowy", Trades = Fighters,
-                Function = "wojownicy na pokładzie i pomostach: walka wręcz przy abordażu; zapasowi łucznicy i oszczepnicy wspierają zza frontu", Certainty = "ustalenie (wojownicy na pokładach, Kynos, Bademgediği, Medinet Habu)",
-                Sources = new[] { "R-KYNOS", "R-BADEMGEDIGI", "R-MEDINET", "R-WARRIORVASE" }, Kit = "tunika w barwie strony (konwencja gry), hełm jeżowy, pierzasty lub rogaty, tarcza okrągła lub klepsydrowa, włócznia lub oszczepy albo łuk" },
+                Function = "napina, ładuje, celuje i wyzwala machinę stanowiska", Certainty = "wczesna interpretacja (katapulta od 399 r.: Diodor 14.42; machiny na okrętach pod Tyrem 332 r.: Arrian 2.21)",
+                Sources = new[] { "R-DIODORUS-14", "R-ARRIAN-TYRE" }, Kit = "tunika, filcowa czapka lub pilos; tarcza i broń odłożone przy stanowisku" },
+            new CrewRoleInfo { Role = CrewRole.Marine, Name = "epibates (żołnierz okrętowy)", Trades = Fighters,
+                Function = "żołnierze na pokładzie i pomostach: walka wręcz przy abordażu; zapasowi łucznicy i peltaści wspierają zza frontu", Certainty = "interpretacja (epibatai okrętów klasycznych; pilos: R-PILOS, lniany pancerz: Nepos)",
+                Sources = new[] { "R-PILOS", "R-IPHICRATES" }, Kit = "tunika w barwie strony (konwencja gry), hełm pilos (część koryncki lub beocki), część w lnianym pancerzu, tarcza aspis, włócznia, miecz" },
             new CrewRoleInfo { Role = CrewRole.Wounded, Name = "ranny", Trades = new[] { CrewTrade.Wounded },
                 Function = "ranni z liczby Wounded siedzą lub leżą przy maszcie do leczenia w porcie", Certainty = "dana gry",
                 Sources = new string[0], Kit = "bez broni, bandaż z lnu" },

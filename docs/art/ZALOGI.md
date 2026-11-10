@@ -4,6 +4,19 @@ Data: 2026-11-10. Tylko prezentacja; symulacja i zapis gry bez zmian.
 
 **Stan.** Załogi są widoczne na wszystkich 7 klasach i biorą udział w ataku według danych gry. Commity: b8ef3c5, 1a47397, a0616a2, 3bf48db. Ludzie przy pracy na lądzie (partie na brzegu, robotnicy doku, cieśle przy pochylniach) mają to samo ciało i ten sam renderer („Na lądzie”).
 
+**Wygląd IV w. p.n.e. (od 2026-11-10, decyzja użytkownika; commit 9ed303b).** Numery wariantów zostają, a dostały nowe kształty:
+- **hełmy:** 1 pilos, 2 koryncki z grzebieniem, 3 beocki, 4 filcowa czapka;
+- **tarcze:** 1 aspis z obręczą i guzem, 2 lżejsza okrągła, 3 pelte;
+- **ubiór:** 2 pancerz mięśniowy z brązu, 3 linothorax.
+
+Wybory w `CrewLooks` według ról:
+- epibatai: pilos i aspis, część w linothoraksie, nieliczni z nagolennikami;
+- peltaści: pelte i czapka;
+- łucznicy: bez hełmu albo w czapce;
+- dowódca: pancerz z brązu, hełm z grzebieniem.
+
+Role i źródła są w `CrewRoles` i [CrewRoles.json](CrewRoles.json). Tabele XII w. niżej opisują dawny profil.
+
 **Poza zakresem:**
 - przejście przez relingi przy abordażu;
 - wypieczony LOD2;
