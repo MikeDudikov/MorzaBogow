@@ -10,7 +10,7 @@ namespace MorzaBogow.Presentation
     /// them into the six paints of its budget.
     /// </summary>
     /// <summary>Paints of the generated meshes; the later ones (Egyptian blue, lead) last, so stored values of the others keep.</summary>
-    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail, Rope, Linen, Wicker, Stone, Terracotta, Azure, Lead }
+    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail, Rope, Linen, Wicker, Stone, Terracotta, Azure, Lead, Mudbrick }
 
     /// <summary>A mesh and the paint of each of its submeshes, in submesh order.</summary>
     public sealed class GreekMesh
@@ -139,6 +139,8 @@ namespace MorzaBogow.Presentation
             public static readonly Color Azure = new Color(0.2f, 0.33f, 0.55f);
             /// <summary>Lead gone dull grey, as poured into the wooden stocks of anchors (R-ANCHORS).</summary>
             public static readonly Color Lead = new Color(0.42f, 0.43f, 0.45f);
+            /// <summary>Sun-dried brick of clay and chaff, where the plaster over it has come off (R-OLYNTHUS).</summary>
+            public static readonly Color Mudbrick = new Color(0.6f, 0.49f, 0.36f);
 
             public static Color Of(GreekMaterial paint) => paint switch
             {
@@ -153,6 +155,7 @@ namespace MorzaBogow.Presentation
                 GreekMaterial.Terracotta => Terracotta,
                 GreekMaterial.Azure => Azure,
                 GreekMaterial.Lead => Lead,
+                GreekMaterial.Mudbrick => Mudbrick,
                 _ => Wood,
             };
         }

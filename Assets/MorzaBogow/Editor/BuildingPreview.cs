@@ -83,6 +83,82 @@ namespace MorzaBogow.Editor
             if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
         }
 
+        /// <summary>
+        /// The School at each stage of its damage (docs/art/DESTRUCTION.md), shelled from the harbour: whole, scarred,
+        /// local failures, partly collapsed, caught falling into ruin and settled in it; close under neutral light and from
+        /// the strategy camera's angle.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.PreviewSchoolDamage
+        /// </summary>
+        public static void PreviewSchoolDamage()
+        {
+            var folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "artifacts-log", "destruction");
+            var failed = 0;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var materials = Materials();
+                foreach (var (name, share) in new[] { ("intact", 0f), ("surface", 0.2f), ("local", 0.45f), ("partial", 0.85f) })
+                    failed += Shot(DamagedSchool(materials, share, -1f), Path.Combine(folder, $"school-{name}.png"), 20f, -125f, false) ? 0 : 1;
+                failed += Shot(DamagedSchool(materials, 0.85f, -1f), Path.Combine(folder, "school-partial-strategic.png"), 45f, 30f, true) ? 0 : 1;
+                failed += Shot(DamagedSchool(materials, 0.85f, -1f), Path.Combine(folder, "school-partial-back.png"), 22f, 55f, false) ? 0 : 1;
+                failed += Shot(DamagedSchool(materials, 0.45f, 0.7f), Path.Combine(folder, "school-falling.png"), 20f, -125f, false) ? 0 : 1;
+                failed += Shot(DamagedSchool(materials, 0.45f, 6f), Path.Combine(folder, "school-ruin.png"), 20f, -125f, false) ? 0 : 1;
+                failed += Shot(DamagedSchool(materials, 0.45f, 6f), Path.Combine(folder, "school-ruin-strategic.png"), 45f, 30f, true) ? 0 : 1;
+                Debug.Log($"[Buildings] destruction previews in {folder}: {(failed == 0 ? "all written" : failed + " failed")}");
+            }
+            catch (System.Exception error)
+            {
+                Debug.LogError($"[Buildings] {error}");
+                failed++;
+            }
+            if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
+        }
+
+        /// <summary>
+        /// A port shelled at its School from the harbour down to a share of its hull, every fall over; then, ruinAt not
+        /// negative, fallen and caught that many game seconds into its fall. Only the School, its damage and the dust stay.
+        /// </summary>
+        static GameObject DamagedSchool(PlaceholderMaterials materials, float share, float ruinAt)
+        {
+            var root = new GameObject("School damage preview");
+            var settlement = new Settlement { Id = 3, Owner = 0, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true };
+            var buildings = new PortBuildings(root.transform, materials, settlement, 1f, null, null);
+            buildings.Update(settlement, false, 0f);
+            var box = buildings.Footprint(PortBuilding.SageSchool);
+            for (var i = 0; i < 6; i++)
+            {
+                var at = buildings.Root.TransformPoint(new Vector3(box.max.x - 0.5f, 2f, box.center.z - 3f + i * 1.2f));
+                buildings.Struck(settlement, at, at + new Vector3(90f, 0f, 10f), WeaponType.HeavyCatapult, 10 + i, false);
+            }
+            settlement.Hull = settlement.MaxHull * (1f - share);
+            buildings.Update(settlement, false, 0f);
+            for (var i = 0; i < 40 && buildings.Collapsing; i++) buildings.Update(settlement, false, 0.25f);
+            if (ruinAt >= 0f)
+            {
+                settlement.Hull = 0;
+                buildings.Update(settlement, true, 0f);
+                for (var t = 0f; t < ruinAt; t += 0.1f) buildings.Update(settlement, true, Mathf.Min(0.1f, ruinAt - t));
+            }
+            // The dust and fragments only while it falls: still pictures would freeze them in the air.
+            var dust = ruinAt > 0f && ruinAt < PortBuildings.CollapseSeconds;
+            for (var i = buildings.Root.childCount - 1; i >= 0; i--)
+            {
+                var child = buildings.Root.GetChild(i);
+                var particles = child.name.StartsWith("Collapse") || child.name.StartsWith("Fragments") || child.name.StartsWith("Falling");
+                if (!child.name.StartsWith("SageSchool") && !(dust && particles)) Object.DestroyImmediate(child.gameObject);
+            }
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Object.DestroyImmediate(ground.GetComponent<Collider>());
+            ground.name = AIAssets.AIAssetPreview.Backdrop + " ground";
+            ground.transform.SetParent(root.transform, false);
+            ground.transform.localPosition = new Vector3(box.center.x, 1.99f, box.center.z);
+            ground.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ground.transform.localScale = new Vector3(box.size.x + 80f, box.size.z + 80f, 1f);
+            var meadow = materials.Meadow != null ? materials.Meadow : materials.Limestone;
+            if (meadow != null) ground.GetComponent<MeshRenderer>().sharedMaterial = meadow;
+            return root;
+        }
+
         /// <summary>Lists every renderer of a silver site with its materials, to see what draws each part of it.</summary>
         public static void ListSiteMaterials()
         {

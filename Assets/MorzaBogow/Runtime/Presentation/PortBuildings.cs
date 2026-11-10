@@ -32,7 +32,7 @@ namespace MorzaBogow.Presentation
     /// trees keep clear of), stepping up the hill in terraces, except the dock's gear by the jetty, off its middle where the
     /// port's men walk. The slipways, the jetty and the store door the dock gangs use stay clear.
     /// </summary>
-    public sealed class PortBuildings
+    public sealed partial class PortBuildings
     {
         /// <summary>The plot on the land's landward half, as distance toward the port (u) and across (z).</summary>
         public const float PlotNear = 1f, PlotFar = -14.5f, PlotHalfWidth = 9.5f;
@@ -105,7 +105,13 @@ namespace MorzaBogow.Presentation
         /// <summary>The building stands whole (not rising, not in ruins).</summary>
         public bool Shows(PortBuilding kind) => !Ruined && structures.TryGetValue(kind, out var item) && item.Root.activeSelf && Rising != kind;
 
-        public bool ShowsRuin(PortBuilding kind) => structures.TryGetValue(kind, out var item) && item.Ruin != null && item.Ruin.activeSelf;
+        public bool ShowsRuin(PortBuilding kind)
+        {
+            // The School's ruin is its own fallen elements, shown once the first of them lies at rest.
+            if (kind == PortBuilding.SageSchool && schoolDamage != null && schoolDamage.Broken)
+                return Ruined && schoolDamage.Frame.gameObject.activeSelf && schoolDamage.SettledPieces > 0;
+            return structures.TryGetValue(kind, out var item) && item.Ruin != null && item.Ruin.activeSelf;
+        }
 
         /// <summary>
         /// Where a building stands on the land: the box round its pieces in the settlement root's space (x across the
@@ -138,6 +144,8 @@ namespace MorzaBogow.Presentation
                 Apply(settlement, ruined, project, progress);
             }
             if (falling.Count > 0) Fall(delta);
+            // The School shows the hull the settlement has left (PortBuildings.School).
+            UpdateDamage(settlement, ruined, delta);
 
             // The research fire flickers in game time.
             if (flame != null && flame.gameObject.activeInHierarchy)
@@ -167,8 +175,9 @@ namespace MorzaBogow.Presentation
                 _ => null,
             };
             if (ruined) rising = null;
-            // Only what an earlier state showed standing can fall; a settlement first seen fallen lies in ruins at once.
-            var stoodBefore = applied && !Ruined;
+            // Only what an earlier state showed standing, in sight a moment ago, can fall; a settlement first seen fallen
+            // lies in ruins at once.
+            var stoodBefore = applied && !Ruined && continuous;
             applied = true;
             // A port raised again stands at once, whatever was still falling.
             if (!ruined) StopFalling();
@@ -187,6 +196,12 @@ namespace MorzaBogow.Presentation
                 var item = Get(kind);
                 if (ruined)
                 {
+                    if (kind == PortBuilding.SageSchool && whole && schoolPiece != null)
+                    {
+                        // The School comes down element by element into the ruin of its own fallen pieces.
+                        RuinSchool(item, stoodBefore && item.Root.activeSelf);
+                        continue;
+                    }
                     if (whole && item.Ruin == null) item.Ruin = BuildRuin(item);
                     // What stood in sight falls into its ruin; what never stood here, or fell before, lies in it at once.
                     if (whole && stoodBefore && item.Root.activeSelf && StartFalling(item)) continue;
@@ -682,6 +697,12 @@ namespace MorzaBogow.Presentation
         /// <summary>The School's three steps (1 m in all), its columns' measures and axes: 0.35 m in from the stylobate's edge.</summary>
         const float SchoolSteps = 1f, SchoolColumnHeight = 3.3f, SchoolColumnRadius = 0.26f, SchoolColumnX = 1.75f, SchoolColumnZ = 3.35f;
 
+        /// <summary>The School's plan (the crepis) and its hall's height; the entablature's courses; the hall inside the colonnade.</summary>
+        const float SchoolWidth = 5f, SchoolDepth = 8.2f, SchoolHallHeight = 4.6f;
+        const float SchoolEpistyle = 0.42f, SchoolFrieze = 0.48f, SchoolCornice = 0.2f, SchoolPitch = 15f, SchoolOverhang = 0.25f;
+        const float HallWidth = 2.1f, HallDepth = 5.2f, HallDoor = 0.5f, HallDoorTop = 2.2f, HallOffset = -0.15f, HallWall = 0.3f;
+        const int HallCourses = 6;
+
         /// <summary>
         /// The School's peristyle of 4 by 6 columns: the long side toward the harbour first, then round. Columns of 6.3
         /// lower diameters: slender, as the Doric column grew century by century, the later 4th century's among the
@@ -706,15 +727,17 @@ namespace MorzaBogow.Presentation
         /// </summary>
         void AddSchool(Structure item)
         {
-            const float w = 5f, d = 8.2f, h = 4.6f, steps = SchoolSteps;
+            const float w = SchoolWidth, d = SchoolDepth, h = SchoolHallHeight, steps = SchoolSteps;
             var piece = NewPiece(item, "School", -11.6f, -0.5f, w, d, h + steps + 1.2f);
+            schoolPiece = piece;
             var body = Builder();
             for (var i = 0; i < 3; i++)
             {
                 var inset = i * 0.2f;
                 body.Box(GreekMaterial.Stone, new Vector3(0f, (steps * (i + 1) / 3f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f - inset, (steps * (i + 1) / 3f + Sink) * 0.5f, d * 0.5f - inset), Quaternion.identity);
             }
-            piece.Body = Attach(piece.Root, "Crepis", body.Build(GreekMaterial.Stone));
+            schoolCrepis = body.Build(GreekMaterial.Stone);
+            piece.Body = Attach(piece.Root, "Crepis", schoolCrepis);
             var floor = Vector3.up * steps;
 
             // Each stage of the work is laid twice: as its own course, shown while the School rises, and into the whole.
@@ -729,9 +752,9 @@ namespace MorzaBogow.Presentation
             }
 
             // The hall: stone orthostates, then stuccoed courses up under the roof; a tall door toward the harbour.
-            const float epistyle = 0.42f, frieze = 0.48f, cornice = 0.2f, hallW = 2.1f, hallD = 5.2f, door = 0.5f, doorTop = 2.2f;
-            var hall = floor + new Vector3(-0.15f, 0f, 0f);
-            const int courses = 6;
+            const float epistyle = SchoolEpistyle, frieze = SchoolFrieze, cornice = SchoolCornice, hallW = HallWidth, hallD = HallDepth, door = HallDoor, doorTop = HallDoorTop;
+            var hall = floor + new Vector3(HallOffset, 0f, 0f);
+            const int courses = HallCourses;
             var course = (SchoolColumnHeight + epistyle + frieze) / courses;
             for (var k = 0; k < courses; k++)
             {
@@ -797,7 +820,7 @@ namespace MorzaBogow.Presentation
             piece.Whole = Attach(piece.Body, "Colonnade and hall", all.Build(GreekMaterial.Paint, GreekMaterial.Stone, GreekMaterial.Pitch, GreekMaterial.Ochre, GreekMaterial.Azure));
 
             // The roof at a temple's low pitch, blue tympana in the pediments, the red raking sima and acroteria.
-            const float pitch = 15f, overhang = 0.25f;
+            const float pitch = SchoolPitch, overhang = SchoolOverhang;
             var eaves = friezeAt + frieze + cornice;
             var roof = Builder();
             TiledGable(roof, 2f * (ex + 0.15f), 2f * (ez + 0.15f), eaves, GreekMaterial.Azure, overhang, pitch);
@@ -1098,7 +1121,7 @@ namespace MorzaBogow.Presentation
         bool applied;
 
         /// <summary>Some building of the settlement is still falling into its ruin.</summary>
-        public bool Collapsing => falling.Count > 0;
+        public bool Collapsing => falling.Count > 0 || schoolDamage != null && schoolDamage.Busy;
 
         /// <summary>Starts a standing building's fall: dust bursts from it as it gives; its ruin shows later, through the dust.</summary>
         bool StartFalling(Structure item)
@@ -1348,6 +1371,8 @@ namespace MorzaBogow.Presentation
                 case GreekMaterial.Azure: return Tint(painted, "egyptian blue", GreekShips.Palette.Azure, 0.25f);
                 case GreekMaterial.Ochre: return Tint(painted, "red ochre", GreekShips.Palette.Ochre, 0.25f);
                 case GreekMaterial.Lead: return Tint(materials.Neutral != null ? materials.Neutral : stone, "lead", GreekShips.Palette.Lead, 0.4f);
+                // Sun-dried brick where the plaster has come off: the plaster's grain in the brick's colour.
+                case GreekMaterial.Mudbrick: return Tint(painted, "mudbrick", GreekShips.Palette.Mudbrick, 0.12f);
                 default: return GreekShips.MaterialFor(paint, materials);
             }
         }

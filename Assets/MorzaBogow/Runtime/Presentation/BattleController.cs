@@ -26,6 +26,7 @@ namespace MorzaBogow.Presentation
         readonly Dictionary<int, ShipVisual> views = new Dictionary<int, ShipVisual>();
         /// <summary>The lasting looks of this match's ships by id; -morzaPlainShips draws every ship in its class's plain look, to measure the difference.</summary>
         ShipLookBook looks = new ShipLookBook();
+        DestructionBook destruction = new DestructionBook();
         readonly bool plainShips = Array.IndexOf(Environment.GetCommandLineArgs(), "-morzaPlainShips") >= 0;
         readonly Dictionary<int, int> viewOwners = new Dictionary<int, int>();
         readonly Dictionary<int, ShipClass> viewClasses = new Dictionary<int, ShipClass>();
@@ -226,10 +227,11 @@ namespace MorzaBogow.Presentation
             hud = BattleHud.Create(this);
         }
 
-        void StartMatch(World world, int opponentBuildIndex, ShipLookBook savedLooks = null)
+        void StartMatch(World world, int opponentBuildIndex, ShipLookBook savedLooks = null, DestructionBook savedDestruction = null)
         {
             ClearViews();
             looks = savedLooks ?? new ShipLookBook();
+            destruction = savedDestruction ?? new DestructionBook();
             // A loaded match starts with no shots, wreckage or sinking hulls of the match it replaces.
             if (effects == null) effects = new BattleEffects(materials);
             else effects.Clear();
@@ -850,9 +852,17 @@ namespace MorzaBogow.Presentation
                         if (seen) effects.WaterColumn(at, MissileSize((WeaponType)(int)item.Amount), item.SubjectId);
                         break;
                     case "projectile_land":
-                    case "projectile_hit_settlement":
                         if (seen) effects.Splinters(at, MissileSize((WeaponType)(int)item.Amount) * 0.6f, item.SubjectId);
                         break;
+                    case "projectile_hit_settlement":
+                    {
+                        // The buildings note where it struck (their damage shows there) and throw up what it struck.
+                        var shooter = World.FindShip(item.OtherId);
+                        var drawn = portBuildings.TryGetValue(item.SubjectId, out var struck) && World.FindSettlement(item.SubjectId) is Settlement hit &&
+                                    struck.Struck(hit, at, shooter != null ? ToWorld(shooter) : (Vector3?)null, (WeaponType)(int)item.Amount, World.Tick, seen);
+                        if (seen && !drawn) effects.Splinters(at, MissileSize((WeaponType)(int)item.Amount) * 0.6f, item.SubjectId);
+                        break;
+                    }
                     case "ram_failed":
                         if (seen) effects.Flash(at, 8f);
                         break;
@@ -1402,7 +1412,7 @@ namespace MorzaBogow.Presentation
                 foot = Mathf.Min(foot, ShoreShape.GroundAt(shape.outline, shape.lift, x, z));
             }
             // The store, workshop, town, school and dock as the settlement has them, on the same landward plot (PortBuildings).
-            portBuildings[settlement.Id] = new PortBuildings(root.transform, materials, settlement, toward, shape.outline, shape.lift);
+            portBuildings[settlement.Id] = new PortBuildings(root.transform, materials, settlement, toward, shape.outline, shape.lift) { Record = destruction.For(settlement.Id) };
             yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);
             // A beach shipyard's gear of the 12th century BC beside the ramps, clear of them, the jetty and the buildings.
             var slipX = toward * (float)Rules.SlipAlong;
@@ -2158,7 +2168,12 @@ namespace MorzaBogow.Presentation
                 var ruined = settlement.Destroyed && !RebuiltOver(settlement);
                 var shown = (!settlement.Destroyed || ruined) && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
                 if (view.activeSelf != shown) view.SetActive(shown);
-                if (shown && portBuildings.TryGetValue(settlement.Id, out var buildings)) buildings.Update(settlement, ruined, paused ? 0f : delta * Speed);
+                if (portBuildings.TryGetValue(settlement.Id, out var buildings))
+                {
+                    if (shown) buildings.Update(settlement, ruined, paused ? 0f : delta * Speed);
+                    // Out of sight: what falls meanwhile is found lying at rest, not seen falling.
+                    else buildings.Unseen();
+                }
                 if (!shown || !yards.TryGetValue(settlement.Id, out var yard)) continue;
                 if (ruined) { yard.War.Show(null, 0f, 0f); yard.Port.Show(null, 0f, 0f); }
                 else yard.Update(settlement, paused ? 0f : delta * Speed);
@@ -2633,6 +2648,8 @@ namespace MorzaBogow.Presentation
             SaveGame.WriteFile(path, data);
             // The ships' looks go beside the save, tied to it by its hash; the save itself stays the simulation's alone.
             looks.WriteBeside(path, data, World.Ships.Select(ship => ship.Id));
+            // So does what the buildings' damage looks like: which elements fell, where the shots struck (DestructionBook).
+            destruction.WriteBeside(path, data, World.Settlements.Select(settlement => settlement.Id));
             Notify("Zapisano grę.");
         }
 
@@ -2642,7 +2659,7 @@ namespace MorzaBogow.Presentation
             {
                 var data = File.ReadAllBytes(path);
                 var world = SaveGame.Deserialize(data, out var build);
-                StartMatch(world, build, ShipLookBook.ReadBeside(path, data));
+                StartMatch(world, build, ShipLookBook.ReadBeside(path, data), DestructionBook.ReadBeside(path, data));
                 Notify("Wczytano grę.");
                 return true;
             }

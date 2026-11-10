@@ -77,7 +77,7 @@ namespace MorzaBogow.Tests
             var settlement = Town();
             var buildings = Port(settlement);
             var school = buildings.Root.Find("SageSchool");
-            var piece = school.Find("School");
+            var piece = buildings.Root.Find("Store/Store");
             var standing = piece.localPosition;
 
             buildings.Update(settlement, true, 0f);
@@ -86,13 +86,15 @@ namespace MorzaBogow.Tests
             Assert.That(buildings.Shows(PortBuilding.SageSchool), Is.False);
             Assert.That(school.gameObject.activeSelf, Is.True, "still standing as it gives");
             Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.False, "the ruin shows later, through the dust");
+            var fall = buildings.DamageOf(PortBuilding.SageSchool);
+            Assert.That(fall.Busy, Is.True, "the School comes down element by element (BuildingDestructionTests)");
 
             buildings.Update(settlement, true, 0f);
             Assert.That(piece.localPosition, Is.EqualTo(standing), "a pause holds the fall");
 
             buildings.Update(settlement, true, PortBuildings.CollapseSeconds * 0.5f);
-            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the walls sink into their rubble");
-            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.True, "the roof has struck: the ruin shows");
+            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the store's walls sink into their rubble");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.True, "its first columns lie at rest: the ruin shows");
 
             buildings.Update(settlement, true, PortBuildings.CollapseSeconds);
             Assert.That(buildings.Collapsing, Is.False);
