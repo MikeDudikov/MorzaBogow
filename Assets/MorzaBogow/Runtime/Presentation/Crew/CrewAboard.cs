@@ -892,7 +892,7 @@ namespace MorzaBogow.Presentation
             var one = float4x4.identity;
             var skin = look.Skin;
             var cloth = look.Cloth;
-            var torso = look.Dress == 0 ? skin : look.Dress == 2 ? CrewPalette.Cell.Bronze : cloth;
+            var torso = look.Dress == 0 ? skin : look.Dress == 2 ? CrewPalette.Cell.Bronze : look.Dress == 3 ? CrewPalette.Cell.Bleached : cloth;
             var sleeve = look.Dress == 0 ? skin : cloth;
             var detail = Mathf.Min(lod, 2);
             void Add(Bone bone, CrewMeshes.Piece piece, int variant, int side, CrewPalette.Cell first, CrewPalette.Cell second, float4x4 local) =>
@@ -913,7 +913,7 @@ namespace MorzaBogow.Presentation
                 return list;
             }
             Add(Bone.Pelvis, CrewMeshes.Piece.Pelvis, 0, 0, skin, look.Dress == 0 ? cloth : cloth, body);
-            Add(Bone.Spine, CrewMeshes.Piece.Spine, 0, 0, look.Dress == 2 ? cloth : torso, torso, body);
+            Add(Bone.Spine, CrewMeshes.Piece.Spine, 0, 0, look.Dress >= 2 ? cloth : torso, torso, body);
             Add(Bone.Chest, CrewMeshes.Piece.Chest, look.Dress, 0, torso, torso, body);
             Add(Bone.Head, CrewMeshes.Piece.Head, look.Face, 0, skin, skin, head);
             Add(Bone.UpperArmL, CrewMeshes.Piece.UpperArm, 0, 1, skin, sleeve, body);

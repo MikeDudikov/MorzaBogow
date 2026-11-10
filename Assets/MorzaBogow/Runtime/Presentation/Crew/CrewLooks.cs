@@ -5,10 +5,12 @@ namespace MorzaBogow.Presentation
     /// <summary>
     /// A man's look from his lasting identity alone (his ship's id and his number aboard, CrewRoster), by a fixed integer
     /// hash: the same man looks the same after a load and in a replay, and nothing depends on instance ids or on the
-    /// game's random numbers. What he wears follows his role (docs/art/CrewRoles.json): rowers and sailors in undyed
-    /// linen or wool, often bare to the waist (a reasoned guess, no source shows them clearly); warriors in a tunic of
-    /// their side's muted dye (a game convention for reading the sides), with the helmets and shields of LH IIIC paintings;
-    /// a leader alone in a bronze corslet and greaves with a sword. Height 1.60 to 1.72 m around 1.66 m (Koukli et al. 2023).
+    /// game's random numbers. What he wears follows his role and the 4th century BC (docs/art/CrewRoles.json,
+    /// docs/art/HistoricalConstraints.md): rowers and sailors in undyed linen or wool, an exomis or bare to the waist; the
+    /// marines (epibatai) in a tunic of their side's muted dye (a game convention for reading the sides), most with the
+    /// bronze pilos, some in a linen corslet, with the hoplite aspis; javelin men as peltasts with the crescent pelte and a
+    /// cap; Cretan-style archers bareheaded or capped; an officer in a muscle cuirass, greaves and a crested helmet. Height
+    /// 1.60 to 1.72 m around 1.66 m (Koukli et al. 2023).
     /// </summary>
     public static class CrewLooks
     {
@@ -76,26 +78,47 @@ namespace MorzaBogow.Presentation
             switch (role)
             {
                 case CrewRole.Commander:
+                    // An officer: bronze muscle cuirass, greaves, a crested Corinthian-type or a Boeotian helmet, the aspis.
                     look.Dress = 2;
                     look.Cloth = SideCloth(owner, false);
                     look.Trim = CrewPalette.Cell.Bronze;
-                    look.Helmet = 2;
+                    look.Helmet = U(12) < 0.7f ? 2 : 3;
                     look.Greaves = true;
                     look.Shield = 1;
                     look.Beard = 2;
                     break;
                 case CrewRole.Marine:
                 case CrewRole.WarriorRower:
-                case CrewRole.MachineCrew:
+                    // Epibatai: the bronze pilos for most, a linen corslet for some, the hoplite aspis (lighter shields on
+                    // the men who also row); greaves on a few.
+                    look.Dress = role == CrewRole.Marine && U(11) < 0.45f ? 3 : 1;
+                    look.Cloth = SideCloth(owner, worn);
+                    look.Trim = CrewPalette.Cell.Leather;
+                    look.Helmet = Pick(U(12), 70f, 10f, 10f, 10f) + 1;
+                    look.Shield = role == CrewRole.Marine ? Pick(U(13), 75f, 25f) + 1 : Pick(U(13), 40f, 60f) + 1;
+                    look.Greaves = role == CrewRole.Marine && U(17) < 0.3f;
+                    look.Beard = Pick(U(8), 2f, 4f, 4f);
+                    break;
                 case CrewRole.BankJavelin:
+                    // Peltasts: tunic, a cap or the pilos, the crescent pelte.
                     look.Dress = 1;
                     look.Cloth = SideCloth(owner, worn);
                     look.Trim = CrewPalette.Cell.Leather;
-                    look.Helmet = role == CrewRole.MachineCrew && U(12) < 0.5f ? 4 : Pick(U(12), 55f, 10f, 25f, 10f) + 1;
-                    look.Shield = role == CrewRole.MachineCrew ? 0 : Pick(U(13), 35f, 40f, 25f) + 1;
+                    look.Helmet = Pick(U(12), 30f, 50f, 20f) switch { 0 => 1, 1 => 4, _ => 0 };
+                    look.Shield = 3;
+                    look.Beard = Pick(U(8), 2f, 4f, 4f);
+                    break;
+                case CrewRole.MachineCrew:
+                    // The engine crews at their winches: tunic and a felt cap or the pilos, no shield.
+                    look.Dress = 1;
+                    look.Cloth = SideCloth(owner, worn);
+                    look.Trim = CrewPalette.Cell.Leather;
+                    look.Helmet = U(12) < 0.5f ? 4 : 1;
+                    look.Shield = 0;
                     look.Beard = Pick(U(8), 2f, 4f, 4f);
                     break;
                 case CrewRole.BankArcher:
+                    // Archers of the Cretan kind: light dress, bareheaded or in a cap.
                     look.Dress = 1;
                     look.Cloth = SideCloth(owner, worn);
                     look.Trim = CrewPalette.Cell.Leather;
@@ -118,8 +141,8 @@ namespace MorzaBogow.Presentation
                     look.Dress = U(15) < 0.7f ? 0 : 1;
                     look.Cloth = Undyed[Pick(U(14), 3f, 3f, 2f, 2f, 2f, 1f)];
                     look.Trim = look.Cloth;
-                    // Like the Kynos steersman, some helmsmen wear the warriors' helmet.
-                    look.Helmet = role == CrewRole.Helmsman && U(12) < 0.3f ? 1 : 0;
+                    // Some helmsmen and sailors keep the sun off with a felt cap.
+                    look.Helmet = (role == CrewRole.Helmsman ? U(12) < 0.25f : U(12) < 0.1f) ? 4 : 0;
                     break;
             }
             look.ShieldPaint = U(16) < 0.75f ? SidePaint(owner) : CrewPalette.Cell.Hide;

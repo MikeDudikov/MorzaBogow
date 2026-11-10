@@ -167,12 +167,12 @@ namespace MorzaBogow.Presentation
         public float Height, Girth;
         public CrewPalette.Cell Skin, Hair, Cloth, Trim;
         public int Face, HairStyle, Beard;
-        /// <summary>0 bare torso and kilt, 1 tunic, 2 corslet over a tunic (a leader).</summary>
+        /// <summary>0 bare torso and loincloth, 1 tunic (exomis or chiton), 2 bronze muscle cuirass (an officer), 3 linen corslet (linothorax).</summary>
         public int Dress;
-        /// <summary>0 none, 1 hedgehog, 2 horned with a crest, 3 feathered, 4 leather cap.</summary>
+        /// <summary>0 none, 1 bronze pilos, 2 Corinthian type with a crest, 3 Boeotian, 4 felt cap.</summary>
         public int Helmet;
         public bool Greaves;
-        /// <summary>0 none, 1 round with a cut-out, 2 round, 3 hourglass.</summary>
+        /// <summary>0 none, 1 hoplite aspis, 2 light round shield, 3 crescent pelte.</summary>
         public int Shield;
         public CrewPalette.Cell ShieldPaint;
     }
@@ -426,8 +426,9 @@ namespace MorzaBogow.Presentation
                     break;
                 case Piece.Chest:
                 {
-                    // Ribcage widening to the shoulders; variant 2 is a bronze corslet's bell.
-                    var bell = variant == 2 ? 0.015f : 0f;
+                    // Ribcage widening to the shoulders; variant 2 is a bronze muscle cuirass, variant 3 a stiff linen
+                    // corslet (linothorax), both a little proud of the body.
+                    var bell = variant == 2 ? 0.015f : variant == 3 ? 0.012f : 0f;
                     b.Loft(new Vector3(0f, -0.02f, 0f), new Vector3(0f, 0.27f, -0.01f), t => new Vector2(Mathf.Lerp(0.14f, 0.19f, Mathf.Sin(t * 1.4f)) + bell, Mathf.Lerp(0.1f, 0.115f, Mathf.Sin(t * 2.2f)) + bell), rings + 1, sides + 1, One, Vector3.forward);
                     break;
                 }
@@ -578,8 +579,9 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>
-        /// Helmets of LH IIIC: 1 the "hedgehog" (a cap studded all over, Kynos and the Warrior Vase's back), 2 horned with a
-        /// crest (the Warrior Vase's front), 3 a "feathered" crown (Bademgediği, Medinet Habu), 4 a plain leather cap.
+        /// Helmets of the 4th century BC (docs/art/HistoricalConstraints.md): 1 the conical pilos, the common bronze helmet of
+        /// the century's infantry; 2 a closed Corinthian-type helmet with a crest (the officers'); 3 a Boeotian helmet with its
+        /// folded brim; 4 a soft felt cap (pilos of felt) for crews at work.
         /// </summary>
         static void BuildHelmet(Builder b, int lod, int variant, CrewPalette.Cell first, CrewPalette.Cell second)
         {
@@ -589,40 +591,40 @@ namespace MorzaBogow.Presentation
             switch (variant)
             {
                 case 1:
-                    if (lod > 0) break;
-                    for (var k = 0; k < 14; k++)
-                    {
-                        var a = k * 2.399963f;
-                        var y = 0.15f + 0.07f * Mathf.Cos(k * 0.7f);
-                        b.Box(new Vector3(Mathf.Sin(a) * 0.085f, y, Mathf.Cos(a) * 0.1f), new Vector3(0.008f, 0.012f, 0.008f), Quaternion.Euler(0f, a * Mathf.Rad2Deg, 0f), C(second));
-                    }
+                    // The pilos: a tall cone over the cap, with a narrow rim.
+                    b.Loft(new Vector3(0f, 0.17f, 0f), new Vector3(0f, 0.32f, -0.01f), t => new Vector2(Mathf.Lerp(0.085f, 0.012f, t), Mathf.Lerp(0.1f, 0.014f, t)), 2, sides, _ => C(first), Vector3.forward);
+                    if (lod == 0) b.Loft(new Vector3(0f, 0.035f, 0f), new Vector3(0f, 0.05f, 0f), _ => new Vector2(0.105f, 0.12f), 1, sides, _ => C(first), Vector3.forward);
                     break;
                 case 2:
+                    // Corinthian type: cheek pieces down the face and a horsehair crest front to back.
                     foreach (var s in new[] { -1f, 1f })
-                        b.Loft(new Vector3(s * 0.07f, 0.19f, 0.01f), new Vector3(s * 0.15f, 0.29f, 0.04f), t => new Vector2(Mathf.Lerp(0.018f, 0.004f, t), Mathf.Lerp(0.018f, 0.004f, t)), 2, 4, _ => C(second), Vector3.forward);
-                    b.Box(new Vector3(0f, 0.26f, -0.02f), new Vector3(0.012f, 0.035f, 0.08f), Quaternion.identity, C(second));
+                        b.Box(new Vector3(s * 0.07f, 0.0f, 0.05f), new Vector3(0.018f, 0.06f, 0.045f), Quaternion.Euler(0f, s * 12f, 0f), C(first));
+                    b.Box(new Vector3(0f, 0.25f, -0.01f), new Vector3(0.016f, 0.045f, 0.12f), Quaternion.identity, C(second));
                     break;
                 case 3:
-                    for (var k = -4; k <= 4; k++)
-                        b.Box(new Vector3(k * 0.022f, 0.25f, -0.01f), new Vector3(0.008f, 0.05f, 0.02f), Quaternion.Euler(0f, 0f, -k * 6f), C(second));
+                    // Boeotian: a brim folded down all round.
+                    b.Loft(new Vector3(0f, 0.04f, 0f), new Vector3(0f, 0.075f, 0f), t => new Vector2(Mathf.Lerp(0.15f, 0.12f, t), Mathf.Lerp(0.16f, 0.13f, t)), 1, sides, _ => C(first), Vector3.forward);
                     break;
             }
         }
 
-        /// <summary>Shields, faced toward +Z in the forearm's hold: 1 round with a cut-out at its foot, 2 round, 3 hourglass.</summary>
+        /// <summary>
+        /// Shields, faced toward +Z in the forearm's hold: 1 the hoplite aspis, about 0.9 m across with an offset rim and a
+        /// bronze boss of its blazon; 2 a lighter round shield; 3 the crescent pelte of the peltasts.
+        /// </summary>
         static void BuildShield(Builder b, int lod, int variant, CrewPalette.Cell first, CrewPalette.Cell second)
         {
-            var sides = lod == 0 ? 14 : 8;
-            var radius = variant == 3 ? 0.28f : 0.36f;
+            var sides = lod == 0 ? 16 : 8;
+            var radius = variant == 1 ? 0.45f : variant == 3 ? 0.3f : 0.36f;
             var centre = new Vector3(0f, -0.05f, 0.09f);
             var rim = new List<Vector3>();
             for (var s = 0; s < sides; s++)
             {
                 var a = s * Mathf.PI * 2f / sides;
                 var x = Mathf.Sin(a) * radius;
-                var y = Mathf.Cos(a) * radius * (variant == 3 ? 1.9f : 1f);
-                if (variant == 3) x *= 0.6f + 0.4f * Mathf.Abs(Mathf.Cos(a)); // waisted
-                if (variant == 1 && Mathf.Cos(a) < -0.85f) y *= 0.7f;         // the cut-out
+                var y = Mathf.Cos(a) * radius;
+                // The pelte's crescent: the top is cut in toward the centre.
+                if (variant == 3 && Mathf.Cos(a) > 0.35f) y = Mathf.Lerp(y, radius * 0.25f, (Mathf.Cos(a) - 0.35f) / 0.65f);
                 rim.Add(centre + new Vector3(x, y, 0f));
             }
             // A shallow dome of hide over wicker or wood, painted on the face, with a bronze boss on round ones.
@@ -648,7 +650,7 @@ namespace MorzaBogow.Presentation
                 b.UVs.Add(C(first));
             }
             for (var s = 0; s < sides; s++) b.Triangle(back, back + 1 + s, back + 1 + (s + 1) % sides, Vector3.back);
-            if (variant != 3 && lod == 0) b.Blob(centre + new Vector3(0f, 0f, 0.055f), new Vector3(0.05f, 0.05f, 0.025f), 3, 6, p => p, _ => C(CrewPalette.Cell.Bronze));
+            if (variant == 1 && lod == 0) b.Blob(centre + new Vector3(0f, 0f, 0.055f), new Vector3(0.09f, 0.09f, 0.025f), 3, 6, p => p, _ => C(CrewPalette.Cell.Bronze));
         }
     }
 }
