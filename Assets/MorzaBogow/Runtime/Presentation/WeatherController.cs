@@ -148,6 +148,17 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>
+        /// The match's calm sea for HDRP's own bands (wind and ripples in km/h, chaos), from the simulation's climate; a
+        /// storm still blends from it toward StormSea. This controller stays the only writer of these values.
+        /// </summary>
+        public void SetCalmSea(SeaState calm)
+        {
+            calmSea = calm;
+            sinceSea = SeaInterval;
+            Apply();
+        }
+
+        /// <summary>
         /// Moves the weather to <paramref name="intensity"/> (0 calm, 1 storm) over <paramref name="seconds"/> of real time.
         /// Asking again for the weather it already has or is heading to changes nothing, so a caller may repeat the call
         /// every frame without holding the change back.

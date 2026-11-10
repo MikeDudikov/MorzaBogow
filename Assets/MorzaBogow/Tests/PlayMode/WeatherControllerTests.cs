@@ -156,6 +156,7 @@ namespace MorzaBogow.Tests
                 battle.UseWaterForTest(sea);
                 battle.Weather.SetWeather(1f, 0f);
                 var reference = MapFactory.CreateSkirmish(20261109);
+                reference.EnableMarineForMatch(); // the same match: its wind and sea are simulation state
                 var opponent = new Opponent(1);
                 for (var i = 0; i < 300; i++) { opponent.Think(reference); reference.Step(); }
                 for (var chunk = 0; chunk < 10; chunk++) battle.RunTicks(30);

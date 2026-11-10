@@ -575,6 +575,7 @@ namespace MorzaBogow.Tests
         {
             yield return null;
             var reference = MapFactory.CreateSkirmish(20261109);
+            reference.EnableMarineForMatch(); // the same match: its wind and sea are simulation state
             var opponent = new Opponent(1);
             for (var i = 0; i < 600; i++) { opponent.Think(reference); reference.Step(); }
             battle.RunTicks(600);

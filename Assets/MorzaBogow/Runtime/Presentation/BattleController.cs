@@ -44,6 +44,15 @@ namespace MorzaBogow.Presentation
         HdrpWaterHeights waterHeights;
         readonly List<ShipVisual> waterHulls = new List<ShipVisual>();
         WeatherController weather;
+
+        // The simulation's wind and sea on screen (docs/MORZE_I_WIATR.md): hull motion and the waves' heights.
+        SeakeepingDriver seakeeping;
+        SeaSurfaceRenderer seaRenderer;
+        UnityEngine.Rendering.HighDefinition.WaterSurface waterSurface;
+        readonly List<Ship> seenShips = new List<Ship>();
+        double smokeSeakeepingMs, smokeSeaMs;
+        int smokeSeakeepingSteps, smokeSeaFrames;
+        double seaCompareN, seaCompareX, seaCompareY, seaCompareXY, seaCompareXX, seaCompareYY;
         float maxRollSeen, maxHeaveSeen;
         BattleFog fog;
         float fogTimer;
@@ -137,6 +146,12 @@ namespace MorzaBogow.Presentation
         float smokeFrameTime, smokeWorstFrame;
 
         public World World { get; private set; }
+
+        /// <summary>
+        /// After every simulation tick, with that tick's events still in World.Events (they are cleared right after):
+        /// presentation that must see each event once, such as the crews on deck, listens here.
+        /// </summary>
+        public event System.Action<World> Ticked;
         public IReadOnlyCollection<int> Selected => selected;
         public IReadOnlyDictionary<int, ShipVisual> Views => views;
         public IReadOnlyDictionary<int, GameObject> WreckViews => wreckViews;
@@ -146,12 +161,6 @@ namespace MorzaBogow.Presentation
         public WaterBatchSampler Water => water;
 
         /// <summary>Presentation-only weather; calm in a match.</summary>
-
-        /// <summary>
-        /// After every simulation tick, with that tick's events still in World.Events (they are cleared right after):
-        /// presentation that must see each event once, such as the crews on deck, listens here.
-        /// </summary>
-        public event System.Action<World> Ticked;
         public WeatherController Weather => weather;
 
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
@@ -186,6 +195,7 @@ namespace MorzaBogow.Presentation
             groupFormation = Enum.TryParse(PlayerPrefs.GetString(FormationKey, nameof(FormationKind.Line)), out FormationKind savedFormation)
                 && Enum.IsDefined(typeof(FormationKind), savedFormation) ? savedFormation : FormationKind.Line;
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
+            waterSurface = surface;
             if (surface != null)
             {
                 var orientation = surface.largeOrientationValue * Mathf.Deg2Rad;
@@ -210,6 +220,8 @@ namespace MorzaBogow.Presentation
                 .OrderByDescending(item => item.priority).FirstOrDefault();
             weather = gameObject.AddComponent<WeatherController>();
             weather.Configure(surface, sun, sceneVolume);
+            if (surface != null) seaRenderer = SeaSurfaceRenderer.TryCreate();
+            ApplyMarineSea();
             ReadSmokeArguments();
             hud = BattleHud.Create(this);
         }
@@ -218,8 +230,20 @@ namespace MorzaBogow.Presentation
         {
             ClearViews();
             looks = savedLooks ?? new ShipLookBook();
+            // A loaded match starts with no shots, wreckage or sinking hulls of the match it replaces.
             if (effects == null) effects = new BattleEffects(materials);
+            else effects.Clear();
             World = world;
+            // The match's wind and sea; a loaded match brings its own from the save.
+            // -morzaNoSea runs the match without them, for A/B measurements in one build.
+            if (World.Marine == null && Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaNoSea") < 0) World.EnableMarineForMatch();
+            seakeeping = new SeakeepingDriver();
+            if (World.Marine != null)
+            {
+                // Surf faces the match's waves: they run with its wind.
+                World.Marine.Wind.SynopticWind(out var windX, out var windY);
+                if (windX * windX + windY * windY > 1e-6) waveTravel = new Vector3((float)windX, 0f, (float)windY).normalized;
+            }
             if (fog == null) fog = new BattleFog(materials?.Fog);
             opponent = new Opponent(1) { BuildIndex = opponentBuildIndex };
             BuildStaticViews();
@@ -230,12 +254,202 @@ namespace MorzaBogow.Presentation
             pivot = new Vector3((float)home.X + 60f, 0f, (float)home.Y);
             if (strategicCamera == null) strategicCamera = Camera.main;
             PendingOrder = HudOrder.None;
-            // A loaded match starts with no shots, wreckage or sinking hulls of the match it replaces.
             lastAlarm.Clear();
-            else effects.Clear();
             // A new or loaded match starts calm; the weather is not part of a save.
             weather?.SetWeather(0f, 0f);
+            ApplyMarineSea();
             if (hud != null) hud.OnMatchStarted();
+        }
+
+        /// <summary>HDRP's own bands for the match: direction and wind from the climate, the large band left to the decal.</summary>
+        void ApplyMarineSea()
+        {
+            if (World?.Marine == null || waterSurface == null || weather == null || seaRenderer == null) return;
+            SeaSurfaceRenderer.ConfigureSurface(waterSurface, World.Marine);
+            var wind = SeaSurfaceRenderer.WindKilometresPerHour(World.Marine);
+            weather.SetCalmSea(new SeaState(wind, weather.CalmSea.Chaos, Mathf.Clamp(wind * 0.4f, 2f, 15f)));
+        }
+
+        /// <summary>Hull motion of the ships the player can see, once per simulation tick.</summary>
+        void StepSeakeeping()
+        {
+            if (World.Marine == null || seakeeping == null) return;
+            seenShips.Clear();
+            // Ships within 700 m of the view's centre: all that can be on screen at the widest zoom.
+            foreach (var ship in World.Ships)
+                if (views.ContainsKey(ship.Id) && World.CanSee(PlayerFaction, ship) && (ToWorld(ship) - pivot).sqrMagnitude < 700f * 700f) seenShips.Add(ship);
+            seakeeping.Step(World, seenShips);
+            if (smokeReport == null || smokeElapsed <= 5f) return;
+            smokeSeakeepingMs += seakeeping.Milliseconds;
+            smokeSeakeepingSteps++;
+        }
+
+        /// <summary>
+        /// Smoke runs: HDRP's water height (read back from the GPU, a few frames late) at eight points 250 m round the view,
+        /// away from hulls and their bow waves, against the simulation's sea there. A correlation near one shows the decal
+        /// draws the simulation's waves, the right way round.
+        /// </summary>
+        void CompareRenderedSea(float fraction)
+        {
+            if (smokeElapsed <= 5f) return;
+            var marine = World.Marine;
+            water.Begin();
+            seaProbes.Clear();
+            for (var k = 0; k < 8; k++)
+            {
+                var angle = k * Mathf.PI / 4f;
+                var probe = pivot + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 250f;
+                if (marine.Depths.At(probe.x, probe.z) < 5) continue;
+                var nearHull = false;
+                foreach (var ship in World.Ships)
+                    if ((ToWorld(ship) - probe).sqrMagnitude < 60f * 60f) { nearHull = true; break; }
+                if (nearHull) continue;
+                water.Add(probe, Vector3.forward, Vector3.right, 0f, 0f);
+                seaProbes.Add(probe);
+            }
+            if (seaProbes.Count == 0 || !water.Sample())
+            {
+                CompareHullWaterlines();
+                return;
+            }
+            var time = marine.SurfaceTime(fraction);
+            var blend = marine.Surface.BlendWeight(fraction);
+            for (var i = 0; i < seaProbes.Count; i++)
+            {
+                double rendered = water.Height(i, HullSamplePoints.Center);
+                var simulated = marine.Surface.Sample(seaProbes[i].x, seaProbes[i].z, time, blend).Height;
+                seaCompareN++;
+                seaCompareX += simulated; seaCompareY += rendered;
+                seaCompareXY += simulated * rendered; seaCompareXX += simulated * simulated; seaCompareYY += rendered * rendered;
+            }
+            CompareHullWaterlines();
+        }
+
+        readonly List<Vector3> seaProbes = new List<Vector3>();
+        readonly List<ShipVisual> hullProbes = new List<ShipVisual>();
+        readonly List<Ship> hullProbeShips = new List<Ship>();
+        double hullWaterN, hullWaterSum, hullWaterSumSq, hullWaterMax, hullDeckAwash;
+
+        const string DryHullName = "Dry hull (water excluder)";
+        static readonly Dictionary<long, Mesh> dryHullMeshes = new Dictionary<long, Mesh>();
+
+        /// <summary>
+        /// HDRP draws its water plane through an open hull wherever a crest stands above the deck inside it. A water
+        /// excluder shaped like the hull (a pointed prism inside the waterline, from the keel to above the gunwale)
+        /// rides with the hull model and keeps the water out of it: drawing only.
+        /// </summary>
+        void KeepWaterOut(ShipVisual view)
+        {
+            var deck = view.Parts != null ? view.Parts.DeckHeight : 0.8f;
+            var key = ((long)Mathf.RoundToInt(view.Length * 10f) << 40) | ((long)Mathf.RoundToInt(view.Beam * 10f) << 20) | (long)Mathf.RoundToInt((deck + view.Draft) * 10f);
+            if (!dryHullMeshes.TryGetValue(key, out var mesh))
+            {
+                mesh = DryHullMesh(view.Length, view.Beam, view.Draft, deck);
+                dryHullMeshes[key] = mesh;
+            }
+            var item = new GameObject(DryHullName);
+            item.transform.SetParent(view.Model, false);
+            item.AddComponent<UnityEngine.Rendering.HighDefinition.WaterExcluder>().SetExclusionMesh(mesh);
+        }
+
+        static Mesh DryHullMesh(float length, float beam, float draft, float deck)
+        {
+            const int stations = 12;
+            var half = 0.46f * length;
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+            var bottom = -draft - 0.05f;
+            var top = deck + 0.6f;
+            for (var s = 0; s <= stations; s++)
+            {
+                var z = -half + 2f * half * s / stations;
+                var width = 0.42f * beam * (1f - Mathf.Pow(Mathf.Abs(z / half), 2.5f));
+                vertices.Add(new Vector3(-width, top, z));
+                vertices.Add(new Vector3(width, top, z));
+                vertices.Add(new Vector3(-width, bottom, z));
+                vertices.Add(new Vector3(width, bottom, z));
+            }
+            for (var s = 0; s < stations; s++)
+            {
+                int a = s * 4, b = a + 4;
+                // Top and bottom caps, both sides.
+                triangles.AddRange(new[] { a, b, a + 1, a + 1, b, b + 1 });
+                triangles.AddRange(new[] { a + 2, a + 3, b + 2, a + 3, b + 3, b + 2 });
+                // Port and starboard walls.
+                triangles.AddRange(new[] { a, a + 2, b, b, a + 2, b + 2 });
+                triangles.AddRange(new[] { a + 1, b + 1, a + 3, b + 1, b + 3, a + 3 });
+            }
+            var mesh = new Mesh { name = "Dry hull" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        /// <summary>
+        /// Smoke runs: HDRP's water under the stern, the sides and the middle of each hull near the view against the hull's
+        /// shown waterline there. Positive: water standing above the waterline; above the deck it would flood the hull.
+        /// </summary>
+        void CompareHullWaterlines()
+        {
+            water.Begin();
+            hullProbes.Clear();
+            hullProbeShips.Clear();
+            foreach (var ship in seenShips)
+            {
+                if (hullProbes.Count >= 12 || !views.TryGetValue(ship.Id, out var shown) || shown.Model == null) continue;
+                if ((ToWorld(ship) - pivot).sqrMagnitude > 400f * 400f) continue;
+                var root = shown.transform;
+                water.Add(root.position, root.forward, root.right, shown.Length, shown.Beam);
+                hullProbes.Add(shown);
+                hullProbeShips.Add(ship);
+            }
+            if (hullProbes.Count == 0 || !water.Sample()) return;
+            for (var i = 0; i < hullProbes.Count; i++)
+            {
+                var shown = hullProbes[i];
+                var empty = (float)ShipCatalog.Get(hullProbeShips[i].Class).Draft;
+                var waterline = shown.Draft - empty;
+                var deck = shown.Parts != null ? shown.Parts.DeckHeight : 0.8f;
+                foreach (var (point, local) in new[]
+                {
+                    (HullSamplePoints.Center, new Vector3(0f, waterline, 0f)),
+                    (HullSamplePoints.Stern, new Vector3(0f, waterline, -shown.Length / 2f)),
+                    (HullSamplePoints.Port, new Vector3(-shown.Beam / 2f, waterline, 0f)),
+                    (HullSamplePoints.Starboard, new Vector3(shown.Beam / 2f, waterline, 0f)),
+                })
+                {
+                    double above = water.Height(i, point) - shown.Model.TransformPoint(local).y;
+                    hullWaterN++;
+                    hullWaterSum += above;
+                    hullWaterSumSq += above * above;
+                    hullWaterMax = Math.Max(hullWaterMax, above);
+                    if (above > deck) hullDeckAwash++;
+                }
+            }
+        }
+
+        double SeaCorrelation()
+        {
+            var n = seaCompareN;
+            if (n < 3) return 0;
+            var cov = n * seaCompareXY - seaCompareX * seaCompareY;
+            var vx = n * seaCompareXX - seaCompareX * seaCompareX;
+            var vy = n * seaCompareYY - seaCompareY * seaCompareY;
+            return vx > 0 && vy > 0 ? cov / Math.Sqrt(vx * vy) : 0;
+        }
+
+        /// <summary>The simulation's waves drawn into the water around the view, on simulation time (still in a pause).</summary>
+        void RenderSea(float fraction)
+        {
+            if (waterSurface != null) waterSurface.timeMultiplier = paused ? 0.001f : Speed;
+            if (seaRenderer == null || World.Marine == null) return;
+            SeaSurfaceRenderer.UpdateBands(waterSurface);
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            seaRenderer.Render(World.Marine, pivot, World.Marine.SurfaceTime(fraction), World.Marine.Surface.BlendWeight(fraction));
+            if (smokeReport == null || smokeElapsed <= 5f) return;
+            smokeSeaMs += (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            smokeSeaFrames++;
         }
 
         // ---------- Showcase: staged pictures of the newest features (-morzaShowcase <prefix>) ----------
@@ -552,7 +766,9 @@ namespace MorzaBogow.Presentation
             opponent.Think(World);
             foreach (var ship in World.Ships) lastPositions[ship.Id] = ToWorld(ship);
             World.Step();
+            StepSeakeeping();
             ProcessEvents();
+            Ticked?.Invoke(World);
             combatEvents += World.Events.Count(item => item.Type == "volley" || item.Type == "ram_hit" || item.Type == "hooks_thrown");
             World.Events.Clear();
             SyncViews();
@@ -658,7 +874,6 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Advances whole simulation ticks; used by tests and tools.</summary>
         public void RunTicks(int ticks)
-            Ticked?.Invoke(World);
         {
             for (var i = 0; i < ticks; i++) StepOnce();
             PresentFrame();
@@ -673,6 +888,8 @@ namespace MorzaBogow.Presentation
             waterHeights?.Dispose();
             waterHeights = null;
             water = null;
+            seaRenderer?.Dispose();
+            seaRenderer = null;
             ClearViews();
             if (crewRoot != null) Destroy(crewRoot.gameObject);
             crewRoot = null;
@@ -1718,6 +1935,7 @@ namespace MorzaBogow.Presentation
                 return inspected == null || inspected.Owner == PlayerFaction || !World.CanSee(PlayerFaction, inspected);
             });
             UpdateWaterPoses();
+            RenderSea(blend);
             UpdateCrews(paused ? 0f : delta * Speed);
             if (crewDirector != null) crewDirector.UpdateHauls(paused ? 0f : delta * Speed);
 
@@ -1825,6 +2043,23 @@ namespace MorzaBogow.Presentation
         /// </summary>
         void UpdateWaterPoses()
         {
+            if (World.Marine != null && seakeeping != null && seaRenderer != null)
+            {
+                // The hulls' own dynamics in the simulation's sea, between the last two ticks.
+                var fraction = (float)(accumulator / Rules.Dt);
+                foreach (var ship in World.Ships)
+                {
+                    if (!views.TryGetValue(ship.Id, out var shown)) continue;
+                    if (!seakeeping.TryPose(ship.Id, fraction, out var physical, out var bow, out var heaveRate)) continue;
+                    shown.SetPhysicalPose(physical, bow, heaveRate);
+                    if (shown.Model != null && shown.Model.Find(DryHullName) == null) KeepWaterOut(shown);
+                    maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(physical.Roll), Mathf.Abs(physical.Pitch));
+                    maxHeaveSeen = Mathf.Max(maxHeaveSeen, Mathf.Abs(physical.Heave));
+                }
+                // In a smoke run HDRP's heights under the hulls are still read: they must match the simulation's sea.
+                if (smokeReport != null && water != null) CompareRenderedSea(fraction);
+                return;
+            }
             if (water == null || World.Ships.Count == 0) return;
             var started = smokeReport != null ? System.Diagnostics.Stopwatch.GetTimestamp() : 0L;
             water.Begin();
@@ -2759,6 +2994,26 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"waterMs\": {Ms(smokeWaterMs, smokeWaterFrames)},\n  \"waterMostHulls\": {(water != null ? water.MostHulls : 0)},\n");
             report.Append($"  \"waterBufferAllocations\": {(waterHeights != null ? waterHeights.BufferAllocations : 0)},\n");
             report.Append($"  \"maxTiltDegrees\": {maxRollSeen.ToString("0.00", culture)},\n  \"maxHeaveMetres\": {maxHeaveSeen.ToString("0.00", culture)},\n");
+            if (World.Marine != null)
+            {
+                // Wind and sea at the view, cost of the hull motion (per tick) and of drawing the waves (per frame, CPU).
+                var marine = World.Marine;
+                var cell = marine.Waves.Grid.CellAt(pivot.x, pivot.z);
+                var wind = marine.Wind.Sample(pivot.x, pivot.z, false);
+                report.Append($"  \"marineClimate\": \"{marine.Climate.Name}\",\n  \"marineWindMs\": {wind.MeanSpeed.ToString("0.00", culture)},\n");
+                report.Append($"  \"marineHs\": {(cell >= 0 ? marine.Waves.SignificantHeight(cell) : 0).ToString("0.00", culture)},\n  \"marineAmplitude\": {(seaRenderer != null ? seaRenderer.Amplitude : 0f).ToString("0.00", culture)},\n");
+                report.Append($"  \"marineTickMs\": {Ms(marine.TickMilliseconds, marine.TimedTicks)},\n");
+                report.Append($"  \"seakeepingMs\": {Ms(smokeSeakeepingMs, smokeSeakeepingSteps)},\n  \"seakeepingShips\": {seakeeping?.Ships ?? 0},\n  \"seaRenderCpuMs\": {Ms(smokeSeaMs, smokeSeaFrames)},\n");
+                report.Append($"  \"seaCorrelation\": {SeaCorrelation().ToString("0.000", culture)},\n  \"seaComparisons\": {seaCompareN.ToString("0", culture)},\n");
+                // Rendered against simulated wave heights (1: the decal draws them at their true size).
+                var spreadSim = seaCompareN > 1 ? Math.Sqrt(Math.Max(0, seaCompareXX / seaCompareN - Math.Pow(seaCompareX / seaCompareN, 2))) : 0;
+                var spreadRendered = seaCompareN > 1 ? Math.Sqrt(Math.Max(0, seaCompareYY / seaCompareN - Math.Pow(seaCompareY / seaCompareN, 2))) : 0;
+                report.Append($"  \"seaHeightRatio\": {(spreadSim > 0 ? spreadRendered / spreadSim : 0).ToString("0.000", culture)},\n");
+                // Water against each hull's shown waterline (m): mean, RMS, highest, share above the deck.
+                var meanAbove = hullWaterN > 0 ? hullWaterSum / hullWaterN : 0;
+                report.Append($"  \"hullWaterMean\": {meanAbove.ToString("0.000", culture)},\n  \"hullWaterRms\": {(hullWaterN > 0 ? Math.Sqrt(hullWaterSumSq / hullWaterN) : 0).ToString("0.000", culture)},\n");
+                report.Append($"  \"hullWaterMax\": {hullWaterMax.ToString("0.000", culture)},\n  \"hullDeckAwashShare\": {(hullWaterN > 0 ? hullDeckAwash / hullWaterN : 0).ToString("0.0000", culture)},\n  \"hullWaterSamples\": {hullWaterN.ToString("0", culture)},\n");
+            }
             report.Append($"  \"combatEvents\": {combatEvents},\n");
             report.Append($"  \"boulders\": {BouldersPlaced},\n");
             report.Append($"  \"averageFrameMs\": {(smokeFrames > 0 ? smokeFrameTime / smokeFrames * 1000f : 0f).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},\n");

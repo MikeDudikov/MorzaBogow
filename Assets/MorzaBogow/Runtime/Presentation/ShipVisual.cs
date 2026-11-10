@@ -717,7 +717,26 @@ namespace MorzaBogow.Presentation
             pose = value;
             bowWater = bowWaterHeight;
             hasWater = true;
+            physical = false;
         }
+
+        bool physical;
+        float physicalHeaveRate;
+
+        /// <summary>
+        /// Pose of the hull's own dynamics in the simulation's sea (SeakeepingDriver): it already carries its inertia, so
+        /// it is shown as it is, without the springs.
+        /// </summary>
+        public void SetPhysicalPose(HullPose value, float bowWaterHeight, float heaveRate)
+        {
+            pose = value;
+            bowWater = bowWaterHeight;
+            physicalHeaveRate = heaveRate;
+            hasWater = true;
+            physical = true;
+        }
+
+        float HeaveVelocity => physical ? physicalHeaveRate : motion.HeaveVelocity;
 
         float oarReach;
         float roomPort = float.MaxValue, roomStarboard = float.MaxValue;
@@ -1056,7 +1075,7 @@ namespace MorzaBogow.Presentation
             if (hasWater)
             {
                 // The hull carries its own inertia: it follows the water with a lag, overshoots and settles.
-                smoothed = motion.Step(pose, waterDelta);
+                smoothed = physical ? pose : motion.Step(pose, waterDelta);
                 immersion = HullMotion.BowImmersion(smoothed, bowWater, size);
 
                 // The bow lifts slightly with speed, on top of what the water does.
@@ -1066,9 +1085,9 @@ namespace MorzaBogow.Presentation
             else immersion = 0f;
 
             // Water breaks where the stem meets it: harder under way, and in bursts when the bow digs into a crest.
-            var breaking = BreakingFor(fraction, immersion, motion.HeaveVelocity);
+            var breaking = BreakingFor(fraction, immersion, HeaveVelocity);
             bowWave.amplitude = BowWaveFor(size, fraction) * (1f + 0.6f * Mathf.Clamp01(immersion));
-            hullFoam.surfaceFoamDimmer = Mathf.Clamp01(HullFoamFor(fraction) + Mathf.Abs(motion.HeaveVelocity) * 0.15f);
+            hullFoam.surfaceFoamDimmer = Mathf.Clamp01(HullFoamFor(fraction) + Mathf.Abs(HeaveVelocity) * 0.15f);
             hullFoam.deepFoamDimmer = hullFoam.surfaceFoamDimmer * 0.8f;
             bowFoam.surfaceFoamDimmer = breaking;
             bowFoam.deepFoamDimmer = breaking * 0.9f;

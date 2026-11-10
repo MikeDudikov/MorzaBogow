@@ -1,0 +1,68 @@
+// Heights of the simulation's sea (MorzaBogow.Simulation.SeaSurface) over the water decal region, for HDRP.
+// The same 144 linear components as the simulation: amplitude sqrt(2E) of each component's bin, E bilinear between the
+// wave cells (land corners left out), the height capped at 0.55 of the local depth, faded at the region's edges.
+// Phases are folded on the CPU in double precision (k·C − ωt + φ), so the GPU only adds k·local in metres.
+
+#pragma kernel Heights
+
+#define COMPONENTS 144
+
+RWTexture2D<float> _Heights;
+StructuredBuffer<float4> _Components; // kx, ky, folded phase, unused
+StructuredBuffer<float> _Previous;    // [window cell * COMPONENTS + component]: the previous wave step
+StructuredBuffer<float> _Current;     // the current one; blended here by _Fade.z
+StructuredBuffer<float> _Water;       // [window cell]: 1 water, 0 land
+Texture2D<float> _Depth;
+SamplerState sampler_linear_clamp;
+
+float4 _Corner;   // xy: world corner of the region (simulation X, Y), z: texel size, w: 1 / amplitude scale
+float4 _Window;   // xy: centre of the window's first cell, z: cell size, w: window width in cells
+float4 _DepthMap; // xy: origin of the depth map, z: 1 / its size
+float4 _Fade;     // x: region size, y: fade width, z: blend between the wave steps
+
+[numthreads(8, 8, 1)]
+void Heights(uint3 id : SV_DispatchThreadID)
+{
+    float2 local = (float2(id.xy) + 0.5) * _Corner.z;
+    float2 p = _Corner.xy + local;
+    int width = (int)_Window.w;
+    float2 g = clamp((p - _Window.xy) / _Window.z, 0.0, _Window.w - 1.001);
+    int2 c0 = (int2)floor(g);
+    float2 w = g - c0;
+    int i00 = c0.y * width + c0.x;
+    int i10 = i00 + 1;
+    int i01 = i00 + width;
+    int i11 = i01 + 1;
+    float w00 = (1 - w.x) * (1 - w.y) * _Water[i00];
+    float w10 = w.x * (1 - w.y) * _Water[i10];
+    float w01 = (1 - w.x) * w.y * _Water[i01];
+    float w11 = w.x * w.y * _Water[i11];
+    float sum = w00 + w10 + w01 + w11;
+    if (sum <= 0)
+    {
+        _Heights[id.xy] = 0;
+        return;
+    }
+    w00 /= sum; w10 /= sum; w01 /= sum; w11 /= sum;
+
+    float eta = 0;
+    float m0 = 0;
+    float blend = _Fade.z;
+    for (int c = 0; c < COMPONENTS; c++)
+    {
+        int a00 = i00 * COMPONENTS + c, a10 = i10 * COMPONENTS + c, a01 = i01 * COMPONENTS + c, a11 = i11 * COMPONENTS + c;
+        float e0 = w00 * _Previous[a00] + w10 * _Previous[a10] + w01 * _Previous[a01] + w11 * _Previous[a11];
+        float e1 = w00 * _Current[a00] + w10 * _Current[a10] + w01 * _Current[a01] + w11 * _Current[a11];
+        float e = max(lerp(e0, e1, blend), 0);
+        m0 += e;
+        float4 k = _Components[c];
+        eta += sqrt(2 * e) * cos(k.x * local.x + k.y * local.y + k.z);
+    }
+
+    float hs = 4 * sqrt(m0);
+    float depth = _Depth.SampleLevel(sampler_linear_clamp, (p - _DepthMap.xy) * _DepthMap.z, 0);
+    float cap = hs > 0 ? min(1.0, 0.55 * depth / hs) : 1.0;
+    float2 edge = min(local, _Fade.x - local);
+    float fade = saturate(min(edge.x, edge.y) / _Fade.y);
+    _Heights[id.xy] = eta * cap * fade * _Corner.w;
+}
