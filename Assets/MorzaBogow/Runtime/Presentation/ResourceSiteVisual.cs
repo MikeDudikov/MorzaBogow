@@ -112,6 +112,8 @@ namespace MorzaBogow.Presentation
             islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline, lift);
             var renderer = islet.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = new[] { CurrentMaterials?.ShoreRock, land };
+            Landscape.CoastFeatures.Build(islet.transform, outline, lift, (uint)Mathf.RoundToInt(model.position.x * 23f + model.position.z * 11f), CurrentMaterials?.ShoreRock,
+                Landscape.LandscapeArt.Wet(CurrentMaterials?.ShoreRock), Landscape.LandscapeArt.Beachrock(CurrentMaterials?.Floor));
         }
 
         static PlaceholderMaterials CurrentMaterials;

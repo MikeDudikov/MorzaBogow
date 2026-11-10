@@ -50,6 +50,38 @@ namespace MorzaBogow.Editor
             Shot(Scene(2, false), Path.Combine(folder, "env-olive-lod2.png"), 45f, 30f, true);
         }
 
+        /// <summary>An islet with the game's shore materials, its notch, wet band and beachrock, over a flat blue sea.</summary>
+        public static void PreviewCoast()
+        {
+            var folder = Path.Combine(Application.dataPath, "..", "artifacts-log");
+            Shot(Islet(), Path.Combine(folder, "env-coast-cliff.png"), 14f, 180f, false);
+            Shot(Islet(), Path.Combine(folder, "env-coast-gentle.png"), 22f, 0f, false);
+            Shot(Islet(), Path.Combine(folder, "env-coast-strategic.png"), 45f, 30f, true);
+        }
+
+        static GameObject Islet()
+        {
+            var rock = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Limestone.mat");
+            var sand = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Seabed.mat");
+            var meadow = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Meadow.mat");
+            var root = new GameObject("Coast preview");
+            var outline = MorzaBogow.Presentation.ShoreShape.Ellipse(40f, 30f);
+            var lift = MorzaBogow.Presentation.ShoreShape.Cliffs(0f, 60f, 110f, 1.3f);
+            var islet = new GameObject("Islet");
+            islet.transform.SetParent(root.transform, false);
+            islet.AddComponent<MeshFilter>().sharedMesh = MorzaBogow.Presentation.ShoreShape.Mound(outline, lift);
+            islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { rock, meadow };
+            CoastFeatures.Build(islet.transform, outline, lift, 7, rock, LandscapeArt.Wet(rock), LandscapeArt.Beachrock(sand));
+            var sea = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            sea.transform.SetParent(root.transform, false);
+            sea.transform.localScale = new Vector3(12f, 1f, 12f);
+            var water = new Material(Shader.Find("HDRP/Lit"));
+            water.SetColor("_BaseColor", new Color(0.08f, 0.32f, 0.38f, 1f));
+            water.SetFloat("_Smoothness", 0.9f);
+            sea.GetComponent<MeshRenderer>().sharedMaterial = water;
+            return root;
+        }
+
         /// <summary>
         /// Three olives on a plain ground, one level of detail baked into plain meshes: the preview scene does not skin,
         /// so the bones' pose (still, or after three seconds of a 12 m/s wind) is baked as the game would draw it.
