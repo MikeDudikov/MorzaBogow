@@ -50,6 +50,7 @@ Pozostałe zasady:
 - **Ląd:** punkt przy lądzie odsuwa się na wodę z zapasem, jakiego potrzebuje najgłębszy kadłub grupy. Miejsce na lądzie, na płyciźnie albo za blisko innego przechodzi na najbliższe wolne.
 - **Kursy:** statki dostają miejsca tak, żeby łączna droga była możliwie krótka, więc ich kursy się nie krzyżują.
 - **Pojedynczy statek** płynie w sam punkt.
+- **Mieszana grupa:** gdy PPM daje części grupy inną czynność (eskorta własnego handlowca, odzysk wraku, zbiór, przyczółek, dostawa do portu), reszta płynie do wskazanego punktu w szyku i przerywa dotychczasowy rozkaz, np. zbiór. Rozkazy z panelu (np. Eskorta E, Zbiór H) dotyczą tylko statków, które je wykonają. Przy PPM na wrogi okręt statki bez broni płyną prosto do niego, bez szyku; przy PPM na wrogi port nie dostają rozkazu.
 
 Przełącznik „Szyk: linia/klin” w nagłówku rozkazów widać tylko przy grupie; wybór jest zapamiętany. Szyk to zwykłe rozkazy ruchu dla każdego statku, więc zapis i powtórka go odtwarzają (`Simulation/Formation.cs`). Gdy ten sam klawisz ma kilka czynności, herold mówi o tym na początku bitwy.
 

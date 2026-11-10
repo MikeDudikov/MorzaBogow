@@ -130,6 +130,8 @@
         "MorzaBogow.Tests.WeatherControllerTests.Weather_EachBattleTakesTheScenesVolumeNotAnotherOverlay",
         "MorzaBogow.Tests.FormationOrderTests.Orders_AGroupMoveGivesEachShipItsOwnPlaceInTheChosenFormation",
         "MorzaBogow.Tests.FormationOrderTests.Hud_TheFormationSwitchShowsForAGroupAndNamesTheFormation",
+        "MorzaBogow.Tests.FormationOrderTests.Orders_TheRestOfAMixedGroupFollowsInFormationWhenPartEscortsOrSalvages",
+        "MorzaBogow.Tests.FormationOrderTests.Orders_TheRestOfAnEscortGroupStopsBesideTheMerchantWithoutCircling",
         "MorzaBogow.Tests.GameInputTests.Input_KeyCodesMapToTheSameKeysAndBack",
         "MorzaBogow.Tests.GameInputTests.Input_KeysButtonsWheelAndPointerComeFromTheInputSystem",
         "MorzaBogow.Tests.GameInputTests.Input_TheFormationKeyTogglesAGroupsFormationThroughTheInterface",

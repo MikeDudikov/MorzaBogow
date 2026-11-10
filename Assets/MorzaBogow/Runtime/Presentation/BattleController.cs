@@ -2100,13 +2100,16 @@ namespace MorzaBogow.Presentation
             var enemy = NearestShip(point, ship => ship.Owner != PlayerFaction);
             if (enemy != null) { OrderAttack(ids, enemy); return; }
 
-            // Warships ordered onto an own merchant stay with it as its escort.
+            // Warships ordered onto an own merchant stay with it as its escort. The working ships of a mixed group sail
+            // in formation to where the merchant is (a plain move: they do not keep after it), as the rest of a group
+            // does whenever only part of it can do the clicked work.
             var warships = ids.Where(id => World.FindShip(id)?.Definition.IsEconomic == false).ToArray();
             var merchants = ids.Where(id => World.FindShip(id)?.Class == ShipClass.Merchant).ToArray();
             var escorted = NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id));
             if (escorted != null && warships.Length > 0)
             {
                 Send(CommandKind.Escort, warships, target: escorted.Id);
+                SendMove(ids.Except(warships).ToArray(), point);
                 return;
             }
 
@@ -2142,7 +2145,12 @@ namespace MorzaBogow.Presentation
             if (wreck != null)
             {
                 var salvagers = ids.Where(id => World.FindShip(id)?.Definition.CanHarvest == true).ToArray();
-                if (salvagers.Length > 0) { Send(CommandKind.Salvage, salvagers, target: wreck.Id); return; }
+                if (salvagers.Length > 0)
+                {
+                    Send(CommandKind.Salvage, salvagers, target: wreck.Id);
+                    SendMove(ids.Except(salvagers).ToArray(), point);
+                    return;
+                }
             }
 
             var node = World.Nodes.FirstOrDefault(item => (item.KnownMask & (1 << PlayerFaction)) != 0
