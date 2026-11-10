@@ -214,6 +214,71 @@ namespace MorzaBogow.Simulation
         /// (Smith effect, (1 − e^(−kT))/(kT)) and averaged over the station spacing (sinc). One amplitude set for the
         /// whole line (taken at its middle) and a complex recurrence along it: one sine and cosine per component.
         /// </summary>
+        // Smith factors of the components for the drafts asked for lately: a hull keeps its draft until its load moves.
+        readonly System.Collections.Generic.Dictionary<double, double[]> smithFactors = new System.Collections.Generic.Dictionary<double, double[]>();
+
+        double[] SmithFactors(double draft)
+        {
+            if (smithFactors.TryGetValue(draft, out var factors)) return factors;
+            if (smithFactors.Count >= 64) smithFactors.Clear();
+            factors = new double[Components];
+            for (var c = 0; c < Components; c++)
+            {
+                var k = WaveNumber[c];
+                factors[c] = draft > 0 ? (1 - Math.Exp(-k * draft)) / (k * draft) : 1;
+            }
+            smithFactors[draft] = factors;
+            return factors;
+        }
+
+        /// <summary>
+        /// Both sides of a hull at once: SampleLine along two parallel lines from (portX, portY) and (starboardX, starboardY)
+        /// with the same step, the amplitudes taken at the port line's middle. The same numbers as two SampleLine calls (the
+        /// second with sameAmplitudes), for one sinc filter, one step rotation and one Smith factor per component.
+        /// </summary>
+        public void SampleHull(double portX, double portY, double starboardX, double starboardY, double dx, double dy, int count,
+            double time, double blend, double draft, double[] portHeight, double[] portRate, double[] starboardHeight, double[] starboardRate)
+        {
+            Amplitudes(portX + dx * (count - 1) / 2, portY + dy * (count - 1) / 2, blend, amplitude);
+            Array.Clear(portHeight, 0, count);
+            Array.Clear(portRate, 0, count);
+            Array.Clear(starboardHeight, 0, count);
+            Array.Clear(starboardRate, 0, count);
+            double largest = 0;
+            for (var c = 0; c < Components; c++) largest = Math.Max(largest, amplitude[c]);
+            if (largest <= 0) return;
+            var floor = LineFloor * largest;
+            var smith = draft > 0 ? SmithFactors(draft) : null;
+            for (var c = 0; c < Components; c++)
+            {
+                var a = amplitude[c];
+                if (a < floor) continue;
+                var step = WaveNumberX[c] * dx + WaveNumberY[c] * dy;
+                var filter = Math.Abs(step) > 1e-9 ? Math.Sin(step / 2) / (step / 2) : 1;
+                var effective = a * (smith != null ? smith[c] : 1) * filter;
+                var stepCos = Math.Cos(step);
+                var stepSin = Math.Sin(step);
+                var omega = Omega[c];
+                // Phases written as SampleLine writes them, so the sums round alike.
+                Accumulate(WaveNumberX[c] * portX + WaveNumberY[c] * portY - Omega[c] * time + Phase[c], effective, omega, stepCos, stepSin, count, portHeight, portRate);
+                Accumulate(WaveNumberX[c] * starboardX + WaveNumberY[c] * starboardY - Omega[c] * time + Phase[c], effective, omega, stepCos, stepSin, count, starboardHeight, starboardRate);
+            }
+        }
+
+        static void Accumulate(double theta, double effective, double omega, double stepCos, double stepSin, int count, double[] height, double[] verticalVelocity)
+        {
+            var cos = Math.Cos(theta);
+            var sin = Math.Sin(theta);
+            for (var n = 0; n < count; n++)
+            {
+                height[n] += effective * cos;
+                verticalVelocity[n] += effective * omega * sin;
+                var nextCos = cos * stepCos - sin * stepSin;
+                sin = sin * stepCos + cos * stepSin;
+                cos = nextCos;
+            }
+        }
+
         public void SampleLine(double x0, double y0, double dx, double dy, int count, double time, double blend, double draft,
             double[] height, double[] verticalVelocity, double floorShare = LineFloor, bool sameAmplitudes = false)
         {

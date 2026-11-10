@@ -372,8 +372,8 @@ namespace MorzaBogow.Simulation
             if (surface != null)
             {
                 // Both sides share the amplitudes taken at the port line's middle: they are a quarter beam apart.
-                surface.SampleLine(sternX + px * half, sternY + py * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, portHeight, portRate);
-                surface.SampleLine(sternX - px * half, sternY - py * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, starboardHeight, starboardRate, SeaSurface.LineFloor, true);
+                surface.SampleHull(sternX + px * half, sternY + py * half, sternX - px * half, sternY - py * half, ex * spacing, ey * spacing, N,
+                    time, blend, hull.Draft, portHeight, portRate, starboardHeight, starboardRate);
             }
             else
             {
@@ -402,6 +402,7 @@ namespace MorzaBogow.Simulation
                 var tau = s * h;
                 var sinPitch = Math.Sin(motion.Pitch);
                 var sinRoll = Math.Sin(motion.Roll);
+                var cosPitch = Math.Cos(motion.Pitch);
                 double force = -hull.Weight, moment = 0;
                 for (var i = 0; i < N; i++)
                 {
@@ -411,7 +412,7 @@ namespace MorzaBogow.Simulation
                     var starboard = hull.Draft + starboardHeight[i] + starboardRate[i] * tau - (hullZ - half * sinRoll);
                     var lift = rho * g * 0.5 * (hull.SectionArea(i, port) + hull.SectionArea(i, starboard)) * hull.StationLength;
                     // Damping on each station's motion relative to the water there.
-                    var relative = motion.HeaveRate + xi * motion.PitchRate * Math.Cos(motion.Pitch) - 0.5 * (portRate[i] + starboardRate[i]);
+                    var relative = motion.HeaveRate + xi * motion.PitchRate * cosPitch - 0.5 * (portRate[i] + starboardRate[i]);
                     var damping = -stationDamping * relative;
                     force += lift + damping;
                     moment += xi * (lift + damping);

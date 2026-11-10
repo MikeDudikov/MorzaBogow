@@ -887,6 +887,72 @@ namespace MorzaBogow.Tests
             Assert.That(Math.Abs(Seakeeping.StaticHeel(cutter, shortened.HeelMoment)), Is.EqualTo(SailForces.HeelLimit(cutter)).Within(1e-6), "She heels to the guide and no further.");
         }
 
+        [Test]
+        public void Sea_HullSamplingEqualsTwoLineSamples()
+        {
+            var world = MarineMatch(3, false, MarineClimate.Aegean(WindRegime.EtesianStrong, AegeanRegion.Central));
+            var surface = world.Marine.Surface;
+            const int n = HullForm.Stations;
+            double[] Fresh() => new double[n];
+            foreach (var draft in new[] { 0.0, 0.7, 2.2 })
+                foreach (var heading in new[] { 0.0, 1.1, 2.9 })
+                    foreach (var time in new[] { 0.0, 37.5 })
+                    {
+                        double ex = Math.Cos(heading), ey = Math.Sin(heading), x = -300 + 50 * heading, y = -100 + 30 * draft;
+                        double px = x - ey * 0.9, py = y + ex * 0.9, sx = x + ey * 0.9, sy = y - ex * 0.9;
+                        double[] ph = Fresh(), pr = Fresh(), sh = Fresh(), sr = Fresh();
+                        surface.SampleLine(px, py, ex * 1.4, ey * 1.4, n, time, 0.3, draft, ph, pr);
+                        surface.SampleLine(sx, sy, ex * 1.4, ey * 1.4, n, time, 0.3, draft, sh, sr, SeaSurface.LineFloor, true);
+                        double[] ph2 = Fresh(), pr2 = Fresh(), sh2 = Fresh(), sr2 = Fresh();
+                        surface.SampleHull(px, py, sx, sy, ex * 1.4, ey * 1.4, n, time, 0.3, draft, ph2, pr2, sh2, sr2);
+                        Assert.That(ph2, Is.EqualTo(ph), "Port heights, bit for bit.");
+                        Assert.That(pr2, Is.EqualTo(pr), "Port rates, bit for bit.");
+                        Assert.That(sh2, Is.EqualTo(sh), "Starboard heights, bit for bit.");
+                        Assert.That(sr2, Is.EqualTo(sr), "Starboard rates, bit for bit.");
+                    }
+            Assert.That(surface.Amplitudes(-300, -100, 0.3, new double[SeaSurface.Components]), Is.GreaterThan(0.3), "Compared in a real sea.");
+        }
+
+        [Test]
+        public void Seakeeping_ThreeTickStepsStayCloseToEveryTickSteps()
+        {
+            // The far view's approximation: a hull stepped every third tick over three ticks against the same hull stepped
+            // every tick, under way in a strong Etesian sea.
+            var world = MarineMatch(3, false, MarineClimate.Aegean(WindRegime.EtesianStrong, AegeanRegion.Central));
+            var surface = world.Marine.Surface;
+            foreach (var shipClass in new[] { ShipClass.Cutter, ShipClass.Ram })
+                foreach (var headingDeg in new[] { 0.0, 90.0 })
+                {
+                    var hull = HullForm.For(shipClass, 0, world.Marine.Climate);
+                    var heading = headingDeg * Math.PI / 180;
+                    Seakeeping fine = new Seakeeping(), coarse = new Seakeeping();
+                    ShipMotion a = default, b = default;
+                    fine.Settle(hull, ref a, surface, -300, -100, heading, 0, 0.5);
+                    coarse.Settle(hull, ref b, surface, -300, -100, heading, 0, 0.5);
+                    double diff = 0, motion = 0, rollDiff = 0, roll = 0;
+                    for (var t = 1; t <= 60 * Rules.TickRate; t++)
+                    {
+                        var x = -300 + 4 * Math.Cos(heading) * t * Rules.Dt;
+                        var y = -100 + 4 * Math.Sin(heading) * t * Rules.Dt;
+                        fine.Step(hull, ref a, surface, x, y, heading, t * Rules.Dt, 0.5, Rules.Dt, 0, 0, true);
+                        if (t % SeakeepingStride != 0) continue;
+                        coarse.Step(hull, ref b, surface, x, y, heading, t * Rules.Dt, 0.5, SeakeepingStride * Rules.Dt, 0, 0, true);
+                        if (t < 10 * Rules.TickRate) continue;
+                        diff += (a.Heave - b.Heave) * (a.Heave - b.Heave);
+                        motion += a.Heave * a.Heave;
+                        rollDiff += (a.Roll - b.Roll) * (a.Roll - b.Roll);
+                        roll += a.Roll * a.Roll;
+                    }
+                    var samples = (60 - 10) * Rules.TickRate / SeakeepingStride;
+                    Assert.That(Math.Sqrt(motion / samples), Is.GreaterThan(0.1), $"{shipClass}: a real sea heaves her.");
+                    Assert.That(Math.Sqrt(diff / motion), Is.LessThan(0.2), $"{shipClass} at {headingDeg}°: heave within a fifth of the motion.");
+                    Assert.That(Math.Sqrt(rollDiff / roll), Is.LessThan(0.2), $"{shipClass} at {headingDeg}°: roll within a fifth of the motion.");
+                }
+        }
+
+        // SeakeepingDriver.FarStride (presentation): the test assembly sees only the simulation.
+        const int SeakeepingStride = 3;
+
         // The match: one clock, one owner of the ships, saved --------------------------------------------------------
 
         static World MarineMatch(ulong seed, bool movement, MarineClimate climate = null)

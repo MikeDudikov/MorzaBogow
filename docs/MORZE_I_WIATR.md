@@ -183,8 +183,12 @@ Zmierzone na modelu:
   - pomija składowe poniżej 5% najsilniejszej;
   - liczy 2 podkroki na tick;
   - przekrój kadłuba czyta z tablicy;
-  - obejmuje tylko okręty do 700 m od środka widoku.
-  - W .NET kosztuje około 17 µs na okręt na tick (pomiar pod obciążeniem innych procesów), więc przy 50 okrętach na ekranie wychodzi około 0,9 ms na tick: ponad budżet 0,5 ms.
+  - obie burty liczy w jednym przebiegu (`SeaSurface.SampleHull`: wspólne amplitudy, filtr, obrót kroku i współczynniki Smitha z pamięci według zanurzenia), dając bit w bit te same liczby co dwa wywołania `SampleLine` (test `Sea_HullSamplingEqualsTwoLineSamples`);
+  - obejmuje tylko okręty w kadrze kamery z marginesem 60 m (bez kamery: do 700 m od środka widoku). Okręt, który wraca do kadru po przerwie dłuższej niż 3 ticki, zostaje najpierw ułożony na wodzie.
+  - **Daleki widok jest jawnym przybliżeniem.** Poniżej 10 px/m (domyślny widok ma około 7) każdy kadłub dostaje krok co 3 ticki, z dt = 3 ticki. Kadłuby są rozłożone na ticki według id, a obraz płynie między dwoma ostatnimi krokami, z opóźnieniem 3 ticków zamiast 1. Wiatr na żagiel nadal liczy się 5 razy na sekundę.
+    - Błąd względem kroku co tick (harness, silna etezja, 4 m/s, 4 klasy, 4 kursy): 7–15% RMS ruchu, czyli dla kutra około 6 cm nurzania i 0,4° przechyłu. Przy 7 px/m to poniżej piksela.
+    - Testy: `Seakeeping_ThreeTickStepsStayCloseToEveryTickSteps` (próg 20%) i `SeakeepingDriverTests` (każdy kadłub raz na 3 ticki, nigdy wszystkie w jednym ticku, bez skoków obrazu, ułożenie po powrocie).
+  - **Koszt.** Przed zmianami: około 17 µs na okręt na tick w .NET, 16–20 µs na Mono poza grą i około 90 µs w grze pod obciążeniem GPU. W grze wolniej działa też sama symulacja, więc różnica to środowisko, nie kołysanie. Dokładne przyspieszenia dają na Mono 15–40% mniej (pomiar zaszumiony), a krok co 3 ticki dzieli koszt dalekiego widoku przez 3.
 
 **Zgłoszenie użytkownika (2026-11-10): „na łodzie wdziera się woda, a czasami w 90% są pod wodą”.**
 

@@ -279,14 +279,33 @@ namespace MorzaBogow.Presentation
         {
             if (World.Marine == null || seakeeping == null) return;
             seenShips.Clear();
-            // Ships within 700 m of the view's centre: all that can be on screen at the widest zoom.
+            // Ships in the camera's view with a margin, so one coming in has settled on the water before it shows; without a
+            // camera (tests, tools) those within 700 m of the view's centre, all that the widest zoom can show.
+            var camera = strategicCamera != null && strategicCamera.isActiveAndEnabled ? strategicCamera : null;
+            if (camera != null) GeometryUtility.CalculateFrustumPlanes(camera, viewPlanes);
             foreach (var ship in World.Ships)
-                if (views.ContainsKey(ship.Id) && World.CanSee(PlayerFaction, ship) && (ToWorld(ship) - pivot).sqrMagnitude < 700f * 700f) seenShips.Add(ship);
-            seakeeping.Step(World, seenShips);
+            {
+                if (!views.TryGetValue(ship.Id, out var shown) || !World.CanSee(PlayerFaction, ship)) continue;
+                var centre = ToWorld(ship);
+                if (camera == null ? (centre - pivot).sqrMagnitude >= 700f * 700f
+                    : !GeometryUtility.TestPlanesAABB(viewPlanes, new Bounds(centre, new Vector3(shown.Length + 2f * ViewMargin, 40f, shown.Length + 2f * ViewMargin)))) continue;
+                seenShips.Add(ship);
+            }
+            // Far views step each hull every few ticks (an explicit approximation, SeakeepingDriver), close views every tick.
+            var stride = camera != null && camera.orthographic && camera.orthographicSize > 0f
+                ? SeakeepingDriver.StrideFor(camera.pixelHeight / (2f * camera.orthographicSize)) : 1;
+            seakeeping.Step(World, seenShips, stride);
             if (smokeReport == null || smokeElapsed <= 5f) return;
             smokeSeakeepingMs += seakeeping.Milliseconds;
             smokeSeakeepingSteps++;
+            smokeSeakeepingStepped += seakeeping.Stepped;
+            smokeSeakeepingFollowed += seakeeping.Ships;
         }
+
+        /// <summary>Metres around the view within which hulls are already moving with the sea.</summary>
+        const float ViewMargin = 60f;
+        readonly Plane[] viewPlanes = new Plane[6];
+        double smokeSeakeepingStepped, smokeSeakeepingFollowed;
 
         /// <summary>
         /// Smoke runs: HDRP's water height (read back from the GPU, a few frames late) at eight points 250 m round the view,
@@ -2078,7 +2097,7 @@ namespace MorzaBogow.Presentation
                 foreach (var ship in World.Ships)
                 {
                     if (!views.TryGetValue(ship.Id, out var shown)) continue;
-                    if (!seakeeping.TryPose(ship.Id, fraction, out var physical, out var bow, out var heaveRate)) continue;
+                    if (!seakeeping.TryPose(ship.Id, World.Tick, fraction, out var physical, out var bow, out var heaveRate)) continue;
                     shown.SetPhysicalPose(physical, bow, heaveRate);
                     if (shown.Model != null && shown.Model.Find(DryHullName) == null) KeepWaterOut(shown);
                     maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(physical.Roll), Mathf.Abs(physical.Pitch));
@@ -3032,6 +3051,8 @@ namespace MorzaBogow.Presentation
                 report.Append($"  \"marineHs\": {(cell >= 0 ? marine.Waves.SignificantHeight(cell) : 0).ToString("0.00", culture)},\n  \"marineAmplitude\": {(seaRenderer != null ? seaRenderer.Amplitude : 0f).ToString("0.00", culture)},\n");
                 report.Append($"  \"marineTickMs\": {Ms(marine.TickMilliseconds, marine.TimedTicks)},\n");
                 report.Append($"  \"seakeepingMs\": {Ms(smokeSeakeepingMs, smokeSeakeepingSteps)},\n  \"seakeepingShips\": {seakeeping?.Ships ?? 0},\n  \"seaRenderCpuMs\": {Ms(smokeSeaMs, smokeSeaFrames)},\n");
+                // Share of the followed hulls stepped in an average tick: 1 close up, 1/FarStride far away.
+                report.Append($"  \"seakeepingStepShare\": {(smokeSeakeepingFollowed > 0 ? smokeSeakeepingStepped / smokeSeakeepingFollowed : 0).ToString("0.000", culture)},\n");
                 report.Append($"  \"seaCorrelation\": {SeaCorrelation().ToString("0.000", culture)},\n  \"seaComparisons\": {seaCompareN.ToString("0", culture)},\n");
                 // Rendered against simulated wave heights (1: the decal draws them at their true size).
                 var spreadSim = seaCompareN > 1 ? Math.Sqrt(Math.Max(0, seaCompareXX / seaCompareN - Math.Pow(seaCompareX / seaCompareN, 2))) : 0;
