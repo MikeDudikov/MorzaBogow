@@ -31,38 +31,120 @@ namespace MorzaBogow.Presentation
         /// <summary>One figure for every two men at the front, so a full rail reads as a crowd without a crowd of meshes.</summary>
         public static int FiguresFor(int front) => Mathf.Clamp(Mathf.CeilToInt(front * 0.5f), 0, MaxPerSide);
 
-        public void Update(Vector3 attackerDeck, Vector3 targetDeck, int attackerFront, int targetFront, float delta, bool visible)
+        /// <summary>
+        /// Each side's men line their own rail where the hulls lie together, facing the other deck, spread along the
+        /// attacker's length so a full front reads as a line of fighters rather than a knot at one point.
+        /// </summary>
+        public void Update(ShipVisual attacker, ShipVisual target, int attackerFront, int targetFront, float delta, bool visible)
         {
             time += delta;
-            var across = targetDeck - attackerDeck;
-            across.y = 0f;
-            var direction = across.sqrMagnitude > 1e-4f ? across.normalized : Vector3.forward;
-            var along = Vector3.Cross(Vector3.up, direction);
-            var middle = (attackerDeck + targetDeck) * 0.5f;
+            var ours = visible ? FiguresFor(attackerFront) : 0;
+            var theirs = visible ? FiguresFor(targetFront) : 0;
+            var axis = Flat(attacker.transform.forward);
+            var spacing = Mathf.Clamp(Mathf.Min(attacker.Length, target.Length) * 0.7f / Mathf.Max(1, Mathf.Max(ours, theirs)), 0.8f, 1.4f);
             Shown = 0;
-            Shown += Place(attackers, visible ? FiguresFor(attackerFront) : 0, middle - direction * 0.6f, along, direction, 0f);
-            Shown += Place(defenders, visible ? FiguresFor(targetFront) : 0, middle + direction * 0.6f, along, -direction, 0.45f);
+            Shown += Place(attackers, ours, attacker, target, axis, spacing, 0f);
+            Shown += Place(defenders, theirs, target, attacker, axis, spacing, 0.45f);
         }
 
-        int Place(CrewFigure[] figures, int count, Vector3 line, Vector3 along, Vector3 facing, float offset)
+        int Place(CrewFigure[] figures, int count, ShipVisual own, ShipVisual other, Vector3 axis, float spacing, float offset)
         {
+            var across = other.transform.position;
             for (var i = 0; i < figures.Length; i++)
             {
                 var shown = i < count;
                 figures[i].Show(shown);
                 if (!shown) continue;
-                var spread = (i - (count - 1) * 0.5f) * 1.1f;
-                figures[i].Place(line + along * spread);
-                figures[i].Face(line + along * spread + facing);
+                var rail = own.RailNear(across + axis * ((i - (count - 1) * 0.5f) * spacing));
+                // One step in from the gunwale, toward the own deck's middle.
+                var inward = Flat(own.transform.position - rail);
+                var at = rail + inward * 0.5f;
+                figures[i].Place(at);
+                figures[i].Face(at - inward);
                 figures[i].Strike(Mathf.Repeat(time * 1.3f + offset + i * 0.37f, 1f));
             }
             return count;
+        }
+
+        internal static Vector3 Flat(Vector3 vector)
+        {
+            vector.y = 0f;
+            return vector.sqrMagnitude > 1e-6f ? vector.normalized : Vector3.forward;
         }
 
         public void Destroy()
         {
             foreach (var figure in attackers) figure.Destroy();
             foreach (var figure in defenders) figure.Destroy();
+        }
+    }
+
+    /// <summary>
+    /// The grapple lines of one boarding, from the throw until the link ends: three ropes from the attacker's rail
+    /// to hooks bitten into the other gunwale. While the hooks are fought over the lines hang slack and jerk, and
+    /// fewer stand as the defenders cut them; once they hold the lines are taut. Presentation only.
+    /// </summary>
+    public sealed class GrappleLines
+    {
+        public const int Lines = 3;
+        const int Segments = 3;
+        const float Width = 0.18f, RailHeight = 0.8f;
+        readonly Transform root;
+        readonly Transform[] pieces = new Transform[Lines * Segments];
+        readonly Transform[] hooks = new Transform[Lines];
+        float time;
+
+        public int Shown { get; private set; }
+
+        public GrappleLines(Transform parent, PlaceholderMaterials materials)
+        {
+            root = new GameObject("Grapple lines").transform;
+            root.SetParent(parent, false);
+            for (var i = 0; i < pieces.Length; i++) pieces[i] = CrewFigure.Part(root, PrimitiveType.Cube, materials?.Rope, Vector3.zero, Vector3.one);
+            for (var i = 0; i < Lines; i++) hooks[i] = CrewFigure.Part(root, PrimitiveType.Cube, materials?.Bronze, Vector3.zero, new Vector3(0.4f, 0.3f, 0.4f));
+        }
+
+        /// <summary>Lines still standing: all three once the hooks hold, else one fewer per third of the cutting done.</summary>
+        public static int Standing(bool hooked, double cutProgress) =>
+            hooked ? Lines : Mathf.Clamp(Lines - Mathf.FloorToInt((float)cutProgress * Lines), 1, Lines);
+
+        public void Update(ShipVisual attacker, ShipVisual target, int standing, bool hooked, float delta, bool visible)
+        {
+            time += delta;
+            Shown = visible ? Mathf.Clamp(standing, 0, Lines) : 0;
+            var axis = DeckFight.Flat(attacker.transform.forward);
+            var spacing = Mathf.Min(attacker.Length, target.Length) * 0.2f;
+            for (var i = 0; i < Lines; i++)
+            {
+                var shown = i < Shown;
+                for (var s = 0; s < Segments; s++) Show(pieces[i * Segments + s], shown);
+                Show(hooks[i], shown);
+                if (!shown) continue;
+                var from = attacker.RailNear(target.transform.position + axis * ((i - 1) * spacing)) + Vector3.up * RailHeight;
+                var to = target.RailNear(from) + Vector3.up * RailHeight;
+                var sag = hooked ? 0.2f : 0.7f + 0.3f * Mathf.Sin(time * 7f + i * 1.9f);
+                var previous = from;
+                for (var s = 1; s <= Segments; s++)
+                {
+                    var t = (float)s / Segments;
+                    var point = s == Segments ? to : Vector3.Lerp(from, to, t) - Vector3.up * (sag * 4f * t * (1f - t));
+                    BattleEffects.Stretch(pieces[i * Segments + s - 1], previous, point, Width);
+                    previous = point;
+                }
+                hooks[i].position = to;
+                hooks[i].rotation = Quaternion.LookRotation(DeckFight.Flat(to - from));
+            }
+        }
+
+        static void Show(Transform item, bool shown)
+        {
+            if (item.gameObject.activeSelf != shown) item.gameObject.SetActive(shown);
+        }
+
+        /// <summary>Safe also when the scene is already being torn down.</summary>
+        public void Destroy()
+        {
+            if (root != null) Object.Destroy(root.gameObject);
         }
     }
 

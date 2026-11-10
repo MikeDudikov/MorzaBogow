@@ -255,7 +255,13 @@ namespace MorzaBogow.Presentation
                     showcasePhase = 1;
                     return;
                 case 1:
-                    if (step.Follow != null && step.Follow() is Ship followed && World.FindShip(followed.Id) != null) pivot = ToWorld(followed);
+                    if (step.Follow != null && step.Follow() is Ship followed && World.FindShip(followed.Id) != null)
+                    {
+                        // A boarding is framed on the point where the hulls meet, not on the boarder alone.
+                        var link = BoardingOf(followed.Id);
+                        var other = link != null ? World.FindShip(link.AttackerId == followed.Id ? link.TargetId : link.AttackerId) : null;
+                        pivot = other != null ? (ToWorld(followed) + ToWorld(other)) * 0.5f : ToWorld(followed);
+                    }
                     if (World.Tick - showcaseSince < step.Ticks || showcaseClock - showcaseMark < 2.5f) return;
                     if (step.Shot != null)
                     {
@@ -309,14 +315,14 @@ namespace MorzaBogow.Presentation
                     var landX = (float)Rules.SettlementLandX(home);
                     pivot = new Vector3((landX + (float)home.X) * 0.5f, 0f, (float)home.Y); height = 75f; yaw = -35f; tilt = ObliqueCamera.DefaultTilt;
                 } },
-                // A boarder grapples an enemy ram; the hooks hold after 3 s and the decks fight.
+                // A boarder lies alongside an enemy ram, side by side; the hooks hold after 3 s and the decks fight.
                 new ShowcaseStep { Shot = "abordaz", Ticks = 6 * Rules.TickRate, Follow = () => showcaseBoarder, Setup = () =>
                 {
                     showcaseBoarder = World.SpawnShip(PlayerFaction, ShipClass.Boarder, area.x - 20, area.z);
-                    var prey = World.SpawnShip(1 - PlayerFaction, ShipClass.Ram, area.x - 20 + 25, area.z);
+                    var prey = World.SpawnShip(1 - PlayerFaction, ShipClass.Ram, area.x - 20, area.z + 13);
                     showcaseBoarder.Heading = prey.Heading = 0;
                     World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Board, ShipIds = new[] { showcaseBoarder.Id }, TargetId = prey.Id });
-                    pivot = area + new Vector3(-8f, 0f, 0f); height = 45f; yaw = -30f; tilt = ObliqueCamera.DefaultTilt;
+                    pivot = area + new Vector3(-20f, 0f, 6f); height = 40f; yaw = -30f; tilt = ObliqueCamera.DefaultTilt;
                 } },
                 // Archers and a stone catapult against an enemy crew destroyer that shoots back.
                 new ShowcaseStep { Shot = "ostrzal", Ticks = 4 * Rules.TickRate, Setup = () =>
@@ -479,7 +485,7 @@ namespace MorzaBogow.Presentation
                         if (seen) effects.Flash(at, 8f);
                         break;
                     case "hooks_thrown":
-                        if (seen && lastPositions.TryGetValue(item.SubjectId, out var boarder)) effects.Rope(boarder, at, 3f);
+                        // The lines themselves are drawn for the whole boarding (GrappleLines in UpdateDeckFights).
                         if (World.FindShip(item.OtherId)?.Owner == PlayerFaction) Announce("Abordaż! Wróg zarzuca haki – szermierze mogą przeciąć liny.", HeraldLevel.Critical, at, HeraldTopic.Alarm, item.OtherId, $"board:{item.OtherId}");
                         break;
                     case "hooks_cut":
@@ -571,6 +577,8 @@ namespace MorzaBogow.Presentation
             foreach (var gang in dockGangs.Values) gang.Destroy();
             foreach (var fight in deckFights.Values) fight.Destroy();
             deckFights.Clear();
+            foreach (var lines in grapples.Values) lines.Destroy();
+            grapples.Clear();
             crews.Clear();
             dockGangs.Clear();
             docked.Clear();
@@ -771,6 +779,11 @@ namespace MorzaBogow.Presentation
         /// <summary>Figures now fighting on the rails of every boarding the player can see; zero when none.</summary>
         public int DeckFightersShown => deckFights.Values.Sum(fight => fight.Shown);
 
+        readonly Dictionary<int, GrappleLines> grapples = new Dictionary<int, GrappleLines>();
+
+        /// <summary>Grapple lines now standing between the hulls of every boarding the player can see; zero when none.</summary>
+        public int GrappleLinesShown => grapples.Values.Sum(lines => lines.Shown);
+
         /// <summary>
         /// Men fight across the rails only while the grapples hold (the melee); before that the lines fly across
         /// (BattleEffects.Rope). Each boarding gets its figures from the decks of both hulls as they ride the waves.
@@ -779,23 +792,31 @@ namespace MorzaBogow.Presentation
         {
             foreach (var link in World.Boardings)
             {
-                if (!link.Hooked || !views.TryGetValue(link.AttackerId, out var attackerView) || !views.TryGetValue(link.TargetId, out var targetView)) continue;
+                if (!views.TryGetValue(link.AttackerId, out var attackerView) || !views.TryGetValue(link.TargetId, out var targetView)) continue;
                 var attacker = World.FindShip(link.AttackerId);
                 var target = World.FindShip(link.TargetId);
                 if (attacker == null || target == null) continue;
+                var visible = attackerView.gameObject.activeSelf && targetView.gameObject.activeSelf;
+                // The lines stand from the throw until the link ends, slack while the hooks are fought over.
+                if (!grapples.TryGetValue(link.AttackerId, out var lines)) grapples[link.AttackerId] = lines = new GrappleLines(crewRoot, materials);
+                lines.Update(attackerView, targetView, GrappleLines.Standing(link.Hooked, link.CutProgress), link.Hooked, delta, visible);
+                if (!link.Hooked) continue;
                 if (!deckFights.TryGetValue(link.AttackerId, out var fight))
                 {
                     fight = new DeckFight(crewRoot, materials, attacker.Owner, target.Owner);
                     deckFights[link.AttackerId] = fight;
                 }
-                var visible = attackerView.gameObject.activeSelf && targetView.gameObject.activeSelf;
-                fight.Update(attackerView.DeckToward(targetView.transform.position), targetView.DeckToward(attackerView.transform.position),
-                    link.AttackerFront, link.TargetFront, delta, visible);
+                fight.Update(attackerView, targetView, link.AttackerFront, link.TargetFront, delta, visible);
             }
             foreach (var id in deckFights.Keys.Where(id => !World.Boardings.Any(link => link.Hooked && link.AttackerId == id)).ToList())
             {
                 deckFights[id].Destroy();
                 deckFights.Remove(id);
+            }
+            foreach (var id in grapples.Keys.Where(id => !World.Boardings.Any(link => link.AttackerId == id)).ToList())
+            {
+                grapples[id].Destroy();
+                grapples.Remove(id);
             }
         }
 
@@ -1999,7 +2020,10 @@ namespace MorzaBogow.Presentation
             Herald?.Invoke(new HeraldMessage(text, level, at, topic, entityId, groupKey));
         }
 
-        /// <summary>The port a position belongs to, as a grouping key for the herald: the nearest own port.</summary>
+        /// <summary>
+        /// The port a position belongs to, as a grouping key for the herald: the nearest own port within 200 m, else
+        /// a 200 m square of open sea, so fights far apart keep their own alarms.
+        /// </summary>
         string NearPort(Vector3 at)
         {
             Settlement best = null;
@@ -2009,7 +2033,7 @@ namespace MorzaBogow.Presentation
                 var distance = World.Distance(at.x, at.z, port.X, port.Y);
                 if (distance < bestDistance) { bestDistance = distance; best = port; }
             }
-            return best != null && bestDistance < 200 ? $"port{best.Id}" : "sea";
+            return best != null && bestDistance < 200 ? $"port{best.Id}" : $"sea{Mathf.FloorToInt(at.x / 200f)}_{Mathf.FloorToInt(at.z / 200f)}";
         }
 
         /// <summary>An own ship or port under fire raises an alarm, at most once in a while for each of them.</summary>

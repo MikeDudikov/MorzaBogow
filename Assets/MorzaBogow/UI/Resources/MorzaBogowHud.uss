@@ -241,7 +241,7 @@
 
 .popover-layer, .modal-layer, .world-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .popover {
-    position: absolute; min-width: 260px; padding: 12px 16px 14px 16px;
+    position: absolute; min-width: 260px; max-width: 560px; padding: 12px 16px 14px 16px;
     background-color: rgba(16, 30, 35, 0.98); border-width: 1px; border-color: rgb(163, 138, 86); border-radius: 3px;
 }
 .popover-title { -unity-font-definition: url("Hud/Fonts/Cinzel-SemiBold.ttf"); font-size: 20px; margin-bottom: 8px; }
@@ -257,8 +257,11 @@
 .menu-item:focus { border-color: rgb(228, 185, 105); }
 .menu-item.disabled { color: rgb(130, 130, 120); }
 .menu-item.chosen { border-color: rgb(228, 185, 105); }
-.menu-item-label { flex-grow: 1; margin-left: 10px; font-size: 18px; }
-.menu-item-value { font-size: 16px; color: rgb(199, 199, 183); }
+.menu-item-label { flex-grow: 1; flex-shrink: 1; margin-left: 10px; font-size: 18px; white-space: nowrap; }
+.menu-item-value { font-size: 16px; color: rgb(199, 199, 183); flex-shrink: 0; margin-left: 12px; }
+.menu-item.compact { height: 32px; }
+.menu-item.compact .menu-item-label { font-size: 17px; }
+.popover-section { font-size: 15px; color: rgb(228, 185, 105); margin-top: 8px; margin-bottom: 2px; }
 
 .tooltip {
     position: absolute; max-width: 360px; padding: 12px 16px 14px 16px;
@@ -306,6 +309,11 @@
 .hp { position: absolute; left: 0; top: 0; width: 72px; }
 .hp-hull { height: 7px; }
 .hp-crew { height: 3px; margin-top: 1px; }
+.boarding-marker {
+    position: absolute; left: 0; top: 0; flex-direction: row; align-items: center; padding: 2px 8px;
+    background-color: rgba(16, 30, 35, 0.85); border-width: 1px; border-color: rgba(190, 161, 108, 0.8); border-radius: 3px;
+}
+.boarding-marker-value { -unity-font-definition: url("Hud/Fonts/SourceSans3-SemiBold.ttf"); font-size: 16px; color: rgb(243, 234, 214); }
 .select-box { position: absolute; border-width: 1px; border-color: rgba(228, 185, 105, 0.9); background-color: rgba(228, 185, 105, 0.08); }
 
 /* ---------- Player options ---------- */

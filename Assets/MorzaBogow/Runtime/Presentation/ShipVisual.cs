@@ -272,6 +272,19 @@ namespace MorzaBogow.Presentation
             return centre + transform.right * side * beam * 0.4f + transform.forward * along;
         }
 
+        /// <summary>
+        /// The deck at the gunwale nearest a point: on the side facing it, as far along the hull as the point lies
+        /// (up to the bow and stern quarters). Grapple lines and the boarding fight stand along it.
+        /// </summary>
+        public Vector3 RailNear(Vector3 point)
+        {
+            var centre = model.position + model.up * (0.6f + HullHeight * 0.5f);
+            var away = point - centre;
+            var side = Vector3.Dot(away, transform.right) >= 0f ? 1f : -1f;
+            var along = Mathf.Clamp(Vector3.Dot(away, transform.forward), -size * 0.42f, size * 0.42f);
+            return centre + transform.right * side * beam * 0.38f + transform.forward * along;
+        }
+
         /// <summary>Fraction of the hold in use, 0 to 1. A loaded transport sits lower in the water.</summary>
         public void SetLoad(float fraction) => load = Mathf.Clamp01(fraction);
 

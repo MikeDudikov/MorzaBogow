@@ -39,6 +39,8 @@ namespace MorzaBogow.Presentation
         public string WoodText => woodValue?.text ?? string.Empty;
         public int VisibleCommands => commands.Count(command => command.Button.style.display != DisplayStyle.None);
         public int VisibleHeralds => heralds.Count;
+        /// <summary>Title and subtitle of every herald entry shown, newest first (tests).</summary>
+        public IReadOnlyList<string> HeraldLines => heralds.Select(item => $"{item.Title?.text}|{item.Sub?.text}").ToList();
         public bool Collapsed => collapsed;
         public bool ModalOpen => modal != null;
         public bool PopoverOpen => popover != null;
@@ -109,6 +111,9 @@ namespace MorzaBogow.Presentation
             public float Until, Born;
             public int Count = 1;
             public bool Acknowledged;
+            /// <summary>What a merged alarm is about: the texts and the ships or ports it gathers.</summary>
+            public readonly HashSet<string> Texts = new HashSet<string>();
+            public readonly HashSet<int> Entities = new HashSet<int>();
         }
 
         readonly List<Herald> heralds = new List<Herald>();
@@ -511,7 +516,9 @@ namespace MorzaBogow.Presentation
             {
                 var slot = i;
                 var size = ship.Definition.Slots[i];
-                Text($"Gniazdo {i + 1} ({SlotName(size)}): teraz {WeaponCatalog.Get(ship.Mounts[i]).Name}", "popover-row-label", panel);
+                // The mounted weapon is named only when it differs from the plan (the plan carries the tick).
+                var mounted = ship.Mounts[i] != ship.Loadout[i] ? $" · na pokładzie: {WeaponCatalog.Get(ship.Mounts[i]).Name}" : string.Empty;
+                Text($"Gniazdo {i + 1} · {SlotName(size)}{mounted}", "popover-section", panel);
                 foreach (WeaponType weapon in Enum.GetValues(typeof(WeaponType)))
                 {
                     if (!WeaponCatalog.Fits(weapon, size)) continue;
@@ -519,9 +526,13 @@ namespace MorzaBogow.Presentation
                     if (weapon != WeaponType.None && definition.Slot != size) continue;
                     var chosen = weapon;
                     var locked = definition.Slot == SlotSize.Heavy && weapon != WeaponType.None && !battle.World.HasHeavyArms(ship.Owner);
-                    var value = weapon == WeaponType.None ? "puste" : $"{definition.MinRange:0}–{definition.MaxRange:0} m · {definition.Cycle:0.#} s · {definition.Hull:0.#}/{definition.Men:0.#}"
-                        + (definition.IsMachine && port != null ? $" · ma {port.Arsenal[(int)weapon]}" : string.Empty);
+                    var stock = !definition.IsMachine || port == null ? string.Empty
+                        : locked ? " · badanie"
+                        : port.HasWorkshop || port.Arsenal[(int)weapon] > 0 ? $" · w arsenale {port.Arsenal[(int)weapon]}"
+                        : " · brak Warsztatu";
+                    var value = weapon == WeaponType.None ? "puste" : $"{definition.MinRange:0}–{definition.MaxRange:0} m · {definition.Cycle:0.#} s · {definition.Hull:0.#}/{definition.Men:0.#}{stock}";
                     var item = MenuItem(panel, ship.Loadout[i] == weapon ? "check" : "attack", definition.Name, value, () => { battle.SetWeapon(ship.Id, slot, chosen); ClosePopover(); });
+                    item.AddToClassList("compact");
                     item.EnableInClassList("disabled", locked);
                     Tip(item, () => WeaponTip(chosen, locked ? "Broń ciężka wymaga badania w Szkole Mędrców." : null));
                     weaponOptions++;
@@ -536,6 +547,8 @@ namespace MorzaBogow.Presentation
         public void ClosePopoverForTest() => ClosePopover();
         /// <summary>Where the open popover lies on screen, or null (showcase diagnostics).</summary>
         public Rect? PopoverBoundsForTest => popover == null ? (Rect?)null : popover.worldBound;
+        /// <summary>The top edge of the bottom band in panel space (tests).</summary>
+        public float BottomBandTopForTest => bottomBand?.worldBound.yMin ?? 0f;
 
         /// <summary>Opens the weapon choice for the shown ship and returns how many options it lists (tests).</summary>
         public int OpenWeaponsForTest()
@@ -1684,7 +1697,7 @@ namespace MorzaBogow.Presentation
                     var hull = (float)(ship.Hull / ship.Definition.Hull);
                     var own = ship.Owner == BattleController.PlayerFaction;
                     bar.hull.Set(hull, own ? HudPalette.Hull(hull) : HudPalette.Enemy, patterns && !own);
-                    bar.crew.Set((float)(ship.Sailors + ship.Soldiers) / Mathf.Max(1, ship.Definition.MaxCrew), HudPalette.Warning);
+                    bar.crew.Set((float)ship.Crew / Mathf.Max(1, ship.Definition.MaxCrew), HudPalette.Warning);
                     bar.crew.style.display = DisplayStyle.Flex;
                     bar.root.style.width = width;
                     bar.root.style.translate = new StyleTranslate(new Translate(position.x - width * 0.5f, position.y));
@@ -1706,6 +1719,76 @@ namespace MorzaBogow.Presentation
             }
             for (var i = used; i < bars.Count; i++) Show(bars[i].root, false);
             VisibleHealthBars = used;
+            UpdateBoardingMarkers(camera, panel);
+        }
+
+        readonly List<(VisualElement root, Label ours, Label sep, Label theirs)> boardingMarkers = new List<(VisualElement, Label, Label, Label)>();
+
+        /// <summary>Boarding markers now shown over the map (tests).</summary>
+        public int VisibleBoardingMarkers { get; private set; }
+
+        /// <summary>The text of the first boarding marker shown, or empty (tests).</summary>
+        public string BoardingMarkerText => VisibleBoardingMarkers > 0 ? $"{boardingMarkers[0].ours.text}{boardingMarkers[0].sep.text}{boardingMarkers[0].theirs.text}" : string.Empty;
+
+        /// <summary>
+        /// Over every boarding the player can see: crossed blades and, while the hooks are fought over, how far they
+        /// have bitten; once the decks fight, the men at each side's front in that side's colour.
+        /// </summary>
+        void UpdateBoardingMarkers(Camera camera, IPanel panel)
+        {
+            var used = 0;
+            if (camera != null && panel != null)
+            {
+                foreach (var link in battle.World.Boardings)
+                {
+                    if (!battle.Views.TryGetValue(link.AttackerId, out var attackerView) || !battle.Views.TryGetValue(link.TargetId, out var targetView)) continue;
+                    if (!attackerView.gameObject.activeSelf || !targetView.gameObject.activeSelf) continue;
+                    var attacker = battle.World.FindShip(link.AttackerId);
+                    var target = battle.World.FindShip(link.TargetId);
+                    if (attacker == null || target == null) continue;
+                    var at = (attackerView.transform.position + targetView.transform.position) * 0.5f + Vector3.up * 9f;
+                    if (!Place(camera, panel, at, 10f, out var position, out _)) continue;
+                    var marker = BoardingMarker(used++);
+                    var player = BattleController.PlayerFaction;
+                    if (link.Hooked)
+                    {
+                        SetText(marker.ours, link.AttackerFront.ToString());
+                        SetText(marker.sep, " : ");
+                        SetText(marker.theirs, link.TargetFront.ToString());
+                    }
+                    else
+                    {
+                        var total = Mathf.Max(1f, (float)(Rules.BoardHookSeconds * Rules.TickRate));
+                        SetText(marker.ours, $"haki {Mathf.RoundToInt(100f * (1f - link.HookTicks / total))}%");
+                        SetText(marker.sep, string.Empty);
+                        SetText(marker.theirs, string.Empty);
+                    }
+                    marker.ours.style.color = attacker.Owner == player ? HudPalette.Ally : HudPalette.Enemy;
+                    marker.theirs.style.color = target.Owner == player ? HudPalette.Ally : HudPalette.Enemy;
+                    var width = marker.root.layout.width > 0f ? marker.root.layout.width : 80f;
+                    marker.root.style.translate = new StyleTranslate(new Translate(position.x - width * 0.5f, position.y));
+                }
+            }
+            for (var i = used; i < boardingMarkers.Count; i++) Show(boardingMarkers[i].root, false);
+            VisibleBoardingMarkers = used;
+        }
+
+        (VisualElement root, Label ours, Label sep, Label theirs) BoardingMarker(int index)
+        {
+            while (boardingMarkers.Count <= index)
+            {
+                var element = Element("boarding-marker", worldLayer);
+                element.pickingMode = PickingMode.Ignore;
+                Glyph(element, "board", "glyph-small").pickingMode = PickingMode.Ignore;
+                var ours = Text(string.Empty, "boarding-marker-value", element);
+                var sep = Text(string.Empty, "boarding-marker-value", element);
+                var theirs = Text(string.Empty, "boarding-marker-value", element);
+                ours.style.marginLeft = 4;
+                boardingMarkers.Add((element, ours, sep, theirs));
+            }
+            var marker = boardingMarkers[index];
+            Show(marker.root, true);
+            return marker;
         }
 
         static bool Place(Camera camera, IPanel panel, Vector3 world, float radius, out Vector2 position, out float width)
@@ -1756,19 +1839,25 @@ namespace MorzaBogow.Presentation
         void OnHerald(HeraldMessage message)
         {
             if (heraldColumn == null) return;
-            // The same kind of news about the same port or convoy joins the entry already shown.
-            var same = heralds.FirstOrDefault(item => !item.Acknowledged && item.Message.GroupKey == message.GroupKey && Time.unscaledTime - item.Born < HeraldMerge + (item.Count - 1) * 2f);
+            // The same kind of news about the same port or convoy joins the entry already shown. An alarm waits for
+            // confirmation, so later alarms of its group join it however long it has been shown.
+            var same = heralds.FirstOrDefault(item => !item.Acknowledged && item.Message.GroupKey == message.GroupKey
+                && (message.Level == HeraldLevel.Critical && item.Message.Level == HeraldLevel.Critical || Time.unscaledTime - item.Born < HeraldMerge + (item.Count - 1) * 2f));
             if (same != null)
             {
                 same.Count++;
                 same.Message = message;
                 same.Until = Time.unscaledTime + HeraldInformational;
-                SetText(same.Title, message.Text);
+                same.Texts.Add(message.Text);
+                if (message.EntityId >= 0) same.Entities.Add(message.EntityId);
+                SetText(same.Title, MergedText(same));
                 SetText(same.Sub, $"×{same.Count} · {SubText(message)}");
                 return;
             }
 
             var herald = new Herald { Message = message, Born = Time.unscaledTime, Until = Time.unscaledTime + HeraldInformational };
+            herald.Texts.Add(message.Text);
+            if (message.EntityId >= 0) herald.Entities.Add(message.EntityId);
             var item = new Button { focusable = true };
             item.AddToClassList("herald-item");
             if (message.Level == HeraldLevel.Important) item.AddToClassList("important");
@@ -1798,6 +1887,21 @@ namespace MorzaBogow.Presentation
                 heralds.Remove(victim);
             }
         }
+
+        /// <summary>
+        /// The title of a merged entry: the latest text while it is all one kind of news; an alarm about several
+        /// different ships counts them, one about ships and ports together counts the targets.
+        /// </summary>
+        string MergedText(Herald herald)
+        {
+            if (herald.Texts.Count <= 1 || herald.Message.Topic != HeraldTopic.Alarm || herald.Entities.Count < 2) return herald.Message.Text;
+            var count = herald.Entities.Count;
+            if (herald.Entities.All(id => battle.World.FindSettlement(id) == null)) return $"Atak na {count} {ShipsWord(count)}!";
+            return $"Ataki w okolicy: {count} {(count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? "cele" : "celów")}!";
+        }
+
+        /// <summary>Polish plural of "okręt" after a number of two or more.</summary>
+        public static string ShipsWord(int count) => count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? "okręty" : "okrętów";
 
         string SubText(HeraldMessage message)
         {
@@ -1867,8 +1971,15 @@ namespace MorzaBogow.Presentation
                 var size = panel.layout.size;
                 var bounds = root.worldBound;
                 var x = Mathf.Clamp(box.xMin, bounds.xMin + 16f, bounds.xMax - size.x - 16f);
-                var y = box.yMax + 6f;
-                if (y + size.y > bounds.yMax - 16f) y = box.yMin - size.y - 6f;
+                float y;
+                // A button in the bottom band opens its panel above the band, never over the card it belongs to.
+                if (bottomBand != null && bottomBand.Contains(anchor)) y = bottomBand.worldBound.yMin - size.y - 6f;
+                else
+                {
+                    y = box.yMax + 6f;
+                    if (y + size.y > bounds.yMax - 16f) y = box.yMin - size.y - 6f;
+                }
+                y = Mathf.Max(bounds.yMin + 16f, y);
                 panel.style.left = x;
                 panel.style.top = y;
             }

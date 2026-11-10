@@ -232,6 +232,7 @@ namespace MorzaBogow.Tests
             battle.RunTicks(30);
             Assert.That(world.Boardings.Any(link => !link.Hooked), Is.True, "Grapples thrown.");
             Assert.That(battle.DeckFightersShown, Is.Zero, "No one crosses while the hooks are still biting.");
+            Assert.That(battle.GrappleLinesShown, Is.EqualTo(GrappleLines.Lines), "The lines stand from the throw, all of them while no one cuts.");
 
             var fought = 0;
             for (var i = 0; i < 20 && target.Owner == 1; i++)
@@ -243,6 +244,118 @@ namespace MorzaBogow.Tests
             battle.RunTicks(150);
             Assert.That(target.Owner, Is.EqualTo(0), "The merchant is taken.");
             Assert.That(battle.DeckFightersShown, Is.Zero, "The figures go when the fight ends.");
+            Assert.That(battle.GrappleLinesShown, Is.Zero, "The lines go with the boarding.");
+        }
+
+        /// <summary>Open water near the middle of the map, where the camera can look: a strip of sea for two hulls.</summary>
+        static Vector3 OpenWater(World world)
+        {
+            for (var z = -300; z <= 300; z += 20)
+            for (var x = -400; x <= 400; x += 20)
+            {
+                var open = true;
+                for (var dz = -40; dz <= 40 && open; dz += 10)
+                for (var dx = -60; dx <= 80 && open; dx += 10)
+                    open = !world.OnLand(x + dx, z + dz);
+                if (open) return new Vector3(x, 0f, z);
+            }
+            Assert.Fail("No open water near the middle of the map.");
+            return default;
+        }
+
+        /// <summary>Gives the battle a camera of its own without touching its materials (the test scene has none).</summary>
+        Camera AttachCamera()
+        {
+            var view = new GameObject("Test camera").AddComponent<Camera>();
+            typeof(BattleController).GetField("strategicCamera", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(battle, view);
+            return view;
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_BoardingMarkerShowsTheHooksThenTheFronts()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var world = battle.World;
+            var view = AttachCamera();
+            try
+            {
+                battle.Paused = true;
+                var spot = OpenWater(world);
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, spot.x, spot.z);
+                var target = world.SpawnShip(1, ShipClass.Merchant, spot.x + boarder.Definition.Radius + ShipCatalog.Get(ShipClass.Merchant).Radius + 2, spot.z);
+                boarder.Heading = target.Heading = 0;
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                battle.RunTicks(30);
+                Assert.That(world.Boardings.Any(link => !link.Hooked), Is.True, "Grapples thrown.");
+                battle.FocusCamera(spot);
+                yield return WaitForInterface();
+                Assert.That(hud.VisibleBoardingMarkers, Is.EqualTo(1), "Crossed blades over the boarding.");
+                Assert.That(hud.BoardingMarkerText, Does.StartWith("haki"), "While the hooks bite, how far they have.");
+
+                for (var i = 0; i < 10 && !world.Boardings.Any(link => link.Hooked); i++) battle.RunTicks(15);
+                Assert.That(world.Boardings.Any(link => link.Hooked), Is.True, "The hooks hold.");
+                yield return WaitForInterface();
+                Assert.That(hud.BoardingMarkerText, Does.Contain(" : "), "Once the decks fight, each side's front.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(view.gameObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_WeaponChoiceStaysNarrowAndOpensAboveTheBand()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var world = battle.World;
+            var ram = world.SpawnShip(0, ShipClass.Ram, world.SettlementOf(0).X + 300, 200);
+            battle.RunTicks(1);
+            battle.SelectForTest(ram.Id);
+            yield return WaitForInterface();
+            hud.OpenWeaponsForTest();
+            yield return WaitForInterface();
+            var bounds = hud.PopoverBoundsForTest;
+            Assert.That(bounds.HasValue, Is.True, "The weapon choice is open.");
+            Assert.That(bounds.Value.width, Is.LessThanOrEqualTo(560.5f), "It keeps its width; its notes wrap inside.");
+            Assert.That(bounds.Value.yMax, Is.LessThanOrEqualTo(hud.BottomBandTopForTest + 0.5f), "It opens above the band, never over the ship card.");
+            hud.ClosePopoverForTest();
+        }
+
+        [UnityTest]
+        public IEnumerator Hud_AlarmsOfOneWatersJoinOneEntryHoweverLate()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var world = battle.World;
+            // Paused, so no real fight raises alarms of its own while the test waits.
+            battle.Paused = true;
+            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var raise = typeof(BattleController).GetMethod("Announce", flags);
+            var nearPort = typeof(BattleController).GetMethod("NearPort", flags);
+            var home = world.SettlementOf(0);
+            // Two points in one 200 m square of open sea, far from the only own port, and one far beyond it.
+            var cell = new Vector3(Mathf.Floor(((float)home.X + 700f) / 200f) * 200f + 100f, 0f, Mathf.Floor((float)home.Y / 200f) * 200f + 100f);
+            var keyA = (string)nearPort.Invoke(battle, new object[] { cell + Vector3.left * 30f });
+            var keyB = (string)nearPort.Invoke(battle, new object[] { cell + Vector3.right * 30f });
+            var keyFar = (string)nearPort.Invoke(battle, new object[] { cell + Vector3.right * 1000f });
+            Assert.That(keyB, Is.EqualTo(keyA), "One square of sea, one alarm group.");
+            Assert.That(keyFar, Is.Not.EqualTo(keyA), "Fights far apart keep their own alarms.");
+
+            var ram = world.SpawnShip(0, ShipClass.Ram, cell.x - 30, cell.z);
+            var hunter = world.SpawnShip(0, ShipClass.CrewDestroyer, cell.x + 30, cell.z);
+            int Alarms() => hud.HeraldLines.Count(line => line.StartsWith("Atak"));
+            var before = Alarms();
+            raise.Invoke(battle, new object[] { "Atak na taranowiec!", HeraldLevel.Critical, cell, HeraldTopic.Alarm, ram.Id, "alarm:" + keyA });
+            // Longer than the merge window of ordinary news: an alarm waits for confirmation, so it still gathers.
+            yield return new WaitForSecondsRealtime(6.5f);
+            raise.Invoke(battle, new object[] { "Atak na niszczyciel załóg!", HeraldLevel.Critical, cell, HeraldTopic.Alarm, hunter.Id, "alarm:" + keyB });
+            Assert.That(Alarms(), Is.EqualTo(before + 1), "A later alarm in the same waters joins the waiting one.");
+            Assert.That(hud.HeraldLines.First(line => line.StartsWith("Atak")), Does.StartWith("Atak na 2 okręty!|×2"), "Two different ships under attack are counted.");
+
+            raise.Invoke(battle, new object[] { "Atak na taranowiec!", HeraldLevel.Critical, cell, HeraldTopic.Alarm, ram.Id, "alarm:" + keyFar });
+            Assert.That(Alarms(), Is.EqualTo(before + 2), "A fight in other waters keeps its own alarm.");
         }
 
         [Test]

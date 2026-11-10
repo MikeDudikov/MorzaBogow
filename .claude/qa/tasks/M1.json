@@ -58,6 +58,9 @@
         "MorzaBogow.Tests.BattleControllerTests.Hud_ShipCardShowsTheCrewByTradeAndTheCrewChoiceSetsThePlan",
         "MorzaBogow.Tests.BattleControllerTests.Boarding_FightersStandOnTheRailsOnlyWhileTheDecksFight",
         "MorzaBogow.Tests.BattleControllerTests.Hud_WeaponChoiceListsWhatFitsEachPostAndSetsThePlan",
+        "MorzaBogow.Tests.BattleControllerTests.Hud_WeaponChoiceStaysNarrowAndOpensAboveTheBand",
+        "MorzaBogow.Tests.BattleControllerTests.Hud_AlarmsOfOneWatersJoinOneEntryHoweverLate",
+        "MorzaBogow.Tests.BattleControllerTests.Hud_BoardingMarkerShowsTheHooksThenTheFronts",
         "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing"
       ]
     }
