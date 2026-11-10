@@ -48,7 +48,7 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
-        public void Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury()
+        public void Yard_GearStandsOnDryLandClearOfTheRampsAndItsToolsFollowTheEra()
         {
             float Ground(float x, float z) => 2.4f - 0.05f * (x * x + z * z) / 20f;
             bool Clear(float x, float z) => Mathf.Abs(x - 6f) > 3.5f && Mathf.Abs(z) > 2.5f;
@@ -59,7 +59,8 @@ namespace MorzaBogow.Tests
             for (var j = i + 1; j < plan.Count; j++)
                 Assert.That((plan[i].Position - plan[j].Position).magnitude, Is.GreaterThan(plan[i].Radius + plan[j].Radius - 1e-3f), "No two pieces stand in each other.");
             Assert.That(ShipyardProps.ShelterEaves, Is.GreaterThanOrEqualTo(1.9f), "A man stands under the eaves.");
-            Assert.That(EnvironmentProfile.Default.IronTools, Is.False, "The 12th century's tools are bronze.");
+            Assert.That(EnvironmentProfile.Default.IronTools, Is.True, "The 4th century's tools (the project's anchor) are iron.");
+            Assert.That(new EnvironmentProfile { Era = Era.PostPalatial }.IronTools, Is.False, "The 12th century's tools are bronze.");
             var stone = new Material(Shader.Find("HDRP/Lit"));
             try
             {

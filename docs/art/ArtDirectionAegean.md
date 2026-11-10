@@ -1,6 +1,52 @@
 # Dyrekcja artystyczna: realizm egejski (obowiązująca)
 
-Data: 2026-11-10. Zastępuje mroczniejszy wariant z tego samego dnia. Z punktu odniesienia (Diablo II: Resurrected) bierzemy materialność, szczegółowość i ciężar. Treści, form, nazw i elementów tamtej gry nie bierzemy.
+Data: 2026-11-10. Zastępuje mroczniejszy wariant z tego samego dnia.
+
+**Kotwica: estetyka Grecji IV w. p.n.e.** Decyzja użytkownika z 2026-11-10: najpierw VII w., potem korekta na IV w. Styl bierzemy wyłącznie ze sztuki i materialnej kultury tej epoki, nie z innych gier. Wcześniejsze odwołanie do cudzej gry zostaje wycofane. Zostaje sam wymóg materialności: konstrukcja, ciężar, ślady użytkowania. Wygląd XII w. (LH IIIC) jest profilem wcześniejszym (E1). Źródła i pewność: [HistoricalConstraints.md](HistoricalConstraints.md).
+
+## Estetyka Grecji IV w. p.n.e.
+
+**Styl epoki:**
+- późna klasyka: czerwonofigurowy styl kerczeński, attyckie stele nagrobne, malarstwo grobowców macedońskich (Vergina), mozaiki z otoczaków w Pelli, figurki z Tanagry;
+- porządki dorycki, joński i koryncki;
+- polichromia rzeźby i architektury: czerwień, błękit egipski, ochra, złocenia.
+
+Biel marmuru tylko tam, gdzie był marmur. Domy, warsztaty i magazyny to kamień, cegła suszona, tynk, drewno i dachówki.
+
+**Okręty:**
+- malowane oczy na dziobie, spiżowy taran z płetwami, aplustron;
+- wysięgnik wioseł górnego rzędu, zasłony burtowe;
+- godło okrętu (parasemon);
+- ciemne poszycie ze smołą, malowane pasy.
+
+W bitwie żagiel zwinięty. Statek handlowy jak z Kyrenii: holkas z amforami. Klasy gry mają stałe wymiary, więc sylwetki trier skracamy w ich granicach (kompromis skali, opisany).
+
+**Ludzie** (strój i wyposażenie według pracy, nie jeden pancerz dla wszystkich):
+- epibatai: pilos, linothorax lub pancerz mięśniowy, aspis z godłem miasta;
+- peltaści: pelte, oszczepy;
+- łucznicy kreteńscy;
+- wioślarze i marynarze w exomis;
+- sternik (kybernetes) i oficer na dziobie (prorates);
+- robotnicy: kapelusz petasos lub czapka pilos, narzędzia z żelaza.
+
+**Budowle:**
+- hangary okrętowe (neosoikoi) w Zei;
+- stoa;
+- domy z dziedzińcem: cokół, cegła, tynk, dachówki;
+- mury z ciosów z basztami;
+- gimnazjon z perystylem;
+- świątynia z polichromią.
+
+**Krajobraz Attyki i Egei:**
+- wapień i marmur, sosna alepska, oliwki, makia i frygana, tarasy;
+- ślady gospodarki: hałdy i płuczki Laurionu, wyręby;
+- turkusowe płycizny jako tło nastroju (obraz inspiracji użytkownika).
+
+**Zużycie:**
+- skala: nowy, zadbany, eksploatowany, bojowy, ruina;
+- ślady według funkcji: dłonie, tarcie, przejścia, połączenia, linia wody, praca narzędzi, trafienia;
+- trzy skale detalu: makro, średnia, mikro;
+- bez jednego filtra brudu na wszystko.
 
 > Dojrzały, historycznie osadzony realizm śródziemnomorski: słoneczne wyspy, głębokie morze, surowe materiały, przekonujące postacie i odczuwalne konsekwencje walki.
 
@@ -15,7 +61,7 @@ Gra ma być poważna, piękna i wiarygodna. Naturalna jasność i barwy Egei zos
 | 3 | Barwy stron na żaglach: granat lnu gracza i ciemna czerwień wroga, różne jasności (rozróżnialne także w odcieniach szarości) | dzisiejsze (0.12, 0.22, 0.60) i (0.55, 0.08, 0.08) to najjaskrawsze plamy w kadrze | `BattleSceneBuilder` (materiały żagli i tunik) | do zrobienia z testem czytelności |
 | 4 | Znaczniki zaznaczenia i celu: kolory z palety świata o wysokim kontraście jasności zamiast neonowej zieleni | czytelność bez neonu | `BattleSceneBuilder`, USS | do zrobienia z testem czytelności |
 | 5 | Kule błysku przy taranie, zdobyciu i zatopieniu: mniejsze i krótsze; resztę robią drzazgi, bryzgi i szczątki | „kolorowe eksplozje” przy zwykłych zdarzeniach | `BattleEffects.Flash`, `BattleController` | taran zmniejszony z 22 do 12 m; reszta do zrobienia |
-| 6 | Okręty: greckie typy z XII w. p.n.e., smoła, ochra, drewno, brąz | prymitywy wyglądały zabawkowo | `GreekShips` | **zrobione** (7 klas, testy) |
+| 6 | Okręty: greckie typy z XII w. p.n.e., smoła, ochra, drewno, brąz | prymitywy wyglądały zabawkowo | `GreekShips` | **zrobione** (7 klas, testy) dla profilu E1. **Kotwica IV w.:** oczy, taran z płetwami, wysięgnik wioseł, zasłony, aplustron, holkas z Kyrenii w toku ([VisualReworkManifest.json](VisualReworkManifest.json)) |
 | 7 | Tekstury PBR okrętów: słoje, smoła, zużyte krawędzie i chwyty, wilgoć i sól przy linii wody; nowy, zadbany i zużyty wariant | gładkie, jednakowo czyste powierzchnie | potok (ComfyUI, Meshy po zgodzie na koszt), `AIAssetImporter` | do zrobienia |
 | 8 | Postaci w proporcjach dorosłego, cięższe pozy, przygotowanie i powrót po ciosie | kapsuły i szybkie machanie | `CrewVisual` | częściowo: wojownicy z epoki, pchnięcie z zasłoną, upadki; proporcje i ciężar do zrobienia |
 | 9 | Budowle osady w zestawach modułowych z kamienia, cegły suszonej, drewna i tynku | prymitywy z oznaczeniem `[PLACEHOLDER]` | nowy generator budowli | do zrobienia (jedna budowla: stocznia) |

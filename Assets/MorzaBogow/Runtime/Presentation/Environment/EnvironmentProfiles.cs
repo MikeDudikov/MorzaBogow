@@ -9,7 +9,7 @@ namespace MorzaBogow.Presentation.Landscape
     /// </summary>
     public enum Era
     {
-        /// <summary>Post-palatial Late Helladic IIIC, about 1190–1070 BC: the project's anchor.</summary>
+        /// <summary>Post-palatial Late Helladic IIIC, about 1190–1070 BC: the project's earlier anchor (profile E1).</summary>
         PostPalatial,
         /// <summary>Submycenaean/Subminoan to Protogeometric, about 1070–900 BC (cut near 1025).</summary>
         EarlyIron,
@@ -19,6 +19,11 @@ namespace MorzaBogow.Presentation.Landscape
         Archaic,
         /// <summary>Classical 5th century, 480–400 BC.</summary>
         Classical,
+        /// <summary>
+        /// Late Classical 4th century, 400–323 BC (profile E6): the project's anchor since the user's decision of
+        /// 2026-11-10 (docs/art/HistoricalConstraints.md). Appended last so serialized values of the others keep.
+        /// </summary>
+        LateClassical,
     }
 
     /// <summary>
@@ -45,7 +50,7 @@ namespace MorzaBogow.Presentation.Landscape
 
     /// <summary>
     /// The time and region the environment is drawn for. A presentation setting, not a scenario: the default is the
-    /// project's anchor (12th century BC) on the southern mainland coast, where Laurion lies.
+    /// project's anchor, Greece of the 4th century BC, in Attica (Piraeus, Zea, Laurion) on the southern mainland.
     /// </summary>
     [Serializable]
     public struct EnvironmentProfile
@@ -53,7 +58,7 @@ namespace MorzaBogow.Presentation.Landscape
         public Era Era;
         public Region Region;
 
-        public static EnvironmentProfile Default => new EnvironmentProfile { Era = Era.PostPalatial, Region = Region.SouthMainland };
+        public static EnvironmentProfile Default => new EnvironmentProfile { Era = Era.LateClassical, Region = Region.SouthMainland };
 
         /// <summary>Years BC the era spans (start, end), conventional bounds.</summary>
         public static (int from, int to) Years(Era era)
@@ -64,7 +69,8 @@ namespace MorzaBogow.Presentation.Landscape
                 case Era.EarlyIron: return (1070, 900);
                 case Era.Geometric: return (900, 700);
                 case Era.Archaic: return (700, 480);
-                default: return (480, 400);
+                case Era.Classical: return (480, 400);
+                default: return (400, 323);
             }
         }
 

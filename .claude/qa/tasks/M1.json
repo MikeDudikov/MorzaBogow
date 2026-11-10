@@ -29,7 +29,7 @@
         "MorzaBogow.Tests.CoastTests.Coast_SameSeedSameShore",
         "MorzaBogow.Tests.SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween",
         "MorzaBogow.Tests.SiteTests.Ore_OnlyTheGalenaIsMetal",
-        "MorzaBogow.Tests.SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury",
+        "MorzaBogow.Tests.SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndItsToolsFollowTheEra",
         "MorzaBogow.Tests.CrewGeometryTests.Oars_EveryRowerReachesHisHandleFromHisSeatInsideTheHull",
         "MorzaBogow.Tests.CrewGeometryTests.Steering_HelmsmanHoldsTheTillersAndTheBladesReachTheWater",
         "MorzaBogow.Tests.CrewGeometryTests.Stroke_TheBladeDrivesAftInTheWaterAndReturnsAboveIt",

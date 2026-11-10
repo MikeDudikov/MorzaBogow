@@ -459,9 +459,11 @@ namespace MorzaBogow.Tests
         public void Environment_ProfilesFollowTheirSources()
         {
             var profile = EnvironmentProfile.Default;
-            Assert.That(profile.Era, Is.EqualTo(Era.PostPalatial), "The project's anchor: the 12th century BC.");
-            Assert.That(profile.Region, Is.EqualTo(Region.SouthMainland));
-            Assert.That(profile.IronTools, Is.False, "LH IIIC shipwrights and miners work with bronze.");
+            Assert.That(profile.Era, Is.EqualTo(Era.LateClassical), "The project's anchor: Greece of the 4th century BC (user's decision 2026-11-10).");
+            Assert.That(EnvironmentProfile.Years(profile.Era), Is.EqualTo((400, 323)));
+            Assert.That(profile.Region, Is.EqualTo(Region.SouthMainland), "Attica: Piraeus, Zea and Laurion.");
+            Assert.That(profile.IronTools, Is.True, "4th-century shipwrights and miners work with iron.");
+            Assert.That(new EnvironmentProfile { Era = Era.PostPalatial }.IronTools, Is.False, "LH IIIC shipwrights and miners work with bronze.");
             Assert.That(new EnvironmentProfile { Era = Era.Classical }.IronTools, Is.True);
             var eras = (Era[])Enum.GetValues(typeof(Era));
             for (var i = 1; i < eras.Length; i++)

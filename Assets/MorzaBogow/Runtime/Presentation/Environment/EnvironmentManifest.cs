@@ -141,16 +141,16 @@ namespace MorzaBogow.Presentation.Landscape
                     new[] { "SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween", "SiteTests.Ore_OnlyTheGalenaIsMetal" }, Confidence.Established, "4.1: Kepper 2004 s. 75"),
                 Done("ore.face.E1", "ore", "Przodek E1: płytkie, nieregularne wyrobiska wzdłuż kontaktu, urobek pod nimi", new[] { Region.SouthMainland }, new[] { Era.PostPalatial, Era.EarlyIron }, "wyrobiska 0,8–1,5 m, jedno na ok. 5 m ściany",
                     "MineDark sceny, kopia limonitu", "OreOutcrop na wysepce srebra", new[] { "SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween" }, Confidence.Interpretation, "4.13: Wood i in. 2021"),
-                Planned("ore.face.E5", "ore", "Przodek E5: regularny chodnik, ślady szpicaka", new[] { Region.SouthMainland }, new[] { Era.Archaic, Era.Classical }, "do ustalenia", "wysepka srebra w profilu E5", Confidence.Established, "4.x: Kepper 2004; Rehren 2002"),
+                Planned("ore.face.E5", "ore", "Przodek E5: regularny chodnik, ślady szpicaka", new[] { Region.SouthMainland }, new[] { Era.Archaic, Era.Classical, Era.LateClassical }, "do ustalenia", "wysepka srebra w profilu E5", Confidence.Established, "4.x: Kepper 2004; Rehren 2002"),
                 Done("ore.heap", "ore", "Hałda rudy sortowanej ręcznie", new[] { Region.SouthMainland }, eras, "stożek ok. 2,6 m średnicy, 60 brył; skala 0,35–1 ze stanu złoża", "kopia limonitu",
                     "ResourceSiteVisual.UpdateStock (tylko odczyt node.Stock)", new[] { "LandscapeTests.Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt" }, Confidence.Interpretation, "4.x"),
-                Planned("ore.washery.E5", "ore", "Płuczka rudy (tylko E5)", new[] { Region.SouthMainland }, new[] { Era.Classical }, "do ustalenia", "tylko profil E5", Confidence.Established, "4.9–4.10: Kepper 2004 s. 75–77; Rehren 2002 s. 27"),
+                Planned("ore.washery.E5", "ore", "Płuczka rudy (E5 i E6)", new[] { Region.SouthMainland }, new[] { Era.Classical, Era.LateClassical }, "do ustalenia", "tylko profil E5", Confidence.Established, "4.9–4.10: Kepper 2004 s. 75–77; Rehren 2002 s. 27"),
                 Done("yard.slipway.E1", "shipyard", "Wyposażenie stoczni plażowej E1: skład bali i desek, szałas z trzciny, kocioł smoły, kamienne podpórki", all, new[] { Era.PostPalatial, Era.EarlyIron, Era.Geometric },
                     "szałas 2,8 × 2 m, okap 2,0 m; bale 4,2 m", "Timber, Meadow (strzecha), Shore_Limestone, Pitch sceny", "ShipyardProps obok pochylni ShipyardVisual (rampa bez zmian)",
-                    new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury" }, Confidence.Interpretation, "5.x: Uluburun; Kommos"),
+                    new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndItsToolsFollowTheEra" }, Confidence.Interpretation, "5.x: Uluburun; Kommos"),
                 Done("yard.tools", "shipyard", "Narzędzia szkutnicze na stojaku: brąz (E1), żelazo (od E2)", all, eras, "topór, ciosło, dłuta na żerdzi 1,5 m", "kopia skały w barwie brązu lub żelaza (metal)",
-                    "ShipyardProps: stojak z narzędziami", new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury" }, Confidence.Interpretation, "5.x: Homer Od. 5; Uluburun"),
-                Planned("yard.shed.zea2", "shipyard", "Hangar Zea, faza 2 (tylko profil E5)", new[] { Region.SouthMainland }, new[] { Era.Classical }, "światło 5,81 m: nie mieści okrętów gry (do 10,9 m)", "tylko jako pozycja profilu", Confidence.Established, "5.10: Lovén 2011"),
+                    "ShipyardProps: stojak z narzędziami", new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndItsToolsFollowTheEra" }, Confidence.Interpretation, "5.x: Homer Od. 5; Uluburun"),
+                Planned("yard.shed.zea2", "shipyard", "Hangar Zea, faza 2 (profile E5 i E6)", new[] { Region.SouthMainland }, new[] { Era.Classical, Era.LateClassical }, "światło 5,81 m: nie mieści okrętów gry (do 10,9 m)", "tylko jako pozycja profilu", Confidence.Established, "5.10: Lovén 2011"),
             };
         }
 
