@@ -243,7 +243,18 @@ namespace MorzaBogow.Presentation
 
             visual.Paint(visual.model, "Hull", parts.Hull);
             visual.Paint(visual.model, "Deck", parts.Deck);
-            visual.Paint(visual.model, "Steering oars", parts.Steering);
+            // The steering oars: the brackets that hold them stay; each oar turns about its own shaft as the helmsman steers.
+            var helm = new GameObject("Steering oars").transform;
+            helm.SetParent(visual.model, false);
+            if (parts.SteeringMounts.Slots.Length > 0) visual.Paint(helm, "Brackets", parts.SteeringMounts);
+            for (var i = 0; i < 2; i++)
+            {
+                var pivot = new GameObject("Steering oar").transform;
+                pivot.SetParent(helm, false);
+                pivot.localPosition = parts.SteeringPivots[i];
+                visual.Paint(pivot, "Shaft", parts.SteeringOars[i]);
+                visual.steering[i] = pivot;
+            }
             if (parts.Ram != null) visual.ram = visual.Paint(visual.model, "Ram", parts.Ram);
             visual.rig = visual.Paint(visual.model, "Rig", parts.Rig);
             visual.SetOwner(ship.Owner, false);
@@ -265,7 +276,10 @@ namespace MorzaBogow.Presentation
                     var blade = visual.Paint(pivot, "Blade", parts.Oars[bank]);
                     blade.localPosition = new Vector3(side * parts.OarLength[bank] * 0.5f, 0f, 0f);
                     blade.localRotation = side < 0 ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
-                    visual.oars.Add((pivot, side, index * 0.35f, parts.OarTilt[i]));
+                    // Every oar keeps the one stroke of the whole bank (RowingStroke), so rowers and blades pull together.
+                    visual.oars.Add((pivot, side, 0f, parts.OarTilt[i]));
+                    visual.oarCrewed.Add(true);
+                    visual.oarStowed.Add(1f);
                 }
             }
 
@@ -497,6 +511,16 @@ namespace MorzaBogow.Presentation
             rowing = 0f;
             shipped[0] = shipped[1] = 1f;
             roomPort = roomStarboard = float.MaxValue;
+            strokePhase = 0f;
+            strokeRate = -1f;
+            for (var i = 0; i < oarCrewed.Count; i++)
+            {
+                oarCrewed[i] = true;
+                oarStowed[i] = 1f;
+            }
+            steeringAngle = 0f;
+            hasYaw = false;
+            foreach (var oar in steering) if (oar != null) oar.localRotation = Quaternion.identity;
             hasWater = false;
             pose = smoothed = default;
             motion = new HullMotion(size, beam);
@@ -717,12 +741,50 @@ namespace MorzaBogow.Presentation
             if (spray == null) return;
             var count = Mathf.RoundToInt(40f * strength);
             var random = new System.Random(ShipId * 7919 + marks++);
+        /// <summary>Whether a rower sits at each oar (in the order of the oars), and how far each is drawn in on its own.</summary>
+        readonly List<bool> oarCrewed = new List<bool>();
+        readonly List<float> oarStowed = new List<float>();
+        float strokePhase, strokeRate = -1f;
+        readonly Transform[] steering = new Transform[2];
+        float steeringAngle, lastYaw;
+        bool hasYaw;
             for (var i = 0; i < count; i++)
             {
                 var along = ((float)random.NextDouble() - 0.5f) * size;
                 var flank = random.NextDouble() < 0.5 ? -1f : 1f;
                 var at = transform.position + transform.forward * along + transform.right * flank * beam * Mathf.Lerp(0.4f, 0.8f, (float)random.NextDouble());
                 spray.Emit(new ParticleSystem.EmitParams
+        /// <summary>The pivot (thole pin) of oar i: port oars first, then starboard, each in the order of Parts.OarPins.</summary>
+        public Transform OarPivot(int index) => oars[index].pivot;
+
+        /// <summary>-1 for a port oar, +1 for starboard.</summary>
+        public int OarSide(int index) => oars[index].side;
+
+        /// <summary>How far oar i is drawn in along the side, 0 rowing to 1 stowed: its side's room, or no rower at it.</summary>
+        public float OarStowed(int index) => Mathf.Max(OarsShipped(oars[index].side), oarStowed[index]);
+
+        /// <summary>A rower sits at oar i; without one the oar is drawn in along the side.</summary>
+        public void SetOarCrewed(int index, bool crewed)
+        {
+            if (index >= 0 && index < oarCrewed.Count) oarCrewed[index] = crewed;
+        }
+
+        /// <summary>Where the rowers are in their stroke, 0 at the catch to 1 (RowingStroke); the same for every oar.</summary>
+        public float StrokePhase => strokePhase;
+
+        /// <summary>
+        /// Strokes a minute the crew pulls (a sprint before a ram, steady at sea); below zero the view chooses from its speed
+        /// alone, as a ship without a crew on board does.
+        /// </summary>
+        public void SetStroke(float strokesPerMinute) => strokeRate = strokesPerMinute;
+
+        /// <summary>The helm: degrees each steering oar is turned about its shaft, following the hull's turn.</summary>
+        public float SteeringAngle => steeringAngle;
+
+        /// <summary>Where the end of tiller i (port 0, starboard 1) is now, in the world: the helmsman's hand holds it.</summary>
+        public Vector3 TillerGrip(int index) =>
+            steering[index] != null ? steering[index].TransformPoint(parts.TillerGrips[index] - parts.SteeringPivots[index]) : model.TransformPoint(parts.TillerGrips[index]);
+
                 {
                     position = at,
                     velocity = Vector3.up * Mathf.Lerp(3f, 8f, (float)random.NextDouble()) * strength + transform.right * flank * Mathf.Lerp(1f, 4f, (float)random.NextDouble()),
@@ -957,14 +1019,27 @@ namespace MorzaBogow.Presentation
                 var target = fraction < 0.08f || room < oarReach + 0.8f ? 1f : 0f;
                 shipped[s] = Mathf.MoveTowards(shipped[s], target, delta * 1.6f + (target > shipped[s] && room < oarReach * 0.6f ? 1f : 0f));
             }
-            foreach (var (pivot, side, offset, tilt) in oars)
+            // One stroke for every oar: the blade enters forward, drives aft through the water, comes out and returns above
+            // it. A ship backing off a blow rows astern, the same stroke run backwards. The crew sets the pace when it has one.
+            var rate = strokeRate >= 0f ? strokeRate : fraction < 0.08f ? 0f : Mathf.Lerp(18f, 28f, fraction);
+            strokePhase = Mathf.Repeat(strokePhase + delta * rate / 60f * (speedFraction < -0.02f ? -1f : 1f), 1f);
+            RowingStroke.Sample(strokePhase, out var sweep, out var lift);
+            var strength = Mathf.Lerp(0.6f, 1f, fraction);
+            for (var i = 0; i < oars.Count; i++)
             {
-                var stroke = Mathf.Sin(rowing + offset);
-                var lift = Mathf.Cos(rowing + offset);
-                var strength = Mathf.Lerp(0.12f, 1f, fraction);
-                var rowed = Quaternion.Euler(0f, side * stroke * 24f * strength, side * (-tilt + lift * 9f * strength));
+                var (pivot, side, _, tilt) = oars[i];
+                var rowed = Quaternion.Euler(0f, side * sweep * RowingStroke.SweepDegrees * strength, side * (-tilt + lift * RowingStroke.LiftDegrees * strength));
                 var stowed = Quaternion.Euler(0f, side * 84f, side * 6f);
-                pivot.localRotation = Quaternion.Slerp(rowed, stowed, OarsShipped(side));
+                oarStowed[i] = Mathf.MoveTowards(oarStowed[i], oarCrewed[i] ? 0f : 1f, delta * 1.6f);
+                pivot.localRotation = Quaternion.Slerp(rowed, stowed, OarStowed(i));
+            }
+
+            // The helm follows the hull's turn: both oars turn about their shafts as far as the turn is sharp.
+            var yaw = transform.eulerAngles.y;
+            if (hasYaw && delta > 0f)
+            {
+                var turning = Mathf.DeltaAngle(lastYaw, yaw) / delta;
+                steeringAngle = Mathf.MoveTowards(steeringAngle, Mathf.Clamp(turning * 0.8f, -22f, 22f), delta * 30f);
             }
 
             // Loading and unloading change the draft over seconds, not in one jump.
@@ -985,6 +1060,10 @@ namespace MorzaBogow.Presentation
                 model.localRotation = Quaternion.Euler(smoothed.Pitch - fraction * 1.5f, 0f, smoothed.Roll - list);
             }
             else immersion = 0f;
+            lastYaw = yaw;
+            hasYaw = true;
+            for (var i = 0; i < 2; i++)
+                if (steering[i] != null) steering[i].localRotation = Quaternion.AngleAxis(steeringAngle, parts.SteeringAxes[i]);
 
             // Water breaks where the stem meets it: harder under way, and in bursts when the bow digs into a crest.
             var breaking = BreakingFor(fraction, immersion, motion.HeaveVelocity);

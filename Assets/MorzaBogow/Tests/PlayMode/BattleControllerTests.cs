@@ -788,7 +788,9 @@ namespace MorzaBogow.Tests
             var before = battle.Effects.ActiveCount;
             battle.RunTicks(120);
             Assert.That(world.CanSee(0, 950, 900), Is.True, "This cutter sees its own attacker, so effects are allowed.");
-            Assert.That(battle.Effects.ActiveCount, Is.GreaterThan(before));
+            // The volleys' arrows fly as shots over their real flight and stay in the hull where they strike.
+            Assert.That(battle.Effects.ActiveCount + battle.Effects.MissilesShown + battle.Effects.SplinterParticles + battle.Views[hiddenTarget.Id].StuckArrows,
+                Is.GreaterThan(before), "A visible volley shows its arrows, their hits or splinters.");
 
             var clean = new GameObject("Second battle").AddComponent<BattleController>();
             clean.Paused = true;
@@ -802,6 +804,7 @@ namespace MorzaBogow.Tests
             Assert.That(clean.World.CanSee(0, 900, 900), Is.False);
             Assert.That(clean.Effects.ActiveCount, Is.EqualTo(0));
             Object.DestroyImmediate(clean.gameObject);
+            Assert.That(clean.Effects.MissilesShown, Is.EqualTo(0), "No arrow of a hidden volley is drawn.");
         }
 
         [UnityTest]

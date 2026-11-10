@@ -146,6 +146,12 @@ namespace MorzaBogow.Presentation
         public WaterBatchSampler Water => water;
 
         /// <summary>Presentation-only weather; calm in a match.</summary>
+
+        /// <summary>
+        /// After every simulation tick, with that tick's events still in World.Events (they are cleared right after):
+        /// presentation that must see each event once, such as the crews on deck, listens here.
+        /// </summary>
+        public event System.Action<World> Ticked;
         public WeatherController Weather => weather;
 
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
@@ -221,7 +227,9 @@ namespace MorzaBogow.Presentation
             pivot = new Vector3((float)home.X + 60f, 0f, (float)home.Y);
             if (strategicCamera == null) strategicCamera = Camera.main;
             PendingOrder = HudOrder.None;
+            // A loaded match starts with no shots, wreckage or sinking hulls of the match it replaces.
             lastAlarm.Clear();
+            else effects.Clear();
             // A new or loaded match starts calm; the weather is not part of a save.
             weather?.SetWeather(0f, 0f);
             if (hud != null) hud.OnMatchStarted();
@@ -574,11 +582,8 @@ namespace MorzaBogow.Presentation
                         if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce("Stocznia na przyczółku gotowa.", HeraldLevel.Important, at);
                         break;
                     case "volley":
-                        if (seen && lastPositions.TryGetValue(item.SubjectId, out var shooter))
-                        {
-                            effects.Arrows(shooter, at, (int)item.Amount);
-                            if (views.TryGetValue(item.OtherId, out var struck)) struck.StickArrows(shooter, (int)item.Amount);
-                        }
+                        // The shafts fly from the hands of the bank's men over their real flight (BattleEffects.SyncMissiles)
+                        // and stay in the hull only where they strike it (ShotStruck).
                         WarnIfOwnUnderAttack(item.OtherId, at);
                         break;
                     case "ram_hit":
@@ -589,7 +594,7 @@ namespace MorzaBogow.Presentation
                         if (seen && views.TryGetValue(item.SubjectId, out var firing)) firing.Recoil((int)(item.Amount % 100));
                         break;
                     case "projectile_hit":
-                        if (seen) ShotStruck(item.SubjectId, at, (WeaponType)(int)item.Amount);
+                        if (seen) ShotStruck(item.SubjectId, at, (WeaponType)(int)item.Amount, item.OtherId);
                         break;
                     case "projectile_miss":
                         if (seen) effects.WaterColumn(at, MissileSize((WeaponType)(int)item.Amount), item.SubjectId);
@@ -650,6 +655,7 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Advances whole simulation ticks; used by tests and tools.</summary>
         public void RunTicks(int ticks)
+            Ticked?.Invoke(World);
         {
             for (var i = 0; i < ticks; i++) StepOnce();
             PresentFrame();
@@ -1535,7 +1541,7 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>A machine's shot strikes a ship: a breach where it hit and splinters; a heavy shot may break the ship if it sinks.</summary>
-        void ShotStruck(int shipId, Vector3 at, WeaponType weapon)
+        void ShotStruck(int shipId, Vector3 at, WeaponType weapon, int shooterId = -1)
         {
             var size = MissileSize(weapon);
             effects.Splinters(at, size, shipId * 53 + (int)weapon);
@@ -1651,6 +1657,8 @@ namespace MorzaBogow.Presentation
             {
                 if (ship.Owner != PlayerFaction) continue;
                 if (ship.Order == OrderKind.AttackShip || ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board)
+            // A volley's arrows stay in the hull they struck, pointing back the way they came.
+            if (weapon == WeaponType.ArcherBank && lastPositions.TryGetValue(shooterId, out var from)) view.StickArrows(from, WeaponCatalog.Get(weapon).Crew);
                 {
                     var target = World.FindShip(ship.TargetId);
                     if (target != null && target.Owner != PlayerFaction && World.CanSee(PlayerFaction, target)) targetedShips.Add(target.Id);

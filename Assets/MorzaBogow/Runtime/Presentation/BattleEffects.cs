@@ -16,7 +16,16 @@ namespace MorzaBogow.Presentation
         const int MaxEffects = 160;
         public const int MaxDebris = 120, MaxMissiles = 64;
 
-        enum Kind { Arrow, Flash, Rope, Ping, Bolt, Stone }
+        enum Kind { Arrow, Flash, Rope, Ping, Bolt, Stone, Javelin }
+
+        /// <summary>One shot in flight as drawn: a machine's bolt or stone, or the shafts of a bank's volley, one per man.</summary>
+        sealed class Missile
+        {
+            public Kind Kind;
+            public GameObject[] Items;
+            public Vector3[] From;
+            public Vector3[] Spread;
+        }
 
         sealed class Effect
         {
@@ -39,7 +48,7 @@ namespace MorzaBogow.Presentation
         readonly Dictionary<Kind, EffectPool> pools = new Dictionary<Kind, EffectPool>();
         readonly List<ShipFate> sinking = new List<ShipFate>();
         readonly List<Debris> debris = new List<Debris>();
-        readonly Dictionary<int, (GameObject item, Kind kind)> missiles = new Dictionary<int, (GameObject, Kind)>();
+        readonly Dictionary<int, Missile> missiles = new Dictionary<int, Missile>();
         readonly HashSet<int> missilesSeen = new HashSet<int>();
         readonly List<int> missilesGone = new List<int>();
         readonly List<Transform> wrecks = new List<Transform>();
@@ -112,15 +121,17 @@ namespace MorzaBogow.Presentation
 
         EffectPool PoolOf(Kind kind)
         {
-            if (!pools.TryGetValue(kind, out var pool)) pools[kind] = pool = new EffectPool(() => Make(kind), kind == Kind.Bolt || kind == Kind.Stone ? MaxMissiles : MaxEffects);
+            // A bank's volley is several shafts in the air at once, one per man.
+            var capacity = kind == Kind.Bolt || kind == Kind.Stone ? MaxMissiles : kind == Kind.Arrow || kind == Kind.Javelin ? MaxMissiles * 4 : MaxEffects;
+            if (!pools.TryGetValue(kind, out var pool)) pools[kind] = pool = new EffectPool(() => Make(kind), capacity);
             return pool;
         }
 
         GameObject Make(Kind kind)
         {
-            if (kind == Kind.Arrow || kind == Kind.Bolt || kind == Kind.Stone)
+            if (kind == Kind.Arrow || kind == Kind.Bolt || kind == Kind.Stone || kind == Kind.Javelin)
             {
-                var mesh = GreekShips.Prop(kind == Kind.Arrow ? "arrow" : kind == Kind.Bolt ? "bolt" : "stone");
+                var mesh = GreekShips.Prop(kind == Kind.Arrow ? "arrow" : kind == Kind.Bolt ? "bolt" : kind == Kind.Javelin ? "javelin" : "stone");
                 var item = MeshObject($"Effect {kind}", mesh);
                 if (kind == Kind.Stone && materials?.Rock != null) item.GetComponent<MeshRenderer>().sharedMaterial = materials.Rock;
                 return item;
@@ -156,8 +167,16 @@ namespace MorzaBogow.Presentation
 
         // Missiles ---------------------------------------------------------------------------------------------------
         /// <summary>
-        /// The machines' shots in flight, placed from the world's record of each shot (launch, arrival, from, to): a bolt
-        /// flies straight and low, a stone or lead shot on a high arc. Only shots the player can see are drawn.
+        /// Where a shot leaves its ship, from the crew on deck: shaft i of a bank's volley from the hand of the man who
+        /// loosed it, a machine's shot from its muzzle. Null keeps the start above the middle of the hull, as without a
+        /// crew. Asked once per shaft when the shot is first drawn, so it keeps its start for the whole flight.
+        /// </summary>
+        public System.Func<Projectile, int, Vector3?> LaunchPoint;
+
+        /// <summary>
+        /// Every shot in flight, placed from the world's record of it (launch, arrival, from, to) over its real time of
+        /// flight: a bolt flies straight and low; a bank's arrows or javelins, one per man of the volley, on a shallow
+        /// arc; a stone or lead shot on a high one. Only shots the player can see are drawn.
         /// </summary>
         public void SyncMissiles(World world, int faction, float blend)
         {
@@ -166,35 +185,80 @@ namespace MorzaBogow.Presentation
             {
                 var flight = shot.ArriveTick - shot.LaunchTick;
                 if (flight <= 0) continue;
+                var weapon = WeaponCatalog.Get(shot.Weapon);
+                var seconds = flight / (float)Rules.TickRate;
                 var t = Mathf.Clamp01((world.Tick - shot.LaunchTick + Mathf.Clamp01(blend)) / flight);
-                var from = new Vector3((float)shot.FromX, 0f, (float)shot.FromY);
                 var to = new Vector3((float)shot.ToX, 0f, (float)shot.ToY);
-                var position = Along(from, to, t, WeaponCatalog.Get(shot.Weapon).Lobbed, flight / (float)Rules.TickRate);
+                var position = Along(new Vector3((float)shot.FromX, 0f, (float)shot.FromY), to, t, weapon.Lobbed, seconds);
                 if (!world.CanSee(faction, position.x, position.z)) continue;
                 if (!missiles.TryGetValue(shot.Id, out var shown))
                 {
                     if (missiles.Count >= MaxMissiles) continue;
-                    var kind = WeaponCatalog.Get(shot.Weapon).Lobbed ? Kind.Stone : Kind.Bolt;
-                    var item = PoolOf(kind).Rent();
-                    if (item == null) continue;
-                    item.transform.localScale = Vector3.one * (kind == Kind.Bolt ? 2f : Mathf.Lerp(0.8f, 1.4f, (float)WeaponCatalog.Get(shot.Weapon).Hull / 160f));
-                    shown = (item, kind);
+                    shown = Launch(shot, weapon);
+                    if (shown == null) continue;
                     missiles[shot.Id] = shown;
                 }
                 missilesSeen.Add(shot.Id);
-                var ahead = Along(from, to, Mathf.Min(1f, t + 0.02f), WeaponCatalog.Get(shot.Weapon).Lobbed, flight / (float)Rules.TickRate);
-                shown.item.transform.position = position;
-                if ((ahead - position).sqrMagnitude > 1e-6f) shown.item.transform.rotation = Quaternion.LookRotation(ahead - position);
-                if (shown.kind == Kind.Stone) shown.item.transform.rotation *= Quaternion.Euler(t * 720f, t * 360f, 0f);
+                var thrown = shown.Kind == Kind.Arrow || shown.Kind == Kind.Javelin;
+                for (var i = 0; i < shown.Items.Length; i++)
+                {
+                    var landing = to + shown.Spread[i];
+                    var at = Flight(shown.From[i], landing, t, weapon.Lobbed, thrown, seconds);
+                    var ahead = Flight(shown.From[i], landing, Mathf.Min(1f, t + 0.02f), weapon.Lobbed, thrown, seconds);
+                    var item = shown.Items[i].transform;
+                    item.position = at;
+                    if ((ahead - at).sqrMagnitude > 1e-6f) item.rotation = Quaternion.LookRotation(ahead - at);
+                    if (shown.Kind == Kind.Stone) item.rotation *= Quaternion.Euler(t * 720f, t * 360f, 0f);
+                }
             }
             missilesGone.Clear();
             foreach (var id in missiles.Keys) if (!missilesSeen.Contains(id)) missilesGone.Add(id);
             foreach (var id in missilesGone)
             {
-                var (item, kind) = missiles[id];
+                var gone = missiles[id];
                 missiles.Remove(id);
-                PoolOf(kind).Return(item);
+                foreach (var item in gone.Items) PoolOf(gone.Kind).Return(item);
             }
+        }
+
+        /// <summary>A shot first seen: a bank's volley is its men's shafts together, a machine throws one bolt or stone.</summary>
+        Missile Launch(Projectile shot, WeaponDefinition weapon)
+        {
+            var kind = weapon.Lobbed ? Kind.Stone : shot.Weapon == WeaponType.ArcherBank ? Kind.Arrow : shot.Weapon == WeaponType.JavelinBank ? Kind.Javelin : Kind.Bolt;
+            var count = weapon.IsMachine ? 1 : Mathf.Max(1, weapon.Crew);
+            var missile = new Missile { Kind = kind, Items = new GameObject[count], From = new Vector3[count], Spread = new Vector3[count] };
+            var above = new Vector3((float)shot.FromX, 3f, (float)shot.FromY);
+            for (var i = 0; i < count; i++)
+            {
+                var item = PoolOf(kind).Rent();
+                if (item == null)
+                {
+                    for (var j = 0; j < i; j++) PoolOf(kind).Return(missile.Items[j]);
+                    return null;
+                }
+                // Drawn larger than life so a volley reads from the strategy camera.
+                item.transform.localScale = Vector3.one * (kind == Kind.Arrow ? 2.4f : kind == Kind.Javelin ? 1.6f : kind == Kind.Bolt ? 2f : Mathf.Lerp(0.8f, 1.4f, (float)weapon.Hull / 160f));
+                missile.Items[i] = item;
+                missile.From[i] = LaunchPoint?.Invoke(shot, i) ?? above;
+                // Men aiming at one ship do not all strike one spot: the shafts of a volley come down a little apart.
+                var angle = shot.Id * 2.39996f + i * 1.7f;
+                missile.Spread[i] = count == 1 ? Vector3.zero : new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (0.6f + 0.45f * i);
+            }
+            return missile;
+        }
+
+        /// <summary>
+        /// A shot's place from its start on deck to just above where it lands: a bolt straight; arrows and javelins rise as
+        /// far above the line as a throw of that length does under gravity (g t² / 8); a stone or lead shot at least 6 m.
+        /// </summary>
+        static Vector3 Flight(Vector3 from, Vector3 landing, float t, bool lobbed, bool thrown, float seconds)
+        {
+            var end = landing + Vector3.up * (lobbed ? 2.5f : 1.5f);
+            var line = Vector3.Lerp(from, end, t);
+            if (!lobbed && !thrown) return line;
+            var apex = 9.81f * seconds * seconds / 8f;
+            if (lobbed) apex = Mathf.Max(6f, apex);
+            return line + Vector3.up * (4f * apex * t * (1f - t));
         }
 
         /// <summary>A point of a shot's path: straight just above the deck for a bolt, a ballistic arc for a lobbed shot.</summary>

@@ -64,13 +64,41 @@ namespace MorzaBogow.Presentation
         public GreekMesh Hull, Deck, Ram, Rig, Steering, Sail;
         /// <summary>Hull and deck cut into stern, middle and bow pieces with ragged ends, for a ship that breaks up.</summary>
         public GreekMesh[] Sections;
-        /// <summary>One oar mesh per bank, centred, blade toward +X.</summary>
+        /// <summary>
+        /// One oar mesh per bank, blade toward +X: the outboard part (OarLength) centred on the mesh's origin, as before,
+        /// and the loom and handle reaching OarInboard further toward -X, inboard of the thole pin, where the rower holds it.
+        /// </summary>
         public GreekMesh[] Oars;
         public float[] OarLength;
+        /// <summary>Length of the oar inboard of its thole pin to the end of the handle, per bank (metres).</summary>
+        public float[] OarInboard;
         /// <summary>Thole pins on the starboard side; port ones mirror X. Bank of each and its downward angle in degrees.</summary>
         public Vector3[] OarPins;
         public int[] OarBank;
         public float[] OarTilt;
+        /// <summary>
+        /// Where the rower of each starboard thole pin sits facing aft (his hips) or, at a merchantman's sweeps, stands (the
+        /// deck between his feet); port ones mirror X. He holds the handle at mid-stroke in front of him.
+        /// </summary>
+        public Vector3[] RowerSeats;
+        /// <summary>Rowers stand at their oars (a merchantman's few sweeps behind its fence) instead of sitting.</summary>
+        public bool RowersStand;
+        /// <summary>
+        /// The steering oars on their own, port (0) then starboard (1): each mesh lies around its pivot, where the oar is
+        /// lashed to the quarter; SteeringAxes is the shaft's direction from the tiller down to the blade, about which the
+        /// helmsman turns the oar. SteeringMounts are the brackets that hold the pivots, which do not turn.
+        /// </summary>
+        public GreekMesh[] SteeringOars;
+        public GreekMesh SteeringMounts;
+        public Vector3[] SteeringPivots, SteeringAxes;
+        /// <summary>The end of each tiller, port then starboard, where the helmsman's hands hold it with the oars at rest.</summary>
+        public Vector3[] TillerGrips;
+        /// <summary>
+        /// Where each helmsman works, facing the bow: one between both tillers, or one at each oar on a broad heavy galley.
+        /// Standing, the point is the deck or platform under his feet; seated (in a boat), the top of his seat.
+        /// </summary>
+        public Vector3[] HelmStands;
+        public bool HelmSeated;
         public float DeckHeight;
         /// <summary>Top of the sail under the yard, and the sail's full size; the sail mesh is 1 x 1 hanging down from Y = 0.</summary>
         public Vector3 SailTop;
@@ -278,9 +306,7 @@ namespace MorzaBogow.Presentation
             BuildRig(rig, f, detail, parts);
             parts.Rig = rig.Build(GreekMaterial.Wood, GreekMaterial.Ochre, GreekMaterial.Rope);
 
-            var steering = new MeshBuilder(null);
-            BuildSteering(steering, f);
-            parts.Steering = steering.Build(GreekMaterial.Wood);
+            BuildSteering(f, parts);
 
             var sail = new MeshBuilder(null);
             BuildSail(sail, f, detail);
@@ -504,11 +530,18 @@ namespace MorzaBogow.Presentation
 
             if (f.Class == ShipClass.Cutter || f.Class == ShipClass.Merchant)
             {
-                // Thwarts across an open boat; the beams of a merchantman's hold.
-                var count = f.Class == ShipClass.Cutter ? (detail == 2 ? 2 : 4) : 2;
-                for (var i = 0; i < count; i++)
+                // Thwarts across an open boat, where its rowers sit facing aft and its helmsman aft of them; the beams of a
+                // merchantman's hold.
+                var thwarts = new List<float>();
+                if (f.Class == ShipClass.Cutter)
                 {
-                    var s = Mathf.Lerp(0.3f, 0.72f, count == 1 ? 0.5f : i / (count - 1f));
+                    thwarts.Add(Helm(f).s);
+                    for (var i = 0; i < f.OarsPerBank; i++)
+                        if (detail < 2 || i == 1 || i == 2) thwarts.Add(OarStation(f, i, f.OarsPerBank) + SeatForward / Span(f));
+                }
+                else thwarts.AddRange(new[] { 0.3f, 0.72f });
+                foreach (var s in thwarts)
+                {
                     var w = HalfWidth(f, s) * 0.95f;
                     b.Box(GreekMaterial.Wood, new Vector3(0f, DeckAt(f, s) + f.Bulwark * 0.45f, Z(f, s)), new Vector3(w, 0.06f, 0.18f), Quaternion.identity);
                 }
@@ -663,21 +696,122 @@ namespace MorzaBogow.Presentation
             parts.SailSize = new Vector2(f.SailWidth, f.SailHeight);
         }
 
-        /// <summary>A steering oar on each quarter, slanting aft into the water.</summary>
-        static void BuildSteering(MeshBuilder b, GreekShipForm f)
+        // Rowing and steering -------------------------------------------------------------------------------------
+        /// <summary>Metres from a rower's thole pin forward to his seat: he faces aft and holds the handle in front of him.</summary>
+        public const float SeatForward = 0.48f;
+        /// <summary>A rower's hands at mid-stroke above his seat, or above the deck where he stands.</summary>
+        const float SeatedHands = 0.30f, StandingHands = 1.0f;
+        /// <summary>A standing helmsman's hands on the tillers above the deck; a seated one's above his seat.</summary>
+        const float HelmHands = 0.95f, SeatedHelmHands = 0.35f;
+        /// <summary>The steering oar's loom above its pivot, up to the tiller.</summary>
+        const float SteeringLoom = 0.6f;
+
+        /// <summary>Metres along the hull for one unit of s (stern 0 to bow 1).</summary>
+        static float Span(GreekShipForm f) => BowEnd(f) + f.Length * 0.5f;
+
+        /// <summary>The station (s) of thole pin i of n on one side.</summary>
+        static float OarStation(GreekShipForm f, int i, int n) =>
+            f.Class == ShipClass.Merchant ? Mathf.Lerp(0.66f, 0.74f, i) : Mathf.Lerp(0.26f, 0.74f, n == 1 ? 0.5f : i / (n - 1f));
+
+        /// <summary>
+        /// A thole pin's height: on the gunwale of a galley or merchantman, where the rowers sit low on deck with their bodies
+        /// above the side, as LH IIIC paintings show them; in a notch of an open boat's top strake, above its thwarts.
+        /// </summary>
+        static float TholeHeight(GreekShipForm f, float s) => Sheer(f, s) + (f.Class == ShipClass.Cutter ? -0.15f : 0.05f);
+
+        /// <summary>The top of an open boat's thwart at s.</summary>
+        static float ThwartTop(GreekShipForm f, float s) => DeckAt(f, s) + f.Bulwark * 0.45f + 0.06f;
+
+        /// <summary>
+        /// Where a rower sits at s (the top of his seat): on a boat's thwart, on a low seat on a galley's deck; a merchantman's
+        /// rowers stand behind its fence, so the deck under them.
+        /// </summary>
+        public static float RowerSeatHeight(GreekShipForm f, float s) =>
+            f.Class == ShipClass.Cutter ? ThwartTop(f, s) : DeckAt(f, s) + (f.Class == ShipClass.Merchant ? 0f : 0.12f);
+
+        /// <summary>
+        /// Where each type's helmsman works (s), whether on the stern platform, seated (in a boat) and how many steer: two on
+        /// the broad heavy galley, one at each oar; one between both tillers elsewhere. Where a machine stands on the stern
+        /// platform the helmsman works on the deck just forward of it.
+        /// </summary>
+        static (float s, bool platform, bool seated, int men) Helm(GreekShipForm f) => f.Class switch
         {
-            // On the quarters, steep enough that the blades stay within the ship's length.
-            var s = 0.15f;
-            var length = f.Length * 0.17f;
-            foreach (var side in new[] { -1f, 1f })
+            ShipClass.Cutter => (0.22f, false, true, 1),
+            ShipClass.Merchant => (0.17f, false, false, 1),
+            ShipClass.ShipKiller => (0.205f, false, false, 1),
+            ShipClass.Bomber => (0.205f, false, false, 2),
+            _ => (0.165f, true, false, 1),
+        };
+
+        /// <summary>
+        /// A steering oar on each quarter, slanting aft into the water, lashed at a pivot that a bracket raises where the
+        /// helmsman stands high; above the pivot its loom rises to a tiller that reaches his hands. Each oar is also built
+        /// on its own around its pivot, so the view can turn it about its shaft as the helmsman steers.
+        /// </summary>
+        static void BuildSteering(GreekShipForm f, GreekShipParts parts)
+        {
+            // On the quarters, steep enough that the blades stay within the ship's length; as deep as they always reached.
+            const float s = 0.15f;
+            var (helmS, platform, seated, men) = Helm(f);
+            var floor = platform ? Sheer(f, 0.115f) + f.Platforms * (f.Castles ? 1f : 0.85f) : seated ? DeckAt(f, helmS) + f.Bulwark * 0.45f + 0.06f : DeckAt(f, helmS);
+            var hands = floor + (seated ? SeatedHelmHands : HelmHands);
+            var helmZ = Z(f, helmS);
+            var gunwale = Sheer(f, s);
+            var bladeTip = gunwale - 0.1f - 0.788f * f.Length * 0.17f;
+
+            var combined = new MeshBuilder(null);
+            var mounts = new MeshBuilder(null);
+            parts.SteeringOars = new GreekMesh[2];
+            parts.SteeringPivots = new Vector3[2];
+            parts.SteeringAxes = new Vector3[2];
+            parts.TillerGrips = new Vector3[2];
+            parts.HelmStands = men == 2
+                ? new[] { new Vector3(-(HalfWidth(f, helmS) - 1.0f), floor, helmZ), new Vector3(HalfWidth(f, helmS) - 1.0f, floor, helmZ) }
+                : new[] { new Vector3(0f, floor, helmZ) };
+            parts.HelmSeated = seated;
+            for (var i = 0; i < 2; i++)
             {
-                var pin = new Vector3(side * (HalfWidth(f, s) + 0.15f), Sheer(f, s) - 0.1f, Z(f, s));
+                var side = i == 0 ? -1f : 1f;
                 var down = Quaternion.Euler(-52f, 0f, side * 8f) * Vector3.back;
-                var end = pin + down * length;
-                b.Tube(GreekMaterial.Wood, new List<Vector3> { pin, end }, 0.1f, 0.08f, 5);
-                var blade = Quaternion.LookRotation(down, Vector3.right * side);
-                b.Box(GreekMaterial.Wood, end - down * length * 0.12f, new Vector3(0.05f, 0.42f, length * 0.14f), blade);
+                var pivot = new Vector3(side * (HalfWidth(f, s) + 0.15f), hands - SteeringLoom * -down.y, Z(f, s));
+                var length = (pivot.y - bladeTip) / -down.y;
+                var top = pivot - down * SteeringLoom;
+                // The tiller's end at the helmsman's hip, a little forward of him: beside him if he stands alone between
+                // both tillers, in front of him if each oar has its own man.
+                var grip = men == 2
+                    ? new Vector3(parts.HelmStands[i].x + side * 0.15f, hands, helmZ + 0.3f)
+                    : new Vector3(side * 0.3f, hands, helmZ + 0.15f);
+                parts.SteeringPivots[i] = pivot;
+                parts.SteeringAxes[i] = down;
+                parts.TillerGrips[i] = grip;
+
+                var single = new MeshBuilder(null);
+                foreach (var (b, offset) in new[] { (combined, Vector3.zero), (single, -pivot) })
+                {
+                    var end = pivot + down * length;
+                    b.Tube(GreekMaterial.Wood, new List<Vector3> { top + offset, pivot + offset, end + offset }, 0.09f, 0.08f, 5);
+                    // The blade lies in the fore-and-aft plane of the shaft, so it steers when the shaft turns.
+                    var blade = Quaternion.LookRotation(down, Vector3.up);
+                    b.Box(GreekMaterial.Wood, end - down * length * 0.12f + offset, new Vector3(0.05f, 0.42f, Mathf.Max(0.35f, length * 0.12f)), blade);
+                    b.Tube(GreekMaterial.Wood, new List<Vector3> { top + offset, grip + offset }, 0.045f, 0.035f, 5);
+                }
+                parts.SteeringOars[i] = single.Build(GreekMaterial.Wood);
+
+                // Where the pivot stands above the gunwale, a post on the quarter carries it, braced in to the hull.
+                if (pivot.y > gunwale + 0.1f)
+                {
+                    foreach (var b in new[] { combined, mounts })
+                    {
+                        var foot = new Vector3(pivot.x, gunwale - 0.05f, pivot.z);
+                        b.Box(GreekMaterial.Wood, (foot + pivot) * 0.5f + new Vector3(0f, 0f, -0.12f), new Vector3(0.08f, (pivot.y - foot.y) * 0.5f + 0.06f, 0.08f), Quaternion.identity);
+                        var inner = new Vector3(side * HalfWidth(f, s) * 0.8f, pivot.y - 0.08f, pivot.z - 0.12f);
+                        var bar = new Vector3(pivot.x, pivot.y - 0.08f, pivot.z - 0.12f) - inner;
+                        b.Box(GreekMaterial.Wood, inner + bar * 0.5f, new Vector3(0.06f, 0.06f, bar.magnitude * 0.5f), Quaternion.LookRotation(bar.normalized));
+                    }
+                }
             }
+            parts.Steering = combined.Build(GreekMaterial.Wood);
+            parts.SteeringMounts = mounts.Build(GreekMaterial.Wood);
         }
 
         /// <summary>
@@ -731,22 +865,39 @@ namespace MorzaBogow.Presentation
             var oars = detail == 0 ? f.OarsPerBank : Mathf.Max(1, f.OarsPerBank / 2);
             for (var i = 0; i < oars; i++)
             {
-                var s = f.Class == ShipClass.Merchant ? Mathf.Lerp(0.66f, 0.74f, i) : Mathf.Lerp(0.26f, 0.74f, oars == 1 ? 0.5f : i / (oars - 1f));
-                pins.Add(new Vector3(HalfWidth(f, s) * 1.01f, Sheer(f, s) * 0.8f, Z(f, s)));
+                var s = OarStation(f, i, oars);
+                pins.Add(new Vector3(HalfWidth(f, s) * 1.01f, TholeHeight(f, s), Z(f, s)));
                 banks.Add(0);
             }
             var pinX = f.HullBeam * 0.5f;
-            var pinY = Sheer(f, 0.5f) * 0.8f;
+            var pinY = TholeHeight(f, 0.5f);
             var outward = Mathf.Max(1.5f, f.Beam * 0.5f + reach * 0.92f - pinX);
             var tilt = Mathf.Atan2(pinY + 0.15f, outward) * Mathf.Rad2Deg;
             for (var i = 0; i < oars; i++) tilts.Add(tilt);
             var length = Mathf.Sqrt(outward * outward + (pinY + 0.15f) * (pinY + 0.15f));
+            // Inboard of the thole the loom rises as steeply as the oar falls outboard, up to the rower's hands.
+            var standing = f.Class == ShipClass.Merchant;
+            var hands = RowerSeatHeight(f, 0.5f) + (standing ? StandingHands : SeatedHands);
+            var inboard = Mathf.Clamp((hands - pinY) / Mathf.Sin(tilt * Mathf.Deg2Rad), 0.6f, 1.6f);
             parts.OarPins = pins.ToArray();
             parts.OarBank = banks.ToArray();
             parts.OarTilt = tilts.ToArray();
             parts.OarLength = new[] { length };
+            parts.OarInboard = new[] { inboard };
+            parts.RowersStand = standing;
+            // Each rower faces aft just forward of his thole, the handle at mid-stroke in front of him at the loom's end.
+            var across = inboard * Mathf.Cos(tilt * Mathf.Deg2Rad);
+            parts.RowerSeats = new Vector3[pins.Count];
+            for (var i = 0; i < pins.Count; i++)
+            {
+                var seatZ = pins[i].z + SeatForward;
+                var seatS = Mathf.InverseLerp(Z(f, 0f), Z(f, 1f), seatZ);
+                parts.RowerSeats[i] = new Vector3(pins[i].x - across - (standing ? 0.1f : 0.05f), RowerSeatHeight(f, seatS), seatZ);
+            }
             var oar = new MeshBuilder(null);
-            oar.Box(GreekMaterial.Wood, new Vector3(0f, 0f, 0f), new Vector3(length * 0.5f, 0.045f, 0.045f), Quaternion.identity);
+            // One shaft from the end of the handle to the blade. The outboard part stays centred on the mesh's origin, as the
+            // view places it, so the loom and handle reach toward -X past the thole pin.
+            oar.Box(GreekMaterial.Wood, new Vector3(-inboard * 0.5f, 0f, 0f), new Vector3((length + inboard) * 0.5f, 0.045f, 0.045f), Quaternion.identity);
             oar.Box(GreekMaterial.Wood, new Vector3(length * 0.5f - 0.35f, 0f, 0f), new Vector3(0.35f, 0.16f, 0.025f), Quaternion.identity);
             parts.Oars = new[] { oar.Build(GreekMaterial.Wood) };
         }

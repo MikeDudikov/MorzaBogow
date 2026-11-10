@@ -5,6 +5,9 @@
   "profiles": {
     "EditMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.CrewGeometryTests.Oars_EveryRowerReachesHisHandleFromHisSeatInsideTheHull",
+        "MorzaBogow.Tests.CrewGeometryTests.Steering_HelmsmanHoldsTheTillersAndTheBladesReachTheWater",
+        "MorzaBogow.Tests.CrewGeometryTests.Stroke_TheBladeDrivesAftInTheWaterAndReturnsAboveIt",
         "MorzaBogow.Tests.SimulationTests.Ledger_ConservesWoodAndSilverAcrossAMatch",
         "MorzaBogow.Tests.SimulationTests.Ram_OneChargeResolvesOnceAndHurtsAttackerTwentyPercent",
         "MorzaBogow.Tests.SimulationTests.Board_DoesNotChangeOwnerImmediately_AndCapturesWithCargoAndPaidCost",
@@ -138,6 +141,9 @@
     "PlayMode": {
       "expectedTests": [
         "MorzaBogow.Tests.BattleControllerTests.Fog_HiddenEnemyHasNoActiveRenderers",
+        "MorzaBogow.Tests.CrewPresentationTests.Oars_AllPullTogetherAndDriveAftInTheWater",
+        "MorzaBogow.Tests.CrewPresentationTests.Oars_AnOarWithoutARowerIsDrawnInOnItsOwn",
+        "MorzaBogow.Tests.CrewPresentationTests.Helm_SteeringOarsTurnWithTheHullAndCarryTheTillers",
         "MorzaBogow.Tests.BattleControllerTests.Visual_DoesNotChangeSimulationResult",
         "MorzaBogow.Tests.BattleControllerTests.Save_LoadRestoresStateAndViews",
         "MorzaBogow.Tests.BattleControllerTests.Hud_ShipCardShowsTheCrewByTradeAndTheCrewChoiceSetsThePlan",
