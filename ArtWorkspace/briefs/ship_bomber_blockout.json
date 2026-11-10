@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_bomber_blockout",
+  "name": "Bombowiec (galera z kasztelami, z generatora gry)",
+  "category": "ship",
+  "shipClass": "Bomber",
+  "description": "A heavy Aegean galley with wooden castles fore and aft carrying stone-throwers (a game anachronism): pitch-black hull with a red ochre wale and a white zigzag, eight oars a side, a bird's head at the stern, a heavy wooden spur and a brailed square sail.",
+  "generation": {
+    "provider": "blockout"
+  },
+  "texturing": {
+    "provider": "flat"
+  },
+  "lods": 3
+}

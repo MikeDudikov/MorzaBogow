@@ -264,7 +264,7 @@ Import Unity czeka (ponowienie co 120 s), gdy:
   - ocena raportu;
   - MCP i CLI;
   - lokalna ścieżka do importu z atrapą Unity.
-- **Unity EditMode** (`MorzaBogow.Tests.AIAssets`: 19 testów potoku i 5 testów `GreekShipsTests`, na obiektach w pamięci, bez zapisu assetów; do tego 7 testów PlayMode `ShipLookTests`):
+- **Unity EditMode** (`MorzaBogow.Tests.AIAssets`: 19 testów potoku i 8 testów `GreekShipsTests`, na obiektach w pamięci, bez zapisu assetów; do tego 7 testów PlayMode `ShipLookTests`):
   - nazwy map i ich role;
   - maska HDRP;
   - konwersja materiału z jednym krokiem Undo;
@@ -292,9 +292,46 @@ python3 Tools/asset_pipeline/ap.py create ArtWorkspace/briefs/ship_ram_blockout.
   - 5 materiałów HDRP/Lit (smoła, ochra, farba, drewno, żagiel) i 3 renderery.
   - Granice 16,02 × 12,55 × 20,02 m; stępka na −1,21 m (zanurzenie klasy 1,2 m).
   - Wszystkie kontrole walidatora spełnione.
-- Prefab: `Assets/MorzaBogow/Art/Generated/ship_ram_blockout/ship_ram_blockout.prefab`.
+- Prefab: `Assets/MorzaBogow/Art/Generated/ship_ram_blockout/ship_ram_blockout.prefab`. Odświeżony 2026-11-10 po zmianach generatora (wiosła z rękojeścią, stery z rumplem, pas burty): zob. niżej.
+
+## Przebieg end-to-end: wszystkie klasy (bryła)
+
+Briefy: `ArtWorkspace/briefs/ship_{cutter,crewdestroyer,boarder,merchant,shipkiller,bomber}_blockout.json`, w tym samym schemacie co taranowiec (generator gry, kolory płaskie, 3 poziomy LOD, bez usług płatnych). Polecenia:
+
+```text
+python3 Tools/asset_pipeline/ap.py create ArtWorkspace/briefs/ship_<klasa>_blockout.json
+python3 Tools/asset_pipeline/ap.py worker --until-idle
+```
+
+**Przebiegi:**
+1. **Pierwszy:** 6 zadań `failed` po 4 próbach („Projekt zajęty”), bo Unity z projektem miały otwarte inne sesje. Po zwolnieniu projektu: `ap resume <zadanie> --no-run` i `worker --until-idle`, 6 zadań w 333 s.
+2. **Drugi:** Boarder, Merchant, ShipKiller i Bomber `ready`. Cutter i CrewDestroyer `needs_review`:
+   - Cutter: „stępka na −0,82 m, zanurzenie klasy 0,7 m”;
+   - CrewDestroyer: „−1,54 m przy 1,3 m”.
+
+   Kadłuby kończyły się dokładnie na zanurzeniu. Głębiej sięgały pióra wioseł sterowych: od obrócenia pióra w płaszczyznę wzdłużną trzonu jego krawędź opadała ok. 0,26 m poniżej końca trzonu.
+
+   Poprawka w `GreekShips.BuildSteering`: tam, gdzie pióro zeszłoby poniżej stępki, trzon kończy się wyżej. Czopy, osie, rumple i stanowiska sternika są bez zmian. Pilnuje tego test `Ships_SteeringOarsReachNoDeeperThanTheKeel`.
+3. **Rozstrzygający:** po poprawce nowe zadania dla Cuttera i CrewDestroyera oraz dla taranowca (jego prefab był sprzed zmian generatora). Dwa wcześniejsze zadania anulowano.
+
+Wynik: 7 klas `ready`, 0 ostrzeżeń, wszystkie kontrole walidatora spełnione; 3 renderery, materiały HDRP/Lit.
+
+| Klasa | Zadanie | LOD0/1/2 (trójkąty) | Materiały | Granice (m) | Najniższy punkt / zanurzenie |
+|---|---|---|---|---|---|
+| Cutter | `ship_cutter_blockout-20261110-134832-f0ae` | 1904/902/486 | 5 | 9,68 × 7,46 × 11,97 | −0,70 / 0,7 |
+| Ram | `ship_ram_blockout-20261110-134833-e00a` | 2976/1762/1302 | 5 | 16,04 × 12,53 × 20,39 | −1,20 / 1,2 |
+| CrewDestroyer | `ship_crewdestroyer_blockout-20261110-134833-f1c8` | 3032/1818/1358 | 5 | 17,67 × 13,30 × 22,46 | −1,30 / 1,3 |
+| Boarder | `ship_boarder_blockout-20261110-130502-9345` | 4120/2426/1926 | 5 | 24,49 × 15,29 × 26,38 | −2,20 / 2,2 |
+| Merchant | `ship_merchant_blockout-20261110-130504-726a` | 4924/2038/1134 | 6 (także brąz) | 22,17 × 16,14 × 24,22 | −2,00 / 2,0 |
+| ShipKiller | `ship_shipkiller_blockout-20261110-130509-ad64` | 3016/1802/1342 | 5 | 16,45 × 12,18 × 20,03 | −1,70 / 1,7 |
+| Bomber | `ship_bomber_blockout-20261110-130513-dc1c` | 3052/1838/1338 | 5 | 23,99 × 16,20 × 28,12 | −2,80 / 2,8 |
+
+Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `ArtWorkspace/jobs/<zadanie>/preview.png`. Stanowiska broni są punktami `ShipModel`, bez modeli machin.
 
 ## Ograniczenia
+
+- **Najniższy punkt modelu jest stępką.** Przygotowanie w Blenderze stawia ten punkt na −zanurzenie, a walidator porównuje go z zanurzeniem klasy (tolerancja 8%). Wiosła sterowe, taran i inne części nie mogą schodzić poniżej kadłuba.
+- **Zajęty projekt:** gdy inna sesja trzyma Unity z projektem dłużej niż 4 próby co 120 s, zadanie kończy się `failed`. Wznowienie: `ap resume <zadanie>`. Błąd kompilacji w cudzym kodzie zatrzymuje eksport tak samo.
 
 - **Okręt z generatora to nie jest grafika docelowa.** To ta sama geometria, którą gra rysuje w bitwie (`GreekShips`), z płaską paletą bez tekstur PBR. Jest wejściem dla retekstury Meshy (`ArtWorkspace/briefs/ship_ram_retexture.json`, 10 kr.). Gra buduje okręty w locie z tego samego generatora, więc prefab nie musi być podpięty do `ShipVisual`.
 - **Meshy, ComfyUI i Blender** nie zostały uruchomione na żywo: brak klucza, serwera i programu. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.

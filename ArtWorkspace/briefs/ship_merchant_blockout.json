@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_merchant_blockout",
+  "name": "Handlowiec (statek kupiecki, z generatora gry)",
+  "category": "ship",
+  "shipClass": "Merchant",
+  "description": "A round Aegean merchantman of the late Bronze Age like the Uluburun ship: wooden topsides above a pitched bottom, a wickerwork fence along the sides, Canaanite jars and oxhide ingots on deck, two sweeps a side, a large brailed square sail.",
+  "generation": {
+    "provider": "blockout"
+  },
+  "texturing": {
+    "provider": "flat"
+  },
+  "lods": 3
+}

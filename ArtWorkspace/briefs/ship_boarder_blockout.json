@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_boarder_blockout",
+  "name": "Abordażowiec (pentekontoros, z generatora gry)",
+  "category": "ship",
+  "shipClass": "Boarder",
+  "description": "A fifty-oared Aegean galley of the 12th century BC: pitch-black hull with a red ochre wale and a white zigzag, a latticed fighting rail, nine oars a side, a bird's head on stem and stern posts, a heavy wooden spur, raised platforms and a brailed square sail.",
+  "generation": {
+    "provider": "blockout"
+  },
+  "texturing": {
+    "provider": "flat"
+  },
+  "lods": 3
+}
