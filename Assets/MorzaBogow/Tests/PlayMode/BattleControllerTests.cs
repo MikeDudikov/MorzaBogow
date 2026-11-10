@@ -203,6 +203,24 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Hud_WeaponChoiceListsWhatFitsEachPostAndSetsThePlan()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var world = battle.World;
+            var ram = world.SpawnShip(0, ShipClass.Ram, world.SettlementOf(0).X + 300, 200);
+            battle.RunTicks(1);
+            battle.SelectForTest(ram.Id);
+            yield return WaitForInterface();
+            // Light post: empty, archers, javelin men; medium post: empty and the four medium machines.
+            Assert.That(hud.OpenWeaponsForTest(), Is.EqualTo(3 + 5));
+            battle.SetWeapon(ram.Id, 1, WeaponType.Scorpion);
+            battle.RunTicks(1);
+            Assert.That(ram.Loadout[1], Is.EqualTo(WeaponType.Scorpion), "The plan changes at once.");
+            Assert.That(ram.Mounts[1], Is.EqualTo(WeaponType.None), "The weapon itself waits for a port.");
+        }
+
+        [UnityTest]
         public IEnumerator Boarding_FightersStandOnTheRailsOnlyWhileTheDecksFight()
         {
             yield return null;

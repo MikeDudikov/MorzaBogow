@@ -47,8 +47,12 @@ namespace MorzaBogow.Simulation
         // ---------- Production: complete templates, reserved in full, consumed with progress ----------
 
         /// <summary>Orders pay from the local store of the chosen port; without a target the main settlement builds.</summary>
-        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1)
+        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1)
         {
+            // A blueprint fixes the class; the hull is ordered at the class price, its other weapons from the workshop.
+            var blueprint = blueprintId >= 0 ? Blueprints.FirstOrDefault(item => item.Id == blueprintId && item.Owner == faction) : null;
+            if (blueprintId >= 0 && blueprint == null) return;
+            if (blueprint != null) shipClass = blueprint.Class;
             var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
             if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return;
             var queued = PortsOf(faction).Sum(port => port.WarQueue.Count + port.PortQueue.Count);
@@ -63,7 +67,8 @@ namespace MorzaBogow.Simulation
             settlement.ReservedWood += wood;
             settlement.ReservedSilver += silver;
             var queue = definition.IsEconomic ? settlement.PortQueue : settlement.WarQueue;
-            queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate) });
+            queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate), BlueprintId = blueprint?.Id ?? -1 });
+            if (blueprint != null) OrderBlueprintWeapons(settlement, blueprint);
         }
 
         void CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
@@ -118,6 +123,7 @@ namespace MorzaBogow.Simulation
                 if (settlement.Destroyed) continue;
                 StepLine(settlement, settlement.WarQueue);
                 StepLine(settlement, settlement.PortQueue);
+                StepProjects(settlement);
                 if (settlement.ShipyardBuild == null || !AdvanceOrder(settlement, settlement.ShipyardBuild)) continue;
                 settlement.ShipyardBuild = null;
                 settlement.HasShipyard = true;
@@ -135,6 +141,7 @@ namespace MorzaBogow.Simulation
             var (x, y, heading) = LaunchSpot(settlement, ShipCatalog.Get(order.Class), war);
             var ship = SpawnShip(settlement.Owner, order.Class, x, y);
             ship.Heading = heading;
+            if (order.BlueprintId >= 0) ApplyBlueprint(ship, order.BlueprintId);
             Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, war ? 1 : 0);
         }
 
@@ -510,7 +517,7 @@ namespace MorzaBogow.Simulation
             var settlement = ClosestYard(ship);
             var definition = ship.Definition;
             var hullDone = ship.Hull >= definition.Hull;
-            if (settlement == null || settlement.Destroyed || (hullDone && !ModulesDamaged(ship) && !NeedsMuster(ship) && ship.MusterTicks == 0))
+            if (settlement == null || settlement.Destroyed || (hullDone && !ModulesDamaged(ship) && !NeedsRefit(ship, settlement) && !NeedsMuster(ship) && ship.MusterTicks == 0))
             {
                 if (settlement != null && settlement.RepairShipId == ship.Id) Emit("ship_restored", ship.Id, settlement.Id, ship.X, ship.Y, ship.Crew);
                 ReleaseDock(ship);
@@ -536,6 +543,7 @@ namespace MorzaBogow.Simulation
                 // After the hull: the posts' modules, then the crew; one job at a time, each charged as it starts.
                 if (ship.MusterTicks > 0) { ship.MusterTicks--; return; }
                 if (RepairModule(ship, settlement)) return;
+                if (Refit(ship, settlement)) return;
                 Muster(ship, settlement);
                 return;
             }
@@ -736,9 +744,9 @@ namespace MorzaBogow.Simulation
         bool SendToDockIfNeeded(Ship ship)
         {
             if ((Tick + ship.Id) % Rules.TickRate != 0) return false;
-            var hurt = ship.Hull < ship.Definition.Hull || ModulesDamaged(ship);
-            if (!hurt && !NeedsMuster(ship)) return false;
             var port = ClosestYard(ship);
+            var hurt = ship.Hull < ship.Definition.Hull || ModulesDamaged(ship) || NeedsRefit(ship, port);
+            if (!hurt && !NeedsMuster(ship)) return false;
             if (port == null || port.Destroyed || Distance(ship.X, ship.Y, port.X, port.Y) > Rules.MusterRange) return false;
             if (!hurt && port.Available(ResourceType.Silver) < MusterCost(ship)) return false;
             ship.Order = OrderKind.Repair;

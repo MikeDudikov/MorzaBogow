@@ -81,6 +81,23 @@ namespace MorzaBogow.Simulation
         public long PaidWood, PaidSilver, UsedWood, UsedSilver;
         public int TotalTicks, DoneTicks;
         public bool Started;
+
+        /// <summary>A workshop order makes this weapon; a ship order may follow a fleet blueprint.</summary>
+        public WeaponType Weapon;
+        public int BlueprintId = -1;
+    }
+
+    /// <summary>What a port builds in its one construction slot (docs/UZBROJENIE.md): buildings and the research.</summary>
+    public enum ProjectKind { None, Workshop, Town, SageSchool, HeavyArmsResearch }
+
+    /// <summary>A fleet blueprint: a hull, the weapons for its posts and its crew, built with one order.</summary>
+    public sealed class Blueprint
+    {
+        public int Id, Owner;
+        public string Name;
+        public ShipClass Class;
+        public WeaponType[] Loadout = System.Array.Empty<WeaponType>();
+        public CrewPreset Preset;
     }
 
     public sealed class Settlement
@@ -98,6 +115,18 @@ namespace MorzaBogow.Simulation
         public bool IsOutpost;
         public bool HasShipyard = true;
         public BuildOrder ShipyardBuild;
+
+        /// <summary>
+        /// Buildings beyond the shipyard (docs/UZBROJENIE.md): the workshop (arsenal) makes weapons into the port's
+        /// arsenal; a home port grows into a town, which may raise the Sages' School. One project at a time.
+        /// </summary>
+        public bool HasWorkshop, IsTown, HasSageSchool;
+        public ProjectKind ProjectKind;
+        public BuildOrder Project;
+        public readonly List<BuildOrder> WorkshopQueue = new List<BuildOrder>();
+
+        /// <summary>Weapons lying in the port, by type, ready to be fitted.</summary>
+        public int[] Arsenal = new int[System.Enum.GetValues(typeof(WeaponType)).Length];
 
         /// <summary>How strong the walls are against the base value: a longer scenario's home port is built to hold out longer (MatchProfile.HomeWalls).</summary>
         public double Walls = 1;
@@ -135,6 +164,9 @@ namespace MorzaBogow.Simulation
         /// points and what the fitted item is worth (docs/UZBROJENIE.md). Captured with the ship.
         /// </summary>
         public WeaponType[] Mounts = System.Array.Empty<WeaponType>();
+
+        /// <summary>The weapons the ship should carry: its port refits it toward this, as the crew toward its plan.</summary>
+        public WeaponType[] Loadout = System.Array.Empty<WeaponType>();
         public double[] Progress = System.Array.Empty<double>();
         public double[] ModuleHp = System.Array.Empty<double>();
         public long[] ItemWood = System.Array.Empty<long>(), ItemSilver = System.Array.Empty<long>();
@@ -244,7 +276,7 @@ namespace MorzaBogow.Simulation
         public BoardingPhase Phase => Hooked ? BoardingPhase.Melee : BoardingPhase.Hooks;
     }
 
-    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan }
+    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan, BuildProject, CancelProject, QueueWeapon, CancelWeapon, SetLoadout, SaveBlueprint }
 
     public sealed class Command
     {
@@ -264,6 +296,15 @@ namespace MorzaBogow.Simulation
         /// <summary>SetCrewPlan: a preset, or with Custom the plan's numbers.</summary>
         public CrewPreset Preset;
         public CrewPlan Plan;
+
+        /// <summary>BuildProject: what to build; QueueWeapon: the weapon; SetLoadout / SaveBlueprint: the weapons by post.</summary>
+        public ProjectKind Project;
+        public WeaponType Weapon;
+        public WeaponType[] Loadout;
+
+        /// <summary>QueueShip after a blueprint; SaveBlueprint: its name.</summary>
+        public int BlueprintId = -1;
+        public string Name;
     }
 
     public enum OutcomeKind { InProgress, Won, Draw }

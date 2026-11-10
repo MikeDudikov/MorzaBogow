@@ -443,6 +443,11 @@ namespace MorzaBogow.Presentation
             shipCrewButton = new Button(OpenCrewPlan) { text = "Skład", focusable = true };
             shipCrewButton.AddToClassList("card-button");
             crewMore.Add(shipCrewButton);
+            shipWeaponsButton = new Button(OpenWeapons) { text = "Broń", focusable = true };
+            shipWeaponsButton.AddToClassList("card-button");
+            shipWeaponsButton.style.marginLeft = 6;
+            crewMore.Add(shipWeaponsButton);
+            Tip(shipWeaponsButton, () => WeaponsSummaryTip());
             Tip(shipCrewButton, () => new TipInfo { Title = "Skład załogi", Body = "Wybierz, do jakiego składu port wyszkoli załogę. Zmiana następuje przy przegrupowaniu w porcie ze stocznią: okręt bez rozkazu w pobliżu portu sam wchodzi do doku, naprawia kadłub, leczy rannych i uzupełnia ludzi.", Key = Keys(GameAction.Repair) + ": do portu teraz" });
 
             shipBoardingRow = Element("card-row", card);
@@ -466,6 +471,70 @@ namespace MorzaBogow.Presentation
             shipCargo = Text(string.Empty, "card-value", shipCargoRow);
 
             shipPhase = Text(string.Empty, "card-phase", card);
+        }
+
+        Button shipWeaponsButton;
+        int weaponOptions;
+
+        static string SlotName(SlotSize size) => size == SlotSize.Light ? "lekkie" : size == SlotSize.Medium ? "średnie" : "ciężkie";
+
+        /// <summary>The ship's posts: what each carries now, what is planned, and its module and load.</summary>
+        TipInfo WeaponsSummaryTip()
+        {
+            var ship = battle.World.FindShip(shipShownId);
+            if (ship == null) return default;
+            var lines = new List<string>();
+            var manned = World.Manned(ship);
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                var now = WeaponCatalog.Get(ship.Mounts[i]).Name;
+                var plan = ship.Loadout.Length > i && ship.Loadout[i] != ship.Mounts[i] ? $" → {WeaponCatalog.Get(ship.Loadout[i]).Name}" : string.Empty;
+                var state = ship.Mounts[i] == WeaponType.None ? string.Empty
+                    : ship.ModuleHp[i] <= 0 ? " (zniszczone)" : !manned[i] ? " (bez obsługi)" : ship.Progress[i] >= 1 ? " (gotowe)" : $" (ładuje {Mathf.FloorToInt((float)ship.Progress[i] * 100f)}%)";
+                lines.Add($"{i + 1}. {SlotName(ship.Definition.Slots[i])}: {now}{state}{plan}");
+            }
+            return new TipInfo { Title = "Uzbrojenie", Body = lines.Count > 0 ? string.Join("\n", lines) : "Brak gniazd broni.", Key = "Klik: zmień plan; wymiana przy przegrupowaniu w porcie" };
+        }
+
+        /// <summary>
+        /// For each post the weapons that fit it, with the figures to compare and how many lie in the active port's
+        /// arsenal; the click sets the plan, the port refits the ship (and orders what it lacks) when it regroups.
+        /// </summary>
+        void OpenWeapons()
+        {
+            weaponOptions = 0;
+            var ship = battle.World.FindShip(shipShownId);
+            if (ship == null || ship.Owner != BattleController.PlayerFaction || ship.Mounts.Length == 0) return;
+            var panel = OpenPopover(shipWeaponsButton, $"Uzbrojenie – {BattleController.ClassName(ship.Class)}");
+            var port = battle.ActivePort;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                var slot = i;
+                var size = ship.Definition.Slots[i];
+                Text($"Gniazdo {i + 1} ({SlotName(size)}): teraz {WeaponCatalog.Get(ship.Mounts[i]).Name}", "popover-row-label", panel);
+                foreach (WeaponType weapon in Enum.GetValues(typeof(WeaponType)))
+                {
+                    if (!WeaponCatalog.Fits(weapon, size)) continue;
+                    var definition = WeaponCatalog.Get(weapon);
+                    if (weapon != WeaponType.None && definition.Slot != size) continue;
+                    var chosen = weapon;
+                    var locked = definition.Slot == SlotSize.Heavy && weapon != WeaponType.None && !battle.World.HasHeavyArms(ship.Owner);
+                    var value = weapon == WeaponType.None ? "puste" : $"{definition.MinRange:0}–{definition.MaxRange:0} m · {definition.Cycle:0.#} s · {definition.Hull:0.#}/{definition.Men:0.#}"
+                        + (definition.IsMachine && port != null ? $" · ma {port.Arsenal[(int)weapon]}" : string.Empty);
+                    var item = MenuItem(panel, ship.Loadout[i] == weapon ? "check" : "attack", definition.Name, value, () => { battle.SetWeapon(ship.Id, slot, chosen); ClosePopover(); });
+                    item.EnableInClassList("disabled", locked);
+                    Tip(item, () => WeaponTip(chosen, locked ? "Broń ciężka wymaga badania w Szkole Mędrców." : null));
+                    weaponOptions++;
+                }
+            }
+            Text("Plan zmienia się od razu; broń wymienia port przy przegrupowaniu (zdjęcie 3 s, montaż 5 s / ciężka 10 s). Brakującą port zamawia w Warsztacie.", "popover-note", panel);
+        }
+
+        /// <summary>Opens the weapon choice for the shown ship and returns how many options it lists (tests).</summary>
+        public int OpenWeaponsForTest()
+        {
+            OpenWeapons();
+            return weaponOptions;
         }
 
         readonly List<Action> crewPlanActions = new List<Action>();
@@ -599,6 +668,103 @@ namespace MorzaBogow.Presentation
             portBerths.style.marginLeft = 6;
             portYard = Text(string.Empty, "small", berths);
             portYard.style.marginLeft = 18;
+
+            // Buildings, the workshop line and the arsenal (docs/UZBROJENIE.md).
+            portWorksRow = Element("card-row", card);
+            Glyph(portWorksRow, "shipyard", "glyph-small");
+            portWorks = Text(string.Empty, "small", portWorksRow);
+            portWorks.style.marginLeft = 6;
+            portBuildButton = new Button(OpenBuild) { text = "Rozbudowa", focusable = true };
+            portBuildButton.AddToClassList("card-button");
+            portWorksRow.Add(portBuildButton);
+            Tip(portBuildButton, () => new TipInfo { Title = "Rozbudowa portu", Body = "Warsztat (arsenał) przy stoczni; port macierzysty z Warsztatem awansuje na Miasto; Miasto wznosi Szkołę Mędrców; Szkoła z Warsztatem bada broń ciężką. Jedna budowa naraz, płatna z magazynu tego portu." });
+            portWorkshopButton = new Button(OpenWorkshop) { text = "Warsztat", focusable = true };
+            portWorkshopButton.AddToClassList("card-button");
+            portWorkshopButton.style.marginLeft = 6;
+            portWorksRow.Add(portWorkshopButton);
+            Tip(portWorkshopButton, () => new TipInfo { Title = "Warsztat", Body = "Wytwarza machiny do arsenału portu. Okręty dostają je przy przegrupowaniu w porcie według planu uzbrojenia; brakujące port zamawia sam." });
+        }
+
+        VisualElement portWorksRow;
+        Label portWorks;
+        Button portBuildButton, portWorkshopButton;
+
+        /// <summary>The four projects with their price, state or what they still need; one click starts one.</summary>
+        void OpenBuild()
+        {
+            var port = battle.ActivePort;
+            if (port == null) return;
+            var panel = OpenPopover(portBuildButton, $"Rozbudowa – {battle.PortName(port)}");
+            foreach (var kind in new[] { ProjectKind.Workshop, ProjectKind.Town, ProjectKind.SageSchool, ProjectKind.HeavyArmsResearch })
+            {
+                var chosen = kind;
+                var (wood, silver, seconds) = World.ProjectCost(kind);
+                var done = kind == ProjectKind.Workshop ? port.HasWorkshop : kind == ProjectKind.Town ? port.IsTown
+                    : kind == ProjectKind.SageSchool ? port.HasSageSchool : battle.World.HasHeavyArms(port.Owner);
+                var building = port.ProjectKind == kind && port.Project != null;
+                var value = done ? "gotowe" : building ? $"w budowie {Mathf.FloorToInt(100f * port.Project.DoneTicks / Mathf.Max(1, port.Project.TotalTicks))}%"
+                    : $"{wood / Rules.Centi} D · {silver / Rules.Centi} S · {seconds:0} s";
+                var problem = done || building ? null : battle.World.ProjectProblem(port, kind);
+                var item = MenuItem(panel, done ? "check" : kind == ProjectKind.HeavyArmsResearch ? "help" : kind == ProjectKind.Workshop ? "shipyard" : "settlement",
+                    BattleController.ProjectName(kind), value, () => { battle.BuildProject(chosen); ClosePopover(); });
+                item.EnableInClassList("disabled", done || building || problem != null);
+                Tip(item, () => new TipInfo
+                {
+                    Title = BattleController.ProjectName(chosen),
+                    Body = (chosen == ProjectKind.Workshop ? "Linia Warsztatu wytwarza machiny do arsenału portu; odblokowuje Bombowiec."
+                        : chosen == ProjectKind.Town ? "Osada staje się Miastem: mury mocniejsze o 25%, dostęp do Szkoły Mędrców."
+                        : chosen == ProjectKind.SageSchool ? "Badania floty."
+                        : "Balista i katapulta z pociskami ołowianymi oraz onager w Warsztacie każdego portu.") + (problem != null ? "\n" + problem : string.Empty),
+                    Cost = $"{wood / Rules.Centi} D · {silver / Rules.Centi} S · {seconds:0} s",
+                });
+            }
+            if (port.Project != null)
+            {
+                var cancel = MenuItem(panel, "close", $"Anuluj: {BattleController.ProjectName(port.ProjectKind)}", null, () => { battle.CancelProject(); ClosePopover(); });
+                Tip(cancel, () => new TipInfo { Title = "Anulowanie budowy", Body = "Niezużyta część rezerwacji wraca; po rozpoczęciu 80% z niej, reszta przepada – jak przy zamówieniach okrętów." });
+            }
+        }
+
+        /// <summary>Weapons to order with their figures and price, the workshop line (click cancels) and the arsenal.</summary>
+        void OpenWorkshop()
+        {
+            var port = battle.ActivePort;
+            if (port == null) return;
+            var panel = OpenPopover(portWorkshopButton, $"Warsztat – {battle.PortName(port)}");
+            foreach (WeaponType weapon in Enum.GetValues(typeof(WeaponType)))
+            {
+                var definition = WeaponCatalog.Get(weapon);
+                if (!definition.IsMachine || definition.CostWood + definition.CostSilver == 0) continue;
+                var chosen = weapon;
+                var problem = battle.World.WeaponProblem(port, weapon);
+                var item = MenuItem(panel, definition.Slot == SlotSize.Heavy ? "target" : "attack", definition.Name,
+                    $"{definition.CostWood} D · {definition.CostSilver} S · {definition.WorkshopSeconds:0} s · ma {port.Arsenal[(int)weapon]}", () => battle.QueueWeapon(chosen));
+                item.EnableInClassList("disabled", problem != null);
+                Tip(item, () => WeaponTip(chosen, problem));
+            }
+            for (var i = 0; i < port.WorkshopQueue.Count; i++)
+            {
+                var index = i;
+                var order = port.WorkshopQueue[i];
+                var progress = i == 0 ? $"{Mathf.FloorToInt(100f * order.DoneTicks / Mathf.Max(1, order.TotalTicks))}%" : "czeka";
+                MenuItem(panel, "close", $"Anuluj: {WeaponCatalog.Get(order.Weapon).Name}", progress, () => { battle.CancelWeapon(index); ClosePopover(); });
+            }
+            Text("Machiny trafiają do arsenału portu; okręty dostają je przy przegrupowaniu według planu uzbrojenia.", "popover-note", panel);
+        }
+
+        /// <summary>A weapon's figures for comparison: range with dead zone, arc, cycle, the packet, the crew it needs.</summary>
+        static TipInfo WeaponTip(WeaponType weapon, string problem)
+        {
+            var definition = WeaponCatalog.Get(weapon);
+            return new TipInfo
+            {
+                Title = definition.Name,
+                Body = $"Zasięg {definition.MinRange:0}–{definition.MaxRange:0} m, sektor {definition.ArcDegrees:0}°, cykl {definition.Cycle:0.#} s. "
+                    + $"Trafienie: kadłub {definition.Hull:0.#}, ludzie {definition.Men:0.#} HP (10 HP = 1 człowiek), moduł {definition.Module:0.#}"
+                    + (definition.Splash > 0 ? $", obszar {definition.Splash:0} m" : string.Empty) + (definition.BuildingMultiplier != 1 ? $", budowle ×{definition.BuildingMultiplier:0.##}" : string.Empty)
+                    + $". Obsługa: {definition.Crew}." + (definition.Lobbed ? " Strzela łukiem ponad lądem." : string.Empty) + (problem != null ? "\n" + problem : string.Empty),
+                Cost = definition.CostWood + definition.CostSilver > 0 ? $"Warsztat: {definition.CostWood} D · {definition.CostSilver} S · {definition.WorkshopSeconds:0} s" : "Stanowisko obsadzane przez załogę.",
+            };
         }
 
         void BuildWreck(VisualElement content)
@@ -1067,6 +1233,7 @@ namespace MorzaBogow.Presentation
             SetText(shipArchers, Count(ship.Archers, ship.Plan.Archers));
             SetText(shipWounded, ship.Wounded.ToString());
             Show(shipCrewButton, !enemy && !definition.IsEconomic);
+            Show(shipWeaponsButton, !enemy && ship.Mounts.Length > 0);
             if (!enemy && !definition.IsEconomic) shipCrewButton.text = $"Skład: {BattleController.PresetName(ship.Plan.Preset)}";
 
             var link = battle.BoardingOf(ship.Id);
@@ -1195,12 +1362,38 @@ namespace MorzaBogow.Presentation
                 SetText(portSilverValue, $"{port.Silver / Rules.Centi} / {port.Capacity(ResourceType.Silver) / Rules.Centi}");
                 SetText(portBerths, $"Stanowiska {port.DockedShips.Count}/{Rules.PortBerths}" + (port.PortWaiting.Count > 0 ? $" · czeka {port.PortWaiting.Count}" : string.Empty));
                 SetText(portYard, port.HasShipyard ? "Stocznia czynna" : port.ShipyardBuild != null ? $"Stocznia: budowa {Mathf.RoundToInt(100f * port.ShipyardBuild.DoneTicks / port.ShipyardBuild.TotalTicks)}%" : "Brak stoczni");
+                SetText(portWorks, WorksSummary(port));
+                Show(portWorkshopButton, port.HasWorkshop);
             }
             else
             {
                 SetText(portBerths, "Magazyny, kolejki i stocznia wroga są nieznane.");
                 SetText(portYard, string.Empty);
             }
+            Show(portWorksRow, own);
+        }
+
+        /// <summary>One line: the project under way or the buildings standing, the workshop's current job and the arsenal.</summary>
+        string WorksSummary(Settlement port)
+        {
+            var parts = new List<string>();
+            if (port.Project != null) parts.Add($"{BattleController.ProjectName(port.ProjectKind)} {Mathf.FloorToInt(100f * port.Project.DoneTicks / Mathf.Max(1, port.Project.TotalTicks))}%");
+            else
+            {
+                var standing = new List<string>();
+                if (port.HasWorkshop) standing.Add("Warsztat");
+                if (port.IsTown) standing.Add("Miasto");
+                if (port.HasSageSchool) standing.Add("Szkoła");
+                parts.Add(standing.Count > 0 ? string.Join(" · ", standing) : "Bez rozbudowy");
+            }
+            if (port.WorkshopQueue.Count > 0)
+            {
+                var order = port.WorkshopQueue[0];
+                parts.Add($"{WeaponCatalog.Get(order.Weapon).Name} {Mathf.FloorToInt(100f * order.DoneTicks / Mathf.Max(1, order.TotalTicks))}%" + (port.WorkshopQueue.Count > 1 ? $" (+{port.WorkshopQueue.Count - 1})" : string.Empty));
+            }
+            var stored = port.Arsenal.Sum();
+            if (stored > 0) parts.Add($"arsenał {stored}");
+            return string.Join(" · ", parts);
         }
 
         // ---------- Production ----------
@@ -1321,6 +1514,36 @@ namespace MorzaBogow.Presentation
                     Cost = $"Cena kompletnego szablonu (z obsadą i uzbrojeniem): {definition.CostWood} D · {definition.CostSilver} S · {definition.BuildSeconds:0} s",
                     Key = definition.IsEconomic ? "Linia portowa" : "Linia wojenna",
                 });
+            }
+            if (!war.HasValue || war.Value)
+            {
+                // Fleet blueprints: a hull at its class price, its other weapons ordered from the workshop, its crew trained.
+                foreach (var blueprint in battle.World.Blueprints.Where(item => item.Owner == BattleController.PlayerFaction))
+                {
+                    var chosen = blueprint;
+                    var definition = ShipCatalog.Get(blueprint.Class);
+                    var extra = blueprint.Loadout.Where((weapon, i) => weapon != (definition.DefaultLoadout.Length > i ? definition.DefaultLoadout[i] : WeaponType.None) && WeaponCatalog.Get(weapon).IsMachine).ToList();
+                    var extraWood = extra.Sum(weapon => WeaponCatalog.Get(weapon).CostWood);
+                    var extraSilver = extra.Sum(weapon => WeaponCatalog.Get(weapon).CostSilver);
+                    var item = MenuItem(panel, ClassIcon(blueprint.Class), $"Szablon: {blueprint.Name}",
+                        $"{definition.CostWood} D · {definition.CostSilver} S" + (extra.Count > 0 ? $" + broń {extraWood} D · {extraSilver} S" : string.Empty),
+                        () => { battle.QueueBlueprint(chosen.Id); ClosePopover(); Refresh(); });
+                    var problem = OrderProblem(port, definition, fleet);
+                    item.EnableInClassList("disabled", problem != null);
+                    Tip(item, () => new TipInfo
+                    {
+                        Title = $"Szablon: {chosen.Name}",
+                        Body = $"{BattleController.ClassName(chosen.Class)}, skład {BattleController.PresetName(chosen.Preset)}; broń: {string.Join(", ", chosen.Loadout.Select(weapon => WeaponCatalog.Get(weapon).Name))}."
+                            + " Kadłub w cenie klasy; brakującą broń port od razu zamawia w Warsztacie, a po wodowaniu przegrupowanie zakłada ją i szkoli załogę." + (problem != null ? "\n" + problem : string.Empty),
+                    });
+                }
+                var selectedShip = battle.Selected.Count == 1 ? battle.World.FindShip(battle.Selected.First()) : null;
+                if (selectedShip != null && selectedShip.Owner == BattleController.PlayerFaction && !selectedShip.Definition.IsEconomic)
+                {
+                    var name = $"{BattleController.ClassName(selectedShip.Class)} {battle.World.Blueprints.Count(item => item.Owner == BattleController.PlayerFaction) + 1}";
+                    var save = MenuItem(panel, "save", $"Zapisz szablon: {name}", "z zaznaczonego okrętu", () => { battle.SaveBlueprint(selectedShip.Id, name); ClosePopover(); });
+                    Tip(save, () => new TipInfo { Title = "Szablon floty", Body = $"Zapisuje klasę, plan uzbrojenia i skład załogi zaznaczonego okrętu (najwyżej {Rules.MaxBlueprints} szablonów)." });
+                }
             }
             if ((!war.HasValue || war.Value) && port.IsOutpost && !port.HasShipyard && port.ShipyardBuild == null)
             {

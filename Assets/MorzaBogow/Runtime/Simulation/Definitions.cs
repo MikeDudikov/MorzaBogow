@@ -413,6 +413,22 @@ namespace MorzaBogow.Simulation
         public const long SailorSilver = 50, SoldierSilver = 100, HealSilver = 25, RetrainSilver = 50;
         public const double RecruitSeconds = 1, RetrainSeconds = 2, HealPerSecond = 4;
 
+        // ---------- Buildings, research and fitting (docs/UZBROJENIE.md; no amber: D/S only) ----------
+        public const long WorkshopWood = 150 * Centi, WorkshopSilver = 100 * Centi;
+        public const double WorkshopSeconds = 40;
+        public const long TownWood = 300 * Centi, TownSilver = 400 * Centi;
+        public const double TownSeconds = 60, TownWalls = 1.25;
+        public const long SchoolWood = 200 * Centi, SchoolSilver = 500 * Centi;
+        public const double SchoolSeconds = 60;
+        public const long HeavyArmsWood = 150 * Centi, HeavyArmsSilver = 300 * Centi;
+        public const double HeavyArmsSeconds = 90;
+
+        /// <summary>Taking a weapon off, and fitting a medium or a heavy one, at the dock.</summary>
+        public const double DismountSeconds = 3, MountMediumSeconds = 5, MountHeavySeconds = 10;
+
+        /// <summary>Blueprints a side may keep.</summary>
+        public const int MaxBlueprints = 8;
+
         /// <summary>Renewing deposits: a point left alone this long grows back at this share of its greatest yield.</summary>
         public const double RegrowDelaySeconds = 60, RegrowShare = 0.15;
 

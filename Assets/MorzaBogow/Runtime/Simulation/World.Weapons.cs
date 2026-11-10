@@ -38,6 +38,7 @@ namespace MorzaBogow.Simulation
                 ship.ItemWood[i] = values[i].wood;
                 ship.ItemSilver[i] = values[i].silver;
             }
+            ship.Loadout = (WeaponType[])ship.Mounts.Clone();
         }
 
         /// <summary>

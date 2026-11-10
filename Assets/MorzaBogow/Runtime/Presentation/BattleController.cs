@@ -346,6 +346,12 @@ namespace MorzaBogow.Presentation
                     case "ship_surrendered":
                         if (seen) Announce(World.FindShip(item.SubjectId)?.Owner == PlayerFaction ? "Załoga złamana – okręt się poddaje." : "Wroga załoga złożyła broń.", HeraldLevel.Important, at);
                         break;
+                    case "project_done":
+                        if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce($"Ukończono: {ProjectName((ProjectKind)(int)item.Amount)}.", HeraldLevel.Important, at);
+                        break;
+                    case "weapon_made":
+                        if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce($"Warsztat: gotowa {WeaponCatalog.Get((WeaponType)(int)item.Amount).Name.ToLowerInvariant()}.", HeraldLevel.Info, at, HeraldTopic.General, item.SubjectId, $"workshop:{item.SubjectId}");
+                        break;
                     case "ship_restored":
                         var restored = World.FindShip(item.SubjectId);
                         if (restored != null && restored.Owner == PlayerFaction) Announce($"Przegrupowano: {ClassName(restored.Class)} – kadłub i załoga gotowe.", HeraldLevel.Info, at, HeraldTopic.General, restored.Id, $"restored:{item.OtherId}");
@@ -1934,6 +1940,60 @@ namespace MorzaBogow.Presentation
             if (port == null) return;
             World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildShipyard, TargetId = port.Id });
         }
+
+        // ---------- Port buildings, workshop, fitting and blueprints (docs/UZBROJENIE.md) ----------
+
+        public void BuildProject(ProjectKind kind)
+        {
+            var port = ActivePort;
+            if (port != null) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildProject, Project = kind, TargetId = port.Id });
+        }
+
+        public void CancelProject()
+        {
+            var port = ActivePort;
+            if (port != null) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelProject, TargetId = port.Id });
+        }
+
+        public void QueueWeapon(WeaponType weapon)
+        {
+            var port = ActivePort;
+            if (port != null) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueWeapon, Weapon = weapon, TargetId = port.Id });
+        }
+
+        public void CancelWeapon(int index)
+        {
+            var port = ActivePort;
+            if (port != null) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.CancelWeapon, QueueIndex = index, TargetId = port.Id });
+        }
+
+        /// <summary>Plans one post's weapon; the ship is refitted when it next regroups in port.</summary>
+        public void SetWeapon(int shipId, int slot, WeaponType weapon)
+        {
+            var ship = World.FindShip(shipId);
+            if (ship == null || slot < 0 || slot >= ship.Loadout.Length) return;
+            var loadout = (WeaponType[])ship.Loadout.Clone();
+            loadout[slot] = weapon;
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.SetLoadout, ShipIds = new[] { shipId }, Loadout = loadout });
+        }
+
+        /// <summary>Saves the ship's class, planned weapons and crew as a blueprint under the given name.</summary>
+        public void SaveBlueprint(int shipId, string name)
+        {
+            var ship = World.FindShip(shipId);
+            if (ship == null) return;
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.SaveBlueprint, Class = ship.Class, Loadout = (WeaponType[])ship.Loadout.Clone(), Preset = ship.Plan.Preset, Name = name });
+        }
+
+        public void QueueBlueprint(int blueprintId)
+        {
+            var port = ActivePort;
+            if (port != null) World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, BlueprintId = blueprintId, TargetId = port.Id });
+        }
+
+        public static string ProjectName(ProjectKind kind) =>
+            kind == ProjectKind.Workshop ? "Warsztat (arsenał)" : kind == ProjectKind.Town ? "Awans na Miasto"
+            : kind == ProjectKind.SageSchool ? "Szkoła Mędrców" : kind == ProjectKind.HeavyArmsResearch ? "Badanie: broń ciężka" : "—";
 
         /// <summary>Sets the crew a ship's port will train it to; the people change only when it regroups in port.</summary>
         public void SetCrewPlan(int shipId, CrewPreset preset) =>

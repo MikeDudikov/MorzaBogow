@@ -30,6 +30,13 @@
         "MorzaBogow.Tests.WeaponTests.Ram_AnUncalledContactDoesNoDamage",
         "MorzaBogow.Tests.WeaponTests.Javelins_ThrowOnlyAtCloseRangeAndFightInTheFront",
         "MorzaBogow.Tests.WeaponTests.Weapons_SaveWithShotsInTheAirContinuesIdentically",
+        "MorzaBogow.Tests.ArsenalTests.Projects_FollowTheChainAndArePaidOnceFromThePort",
+        "MorzaBogow.Tests.ArsenalTests.Projects_CancellingSettlesLikeAShipOrder",
+        "MorzaBogow.Tests.ArsenalTests.Workshop_MakesWeaponsIntoTheArsenalAndHeavyOnesWaitForResearch",
+        "MorzaBogow.Tests.ArsenalTests.Refit_FollowsThePlanFromTheArsenalAndOrdersWhatIsMissing",
+        "MorzaBogow.Tests.ArsenalTests.Capture_KeepsTheWeaponsWithTheirState",
+        "MorzaBogow.Tests.ArsenalTests.Blueprint_OneOrderBuildsTheShipWithItsPlansAndItsWeapons",
+        "MorzaBogow.Tests.ArsenalTests.Save_DuringProjectsWorkshopAndBlueprintsContinuesIdentically",
         "MorzaBogow.Tests.SimulationTests.Crew_FewerArchersShootLessAndNoneDoNotShoot",
         "MorzaBogow.Tests.SimulationTests.Crew_OnlySailorsRowAndSpareOarsAddSpeed",
         "MorzaBogow.Tests.SimulationTests.Board_TheFrontLimitsWhoFightsAndArchersDefendTheirOwnDeck",
@@ -50,6 +57,7 @@
         "MorzaBogow.Tests.BattleControllerTests.Save_LoadRestoresStateAndViews",
         "MorzaBogow.Tests.BattleControllerTests.Hud_ShipCardShowsTheCrewByTradeAndTheCrewChoiceSetsThePlan",
         "MorzaBogow.Tests.BattleControllerTests.Boarding_FightersStandOnTheRailsOnlyWhileTheDecksFight",
+        "MorzaBogow.Tests.BattleControllerTests.Hud_WeaponChoiceListsWhatFitsEachPostAndSetsThePlan",
         "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing"
       ]
     }

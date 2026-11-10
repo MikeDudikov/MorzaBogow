@@ -138,7 +138,12 @@ namespace MorzaBogow.Simulation
         {
             switch (command.Kind)
             {
-                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId); return;
+                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId, command.BlueprintId); return;
+                case CommandKind.BuildProject: BeginProject(command.Faction, command.TargetId, command.Project); return;
+                case CommandKind.CancelProject: CancelProject(command.Faction, command.TargetId); return;
+                case CommandKind.QueueWeapon: QueueWeapon(command.Faction, command.TargetId, command.Weapon); return;
+                case CommandKind.CancelWeapon: CancelWeapon(command.Faction, command.TargetId, command.QueueIndex); return;
+                case CommandKind.SaveBlueprint: SaveBlueprint(command); return;
                 case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue, command.TargetId); return;
                 case CommandKind.BuildShipyard: BeginShipyard(command.Faction, command.TargetId); return;
             }
@@ -195,9 +200,13 @@ namespace MorzaBogow.Simulation
                     break;
                 case CommandKind.Repair:
                     // A sound hull still goes to the dock when its crew is short of the plan or has wounded.
-                    if (ship.Hull >= ship.Definition.Hull && !NeedsMuster(ship) && !ModulesDamaged(ship)) return;
+                    if (ship.Hull >= ship.Definition.Hull && !NeedsMuster(ship) && !ModulesDamaged(ship) && !NeedsRefit(ship, ClosestYard(ship))) return;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Repair;
+                    break;
+                case CommandKind.SetLoadout:
+                    // Only the plan: weapons change at a port (Refit); missing ones are ordered from its workshop.
+                    SetLoadout(ship, command.Loadout);
                     break;
                 case CommandKind.SetCrewPlan:
                     // Only a plan: the people change at a port (Muster), not at sea.
@@ -722,6 +731,8 @@ namespace MorzaBogow.Simulation
             target.WoundRemainder = 0;
             target.CrewDamage = 0;
             target.Plan = definition.PlanFor(definition.DefaultPreset);
+            // The prize keeps the weapons it carries; its new owner plans to keep them too.
+            target.Loadout = (WeaponType[])target.Mounts.Clone();
             target.Owner = attacker.Owner;
             target.Morale = 50;
             ClearOrder(target);

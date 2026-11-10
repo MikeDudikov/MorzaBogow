@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 12;
+        public const int Version = 13;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -60,6 +60,7 @@ namespace MorzaBogow.Simulation
                 writer.Write((int)order.Class); writer.Write(order.PaidWood); writer.Write(order.PaidSilver);
                 writer.Write(order.UsedWood); writer.Write(order.UsedSilver);
                 writer.Write(order.TotalTicks); writer.Write(order.DoneTicks); writer.Write(order.Started);
+                writer.Write((int)order.Weapon); writer.Write(order.BlueprintId);
             }
         }
 
@@ -73,6 +74,7 @@ namespace MorzaBogow.Simulation
                     Class = (ShipClass)reader.ReadInt32(), PaidWood = reader.ReadInt64(), PaidSilver = reader.ReadInt64(),
                     UsedWood = reader.ReadInt64(), UsedSilver = reader.ReadInt64(),
                     TotalTicks = reader.ReadInt32(), DoneTicks = reader.ReadInt32(), Started = reader.ReadBoolean(),
+                    Weapon = (WeaponType)reader.ReadInt32(), BlueprintId = reader.ReadInt32(),
                 });
             }
         }
@@ -131,6 +133,14 @@ namespace MorzaBogow.Simulation
                     var yard = new List<BuildOrder>();
                     if (settlement.ShipyardBuild != null) yard.Add(settlement.ShipyardBuild);
                     WriteQueue(writer, yard);
+                    writer.Write(settlement.HasWorkshop); writer.Write(settlement.IsTown); writer.Write(settlement.HasSageSchool);
+                    writer.Write((int)settlement.ProjectKind);
+                    var project = new List<BuildOrder>();
+                    if (settlement.Project != null) project.Add(settlement.Project);
+                    WriteQueue(writer, project);
+                    WriteQueue(writer, settlement.WorkshopQueue);
+                    writer.Write(settlement.Arsenal.Length);
+                    foreach (var count in settlement.Arsenal) writer.Write(count);
                 }
 
                 writer.Write(world.Ships.Count);
@@ -157,6 +167,8 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.WoundRemainder); writer.Write(ship.MusterTicks);
                     writer.Write(ship.Javelins); writer.Write(ship.Plan.Javelins); writer.Write(ship.TelegraphTicks);
                     WriteArms(writer, ship);
+                    writer.Write(ship.Loadout.Length);
+                    foreach (var weapon in ship.Loadout) writer.Write((int)weapon);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -182,6 +194,16 @@ namespace MorzaBogow.Simulation
                 }
 
                 // Shots in the air land after loading exactly as they would have (docs/UZBROJENIE.md).
+                writer.Write(world.HeavyArmsResearched);
+                writer.Write(world.NextBlueprintId);
+                writer.Write(world.Blueprints.Count);
+                foreach (var blueprint in world.Blueprints)
+                {
+                    writer.Write(blueprint.Id); writer.Write(blueprint.Owner); writer.Write(blueprint.Name ?? string.Empty);
+                    writer.Write((int)blueprint.Class); writer.Write((int)blueprint.Preset);
+                    writer.Write(blueprint.Loadout.Length);
+                    foreach (var weapon in blueprint.Loadout) writer.Write((int)weapon);
+                }
                 writer.Write(world.NextProjectileId);
                 writer.Write(world.Projectiles.Count);
                 foreach (var shot in world.Projectiles)
@@ -269,6 +291,15 @@ namespace MorzaBogow.Simulation
                     var yard = new List<BuildOrder>();
                     ReadQueue(reader, yard);
                     if (yard.Count > 0) settlement.ShipyardBuild = yard[0];
+                    settlement.HasWorkshop = reader.ReadBoolean(); settlement.IsTown = reader.ReadBoolean(); settlement.HasSageSchool = reader.ReadBoolean();
+                    settlement.ProjectKind = (ProjectKind)reader.ReadInt32();
+                    var project = new List<BuildOrder>();
+                    ReadQueue(reader, project);
+                    if (project.Count > 0) settlement.Project = project[0];
+                    ReadQueue(reader, settlement.WorkshopQueue);
+                    var arsenal = reader.ReadInt32();
+                    if (arsenal != settlement.Arsenal.Length) throw new InvalidDataException("Damaged arsenal.");
+                    for (var a = 0; a < arsenal; a++) settlement.Arsenal[a] = reader.ReadInt32();
                     world.Settlements.Add(settlement);
                 }
 
@@ -303,6 +334,10 @@ namespace MorzaBogow.Simulation
                     ship.Plan = plan;
                     ship.TelegraphTicks = reader.ReadInt32();
                     ReadArms(reader, ship);
+                    var planned = reader.ReadInt32();
+                    if (planned != ship.Mounts.Length) throw new InvalidDataException("Damaged weapon plan.");
+                    ship.Loadout = new WeaponType[planned];
+                    for (var p = 0; p < planned; p++) ship.Loadout[p] = (WeaponType)reader.ReadInt32();
                     if (ship.Mounts.Length != ship.Definition.Slots.Length) throw new InvalidDataException("Weapon posts do not match the class.");
                     world.Ships.Add(ship);
                 }
@@ -338,6 +373,22 @@ namespace MorzaBogow.Simulation
                     });
                 }
 
+                world.HeavyArmsResearched = reader.ReadInt32();
+                world.NextBlueprintId = reader.ReadInt32();
+                count = reader.ReadInt32();
+                for (var i = 0; i < count; i++)
+                {
+                    var blueprint = new Blueprint
+                    {
+                        Id = reader.ReadInt32(), Owner = reader.ReadInt32(), Name = reader.ReadString(),
+                        Class = (ShipClass)reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32(),
+                    };
+                    var slots = reader.ReadInt32();
+                    if (slots < 0 || slots > 16) throw new InvalidDataException("Damaged blueprint.");
+                    blueprint.Loadout = new WeaponType[slots];
+                    for (var s = 0; s < slots; s++) blueprint.Loadout[s] = (WeaponType)reader.ReadInt32();
+                    world.Blueprints.Add(blueprint);
+                }
                 world.NextProjectileId = reader.ReadInt32();
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)

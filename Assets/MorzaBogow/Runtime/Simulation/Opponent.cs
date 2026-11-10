@@ -44,6 +44,7 @@ namespace MorzaBogow.Simulation
                 ManageEconomy(world);
                 ManageProduction(world);
                 ManageExpansion(world);
+                ManageBuildings(world);
             }
             if (world.Tick % TacticsPeriod == 0) ManageFleet(world);
         }
@@ -91,6 +92,20 @@ namespace MorzaBogow.Simulation
                 .ThenBy(item => item.Id)
                 .FirstOrDefault();
             if (target != null) world.Issue(new Command { Faction = faction, Kind = CommandKind.Move, ShipIds = new[] { cutter.Id }, X = target.X, Y = target.Y });
+        }
+
+        /// <summary>
+        /// The workshop after about eight minutes, paid like the player's and only from a surplus that leaves a warship's
+        /// silver in store (docs/UZBROJENIE.md). The town, school and research follow with the new classes (stage 3c).
+        /// </summary>
+        void ManageBuildings(World world)
+        {
+            var home = world.SettlementOf(faction);
+            if (home == null || home.Destroyed || home.Project != null || home.HasWorkshop) return;
+            if (world.Tick < 8 * 60 * Rules.TickRate) return;
+            if (home.Available(ResourceType.Silver) < Rules.WorkshopSilver + 150 * Rules.Centi) return;
+            if (world.ProjectProblem(home, ProjectKind.Workshop) != null) return;
+            world.Issue(new Command { Faction = faction, Kind = CommandKind.BuildProject, Project = ProjectKind.Workshop, TargetId = home.Id });
         }
 
         void ManageProduction(World world)
