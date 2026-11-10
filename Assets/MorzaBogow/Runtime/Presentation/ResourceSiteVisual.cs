@@ -217,8 +217,33 @@ namespace MorzaBogow.Presentation
                 var yaw = (float)random.NextDouble() * 360f;
                 grove.Add(Landscape.TreeSpecies.OliveWild, Landscape.StableHash.Mix(siteId, (uint)i), new Vector3(x, Ground(x, z) - 0.15f, z), yaw, leeward, 1f);
             }
-            grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
+            if (!Landscape.Vegetation.PlainOlives) grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
+            else PlainOlives(model, materials);
+            BuildChests(model, materials);
+        }
 
+        /// <summary>-morzaPlainOlives: the old one-mesh olives on the same flanks, to measure what the new trees cost.</summary>
+        void PlainOlives(Transform model, PlaceholderMaterials materials)
+        {
+            var plain = new TreeModels.Grove();
+            for (var i = 0; i < 7; i++)
+            {
+                var side = i % 2 == 0 ? -1f : 1f;
+                var x = side * 14f;
+                var z = 2f + i;
+                if (ShoreShape.GroundAt(outline, lift, x, z - IsletZ) < 0.4f) continue;
+                plain.Add(TreeKind.Olive, i, new Vector3(x, Ground(x, z) - 0.15f, z), i * 51f, 0.5f);
+            }
+            var mesh = plain.Build("Grove");
+            if (mesh == null) return;
+            var holder = new GameObject("Grove");
+            holder.transform.SetParent(model, false);
+            holder.AddComponent<MeshFilter>().sharedMesh = mesh;
+            holder.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.OliveFoliage };
+        }
+
+        void BuildChests(Transform model, PlaceholderMaterials materials)
+        {
             // Sealed chests on the quay: these shrink with the stock.
             for (var row = 0; row < 3; row++)
             {

@@ -54,6 +54,9 @@ namespace MorzaBogow.Presentation.Landscape
         public static ITreeWind Wind;
         public static Func<float> Clock;
 
+        /// <summary>The old one-mesh olives instead of these trees (-morzaPlainOlives), for A/B measurements in one build.</summary>
+        public static bool PlainOlives;
+
         /// <summary>
         /// Where the prevailing wind blows toward, world space: the region's Etesian, which trains the crowns of
         /// exposed trees over years (a Sirocco match does not reshape them). Zero when no climate is known.
@@ -136,7 +139,9 @@ namespace MorzaBogow.Presentation.Landscape
     public sealed class TreeGrove : MonoBehaviour
     {
         public const float SampleInterval = 0.25f;
-        public const float LongestFrame = 0.25f;
+
+        /// <summary>Most game time one frame advances the trees: after a hitch they lag a little rather than spend steps catching up.</summary>
+        public const float LongestFrame = 0.05f;
 
         /// <summary>
         /// LODGroup.size set to the trees' scale, not the grove's, so the levels change at a fixed number of pixels
@@ -204,6 +209,12 @@ namespace MorzaBogow.Presentation.Landscape
         /// <summary>Main-thread time of the trees' wind and bones over the last frames, milliseconds (moving average).</summary>
         public static double FrameMilliseconds => average;
 
+        /// <summary>The same, averaged over every frame since the trees first moved (smoke reports).</summary>
+        public static double MeanMilliseconds => frames > 0 ? total / frames : 0.0;
+
+        static double total;
+        static long frames;
+
         void OnEnable() => groves.Add(this);
 
         void OnDisable() => groves.Remove(this);
@@ -223,14 +234,36 @@ namespace MorzaBogow.Presentation.Landscape
             Advance(source != null ? source() : Time.deltaTime);
         }
 
-        /// <summary>Advances every tree by dt seconds of game time and, when the grove is seen (or asked to), bends its bones.</summary>
+        /// <summary>
+        /// Advances every tree by dt seconds of game time and bends its bones, while the grove is in the camera's view
+        /// (or when asked to). Out of view it rests: nothing is computed, and when it comes back each tree starts from the
+        /// static bend of the wind then blowing, as a tree out of sight would be found.
+        /// </summary>
         public void Advance(float dt, bool pose = false)
         {
             if (dt <= 0f || trees.Length == 0) return;
+            if (!pose && !InView)
+            {
+                resting = true;
+                return;
+            }
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             dt = Mathf.Min(dt, LongestFrame);
             clock += dt;
+            if (resting)
+            {
+                resting = false;
+                foreach (var tree in trees)
+                {
+                    tree.HasWind = false;
+                    tree.NextSample = clock;
+                }
+            }
             var wind = Wind ?? Vegetation.Wind;
+            // Under 12 pixels a metre (LOD1) a shoot's flutter is under a pixel and its bones keep still; under 4 (LOD2)
+            // no branch shows either, and only the stems and main limbs move.
+            var detail = pose ? 0 : Detail;
+            var far = detail >= 2;
             foreach (var tree in trees)
             {
                 if (wind != null && clock >= tree.NextSample) Sample(tree, wind);
@@ -242,13 +275,18 @@ namespace MorzaBogow.Presentation.Landscape
                     tree.Drift += speed * dt;
                     current = field + tree.Gusts.At(tree.Drift, field, tree.Turbulence * speed);
                 }
-                tree.Dynamics.Advance(dt, tree.ToTree * current, tree.AirDensity);
+                tree.Dynamics.Advance(dt, tree.ToTree * current, tree.AirDensity, far);
             }
-            if (pose || Seen) Pose();
+            Pose(detail);
 
             var elapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             if (Time.frameCount != stamp)
             {
+                if (stamp >= 0)
+                {
+                    total += accumulated;
+                    frames++;
+                }
                 average = stamp < 0 ? accumulated : average * 0.95 + accumulated * 0.05;
                 accumulated = 0;
                 stamp = Time.frameCount;
@@ -256,15 +294,30 @@ namespace MorzaBogow.Presentation.Landscape
             accumulated += elapsed;
         }
 
-        bool Seen
+        bool resting;
+        static readonly Plane[] frustum = new Plane[6];
+        static int frustumFrame = -1;
+        static bool frustumValid;
+
+        /// <summary>
+        /// Whether the grove is inside the main camera's view this frame (with a margin for its swaying crowns). Not
+        /// Renderer.isVisible, which also counts the sun's shadow passes over half the map.
+        /// </summary>
+        bool InView
         {
             get
             {
-                foreach (var renderer in renderers)
+                if (Time.frameCount != frustumFrame)
                 {
-                    if (renderer != null && renderer.isVisible) return true;
+                    frustumFrame = Time.frameCount;
+                    var camera = Camera.main;
+                    frustumValid = camera != null;
+                    if (frustumValid) GeometryUtility.CalculateFrustumPlanes(camera, frustum);
                 }
-                return false;
+                if (!frustumValid || renderers.Length == 0 || renderers[0] == null) return false;
+                var bounds = renderers[0].bounds;
+                bounds.Expand(4f);
+                return GeometryUtility.TestPlanesAABB(frustum, bounds);
             }
         }
 
@@ -292,13 +345,34 @@ namespace MorzaBogow.Presentation.Landscape
             tree.HasWind = true;
         }
 
-        /// <summary>Writes every bone's rest pose times its bending.</summary>
-        public void Pose()
+        /// <summary>Writes every bone's rest pose times its bending; from LOD1 not the shoots', from LOD2 not the branches' either.</summary>
+        public void Pose(int detail = 0)
         {
             foreach (var tree in trees)
             {
                 var bones = tree.Bones;
-                for (var i = 1; i < bones.Length; i++) bones[i].localRotation = tree.RestLocal[i] * tree.Dynamics.Bend(i);
+                var model = tree.Model.Bones;
+                for (var i = 1; i < bones.Length; i++)
+                {
+                    var role = model[i].Role;
+                    if (detail >= 1 && role == BoneRole.Twig || detail >= 2 && role == BoneRole.Branch) continue;
+                    bones[i].localRotation = tree.RestLocal[i] * tree.Dynamics.Bend(i);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The level of detail the main camera draws the trees at: from its pixels per metre against the same 12 and 4
+        /// as the LODGroup (scaled by the quality's LOD bias). Orthographic only, like the game's camera; 0 otherwise.
+        /// </summary>
+        static int Detail
+        {
+            get
+            {
+                var camera = Camera.main;
+                if (camera == null || !camera.orthographic || camera.orthographicSize <= 0f) return 0;
+                var pixels = camera.pixelHeight / (2f * camera.orthographicSize) * QualitySettings.lodBias;
+                return pixels >= 12f ? 0 : pixels >= 4f ? 1 : 2;
             }
         }
 

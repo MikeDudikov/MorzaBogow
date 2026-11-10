@@ -17,15 +17,15 @@ namespace MorzaBogow.Presentation.Landscape
     /// <item>A limb on a moving limb feels the frame's angular acceleration (−J·α) and its joint's linear
     /// acceleration (−m·r_c × a): small-angle Newton–Euler, the products of rates left out.</item>
     /// </list>
-    /// Semi-implicit Euler at 120 steps per second of game time: stable while ω·Δt &lt; 2, here at most 0.47.
+    /// Semi-implicit Euler at 60 steps per second of game time: stable while ω·Δt &lt; 2, here at most 0.94.
     /// Gravity's effect on the bending stiffness and the sway of the root plate are left out.
     /// Presentation only: nothing here reaches the simulation.
     /// </summary>
     public sealed class TreeDynamics
     {
-        public const float StepLength = 1f / 120f;
+        public const float StepLength = 1f / 60f;
 
-        /// <summary>Highest oscillator frequency kept, Hz: a numerical limit (ω·Δt ≤ 0.47), noted in the documentation.</summary>
+        /// <summary>Highest oscillator frequency kept, Hz: a numerical limit (ω·Δt ≤ 0.94 at 60 steps a second), noted in the documentation.</summary>
         public const float HighestFrequency = 9f;
 
         public struct Mode
@@ -37,6 +37,9 @@ namespace MorzaBogow.Presentation.Landscape
             public Vector2 Inertia;
 
             public float Stiffness, Damping, Frequency;
+
+            /// <summary>A branch's oscillator: left still when the tree is drawn too small for branches (LOD2).</summary>
+            public bool Branch;
 
             /// <summary>Σ A·(c − joint) over the crown it carries (m³) and Σ A·d⊥² (m⁴) for the drag's damping.</summary>
             public Vector3 AreaMoment;
@@ -85,6 +88,7 @@ namespace MorzaBogow.Presentation.Landscape
                     Bone = i,
                     Parent = -1,
                     Joint = bone.Origin,
+                    Branch = bone.Role == BoneRole.Branch,
                     AxisX = bone.Rest * Vector3.right,
                     AxisZ = bone.Rest * Vector3.forward,
                 };
@@ -205,25 +209,26 @@ namespace MorzaBogow.Presentation.Landscape
         }
 
         /// <summary>Advances the tree by dt seconds of game time in a steady wind (tree space, at the crown).</summary>
-        public void Advance(float dt, Vector3 wind, float airDensity)
+        public void Advance(float dt, Vector3 wind, float airDensity, bool limbsOnly = false)
         {
             if (dt <= 0f) return;
             var steps = Mathf.Max(1, Mathf.CeilToInt(dt / StepLength - 1e-3f));
             var h = dt / steps;
-            for (var i = 0; i < steps; i++) Step(h, wind, airDensity);
+            for (var i = 0; i < steps; i++) Step(h, wind, airDensity, limbsOnly);
             var speed = wind.magnitude;
             // Shoots flap faster in a stronger wind, within the species' range.
             var rate = Model.Species.FlutterFrequency * Mathf.Clamp(0.7f + 0.3f * speed / 8f, 0.7f, 1.6f);
             FlutterPhase += 2.0 * Math.PI * rate * dt;
         }
 
-        void Step(float dt, Vector3 wind, float airDensity)
+        void Step(float dt, Vector3 wind, float airDensity, bool limbsOnly)
         {
             Wind = wind;
             var force = Pressure(wind, airDensity, out var aero);
             for (var m = 0; m < Modes.Length; m++)
             {
                 var mode = Modes[m];
+                if (limbsOnly && mode.Branch) continue;
                 Vector3 frame = Vector3.zero, joint = Vector3.zero;
                 if (mode.Parent >= 0)
                 {

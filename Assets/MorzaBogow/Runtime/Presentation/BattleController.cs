@@ -248,6 +248,8 @@ namespace MorzaBogow.Presentation
             Landscape.Vegetation.Wind = new Landscape.MarineTreeWind(() => World);
             Landscape.Vegetation.Clock = () => paused ? 0f : Time.unscaledDeltaTime * Speed;
             Landscape.Vegetation.Leeward = Landscape.Vegetation.LeewardOf(World.Marine?.Wind.Climate);
+            // -morzaPlainOlives draws the old one-mesh olives instead, to measure what the new trees cost in one build.
+            Landscape.Vegetation.PlainOlives = Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaPlainOlives") >= 0;
             if (fog == null) fog = new BattleFog(materials?.Fog);
             opponent = new Opponent(1) { BuildIndex = opponentBuildIndex };
             BuildStaticViews();
@@ -507,7 +509,7 @@ namespace MorzaBogow.Presentation
         void UpdateShowcase()
         {
             showcaseClock += Time.unscaledDeltaTime;
-            if (showcaseSteps == null) showcaseSteps = crewShowcase ? BuildCrewShowcase() : BuildShowcase();
+            if (showcaseSteps == null) showcaseSteps = crewShowcase ? BuildCrewShowcase() : landscapeShowcase ? BuildLandscapeShowcase() : BuildShowcase();
             if (showcaseStep >= showcaseSteps.Length)
             {
                 if (showcaseClock - showcaseMark > 1.5f) Application.Quit(0);
@@ -711,6 +713,7 @@ namespace MorzaBogow.Presentation
             var showcase = Array.IndexOf(arguments, "-morzaShowcase");
             if (showcase >= 0 && showcase + 1 < arguments.Length) showcasePrefix = arguments[showcase + 1];
             ReadCrewShowcase(arguments);
+            ReadLandscapeShowcase(arguments);
             var index = Array.IndexOf(arguments, "-morzaSmokeReport");
             if (index < 0 || index + 2 >= arguments.Length) return;
             smokeReport = arguments[index + 1];
@@ -1559,6 +1562,7 @@ namespace MorzaBogow.Presentation
             var dark = new TreeModels.Grove();
             // Olives are trees of their own (Presentation.Landscape): bones the match's wind bends, a form from a stable id.
             var olive = new Landscape.TreeGroveBuilder();
+            var plainOlives = new TreeModels.Grove();
             var groveId = (uint)((int)(seed * 100.0) ^ 0x2F6A1D3);
             var leeward = parent != null ? parent.InverseTransformDirection(Landscape.Vegetation.Leeward) : Vector3.zero;
             var profile = Landscape.EnvironmentProfile.Default;
@@ -1583,7 +1587,8 @@ namespace MorzaBogow.Presentation
                 var scale = kind == TreeKind.StonePine ? Next(0.5f, 0.75f) : kind == TreeKind.Olive ? Next(0.5f, 0.65f) : olives ? Next(0.5f, 0.62f) : Next(0.55f, 0.8f);
                 var variant = random.Next(4);
                 var yaw = Next(0f, 360f);
-                if (kind == TreeKind.Olive)
+                if (kind == TreeKind.Olive && Landscape.Vegetation.PlainOlives) plainOlives.Add(kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale);
+                else if (kind == TreeKind.Olive)
                 {
                     var id = Landscape.StableHash.Mix(groveId, (uint)planted.Count);
                     var species = Landscape.StableHash.Unit(Landscape.StableHash.Mix(id, 5u)) < profile.CultivatedOliveShare ? Landscape.TreeSpecies.OliveCultivated : Landscape.TreeSpecies.OliveWild;
@@ -1594,6 +1599,7 @@ namespace MorzaBogow.Presentation
                 else dark.Add(kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale);
             }
             AddGrove(parent, dark, materials?.Foliage);
+            AddGrove(parent, plainOlives, materials?.OliveFoliage);
             if (olive.Count > 0)
             {
                 olive.Build(parent, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
@@ -3031,6 +3037,10 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"ships\": {World.Ships.Count},\n  \"views\": {views.Count},\n  \"maxVisibleEnemies\": {smokeMaxVisibleEnemies},\n");
             report.Append($"  \"shipLooks\": \"{(plainShips ? "plain" : ShipLookLibrary.Aegean)}\",\n  \"lookRenderers\": {views.Values.Sum(view => view != null ? view.LookRenderers.Count : 0)},\n  \"lookMaterials\": {ShipPaints.PaletteSize},\n");
             report.Append($"  \"coastPrefabLoaded\": {(coastPrefab != null ? "true" : "false")},\n  \"coast\": \"{coastScaleNote}\",\n");
+            // Trees of their own (Presentation.Landscape): how many, their triangles per level, the main thread's time on their wind and bones.
+            report.Append($"  \"landscapeTrees\": {Landscape.TreeGrove.TreesActive},\n  \"landscapePlainOlives\": {(Landscape.Vegetation.PlainOlives ? "true" : "false")},\n");
+            report.Append($"  \"landscapeTreeTriangles\": [{Landscape.TreeGrove.Triangles(0)}, {Landscape.TreeGrove.Triangles(1)}, {Landscape.TreeGrove.Triangles(2)}],\n");
+            report.Append($"  \"landscapeTreeMs\": {Landscape.TreeGrove.MeanMilliseconds.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)},\n");
             report.Append($"  \"profile\": \"{QualitySettings.names[QualitySettings.GetQualityLevel()]}\",\n  \"screen\": \"{Screen.width}x{Screen.height}\",\n");
             report.Append($"  \"wood\": [{World.Settlements[0].Wood / Rules.Centi}, {World.Settlements[1].Wood / Rules.Centi}],\n");
             report.Append($"  \"silver\": [{World.Settlements[0].Silver / Rules.Centi}, {World.Settlements[1].Silver / Rules.Centi}],\n");
