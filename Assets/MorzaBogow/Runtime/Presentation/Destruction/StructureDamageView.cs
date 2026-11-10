@@ -33,6 +33,8 @@ namespace MorzaBogow.Presentation
         /// <summary>The height a fallen piece comes to rest at, at a point of the structure's frame.</summary>
         public Func<Vector3, float> RestHeight = _ => 0f;
         public Func<GreekMaterial[], Material[]> Materials = _ => null;
+        /// <summary>The materials of what lies fallen: dulled by dust; none given: the same as standing.</summary>
+        public Func<GreekMaterial[], Material[]> RubbleMaterials;
         /// <summary>Dust and what flies off the material, at a point of the frame, as strong as given.</summary>
         public Action<Vector3, BuildMaterial, float, uint> Burst;
         public List<Mesh> Owned;
@@ -617,7 +619,7 @@ namespace MorzaBogow.Presentation
             foreach (var i in elements) AddRest(parts, i);
             if (parts.Count == 0) return;
             var chunk = Take();
-            Show(chunk, parts, "Chunk");
+            Show(chunk, parts, "Chunk", true);
             chunk.Object.transform.localPosition = Vector3.zero;
             chunk.Object.transform.localRotation = Quaternion.identity;
             chunk.Object.transform.localScale = Vector3.one;
@@ -941,7 +943,7 @@ namespace MorzaBogow.Presentation
                 rubbleParts.Clear();
             }
             Fill(standing, ref standingMesh, standingParts);
-            if (bodies.Count == 0) Fill(rubble, ref rubbleMesh, rubbleParts);
+            if (bodies.Count == 0) Fill(rubble, ref rubbleMesh, rubbleParts, true);
 
             var scarBuilder = new GreekShips.MeshBuilder(null);
             var any = false;
@@ -982,11 +984,11 @@ namespace MorzaBogow.Presentation
             }
             foreach (var chunk in chunks) Release(chunk);
             chunks.Clear();
-            Fill(rubble, ref rubbleMesh, parts);
+            Fill(rubble, ref rubbleMesh, parts, true);
             SettledPieces = count;
         }
 
-        void Fill(GameObject target, ref Mesh mesh, List<(GreekMesh, Matrix4x4)> parts)
+        void Fill(GameObject target, ref Mesh mesh, List<(GreekMesh, Matrix4x4)> parts, bool lying = false)
         {
             if (mesh != null) { Free(mesh); mesh = null; }
             var filter = target.GetComponent<MeshFilter>();
@@ -1001,7 +1003,7 @@ namespace MorzaBogow.Presentation
             mesh.name = $"{frame.name} {target.name}";
             Own(mesh);
             filter.sharedMesh = mesh;
-            var list = host.Materials(slots);
+            var list = (lying && host.RubbleMaterials != null ? host.RubbleMaterials : host.Materials)(slots);
             if (list != null && Array.TrueForAll(list, m => m != null)) renderer.sharedMaterials = list;
             target.SetActive(true);
         }
@@ -1046,13 +1048,13 @@ namespace MorzaBogow.Presentation
             return result;
         }
 
-        void Show(Body body, List<(GreekMesh, Matrix4x4)> parts, string name)
+        void Show(Body body, List<(GreekMesh, Matrix4x4)> parts, string name, bool lying = false)
         {
             if (body.Mesh != null) { Free(body.Mesh); body.Mesh = null; }
             body.Mesh = Combine(parts, out var slots);
             Own(body.Mesh);
             body.Filter.sharedMesh = body.Mesh;
-            var list = host.Materials(slots);
+            var list = (lying && host.RubbleMaterials != null ? host.RubbleMaterials : host.Materials)(slots);
             if (list != null && Array.TrueForAll(list, m => m != null)) body.Renderer.sharedMaterials = list;
             body.Object.name = name;
             body.Object.SetActive(true);

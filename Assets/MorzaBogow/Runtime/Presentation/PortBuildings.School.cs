@@ -112,6 +112,12 @@ namespace MorzaBogow.Presentation
                     for (var i = 0; i < list.Length; i++) list[i] = MaterialFor(slots[i], materials);
                     return list;
                 },
+                RubbleMaterials = slots =>
+                {
+                    var list = new Material[slots.Length];
+                    for (var i = 0; i < list.Length; i++) list[i] = RubbleMaterialFor(slots[i], materials);
+                    return list;
+                },
                 Owned = owned,
             };
             schoolDamage = new StructureDamageView(root, "SageSchool (damage)", graph, shapes, host, "school/", DestructionHash.Mix((uint)seed, 31));
@@ -120,6 +126,27 @@ namespace MorzaBogow.Presentation
             schoolDamage.Frame.localRotation = schoolPiece.Root.localRotation;
             host.Burst = (point, material, strength, hash) => Burst(schoolDamage.Frame, point, material, strength, hash);
             schoolDamage.Record = Record;
+        }
+
+        /// <summary>
+        /// What has fallen is dulled by its own dust: whitewash and painted stone greyed and darker, the paint's blue and red
+        /// faded, tiles duller, the dark door leaf brown; brick and timber as they are. Copies made once (Tint), never per frame.
+        /// </summary>
+        static Material RubbleMaterialFor(GreekMaterial paint, PlaceholderMaterials materials)
+        {
+            var clean = MaterialFor(paint, materials);
+            if (clean == null) return null;
+            return paint switch
+            {
+                GreekMaterial.Paint => Tint(clean, "dusty", new Color(0.8f, 0.76f, 0.68f), 0.1f),
+                GreekMaterial.Stone => Tint(clean, "dusty", new Color(0.86f, 0.82f, 0.75f), 0.1f),
+                GreekMaterial.Azure => Tint(clean, "dusty", new Color(0.3f, 0.37f, 0.5f), 0.1f),
+                GreekMaterial.Ochre => Tint(clean, "dusty", new Color(0.56f, 0.28f, 0.18f), 0.1f),
+                GreekMaterial.Terracotta => Tint(clean, "dusty", new Color(0.58f, 0.38f, 0.27f), 0.1f),
+                // A door leaf of dark-stained wood lying in the dust, not a black hole in the ground.
+                GreekMaterial.Pitch => Tint(clean, "dusty", new Color(0.24f, 0.2f, 0.16f), 0.1f),
+                _ => clean,
+            };
         }
 
         /// <summary>Where a fallen piece of the School comes to rest: on the step it lands on, or on the hill beside it.</summary>
@@ -348,9 +375,9 @@ namespace MorzaBogow.Presentation
             var hall = floor + new Vector3(HallOffset, 0f, 0f);
             var course = (SchoolColumnHeight + SchoolEpistyle + SchoolFrieze) / HallCourses;
             var socle = Builder();
+            // The socle without the door: the door leaf down to the threshold is the door's own element, so it never stands alone.
             WallCourse(socle, GreekMaterial.Stone, hall, HallWidth, HallDepth, 0f, course, HallWall, HallDoor, HallDoorTop);
-            socle.Box(GreekMaterial.Pitch, hall + new Vector3(HallWidth * 0.5f - 0.25f, course * 0.5f, 0f), new Vector3(0.03f, course * 0.5f, HallDoor), Quaternion.identity);
-            var socleIndex = Add("hall.socle", ElementRole.Foundation, BuildMaterial.Stone, DetachMethod.Fixed, socle.Build(GreekMaterial.Stone, GreekMaterial.Pitch), Vector3.zero, "orthostates on the stylobate",
+            var socleIndex = Add("hall.socle", ElementRole.Foundation, BuildMaterial.Stone, DetachMethod.Fixed, socle.Build(GreekMaterial.Stone), Vector3.zero, "orthostates on the stylobate",
                 new ElementShape());
 
             // Columns: drums on drums, the capital on the top drum.
@@ -501,7 +528,7 @@ namespace MorzaBogow.Presentation
                 wallIndex[id] = index;
             }
             var door = Builder();
-            door.Box(GreekMaterial.Pitch, hall + new Vector3(HallWidth * 0.5f - 0.25f, course + (HallDoorTop + 0.6f - course) * 0.5f, 0f), new Vector3(0.03f, (HallDoorTop + 0.6f - course) * 0.5f, HallDoor), Quaternion.identity);
+            door.Box(GreekMaterial.Pitch, hall + new Vector3(HallWidth * 0.5f - 0.25f, (HallDoorTop + 0.6f) * 0.5f, 0f), new Vector3(0.03f, (HallDoorTop + 0.6f) * 0.5f, HallDoor), Quaternion.identity);
             Add("hall.door", ElementRole.Decor, BuildMaterial.Timber, DetachMethod.Drop, door.Build(GreekMaterial.Pitch), Vector3.right, "hung in the door frame",
                 new ElementShape { Radius = 0.04f }, wallIndex["wall.front.left"], wallIndex["wall.front.right"]);
 
