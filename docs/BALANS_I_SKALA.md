@@ -77,6 +77,41 @@ Decyzja użytkownika z uzgodnienia paczki specyfikacji ([UZGODNIENIE_SPECYFIKACJ
   Został ostatni wariant, bo tylko w nim AI faktycznie dochodzi do Miasta i Doku.
 - **Kosztu i czasu doku nie zmieniano.** Decyzja użytkownika z 2026-11-10: reguła doku zostaje, a długość meczów AI (cele 60/90 min) poprawi etap 7 (odwrót, obrona, fale, odbudowa). To pomiar AI kontra AI, nie playtest.
 
+## Pomiar po etapie 3c, część 1 (2026-11-10)
+
+simprof, AI kontra AI, 130 min, ziarna 9 i 23. „Z dokiem” to pomiar z sekcji wyżej.
+
+| Profil | Mecze AI, zwycięstwo po: z dokiem → po 3c | Okręty wojenne bez walki (strona): z dokiem → po 3c | Cel |
+|---|---|---|---:|
+| Krótka | 31–38 → 13–18 min | 59–62 → 27–58 | 30 min |
+| Standardowa | 23–30 → 36–38 min | 65–70 → 47–58 | 60 min |
+| Długa | 50–61 → 31 min | 61–63 → 38–49 | 90 min |
+
+Przyczyny ustalono na wariantach AI w kopii symulacji, poza projektem.
+
+- **Długość meczów zmienia niszczyciel okrętów w cyklu AI.**
+  - AI bez niego i bez Szkoły odtwarza dokładnie wyniki z dokiem: 31–38 / 23–30 / 50–61 min.
+  - AI bez niego, ale ze Szkołą: 31–39 / 23–30 / 50–68 min.
+  - Wyłączenie samej Szkoły i badania niczego nie zmienia, bo w meczach AI nie zdąża ich zbudować.
+- **Mechanizm.**
+  - AI broni się dopiero wtedy, gdy wróg podpłynie na 250 m do portu macierzystego.
+  - Okręt bez rozkazu strzela tylko do wroga we własnym zasięgu, a łucznicy sięgają 100 m.
+  - Balisty niszczyciela okrętów sięgają 180 m. Topią więc bezczynnych obrońców i okręty płynące do remontu bez odpowiedzi: w meczu Długim (ziarno 9) strona przegrywająca traci 10 okrętów, a zwycięska jeden.
+  - Potem mury padają głównie od balist.
+- **Sprawdzone szybkie poprawki nie przywracają dawnych długości** (Krótka / Standardowa / Długa):
+  - balista słabsza na budynki (×0,5 zamiast ×1,25): 15–18 / 37–40 / 34 min;
+  - AI odpowiada ogniem na wroga do 220 m od okrętu: 13–21 / 23–56 / 32–42 min.
+- **W grze bez walki okrętów jest mniej.**
+  - Szkoła i badanie kosztują razem 350 D / 800 S, a cykl z niszczycielem okrętów i bombowcem jest droższy.
+  - AI stawia Szkołę w 27.–65. min. Badanie kończy w 46.–73. min, a w Krótkiej tylko raz, w 100. min.
+  - Pierwszego bombowca buduje w 70.–82. min, najwyżej jednego na stronę w 130 min.
+- **Placówki giną od pocisków wycelowanych w okręty.**
+  - Strzał, który spada w promieniu 22 m od osady, uszkadza ją także wtedy, gdy celem był okręt przy nabrzeżu.
+  - Balista zadaje murom ok. 56 punktów na strzał, więc tak burzy placówki nawet w grze bez walki. W Krótkiej jedna strona straciła 1–2 placówki.
+- **Miernik czasu walki w narzędziu jest zaniżony.** Liczy tylko salwy łuków i oszczepów, taran i abordaż, więc nie widzi walki z balistami.
+
+**Stan:** wartości klas i AI bez zmian. Decyzja o długości meczów AI czeka na użytkownika (etap 7 albo niszczyciel okrętów poza cyklem AI do etapu 7). To pomiar AI kontra AI, nie playtest.
+
 ## Etap 1 — wdrożony
 
 ### Profile długości (`MatchProfile`, `Definitions.cs`)
@@ -186,7 +221,7 @@ Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z eta
 | 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy; unikalne okręty drugiej cywilizacji i warianty barbarzyńskie (własne nazwy) | plan |
 | 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan |
 | 6 | Osady: forty przybrzeżne z limitem siły na osadę, Kuźnia (pancerze i tarany: zwykłe, srebrne, złote), badania pancerza, taranu i prędkości, transport sprzętu handlowcem, sprzedaż obiektów, rozbudowa portu (dok wdrożony przy uzgodnieniu paczki) | plan |
-| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową, które przy regule doku przywróci długość meczów AI (Standardowa 60, Długa 90 min; dziś 23–30 i 50–61 min); druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
+| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami, odbudową i obroną przed ostrzałem z dystansu, które przywróci długość meczów AI (Krótka 30, Standardowa 60, Długa 90 min; po 3c 13–18, 36–38 i 31 min); druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
 | 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty, weteranów i artefaktów (fabuła i misje własne) | plan |
 | 9 | Świątynie morza i wojny, zaklęcia za D/S z zasięgiem od świątyni (wiry, rafy, wiatr, ogień, osłony; własny dobór i liczby) | plan |
 

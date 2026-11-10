@@ -124,6 +124,7 @@ L – lekkie, Ś – średnie, C – ciężkie gniazdo.
   - Odkładanie przerywa tylko wróg przy porcie.
 - **Cykl okrętów:** taranowiec, niszczyciel załóg, abordażowiec, niszczyciel okrętów. Co piąty okręt jest bombowcem, jeśli port ma Warsztat, a strona ma badanie. Inaczej w tym miejscu powstaje okręt z cyklu.
 - Test sprawdza, że AI dochodzi do Szkoły, badania i pierwszego bombowca.
+- **Mecze AI kontra AI po 3c.** Niszczyciel okrętów je skraca (Krótka 13–18, Długa 31 min), bo balisty sięgają dalej, niż AI zaczyna się bronić. Bombowiec pojawia się w AI rzadko: pierwszy w 70.–82. min. Pomiar i przyczyny: [BALANS_I_SKALA.md](BALANS_I_SKALA.md#pomiar-po-etapie-3c-część-1-2026-11-10).
 
 ## Pojedynki i oblężenie (pomiar 3c, symulacja .NET bez Unity)
 
