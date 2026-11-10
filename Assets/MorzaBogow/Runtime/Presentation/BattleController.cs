@@ -1072,6 +1072,11 @@ namespace MorzaBogow.Presentation
                 else starboard = Mathf.Min(starboard, gap);
             }
 
+            // Lying alongside another hull in a boarding (as drawn, CrewDirector): that side's oars come in.
+            var contact = crewDirector != null ? crewDirector.ContactSide(ship.Id) : 0;
+            if (contact < 0) port = 0f;
+            else if (contact > 0) starboard = 0f;
+
             // A jetty or quay alongside: a moored hull has its oars in anyway, as at rest.
             view.SetOarRoom(port, starboard);
         }
@@ -2055,8 +2060,13 @@ namespace MorzaBogow.Presentation
                 var current = ToWorld(ship);
                 var gamePosition = previous.TryGetValue(ship.Id, out var last) ? Vector3.Lerp(last, current, blend) : current;
                 var gameRotation = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
-                // A boarder is drawn hauled alongside its target by the grapples (the picture only, CrewDirector.HaulOffset).
-                if (crewDirector != null) gamePosition += crewDirector.HaulOffset(ship.Id);
+                // A boarder is drawn hauled alongside its target by the grapples, broadside to broadside (the picture only,
+                // CrewDirector.HaulOffset and HaulYaw).
+                if (crewDirector != null)
+                {
+                    gamePosition += crewDirector.HaulOffset(ship.Id);
+                    gameRotation = Quaternion.Euler(0f, crewDirector.HaulYaw(ship.Id), 0f) * gameRotation;
+                }
                 if (!PlaceLaunch(ship, view, gamePosition, gameRotation, paused ? 0f : delta * Speed)) view.transform.SetPositionAndRotation(gamePosition, gameRotation);
                 UpdateOarRoom(ship, view);
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));

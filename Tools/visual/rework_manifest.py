@@ -202,6 +202,7 @@ STATUS = {
     "character.warrior": "in progress: 4th c. kit (pilos, Corinthian and Boeotian helmets, linothorax, aspis; commit 9ed303b)",
     "character.peltast": "in progress: pelte and caps (commit 9ed303b)",
     "prop.amphora": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
+    "fx.boarding": "done: broadside haul, oars in, the front crosses and fights on the other deck, the dead lie where they fell, return over the rails (BoardingPresentationTests 3/3)",
     "rock.attica-set": "first variant ready: rock_attica_limestone_a (Meshy MCP -> Blender -> Unity)",
 }
 for _entry in ENTRIES:

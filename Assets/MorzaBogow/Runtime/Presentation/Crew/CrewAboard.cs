@@ -28,6 +28,14 @@ namespace MorzaBogow.Presentation
         public float FellFacing;
         /// <summary>A boarding: he stands at the rail station facing the other deck.</summary>
         public int RailStation = -1;
+        /// <summary>A boarding's front: the order he crosses to the other deck in (0 first); -1 when he does not cross.</summary>
+        public int CrossOrder = -1;
+        /// <summary>Fallen on the other ship's deck: FellPosition is then in FellOn's model space (drawn while that ship is).</summary>
+        public bool FellAcross;
+        public ShipVisual FellOn;
+        /// <summary>Coming back over the rails when a boarding ends: from where (world) and since when (clock; -1 not).</summary>
+        public Vector3 ReturnFrom;
+        public float ReturnAt = -1f;
         public List<(int Bone, Mesh Mesh, float4x4 Local)> Parts;
         public int PartsLod = -1;
     }
@@ -70,6 +78,20 @@ namespace MorzaBogow.Presentation
         Vector3 boardingToward;
         float lastYaw;
         float turnRate;
+
+        /// <summary>The other ship of this crew's grappled boarding (its view), set each frame by CrewDirector; null without one.</summary>
+        public ShipVisual BoardingView;
+        /// <summary>How far the attacker's hull has been hauled alongside (0 to 1, CrewDirector.HaulWeight).</summary>
+        public float BoardingContact;
+        /// <summary>This crew boards (true) or is boarded (false).</summary>
+        public bool BoardingAttacker;
+        ShipVisual lastBoardingView;
+        float contactAt = -1f;
+
+        /// <summary>The rails touch from this share of the haul; the front then crosses one man after another.</summary>
+        public const float ContactWeight = 0.97f, CrossSeconds = 1.6f, CrossStagger = 0.35f, ReturnSeconds = 1.2f;
+        /// <summary>Shares of a crossing: up onto his own rail, over the gap, down onto the other deck.</summary>
+        const float OnRail = 0.3f, OverGap = 0.55f;
 
         public CrewAboard(Ship ship, ShipVisual view, World world)
         {
@@ -181,9 +203,21 @@ namespace MorzaBogow.Presentation
                 Men.Remove(man);
                 byMan.Remove(id);
                 if (!fighting || man.Station < 0 || man.Trade == CrewTrade.Wounded) continue;
-                // Where he stood, before he becomes one of the fallen.
-                man.FellPosition = ModelPosition(man);
-                man.FellFacing = Facing(man);
+                // Where he stood, before he becomes one of the fallen: on the other deck if he had crossed to it.
+                var cross = Crossing(man, clock, BoardingView, BoardingAttacker);
+                if (cross >= OverGap && BoardingView != null)
+                {
+                    var (fellAt, yaw, _) = CrossPose(man, StationOf(man), cross, BoardingView);
+                    man.FellAcross = true;
+                    man.FellOn = BoardingView;
+                    man.FellPosition = BoardingView.Model.InverseTransformPoint(fellAt);
+                    man.FellFacing = yaw - BoardingView.Model.eulerAngles.y;
+                }
+                else
+                {
+                    man.FellPosition = ModelPosition(man);
+                    man.FellFacing = Facing(man);
+                }
                 man.Fallen = true;
                 man.Wounding = newlyWounded-- > 0;
                 man.FellAt = clock;
@@ -239,7 +273,7 @@ namespace MorzaBogow.Presentation
                     if (ready != Ready) { Ready = ready; reman = true; }
                 }
             }
-            UpdateBoarding(ship, view, world);
+            UpdateBoarding(ship, view, world, clock);
             if (reman) Reman(ship, clock);
 
             // The oars: one stroke whose pace follows the ship's way, a sprint in a ram's charge; a bench without its man draws its oar in.
@@ -401,8 +435,12 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        /// <summary>A grappled boarding: which side faces the other deck and how many men fight at its rail.</summary>
-        void UpdateBoarding(Ship ship, ShipVisual view, World world)
+        /// <summary>
+        /// A grappled boarding: which side faces the other deck and how many men fight at its rail. Once the rails touch
+        /// (CrewDirector's haul), the boarders' front crosses to the other deck one man after another and the defenders
+        /// step back from their rail to meet them; when the boarding ends, boarders still alive come back over the rails.
+        /// </summary>
+        void UpdateBoarding(Ship ship, ShipVisual view, World world, float clock)
         {
             var side = 0;
             var front = 0;
@@ -411,11 +449,32 @@ namespace MorzaBogow.Presentation
                 if (!link.Hooked || link.AttackerId != ship.Id && link.TargetId != ship.Id) continue;
                 var other = world.FindShip(link.AttackerId == ship.Id ? link.TargetId : link.AttackerId);
                 if (other == null) continue;
-                boardingToward = new Vector3((float)other.X, 1.5f, (float)other.Y);
+                // The other ship as drawn, hauled alongside (CrewDirector), else its place in the game.
+                boardingToward = BoardingView != null ? BoardingView.transform.position + Vector3.up * 1.5f : new Vector3((float)other.X, 1.5f, (float)other.Y);
                 var local = view.transform.InverseTransformPoint(boardingToward);
                 side = local.x >= 0f ? 1 : -1;
                 var attacking = link.AttackerId == ship.Id;
                 front = CrewDirector.Front(attacking ? link.AttackerFront : link.TargetFront, ship, World.BoardingFront(attacking ? ship : other, attacking ? other : ship));
+            }
+            if (side != 0 && BoardingView != null && BoardingContact >= ContactWeight && contactAt < 0f) contactAt = clock;
+            if (side == 0 && boardingSide != 0)
+            {
+                // The boarding is over: the boarders who crossed and live come back over the rails to their own deck.
+                foreach (var man in Men)
+                {
+                    var cross = Crossing(man, clock, lastBoardingView, wasAttacker);
+                    if (cross < OnRail || man.Fallen) continue;
+                    man.ReturnFrom = CrossPose(man, StationOf(man), cross, lastBoardingView).at;
+                    man.ReturnAt = clock;
+                }
+                contactAt = -1f;
+            }
+            foreach (var man in Men)
+                if (man.ReturnAt >= 0f && clock - man.ReturnAt >= ReturnSeconds) man.ReturnAt = -1f;
+            if (BoardingView != null)
+            {
+                lastBoardingView = BoardingView;
+                wasAttacker = BoardingAttacker;
             }
             if (side != boardingSide || front != boardingFront)
             {
@@ -424,6 +483,56 @@ namespace MorzaBogow.Presentation
                 reman = true;
             }
         }
+
+        bool wasAttacker;
+
+        /// <summary>How far a man of the boarders' front has crossed to the other deck: 0 not begun, 1 standing on it.</summary>
+        float Crossing(CrewMan man, float clock, ShipVisual other, bool attacker)
+        {
+            if (!attacker || other == null || contactAt < 0f || man.RailStation < 0 || man.CrossOrder < 0) return 0f;
+            return Mathf.Clamp01((clock - contactAt - man.CrossOrder * CrossStagger) / CrossSeconds);
+        }
+
+        static float SAt(GreekShipForm f, float z) => Mathf.InverseLerp(GreekShips.Z(f, 0f), GreekShips.Z(f, 1f), z);
+
+        /// <summary>
+        /// A boarder's way to the other deck (world space): from his place up onto his own rail, over the gap between the
+        /// rails in a short leap, then down onto the other deck a stride in from its rail. Every point is taken from both
+        /// hulls as drawn this frame, so his feet keep to the decks as they heave and roll. Facing across, toward the other
+        /// ship's middle line.
+        /// </summary>
+        (Vector3 at, float yaw, bool climbing) CrossPose(CrewMan man, CrewStation station, float t, ShipVisual other)
+        {
+            var f = Profile.Parts.Form;
+            var standLocal = station != null ? station.Position : ModelPosition(man);
+            var s = SAt(f, standLocal.z);
+            var stand = View.Model.TransformPoint(standLocal);
+            var rail = View.Model.TransformPoint(new Vector3(boardingSide * GreekShips.HalfWidth(f, s), GreekShips.Sheer(f, s) + 0.05f, standLocal.z));
+            if (other == null) return (rail, View.Model.eulerAngles.y, true);
+            var of = other.Parts.Form;
+            var near = other.Model.InverseTransformPoint(rail);
+            var os = Mathf.Clamp(SAt(of, near.z), 0.15f, 0.85f);
+            var otherSide = near.x >= 0f ? 1f : -1f;
+            var oz = GreekShips.Z(of, os);
+            var otherRail = other.Model.TransformPoint(new Vector3(otherSide * GreekShips.HalfWidth(of, os), GreekShips.Sheer(of, os) + 0.05f, oz));
+            var landX = otherSide * Mathf.Max(0.3f, GreekShips.HalfWidth(of, os) - 0.7f);
+            var land = other.Model.TransformPoint(new Vector3(landX, GreekShips.FloorAt(of, os, landX), oz));
+            Vector3 at;
+            if (t < OnRail) at = Vector3.Lerp(stand, rail, Mathf.SmoothStep(0f, 1f, t / OnRail));
+            else if (t < OverGap)
+            {
+                var u = (t - OnRail) / (OverGap - OnRail);
+                at = Vector3.Lerp(rail, otherRail, u) + Vector3.up * (0.35f * Mathf.Sin(u * Mathf.PI));
+            }
+            else at = Vector3.Lerp(otherRail, land, Mathf.SmoothStep(0f, 1f, (t - OverGap) / (1f - OverGap)));
+            var across = land - rail;
+            across.y = 0f;
+            var yaw = across.sqrMagnitude > 1e-4f ? Mathf.Atan2(across.x, across.z) * Mathf.Rad2Deg : View.Model.eulerAngles.y;
+            return (at, yaw, t < OverGap);
+        }
+
+        /// <summary>Boarders standing on the other deck in the last frame drawn (world space), for tests and the HUD.</summary>
+        public readonly List<Vector3> Across = new List<Vector3>();
 
         /// <summary>Everyone to his station by the simulation's numbers; a man whose place changes walks there from where he is.</summary>
         void Reman(Ship ship, float clock)
@@ -458,7 +567,11 @@ namespace MorzaBogow.Presentation
             // At a grappled rail the front stands and fights, as many as the front holds, at the places nearest the other ship:
             // a warrior already standing ready at one turns where he stands; a place without its man takes the deck's other
             // warriors, then (grappled, the posts cannot shoot, so their men fight too: World.DeckStrength) the posts' men.
-            foreach (var man in Men) man.RailStation = -1;
+            foreach (var man in Men)
+            {
+                man.RailStation = -1;
+                man.CrossOrder = -1;
+            }
             if (boardingSide != 0 && boardingFront > 0)
             {
                 var rails = new List<int>();
@@ -484,6 +597,9 @@ namespace MorzaBogow.Presentation
                         if (man.RailStation >= 0 || man.Station < 0 || (pass == 0 ? !Deck(man) : !Post(man))) continue;
                         man.RailStation = open[next++];
                     }
+                // The front crosses nearest the other ship first.
+                foreach (var man in Men)
+                    if (man.RailStation >= 0) man.CrossOrder = rails.IndexOf(man.RailStation);
             }
             // Whoever's place changed, to or from the rail or to another station, walks there from where he stood.
             foreach (var man in Men)
@@ -737,6 +853,7 @@ namespace MorzaBogow.Presentation
         public void Emit(List<Figure> figures, int lod, float clock, int modelSlot)
         {
             DrawnFigures = 0;
+            Across.Clear();
             foreach (var man in Men)
             {
                 var station = StationOf(man);
@@ -746,6 +863,8 @@ namespace MorzaBogow.Presentation
             }
             foreach (var body in bodies)
             {
+                // A boarder who fell on the other deck lies there while that ship is drawn.
+                if (body.FellAcross && (body.FellOn == null || !body.FellOn.gameObject.activeInHierarchy)) continue;
                 figures.Add(Build(body, null, modelSlot, lod, clock));
                 DrawnFigures++;
             }
@@ -829,6 +948,55 @@ namespace MorzaBogow.Presentation
                     input.Hands = 3 | 4;
                     input.HandLeft = l;
                     input.HandRight = r;
+                }
+            }
+            // In a boarding (CrewDirector's haul): crossing the rails, fallen on the other deck, or coming back, posed in the
+            // world from both hulls as drawn; the defenders a stride back from their rail. The game's numbers decide who
+            // fights and falls; the picture only places them.
+            if (man.Fallen && man.FellAcross && man.FellOn != null)
+            {
+                var at = man.FellOn.Model.TransformPoint(man.FellPosition);
+                input.ModelSlot = 0;
+                input.Frame = float4x4.TRS(at, quaternion.RotateY(math.radians(man.FellOn.Model.eulerAngles.y + man.FellFacing)), new float3(1f));
+            }
+            else if (!man.Fallen && station != null)
+            {
+                var cross = Crossing(man, clock, BoardingView, BoardingAttacker);
+                if (cross > 0f)
+                {
+                    var (at, yaw, climbing) = CrossPose(man, station, cross, BoardingView);
+                    input.ModelSlot = 0;
+                    input.Frame = float4x4.TRS(at, quaternion.RotateY(math.radians(yaw)), new float3(1f));
+                    input.Seated = false;
+                    input.Hands = 0;
+                    input.Aim = float3.zero;
+                    if (climbing)
+                    {
+                        input.Action = (int)CrewAction.Climb;
+                        input.Phase = cross / OverGap;
+                    }
+                    else if (cross >= 1f) Across.Add(at);
+                }
+                else if (man.ReturnAt >= 0f && clock - man.ReturnAt < ReturnSeconds)
+                {
+                    var u = (clock - man.ReturnAt) / ReturnSeconds;
+                    var home = View.Model.TransformPoint(position);
+                    var at = Vector3.Lerp(man.ReturnFrom, home, Mathf.SmoothStep(0f, 1f, u)) + Vector3.up * (0.35f * Mathf.Sin(u * Mathf.PI));
+                    var way = home - man.ReturnFrom;
+                    way.y = 0f;
+                    input.ModelSlot = 0;
+                    input.Frame = float4x4.TRS(at, quaternion.RotateY(way.sqrMagnitude > 1e-4f ? math.atan2(way.x, way.z) : 0f), new float3(1f));
+                    input.Seated = false;
+                    input.Hands = 0;
+                    input.Action = (int)(u < 0.5f ? CrewAction.Climb : CrewAction.Walk);
+                    input.Phase = u;
+                }
+                else if (!BoardingAttacker && BoardingView != null && contactAt >= 0f && man.RailStation >= 0)
+                {
+                    var f = Profile.Parts.Form;
+                    var k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(clock - contactAt));
+                    var x = position.x - boardingSide * 1.5f * k;
+                    input.Position = new float3(x, GreekShips.FloorAt(f, SAt(f, position.z), x), position.z);
                 }
             }
             Equip(man, ref input, station);

@@ -17,8 +17,24 @@ Wybory w `CrewLooks` według ról:
 
 Role i źródła są w `CrewRoles` i [CrewRoles.json](CrewRoles.json). Tabele XII w. niżej opisują dawny profil.
 
+**Abordaż burta w burtę z przejściem** (decyzja użytkownika 2026-11-10: abordaż burtą, nie dziobem, i przejście załogi na wrogi pokład):
+- **Przyciąganie** (`CrewDirector.HaulOffset`, `HaulYaw`). Obraz atakującego dochodzi do burty celu, która była mu bliższa w chwili rzutu haków; przy podejściu w linii stronę rozstrzygają identyfikatory, więc zawsze tak samo.
+  - Kursy równoległe, śródokręcie przy śródokręciu, między relingami 0,2 m.
+  - Postęp liczony z ticków gry od rzutu haków, przez 3–7 s zależnie od odległości (4 m/s). Obrót z kursu sprzed rzutu wygładza skok kursu, który robi gra.
+  - Po końcu abordażu obraz wraca liniowo w 4 s, tak samo przy każdej liczbie klatek. Wcześniej wygaszanie składało się klatka po klatce i kończyło przed upływem sekundy.
+- **Wiosła** obu okrętów od strony styku są wciągnięte (`ContactSide`, `BattleController.UpdateOarRoom`).
+- **Przejście** (`CrewAboard.CrossPose`). Od zetknięcia relingów (waga 0,97) front atakujących przechodzi kolejno, najbliżsi celu pierwsi, co 0,35 s, każdy w 1,6 s:
+  - wspięcie na własny reling;
+  - krótki skok nad szczeliną;
+  - zejście krok za relingiem na pokład celu (`GreekShips.FloorAt`).
+
+  Pozycje są liczone w świecie z obu kadłubów w tej klatce, więc stopy trzymają się kołyszących się pokładów.
+- **Obrońcy** cofają się 1,5 m od relingu.
+- **Polegli** zostają na pokładzie, na którym padli.
+- **Koniec abordażu** bez zdobycia: żywi abordażyści wracają przez relingi w 1,2 s.
+- **Testy:** `BoardingPresentationTests` (3). Liczebność, straty i wynik walki dalej pochodzą z symulacji.
+
 **Poza zakresem:**
-- przejście przez relingi przy abordażu;
 - wypieczony LOD2;
 - pomiar GPU na cichej maszynie.
 

@@ -77,83 +77,140 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        readonly Dictionary<int, (Vector3 offset, float weight, float since)> hauls = new Dictionary<int, (Vector3, float, float)>();
+        /// <summary>One boarding's haul: how the attacker's picture is brought alongside its target and let go again.</summary>
+        sealed class Haul
+        {
+            public int TargetId;
+            /// <summary>The target's side the attacker lies against: +1 starboard, -1 port; fixed for the whole boarding.</summary>
+            public int Side;
+            public int ThrowTick;
+            public float Duration, HeadingFrom;
+            public Vector3 Offset;
+            public float Yaw, Weight;
+            public bool Active;
+            public float Since, EndWeight, EndYaw;
+        }
+
+        readonly Dictionary<int, Haul> hauls = new Dictionary<int, Haul>();
+        readonly Dictionary<int, float> lastHeading = new Dictionary<int, float>();
+
+        /// <summary>Seconds over which a hull drifts back to its place in the game when its boarding ends.</summary>
+        public const float ReleaseSeconds = 4f;
+        /// <summary>How fast the grapples haul a hull alongside (m/s): a far throw takes longer, never under the hooks' 3 s nor over 7 s.</summary>
+        const float HaulSpeed = 4f, HaulLongest = 7f, Gap = 0.2f;
 
         /// <summary>
-        /// How far the picture of a ship is drawn from its place in the game while it is hauled alongside the ship it
-        /// boards (the user's decision, 2026-11-10): over the grapples' 3 s the attacker's hull comes up against the
-        /// target's side where they are nearest, stays there through the fight, and drifts back over 4 s when the boarding
-        /// ends. Only the picture moves; the game's positions, the fog and every rule are untouched.
+        /// How far the picture of a ship is drawn from its place in the game while it is hauled alongside the ship it boards
+        /// (the user's decisions of 2026-11-10: hauled by the grapples, and broadside to broadside, never bow first): the
+        /// attacker's hull comes up beside the target's on the side nearer to it when the hooks flew, parallel to it and
+        /// amidships to amidships, a hand's breadth between the rails; it lies there through the fight and drifts back over
+        /// 4 s when the boarding ends. Only the picture moves: the game's positions, the fog and every rule are untouched.
         /// </summary>
-        public Vector3 HaulOffset(int shipId) => hauls.TryGetValue(shipId, out var haul) ? haul.offset * haul.weight : Vector3.zero;
+        public Vector3 HaulOffset(int shipId) => hauls.TryGetValue(shipId, out var haul) ? haul.Offset * haul.Weight : Vector3.zero;
 
-        /// <summary>Each boarding's haul for this frame (BattleController places the attacker's hull with HaulOffset).</summary>
+        /// <summary>How far the picture of a hauled ship is turned from its heading in the game (degrees about the up axis).</summary>
+        public float HaulYaw(int shipId) => hauls.TryGetValue(shipId, out var haul) ? (haul.Active ? haul.Yaw : haul.EndYaw * (haul.EndWeight > 1e-4f ? haul.Weight / haul.EndWeight : 0f)) : 0f;
+
+        /// <summary>How far a boarding's attacker has been hauled alongside (0 to 1): 1 with the rails touching.</summary>
+        public float HaulWeight(int attackerId) => hauls.TryGetValue(attackerId, out var haul) ? haul.Weight : 0f;
+
+        /// <summary>
+        /// The side of a ship that lies against another in a boarding (its oars come in there): -1 port, +1 starboard, 0 none.
+        /// </summary>
+        public int ContactSide(int shipId)
+        {
+            foreach (var pair in hauls)
+            {
+                if (pair.Value.Weight < 0.3f) continue;
+                if (pair.Key == shipId) return -pair.Value.Side;
+                if (pair.Value.TargetId == shipId) return pair.Value.Side;
+            }
+            return 0;
+        }
+
+        /// <summary>The weight of a released haul after <paramref name="since"/> seconds: back to its place linearly in 4 s.</summary>
+        public static float ReleaseWeight(float endWeight, float since) => endWeight * Mathf.Max(0f, 1f - since / ReleaseSeconds);
+
+        /// <summary>Each boarding's haul for this frame (BattleController places the attacker's hull with HaulOffset and HaulYaw).</summary>
         public void UpdateHauls(float delta)
         {
             if (battle == null || battle.World == null) return;
-            var active = new HashSet<int>();
-            foreach (var link in battle.World.Boardings)
-            {
-                var attacker = battle.World.FindShip(link.AttackerId);
-                var target = battle.World.FindShip(link.TargetId);
-                if (attacker == null || target == null) continue;
-                active.Add(link.AttackerId);
-                var wanted = Contact(attacker, target);
-                var pull = link.Hooked ? 1f : Mathf.SmoothStep(0f, 1f, 1f - link.HookTicks / (float)(Rules.BoardHookSeconds * Rules.TickRate));
-                hauls[link.AttackerId] = (wanted, pull, 0f);
-            }
+            Refresh(battle.World);
             // Changes are made after the walk over the table: Mono's dictionary forbids even replacing a value meanwhile.
             var ended = new List<int>();
-            var easing = new List<(int id, Vector3 offset, float weight, float since)>();
             foreach (var pair in hauls)
             {
-                if (active.Contains(pair.Key)) continue;
-                var (offset, weight, since) = pair.Value;
-                since += delta;
-                weight = Mathf.Max(0f, 1f - since / 4f) * Mathf.Min(weight, 1f);
-                if (weight <= 0f || battle.World.FindShip(pair.Key) == null) ended.Add(pair.Key);
-                else easing.Add((pair.Key, offset, weight, since));
+                var haul = pair.Value;
+                if (haul.Active) continue;
+                haul.Since += delta;
+                haul.Weight = ReleaseWeight(haul.EndWeight, haul.Since);
+                if (haul.Weight <= 0f || battle.World.FindShip(pair.Key) == null) ended.Add(pair.Key);
             }
             foreach (var id in ended) hauls.Remove(id);
-            foreach (var (id, offset, weight, since) in easing) hauls[id] = (offset, weight, since);
+            foreach (var ship in battle.World.Ships) lastHeading[ship.Id] = HeadingDegrees(ship);
         }
 
         /// <summary>
-        /// The move that puts the attacker's side against the target's where the two hulls are nearest: both hulls' outlines
-        /// at the gunwale (GreekShips), the attacker's nearest point brought to within a hand's breadth of the target's.
+        /// The hauls of the boardings in the game now, from the game's ticks alone (so the same at any frame rate and however
+        /// often it is called): a boarding seen for the first time takes its side and its haul's length; one gone is let go.
         /// </summary>
-        static Vector3 Contact(Ship attacker, Ship target)
+        void Refresh(World world)
         {
-            var a = Outline(attacker);
-            var b = Outline(target);
-            var best = float.MaxValue;
-            var move = Vector3.zero;
-            foreach (var p in a)
-                foreach (var q in b)
+            var hookTicks = (int)(Rules.BoardHookSeconds * Rules.TickRate);
+            foreach (var pair in hauls) pair.Value.Active = pair.Value.Active && world.Boardings.Exists(link => link.AttackerId == pair.Key);
+            foreach (var link in world.Boardings)
+            {
+                var attacker = world.FindShip(link.AttackerId);
+                var target = world.FindShip(link.TargetId);
+                if (attacker == null || target == null) continue;
+                if (!hauls.TryGetValue(link.AttackerId, out var haul) || !haul.Active || haul.TargetId != link.TargetId)
                 {
-                    var d = (q - p).sqrMagnitude;
-                    if (d < best) { best = d; move = q - p; }
+                    haul = new Haul
+                    {
+                        Active = true, TargetId = link.TargetId, Side = SideOf(attacker, target),
+                        ThrowTick = world.Tick - (link.Hooked ? hookTicks : hookTicks - link.HookTicks),
+                        HeadingFrom = lastHeading.TryGetValue(attacker.Id, out var before) ? before : HeadingDegrees(attacker),
+                    };
+                    var reach = Vector3.Distance(Alongside(attacker, target, haul.Side), SimPosition(attacker));
+                    haul.Duration = Mathf.Clamp(reach / HaulSpeed, (float)Rules.BoardHookSeconds, HaulLongest);
+                    hauls[link.AttackerId] = haul;
                 }
-            var distance = Mathf.Sqrt(best);
-            return distance > 0.15f ? move * ((distance - 0.15f) / distance) : Vector3.zero;
+                var elapsed = (world.Tick - haul.ThrowTick) * (float)Rules.Dt;
+                haul.Weight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / haul.Duration));
+                haul.Offset = Alongside(attacker, target, haul.Side) - SimPosition(attacker);
+                // The picture turns from the heading the attacker had when the hooks flew to the target's (the game snaps it).
+                var picture = Mathf.LerpAngle(haul.HeadingFrom, HeadingDegrees(target), haul.Weight);
+                haul.Yaw = Mathf.DeltaAngle(picture, HeadingDegrees(attacker));
+            }
+            foreach (var pair in hauls)
+            {
+                var haul = pair.Value;
+                if (haul.Active || haul.EndWeight > 0f || haul.Since > 0f) continue;
+                haul.EndWeight = haul.Weight;
+                haul.EndYaw = haul.Yaw;
+            }
         }
 
-        static List<Vector3> Outline(Ship ship)
+        /// <summary>Where the attacker's centre lies alongside the target (the target as drawn, should it be hauled itself).</summary>
+        Vector3 Alongside(Ship attacker, Ship target, int side)
         {
-            var f = GreekShips.Form(ship.Class);
-            var heading = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
-            var centre = new Vector3((float)ship.X, 0f, (float)ship.Y);
-            var points = new List<Vector3>();
-            for (var i = 0; i <= 16; i++)
-            {
-                var s = i / 16f;
-                var z = GreekShips.Z(f, s);
-                var w = GreekShips.HalfWidth(f, s);
-                points.Add(centre + heading * new Vector3(w, 0f, z));
-                points.Add(centre + heading * new Vector3(-w, 0f, z));
-            }
-            return points;
+            var targetAt = SimPosition(target) + HaulOffset(target.Id);
+            var turn = Quaternion.Euler(0f, 90f - HeadingDegrees(target), 0f);
+            var apart = GreekShips.HalfWidth(GreekShips.Form(target.Class), 0.5f) + GreekShips.HalfWidth(GreekShips.Form(attacker.Class), 0.5f) + Gap;
+            return targetAt + turn * new Vector3(side * apart, 0f, 0f);
         }
+
+        /// <summary>The target's side nearer to the attacker; in line (a chase) the lower id decides, the same each time.</summary>
+        static int SideOf(Ship attacker, Ship target)
+        {
+            var local = Quaternion.Inverse(Quaternion.Euler(0f, 90f - HeadingDegrees(target), 0f)) * (SimPosition(attacker) - SimPosition(target));
+            if (Mathf.Abs(local.x) > 0.5f) return local.x > 0f ? 1 : -1;
+            return attacker.Id < target.Id ? 1 : -1;
+        }
+
+        static Vector3 SimPosition(Ship ship) => new Vector3((float)ship.X, 0f, (float)ship.Y);
+
+        static float HeadingDegrees(Ship ship) => (float)(ship.Heading * Mathf.Rad2Deg);
 
         /// <summary>A side's front: the last round's, or before the first round the width of the decks; at most its fighters.</summary>
         public static int Front(int lastRound, Ship own, int width) => Mathf.Min(lastRound > 0 ? lastRound : width, own.Soldiers);
@@ -206,6 +263,9 @@ namespace MorzaBogow.Presentation
             crews.Clear();
             launches.Clear();
             figureOf.Clear();
+            // A loaded game starts its boardings' hauls afresh from its own ticks (HaulOffset).
+            hauls.Clear();
+            lastHeading.Clear();
             signature = -1;
         }
 
@@ -328,6 +388,7 @@ namespace MorzaBogow.Presentation
             if (battle.World != world) Reset(battle.World);
             clock += delta;
             ChooseLod(camera);
+            if (world != null) Refresh(world);
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             figures.Clear();
             shipModels.Clear();
@@ -353,6 +414,18 @@ namespace MorzaBogow.Presentation
                 var shown = view.gameObject.activeInHierarchy && (camera == null || Visible(frustum, view));
                 // The men of its shore party who are off the ship are drawn ashore (CrewAshore), not aboard.
                 crew.PartyAshore = battle.Crews.TryGetValue(id, out var party) ? party.AshoreMask : 0;
+                // A grappled boarding: the other ship's view (its deck to cross to, or the boarders to face) and the haul.
+                crew.BoardingView = null;
+                crew.BoardingContact = 0f;
+                crew.BoardingAttacker = false;
+                foreach (var link in world.Boardings)
+                {
+                    if (!link.Hooked || link.AttackerId != id && link.TargetId != id) continue;
+                    if (!battle.Views.TryGetValue(link.AttackerId == id ? link.TargetId : link.AttackerId, out var otherView) || otherView == null) continue;
+                    crew.BoardingView = otherView;
+                    crew.BoardingContact = HaulWeight(link.AttackerId);
+                    crew.BoardingAttacker = link.AttackerId == id;
+                }
                 var before = System.Diagnostics.Stopwatch.GetTimestamp();
                 crew.Update(ship, view, world, clock, delta, shown);
                 var decided = System.Diagnostics.Stopwatch.GetTimestamp();
