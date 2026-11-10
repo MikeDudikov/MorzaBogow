@@ -9,7 +9,8 @@ namespace MorzaBogow.Presentation
     /// dress the stays and the gear on deck (rope, linen, wicker, stone anchors, terracotta jars); the asset export folds
     /// them into the six paints of its budget.
     /// </summary>
-    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail, Rope, Linen, Wicker, Stone, Terracotta }
+    /// <summary>Paints of the generated meshes; the later ones (Egyptian blue, lead) last, so stored values of the others keep.</summary>
+    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail, Rope, Linen, Wicker, Stone, Terracotta, Azure, Lead }
 
     /// <summary>A mesh and the paint of each of its submeshes, in submesh order.</summary>
     public sealed class GreekMesh
@@ -134,6 +135,10 @@ namespace MorzaBogow.Presentation
             public static readonly Color Wicker = new Color(0.68f, 0.55f, 0.34f);
             public static readonly Color Stone = new Color(0.74f, 0.71f, 0.64f);
             public static readonly Color Terracotta = new Color(0.64f, 0.36f, 0.23f);
+            /// <summary>Egyptian blue as painted on architecture, weathered (the triglyphs of the Vergina facades, R-VERGINA-PELLA).</summary>
+            public static readonly Color Azure = new Color(0.2f, 0.33f, 0.55f);
+            /// <summary>Lead gone dull grey, as poured into the wooden stocks of anchors (R-ANCHORS).</summary>
+            public static readonly Color Lead = new Color(0.42f, 0.43f, 0.45f);
 
             public static Color Of(GreekMaterial paint) => paint switch
             {
@@ -146,6 +151,8 @@ namespace MorzaBogow.Presentation
                 GreekMaterial.Wicker => Wicker,
                 GreekMaterial.Stone => Stone,
                 GreekMaterial.Terracotta => Terracotta,
+                GreekMaterial.Azure => Azure,
+                GreekMaterial.Lead => Lead,
                 _ => Wood,
             };
         }
@@ -1519,6 +1526,12 @@ namespace MorzaBogow.Presentation
 
             public MeshBuilder(float[] cuts) => this.cuts = cuts;
 
+            /// <summary>
+            /// Masonry: a box's upright faces get u along their level edge and v straight up (metres from the builder's
+            /// origin), so courses and joints of a texture run level and meet across neighbouring blocks.
+            /// </summary>
+            public bool Level { get; set; }
+
             public Vector3 Position(int index) => positions[index];
 
             public int Vertex(Vector3 position, Vector2 uv, int section = -1)
@@ -1566,6 +1579,15 @@ namespace MorzaBogow.Presentation
                     var longer = first.sqrMagnitude >= second.sqrMagnitude;
                     var along = (longer ? first : second).normalized;
                     var across = (longer ? second : first).normalized;
+                    var outward = (mid - centre).normalized;
+                    if (Level && Mathf.Abs(outward.y) < 0.5f)
+                    {
+                        // An upright face of masonry: u along its most level edge, v up.
+                        var level = Mathf.Abs(first.normalized.y) <= Mathf.Abs(second.normalized.y) ? first : second;
+                        level.y = 0f;
+                        along = level.sqrMagnitude > 1e-8f ? level.normalized : Vector3.Cross(Vector3.up, outward).normalized;
+                        across = Vector3.up;
+                    }
                     var ids = new int[4];
                     for (var j = 0; j < 4; j++)
                     {
@@ -1659,8 +1681,11 @@ namespace MorzaBogow.Presentation
                 for (var i = 0; i < points; i++) Triangle(paint, c, rim[i], rim[(i + 1) % points], normal);
             }
 
-            /// <summary>A body of revolution around +Y from (height, radius) pairs. UV: metres around (at the widest girth) and up.</summary>
-            public void Lathe(GreekMaterial paint, (float height, float radius)[] profile, int sides)
+            /// <summary>
+            /// A body of revolution around a vertical axis through <paramref name="at"/> (the origin if not given) from
+            /// (height, radius) pairs. UV: metres around (at the widest girth) and up.
+            /// </summary>
+            public void Lathe(GreekMaterial paint, (float height, float radius)[] profile, int sides, Vector3 at = default)
             {
                 var widest = 0f;
                 foreach (var (_, radius) in profile) widest = Mathf.Max(widest, radius);
@@ -1670,7 +1695,7 @@ namespace MorzaBogow.Presentation
                     for (var j = 0; j <= sides; j++)
                     {
                         var angle = j * Mathf.PI * 2f / sides;
-                        rings[i, j] = Vertex(new Vector3(Mathf.Cos(angle) * profile[i].radius, profile[i].height, Mathf.Sin(angle) * profile[i].radius), new Vector2(angle * widest, profile[i].height));
+                        rings[i, j] = Vertex(at + new Vector3(Mathf.Cos(angle) * profile[i].radius, profile[i].height, Mathf.Sin(angle) * profile[i].radius), new Vector2(angle * widest, profile[i].height));
                     }
                     seams.Add((rings[i, 0], rings[i, sides]));
                 }
@@ -1681,10 +1706,13 @@ namespace MorzaBogow.Presentation
                     var b = rings[i, j + 1];
                     var c = rings[i + 1, j + 1];
                     var d = rings[i + 1, j];
-                    var mid = (positions[a] + positions[c]) * 0.5f;
+                    var mid = (positions[a] + positions[c]) * 0.5f - at;
                     Quad(paint, a, b, c, d, new Vector3(mid.x, 0f, mid.z));
                 }
             }
+
+            /// <summary>Two vertices at the same place where a round body's UV wraps: their normals are joined after the build.</summary>
+            public void Seam(int a, int b) => seams.Add((a, b));
 
             /// <summary>A rough stone: a sphere whose points are pushed in and out by a fixed pattern.</summary>
             public void Rock(float radius, int rings, Vector3 centre)
@@ -1754,7 +1782,8 @@ namespace MorzaBogow.Presentation
             public GreekMesh Build(params GreekMaterial[] order)
             {
                 var used = new List<GreekMaterial>();
-                foreach (var paint in order) if (triangles.Exists(t => t.paint == paint)) used.Add(paint);
+                // A paint named twice (a wall of wood under a roof that lists wood as well) is still one submesh.
+                foreach (var paint in order) if (!used.Contains(paint) && triangles.Exists(t => t.paint == paint)) used.Add(paint);
                 foreach (var t in triangles) if (!used.Contains(t.paint)) used.Add(t.paint);
                 var mesh = new Mesh { name = "Greek ship part" };
                 if (positions.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;

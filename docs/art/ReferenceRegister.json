@@ -4,7 +4,8 @@
   "accessLevels": {
     "read-web": "page read in this session; claims below are what the page states",
     "read-web-last-resort": "Wikipedia page read; to be checked against the publications it cites",
-    "metadata-only": "only bibliographic metadata known; no page, figure or quotation is claimed"
+    "metadata-only": "only bibliographic metadata known; no page, figure or quotation is claimed",
+    "search-summary": "seen through a web search's summary of the page in this session, not read whole; claims as the summary gives them, to be checked against the page"
   },
   "references": [
     {
@@ -603,6 +604,100 @@
         "Tomb II hunt frieze 5.56 x 1.16 m, six hunting scenes; dated 336-316 BC (Philip II or Philip III Arrhidaeus, disputed)",
         "A wider palette than the traditional four colours (ReVis 2025); bluish triglyphs on the Tomb II and III facades (PNAS 2015)",
         "Pella pebble mosaics: probably the last quarter of the 4th c.; graded stones, lead or terracotta outlines, dark ground"
+      ]
+    },
+    {
+      "id": "R-MESSENE",
+      "object": "Fortifications of Messene, founded 369 BC",
+      "sources": [
+        {
+          "url": "https://books.ub.uni-heidelberg.de/propylaeum/catalog/view/634/1033/89751",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.gtp.gr/el/destinations/messiniancientcity",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Messene",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://historica.unibo.it/handle/20.500.14008/6571",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Founded by Epaminondas in 369 BC with a city wall from the start (Pausanias)",
+        "Towers mostly square, a solid base with an artillery chamber on top; two-storeyed near gates and in crucial stretches (about 16 originally, three preserved: Bessac and Mueth)",
+        "Tower roofs gabled or shed; tiling is not stated (the game's tiled tower roofs are an interpretation)",
+        "Upper rooms with loopholes below and two windows above (Frazer's commentary on Pausanias as quoted; 1911 Britannica)",
+        "Regular ashlar from limestone quarried south of the city; emplekton faces bonded to a rubble core",
+        "Drafted margins and rusticated faces were not confirmed for Messene: the game's block dressing is an interpretation"
+      ],
+      "dating": "369 BC and after",
+      "certainty": "general form confirmed; dressing of the faces and roof tiles are interpretations",
+      "assets": [
+        "building.town",
+        "building.store",
+        "materials.masonry"
+      ]
+    },
+    {
+      "id": "R-DORIC-PROPORTIONS",
+      "object": "Proportions of the Doric column through the Classical period",
+      "sources": [
+        {
+          "url": "https://chestofbooks.com/architecture/Cyclopedia-Carpentry-Building-7-10/The-Doric-Order.html",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.ellopos.net/elpenor/greek-texts/ancient-Greece/history-of-ancient-greek-art-10.asp?pg=4",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://scriptaclassica.org/index.php/sci/article/download/349/207/847",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Doric column heights range from about 4.5 to 7 lower diameters; earlier columns are thicker",
+        "The column grows slenderer from century to century; the temple of Zeus at Nemea (later 4th century) is cited as a late, slender example",
+        "No exact ratio for Nemea was confirmed (Hill 1966 not read): the game's 6.3 diameters is chosen within the late range"
+      ],
+      "dating": "6th-4th century BC",
+      "certainty": "range confirmed; the exact Nemea ratio not confirmed",
+      "assets": [
+        "building.school"
+      ]
+    },
+    {
+      "id": "R-ANCHORS",
+      "object": "Wooden anchors with lead-filled stocks, 5th-4th century BC (Ma'agan Mikhael, Tektas Burnu, Kyrenia)",
+      "sources": [
+        {
+          "url": "https://ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Navires/Kyrenia/KyreniaAnchor-vanDuivenvoorde2012.pdf",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Navires/Anchors/Anchors&Hulls-Bass2006.pdf",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.wikipedia.org/wiki/Kyrenia_ship",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "The Kyrenia ship's anchor was a one-armed wooden anchor: a crooked oak shank, a lead-filled wooden stock across it, an iron fluke tip (only the lead cores, the iron concretion and wood fragments survive)",
+        "The four lead stock cores of Kyrenia come from a single wooden anchor (van Duivenvoorde 2012)",
+        "Lead poured into hollowed wooden stocks (Tektas Burnu, elm stocks)",
+        "Ma'agan Mikhael (c. 400 BC) gave a complete one-armed wooden anchor with a lead-filled wooden stock"
+      ],
+      "dating": "c. 440-290 BC",
+      "certainty": "form confirmed by several finds; the game's two-anchor display is a decision of the game",
+      "assets": [
+        "prop.anchor"
       ]
     }
   ]

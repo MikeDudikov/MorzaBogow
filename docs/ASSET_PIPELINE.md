@@ -329,6 +329,31 @@ Wynik: 7 klas `ready`, 0 ostrzeżeń, wszystkie kontrole walidatora spełnione; 
 
 Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `ArtWorkspace/jobs/<zadanie>/preview.png`. Stanowiska broni są punktami `ShipModel`, bez modeli machin.
 
+## Budowle portu (IV w. p.n.e.): kod zamiast Meshy
+
+Budowle portu buduje kod (`Runtime/Presentation/PortBuildings.cs`). Podglądy z Meshy odrzucono: kolumna z bazą i ząbkami, potem jońska; dach jak blacha falista; ściana bez detalu (`docs/art/MeshyLedger.json`).
+
+- **Szkoła Mędrców (gimnazjon):**
+  - krepidoma z ciosów;
+  - perystyl dorycki 4 × 6: trzon z 20 płytkimi żłobkami i entazą, echinus z tokarki, abakus; smukłość 6,3 średnicy dolnej (R-DORIC-PROPORTIONS);
+  - hala w warstwach (ortostaty z kamienia, wyżej tynk) z wysokimi drzwiami ku przystani;
+  - belkowanie: architraw z czerwoną tenią i błękitnymi regulami, fryz z błękitnymi tryglifami nad każdą kolumną i między nimi, gzyms z błękitnymi mutulami;
+  - dach z dachówek o nachyleniu 15°, błękitne tympanony, czerwona sima i akroteria.
+
+  Błękitne tryglify potwierdza fasada grobowców w Werginie (R-VERGINA-PELLA). Czerwona tenia, sima i błękitne tympanony to interpretacja.
+- **Magazyn i domy:** cokół z kamienia, mury w 6 warstwach, ościeżnica i nadproże drzwi, okna. Dach: płaskie dachówki, kalyptery na stykach, kalenica, antefiksy na okapach, końce krokwi (R-OLYNTHUS).
+- **Mury miasta:** kurtyna z regularnych ciosów z blankami; kwadratowe baszty ze strzelnicami w górnej izbie i dachem dwuspadowym (R-MESSENE). Blanki i dachówki na basztach to interpretacja.
+- **Przed magazynem:** pithoi wkopane do ramion, amfory oparte o ścianę, dwie kotwice jednoramienne z drewnianym poprzecznikiem wypełnionym ołowiem (R-ANCHORS). Nie są częścią obrysu budynku (`Footprint`).
+- **Budowa:** kolejne warstwy (kolumny jednej strony, warstwa muru, architraw, fryz z gzymsem) pojawiają się według postępu projektu, bez skalowania. Stojący budynek to jedna scalona siatka zamiast kilkunastu rendererów.
+- **Ruina Szkoły:** kikuty kolumn z nierównym wierzchem, leżące bębny, zwęglone belki, gruz.
+- **Materiały:** `Editor/BuildingTextureBaker.cs` wypieka deterministycznie, bez pobierania:
+  - ciosy wapienne 2,4 × 1,6 m (warstwy 0,4 m, bloki 1,2 m, co druga warstwa przesunięta o pół bloku; gładka obwódka wokół szpicowanego lica jako interpretacja);
+  - tynk 2 × 2 m.
+
+  Każda tekstura ma mapy koloru, normalnych i maski HDRP. Materiały `Ashlar.mat` i `Stucco.mat` leżą w `Assets/MorzaBogow/Art/Buildings/Resources/Buildings`, z tymi samymi słowami kluczowymi co głazy i kora oliwki. Tynk barwią farby: biel, błękit egipski, czerwona ochra. Na pionowych ścianach UV biegną poziomo i w górę (`MeshBuilder.Level`), więc warstwy ciosów schodzą się między blokami.
+- **Podgląd** (batch z urządzeniem graficznym, bez okna gry): `-executeMethod MorzaBogow.Editor.BuildingPreview.PreviewPort`, obrazy w `artifacts-log/buildings/`.
+- **Testy:** `PortMasonryTests` (4, EditMode) i dotychczasowe `PortPresentationTests`.
+
 ## Ograniczenia
 
 - **Najniższy punkt modelu jest stępką.** Przygotowanie w Blenderze stawia ten punkt na −zanurzenie, a walidator porównuje go z zanurzeniem klasy (tolerancja 8%). Wiosła sterowe, taran i inne części nie mogą schodzić poniżej kadłuba.
@@ -350,6 +375,13 @@ Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `A
 
   Przykłady: `prop_amphora_rhodian` (LOD 1470/514/176) i `rock_attica_limestone_a` (1959/684/234), oba ready, 0 ostrzeżeń.
   - **Ocena podglądów:** Meshy dobrze robi formy organiczne (skały, ceramika). Architekturę o kanonicznych proporcjach daje błędnie: kolumnę dorycką wydał raz z bazą i ząbkami, raz jako jońską. Takie elementy powstają proceduralnie.
+  - **Druga seria** (6 podglądów, 30 kr.): zostały marmur pentelicki (wychodnia ze śladami klinów) i sągi jodłowych kłód, dopracowane z PBR (20 kr.). Odrzucone:
+    - wapienny słup: wyglądał jak rozbity komin;
+    - łupek z Laurionu: kopuła bez warstw;
+    - pithos: beczka z obręczami (anachronizm);
+    - kotwica: współczesna kotwica admiralicji.
+
+    Pithos i kotwica powstały w kodzie (`PortBuildings.AddStoreYard`). Surowe podglądy (bez tekstur, przed dopracowaniem) renderuje obok siebie Blender w trybie Workbench: `blender -b --factory-startup -P Tools/asset_pipeline/blender/preview_glb.py -- wynik.png a.glb b.glb …`.
   - **Mapy większe niż budżet** (Meshy daje 2048 px) Blender zmniejsza w kopii zadania do `textureSize` budżetu (`blender/resize_maps.py`, `core/images.py`). Repozytorium nie trzyma map, których asset nigdy nie użyje: amfora i skała razem 5 MB zamiast 25 MB.
   - **Budżet skały:** 3 renderery, bo każdy z 3 poziomów LOD to osobny renderer.
   - **Wydatki:** `docs/art/MeshyLedger.json`.

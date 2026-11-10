@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "rock_pentelic_marble_a",
+  "name": "Wychodnia marmuru pentelickiego A",
+  "category": "rock",
+  "description": "An outcrop of white Pentelic marble of Attica, about 2.5 m wide: weathered honey-beige faces, faint grey veins, angular fractures and a row of old wedge holes from quarrying (Pentelikon was quarried through the 4th century BC); for hillsides and coasts.",
+  "dimensions": { "height": 1.6 },
+  "generation": { "provider": "source", "model": "../meshy/rock_pentelic_marble_a/rock_pentelic_marble_a.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/rock_pentelic_marble_a/rock_pentelic_marble_a_textures/base_color.png",
+    "normal": "../meshy/rock_pentelic_marble_a/rock_pentelic_marble_a_textures/normal.png",
+    "metallic": "../meshy/rock_pentelic_marble_a/rock_pentelic_marble_a_textures/metallic.png",
+    "roughness": "../meshy/rock_pentelic_marble_a/rock_pentelic_marble_a_textures/roughness.png" } },
+  "lods": 3
+}

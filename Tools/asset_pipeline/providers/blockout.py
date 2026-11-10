@@ -106,7 +106,7 @@ class Blockout:
         from ..unity import Unity
         found = Unity(self.config).path()
         return capability("Okręt z generatora gry (Unity)", ["generating"], "available" if found else "needs_configuration", "uruchomione lokalnie",
-                          "Okręt klasy z GreekShips (Egeja XII w. p.n.e.) eksportowany przez Unity: 3 LOD w OBJ, paleta 6 farb, GLB z LOD0 do retekstury Meshy.",
+                          "Okręt klasy z GreekShips (Grecja IV w. p.n.e.) eksportowany przez Unity: 3 LOD w OBJ, paleta 6 farb, GLB z LOD0 do retekstury Meshy.",
                           (), self.config)
 
     def build(self, brief: dict, out: pathlib.Path, ctx) -> dict:

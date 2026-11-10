@@ -190,6 +190,10 @@ entry("shader.ship-paint", "ship paint graph", "HDRP Lit graph with renderer val
 entry("materials.pbr-library", "shared PBR material library", "partial", ["material"],
       ["HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour; normals tested"], links=["Art/*"])
 entry("shaders.catalog", "shader catalogue", "one custom graph", ["keep"], ["no new shader without a measured need"], links=["Art/Ships/Shaders"])
+entry("materials.masonry", "limestone ashlar and lime plaster of the port's buildings", "the shore's cliff texture tinted", ["material"],
+      ["courses run level on upright faces (MeshBuilder.Level)", "HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour",
+       "the keywords the boulders and the olive bark already use"],
+      links=["Editor/BuildingTextureBaker.cs", "Art/Buildings/Resources/Buildings"], region=ATTICA)
 entry("audio", "sound of the battle and the world", "missing (no audio layer)", ["exclude"],
       ["no audio layer exists; out of this refresh until decided"], status="out-of-scope")
 entry("water.system", "the sea: HDRP water, deformation, foam, wakes, spray, marine simulation", "protected", ["exclude"],
@@ -203,7 +207,20 @@ STATUS = {
     "character.peltast": "in progress: pelte and caps (commit 9ed303b)",
     "prop.amphora": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
     "fx.boarding": "done: broadside haul, oars in, the front crosses and fights on the other deck, the dead lie where they fell, return over the rails (BoardingPresentationTests 3/3)",
-    "rock.attica-set": "first variant ready: rock_attica_limestone_a (Meshy MCP -> Blender -> Unity)",
+    "rock.attica-set": "variants: rock_attica_limestone_a ready; rock_pentelic_marble_a refined in Meshy, pipeline import next; "
+                       "sea-stack and Laurion schist previews rejected",
+    "building.school": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature "
+                       "(blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column "
+                       "by column and stands as one mesh (PortMasonryTests)",
+    "building.store": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; "
+                      "yard of pithoi, amphorae and one-armed anchors with lead-filled stocks",
+    "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE)",
+    "building.workshop": "in progress: tiled roof with antefixes",
+    "prop.pithos": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
+    "prop.anchor": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview "
+                   "(an admiralty anchor) rejected",
+    "site.wood": "fir log stack refined in Meshy (prop_timber_fir_logs), pipeline import next",
+    "materials.masonry": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources",
 }
 for _entry in ENTRIES:
     _entry["status"] = STATUS.get(_entry["assetId"], _entry["status"])

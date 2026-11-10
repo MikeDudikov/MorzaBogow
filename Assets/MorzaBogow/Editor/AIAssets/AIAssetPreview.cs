@@ -14,6 +14,9 @@ namespace MorzaBogow.Editor.AIAssets
     /// </summary>
     public static class AIAssetPreview
     {
+        /// <summary>Objects named so in a group are drawn round the subject but not framed (RenderGroup).</summary>
+        public const string Backdrop = "Backdrop";
+
         public static bool Render(GameObject prefab, string pngPath, out string why) => Render(prefab, pngPath, false, out why, -140f);
 
         /// <summary>Renders an object that lives in the open scene (not a prefab asset); it is moved into the preview scene and back.</summary>
@@ -34,7 +37,8 @@ namespace MorzaBogow.Editor.AIAssets
             {
                 preview = new PreviewRenderUtility();
                 preview.AddSingleGO(group);
-                var renderers = group.GetComponentsInChildren<Renderer>(true);
+                // A backdrop (ground round the subject) is drawn but left out of the frame.
+                var renderers = group.GetComponentsInChildren<Renderer>(true).Where(r => !r.name.StartsWith(Backdrop)).ToArray();
                 if (!orthographic)
                     foreach (var lods in group.GetComponentsInChildren<LODGroup>(true)) lods.ForceLOD(0);
                 var bounds = renderers[0].bounds;

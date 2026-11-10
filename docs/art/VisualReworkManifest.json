@@ -22,7 +22,7 @@
    "animation",
    "destruction"
   ],
-  "spentCredits": 70,
+  "spentCredits": 120,
   "tasksByAsset": {
    "ship_ram_retexture": [
     "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
@@ -45,6 +45,26 @@
    "prop.amphora": [
     "01a1c63b-ba69-70a6-bd14-7af18f5f69ac",
     "01a1c63d-75cd-72b7-836a-173fa2f83ca4"
+   ],
+   "rock_attica_limestone_b": [
+    "01a1c669-eff5-7095-b763-bd260415ade6"
+   ],
+   "rock_pentelic_marble_a": [
+    "01a1c66a-1f70-71d1-b43a-3b7a0c9e9237",
+    "01a1c676-fc73-7372-9ddf-7d2747172049"
+   ],
+   "rock_laurion_schist_a": [
+    "01a1c66a-3513-70f9-96e3-335965050e49"
+   ],
+   "prop_timber_fir_logs": [
+    "01a1c66a-4a3d-7580-80af-351d11e1eab6",
+    "01a1c677-1169-77ee-b108-a5188260db4d"
+   ],
+   "prop_pithos": [
+    "01a1c66a-5e9e-7155-aca3-313aea7d2530"
+   ],
+   "prop_anchor_wood_lead": [
+    "01a1c66a-78cb-70dc-8eac-db79a59eebbb"
    ]
   }
  },
@@ -943,7 +963,7 @@
    "covers": [
     "Store"
    ],
-   "status": "planned"
+   "status": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; yard of pithoi, amphorae and one-armed anchors with lead-filled stocks"
   },
   {
    "assetId": "building.workshop",
@@ -975,7 +995,7 @@
    "covers": [
     "Workshop"
    ],
-   "status": "planned"
+   "status": "in progress: tiled roof with antefixes"
   },
   {
    "assetId": "building.town",
@@ -1006,7 +1026,7 @@
    "covers": [
     "Town"
    ],
-   "status": "planned"
+   "status": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE)"
   },
   {
    "assetId": "building.school",
@@ -1037,7 +1057,7 @@
    "covers": [
     "SageSchool"
    ],
-   "status": "planned"
+   "status": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature (blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column by column and stands as one mesh (PortMasonryTests)"
   },
   {
    "assetId": "building.dock",
@@ -1216,7 +1236,7 @@
     "fir and pine logs, hewn beams, planks, end grain (Theophrastus HP 5.7)"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "fir log stack refined in Meshy (prop_timber_fir_logs), pipeline import next"
   },
   {
    "assetId": "environment.coast",
@@ -1270,7 +1290,7 @@
     "4-6 Meshy variants with LOD; strata, cracks, erosion"
    ],
    "covers": [],
-   "status": "first variant ready: rock_attica_limestone_a (Meshy MCP -> Blender -> Unity)"
+   "status": "variants: rock_attica_limestone_a ready; rock_pentelic_marble_a refined in Meshy, pipeline import next; sea-stack and Laurion schist previews rejected"
   },
   {
    "assetId": "veg.olive.cultivated",
@@ -1968,7 +1988,7 @@
     "shared materials; no unique large texture per object"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected"
   },
   {
    "assetId": "prop.anchor",
@@ -1993,7 +2013,7 @@
     "shared materials; no unique large texture per object"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview (an admiralty anchor) rejected"
   },
   {
    "assetId": "prop.basket-net",
@@ -2141,6 +2161,33 @@
    ],
    "covers": [],
    "status": "planned"
+  },
+  {
+   "assetId": "materials.masonry",
+   "use": "limestone ashlar and lime plaster of the port's buildings",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "the shore's cliff texture tinted",
+   "scope": [
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Editor/BuildingTextureBaker.cs",
+    "Art/Buildings/Resources/Buildings"
+   ],
+   "lod": "",
+   "criteria": [
+    "courses run level on upright faces (MeshBuilder.Level)",
+    "HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour",
+    "the keywords the boulders and the olive bark already use"
+   ],
+   "covers": [],
+   "status": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources"
   },
   {
    "assetId": "audio",

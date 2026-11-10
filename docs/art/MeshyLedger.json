@@ -96,6 +96,78 @@
    "via": "Meshy MCP",
    "credits": 5,
    "result": "rejected: came out Ionic with volutes and a base; Doric column built procedurally"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_attica_limestone_b",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c669-eff5-7095-b763-bd260415ade6",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: reads as a broken chimney with a square hole, not a sea stack"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_pentelic_marble_a",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c66a-1f70-71d1-b43a-3b7a0c9e9237",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: angular outcrop with a quarry cut; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_laurion_schist_a",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c66a-3513-70f9-96e3-335965050e49",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a cracked dome, no foliation"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_timber_fir_logs",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c66a-4a3d-7580-80af-351d11e1eab6",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: a stack of logs with knots; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_pithos",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c66a-5e9e-7155-aca3-313aea7d2530",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a banded barrel (Celtic/Roman), not a pithos; pithos built procedurally (PortBuildings.Pithos)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_anchor_wood_lead",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c66a-78cb-70dc-8eac-db79a59eebbb",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a modern admiralty anchor; built procedurally with a lead stock (PortBuildings.AddStoreYard)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_pentelic_marble_a",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c676-fc73-7372-9ddf-7d2747172049",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "pending"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_timber_fir_logs",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c677-1169-77ee-b108-a5188260db4d",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "pending"
   }
  ]
 }

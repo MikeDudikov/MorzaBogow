@@ -44,6 +44,10 @@ namespace MorzaBogow.Presentation
         sealed class Piece
         {
             public Transform Root, Body, Roof, Scaffold, Footing;
+            /// <summary>What rises course by course (wall courses, columns), shown in order as the work goes on; none: Body grows.</summary>
+            public readonly List<Transform> Courses = new List<Transform>();
+            /// <summary>All the courses in one mesh, shown instead of them once the building stands: one renderer, not a dozen.</summary>
+            public Transform Whole;
             /// <summary>The piece's footprint on the land: centre (u, z) and size (along u, along z).</summary>
             public float U, Z, W, D, H;
         }
@@ -209,8 +213,12 @@ namespace MorzaBogow.Presentation
             if (piece.Body != null)
             {
                 piece.Body.gameObject.SetActive(whole || progress >= WallsFrom);
-                piece.Body.localScale = new Vector3(1f, Mathf.Lerp(0.15f, 1f, walls), 1f);
+                // A building of courses is put together, one course or column after another; others still grow as a whole.
+                if (piece.Courses.Count == 0) piece.Body.localScale = new Vector3(1f, Mathf.Lerp(0.15f, 1f, walls), 1f);
             }
+            var laid = whole && piece.Whole == null ? piece.Courses.Count : !whole && progress >= WallsFrom ? Mathf.CeilToInt(walls * piece.Courses.Count) : 0;
+            for (var i = 0; i < piece.Courses.Count; i++) piece.Courses[i].gameObject.SetActive(i < laid);
+            if (piece.Whole != null) piece.Whole.gameObject.SetActive(whole);
             if (piece.Roof != null) piece.Roof.gameObject.SetActive(whole || progress >= RoofFrom);
             if (piece.Scaffold != null) piece.Scaffold.gameObject.SetActive(!whole && progress < ScaffoldUntil);
             if (piece.Footing != null) piece.Footing.gameObject.SetActive(!whole);
@@ -255,6 +263,7 @@ namespace MorzaBogow.Presentation
                         AddHouse(item, "Store", -3.8f, 4.9f, 5f, 7f, 3.2f, GreekMaterial.Stone);
                         AddHouse(item, "House", -3.6f, -1.6f, 4f, 4.4f, 2.8f, GreekMaterial.Paint);
                     }
+                    AddStoreYard(item, outpost);
                     break;
                 case PortBuilding.Workshop:
                     AddWorkshop(item);
@@ -306,6 +315,17 @@ namespace MorzaBogow.Presentation
             return piece;
         }
 
+        /// <summary>A mesh builder for masonry: courses of the stone and plaster textures run level on every upright face.</summary>
+        static GreekShips.MeshBuilder Builder() => new GreekShips.MeshBuilder(null) { Level = true };
+
+        /// <summary>A mesh only built to be copied into another: freed at once, in the editor's previews as in play.</summary>
+        static void Discard(Mesh mesh)
+        {
+            if (mesh == null) return;
+            if (Application.isPlaying) Object.Destroy(mesh);
+            else Object.DestroyImmediate(mesh);
+        }
+
         Transform Attach(Transform parent, string name, GreekMesh mesh)
         {
             if (mesh == null) return null;
@@ -316,35 +336,189 @@ namespace MorzaBogow.Presentation
 
         // ---------- Buildings ----------
 
-        /// <summary>A house or store: walls (sunk into the slope behind), a door toward the harbour, a low tiled gable roof.</summary>
+        /// <summary>
+        /// A house or store of the 4th century BC (the houses of Olynthus, R-OLYNTHUS): a socle of rubble stone sunk into the
+        /// slope, walls above it plastered over sun-dried brick (or of stone for a store), a timber door frame toward the
+        /// harbour and small windows, a tiled gable roof with its antefixes. The walls rise in courses while it is built.
+        /// </summary>
         void AddHouse(Structure item, string name, float u, float z, float w, float d, float h, GreekMaterial walls)
         {
             var piece = NewPiece(item, name, u, z, w, d, h + w * 0.5f * Mathf.Tan(RoofPitch * Mathf.Deg2Rad));
-            var body = new GreekShips.MeshBuilder(null);
-            body.Box(walls, new Vector3(0f, (h - Sink) * 0.5f, 0f), new Vector3(w * 0.5f, (h + Sink) * 0.5f, d * 0.5f), Quaternion.identity);
-            body.Box(GreekMaterial.Pitch, new Vector3(w * 0.5f + 0.03f, 0.95f, 0f), new Vector3(0.05f, 0.95f, Mathf.Min(0.55f, d * 0.15f)), Quaternion.identity);
+            const float socle = 0.7f;
+            var body = Builder();
+            body.Box(GreekMaterial.Stone, new Vector3(0f, (socle - Sink) * 0.5f, 0f), new Vector3(w * 0.5f + 0.04f, (socle + Sink) * 0.5f, d * 0.5f + 0.04f), Quaternion.identity);
+            // The door frame is set first and the walls rise round it.
+            var door = Mathf.Min(0.55f, d * 0.15f);
             foreach (var side in new[] { -1f, 1f })
-                body.Box(GreekMaterial.Pitch, new Vector3(w * 0.5f + 0.03f, h * 0.68f, side * d * 0.3f), new Vector3(0.05f, 0.28f, 0.22f), Quaternion.identity);
-            piece.Body = Attach(piece.Root, "Walls", body.Build(walls, GreekMaterial.Pitch));
+                body.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.05f, 1.0f, side * (door + 0.06f)), new Vector3(0.07f, 1.0f, 0.06f), Quaternion.identity);
+            body.Box(GreekMaterial.Pitch, new Vector3(w * 0.5f + 0.03f, 0.95f, 0f), new Vector3(0.04f, 0.95f, door), Quaternion.identity);
+            piece.Body = Attach(piece.Root, "Socle", body.Build(GreekMaterial.Stone, GreekMaterial.Wood, GreekMaterial.Pitch));
 
-            var roof = new GreekShips.MeshBuilder(null);
-            Gable(roof, w, d, h, GreekMaterial.Terracotta, walls, 0.35f);
-            piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, walls));
+            const int courses = 6;
+            var course = (h - socle) / courses;
+            var all = Builder();
+            for (var k = 0; k < courses; k++)
+            {
+                var y0 = socle + k * course;
+                var c = Builder();
+                foreach (var target in new[] { c, all })
+                {
+                    WallCourse(target, walls, Vector3.zero, w, d, y0, course, 0.3f, door + 0.12f, 1.9f);
+                    // A small window in the course that holds it, a timber lintel over the door's top.
+                    if (y0 <= h * 0.68f && h * 0.68f < y0 + course)
+                        foreach (var side in new[] { -1f, 1f })
+                            target.Box(GreekMaterial.Pitch, new Vector3(w * 0.5f + 0.01f, h * 0.68f, side * d * 0.3f), new Vector3(0.03f, 0.22f, 0.18f), Quaternion.identity);
+                    if (y0 <= 1.95f && 1.95f < y0 + course)
+                        target.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.02f, 1.95f, 0f), new Vector3(0.08f, 0.07f, door + 0.2f), Quaternion.identity);
+                }
+                piece.Courses.Add(Attach(piece.Body, $"Course {k}", c.Build(walls, GreekMaterial.Pitch, GreekMaterial.Wood)));
+            }
+            piece.Whole = Attach(piece.Body, "Walls", all.Build(walls, GreekMaterial.Pitch, GreekMaterial.Wood));
+
+            var roof = Builder();
+            TiledGable(roof, w, d, h, walls, 0.35f);
+            piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, walls, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h);
+        }
+
+        /// <summary>
+        /// One course of four walls t thick round a plan w by d about the centre, from y0 up height, with the door's
+        /// opening (half its width given) left in the wall toward the harbour (+x) in the courses that start below doorTop.
+        /// </summary>
+        static void WallCourse(GreekShips.MeshBuilder c, GreekMaterial walls, Vector3 centre, float w, float d, float y0, float height, float t, float opening, float doorTop)
+        {
+            var y = y0 + height * 0.5f;
+            var half = height * 0.5f;
+            if (y0 < doorTop)
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    var span = (d * 0.5f - opening) * 0.5f;
+                    c.Box(walls, centre + new Vector3(w * 0.5f - t * 0.5f, y, side * (opening + span)), new Vector3(t * 0.5f, half, span), Quaternion.identity);
+                }
+            else c.Box(walls, centre + new Vector3(w * 0.5f - t * 0.5f, y, 0f), new Vector3(t * 0.5f, half, d * 0.5f), Quaternion.identity);
+            c.Box(walls, centre + new Vector3(-w * 0.5f + t * 0.5f, y, 0f), new Vector3(t * 0.5f, half, d * 0.5f), Quaternion.identity);
+            foreach (var side in new[] { -1f, 1f })
+                c.Box(walls, centre + new Vector3(0f, y, side * (d * 0.5f - t * 0.5f)), new Vector3(w * 0.5f - t, half, t * 0.5f), Quaternion.identity);
+        }
+
+        /// <summary>
+        /// A tiled roof of the 4th century BC over walls w by d, h high, ridge along z: rafters under flat pan tiles, ridged
+        /// cover tiles over their joints, a row of ridge tiles, painted antefixes along both eaves, and the gable ends filled
+        /// in the wall's finish (blue on a pediment). Tiles lying flat are found in the houses of Olynthus (R-OLYNTHUS).
+        /// </summary>
+        static void TiledGable(GreekShips.MeshBuilder b, float w, float d, float h, GreekMaterial ends, float overhang, float pitch = RoofPitch)
+        {
+            Gable(b, w, d, h, GreekMaterial.Terracotta, ends, overhang, pitch);
+            var slope = pitch * Mathf.Deg2Rad;
+            var rise = w * 0.5f * Mathf.Tan(slope);
+            var run = w * 0.5f + overhang;
+            var length = run / Mathf.Cos(slope);
+            var rows = Mathf.Max(3, Mathf.RoundToInt((d + 2f * overhang) / 0.45f));
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var turn = Quaternion.Euler(0f, 0f, -side * pitch);
+                var centre = new Vector3(side * run * 0.5f, h + rise - run * 0.5f * Mathf.Tan(slope) + 0.12f, 0f);
+                var eave = new Vector3(side * run, h + rise - run * Mathf.Tan(slope) + 0.12f, 0f);
+                for (var i = 0; i <= rows; i++)
+                {
+                    var z = -d * 0.5f - overhang + i * (d + 2f * overhang) / rows;
+                    // The cover tile over the joint, its ridge standing proud of the pans.
+                    b.Box(GreekMaterial.Terracotta, centre + turn * Vector3.up * 0.13f + new Vector3(0f, 0f, z), new Vector3(length * 0.5f, 0.05f, 0.07f), turn);
+                    // Its antefix upright at the eave: a plate with a painted palmette (the plate's colour).
+                    b.Box(GreekMaterial.Terracotta, eave + new Vector3(0f, 0.17f, z), new Vector3(0.02f, 0.12f, 0.09f), Quaternion.identity);
+                }
+            }
+            b.Box(GreekMaterial.Terracotta, new Vector3(0f, h + rise + 0.27f, 0f), new Vector3(0.16f, 0.09f, d * 0.5f + overhang), Quaternion.identity);
+            // The rafters' ends under the eaves.
+            foreach (var side in new[] { -1f, 1f })
+                for (var z = -d * 0.5f + 0.3f; z < d * 0.5f; z += 0.9f)
+                    b.Box(GreekMaterial.Wood, new Vector3(side * (w * 0.5f + overhang * 0.5f), h + 0.05f, z), new Vector3(overhang * 0.5f, 0.05f, 0.05f), Quaternion.Euler(0f, 0f, -side * pitch));
+        }
+
+        /// <summary>
+        /// A Doric column standing on the stylobate without a base: a shaft of twenty shallow flutes tapering with a slight
+        /// entasis, a cushion-shaped echinus and a plain square abacus, of stuccoed limestone (the canonical form, built here
+        /// because Meshy's columns came out with bases and volutes, docs/ASSET_PIPELINE.md).
+        /// </summary>
+        static void DoricColumn(GreekShips.MeshBuilder b, Vector3 foot, float height, float radius, int flutes)
+        {
+            var shaft = height * 0.88f;
+            var heights = new[] { 0f, 0.35f, 0.7f, 1f };
+            var ring = flutes * 2;
+            var ids = new int[heights.Length, ring + 1];
+            for (var r = 0; r < heights.Length; r++)
+            {
+                var t = heights[r];
+                // Tapering to 0.8 of the foot, swelling a little (entasis) about the middle.
+                var taper = Mathf.Lerp(1f, 0.8f, t) + 0.025f * Mathf.Sin(t * Mathf.PI);
+                for (var k = 0; k <= ring; k++)
+                {
+                    var a = k * Mathf.PI / flutes;
+                    // The sharp arrises and the hollows of the flutes between them.
+                    var reach = radius * taper * (k % 2 == 0 ? 1f : 0.92f);
+                    ids[r, k] = b.Vertex(foot + new Vector3(Mathf.Cos(a) * reach, t * shaft, Mathf.Sin(a) * reach), new Vector2(a * radius, t * shaft));
+                }
+                b.Seam(ids[r, 0], ids[r, ring]);
+            }
+            for (var r = 0; r + 1 < heights.Length; r++)
+                for (var k = 0; k < ring; k++)
+                {
+                    var a = (k + 0.5f) * Mathf.PI / flutes;
+                    b.Quad(GreekMaterial.Paint, ids[r, k], ids[r, k + 1], ids[r + 1, k + 1], ids[r + 1, k], new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)));
+                }
+            var top = foot + Vector3.up * shaft;
+            // The echinus flaring straight and steep (the later form: an interpretation), the square abacus over it.
+            b.Lathe(GreekMaterial.Paint, new[] { (0f, radius * 0.8f), (height * 0.035f, radius * 1.05f), (height * 0.07f, radius * 1.3f), (height * 0.08f, radius * 1.32f) }, 16, top);
+            var abacus = height * 0.04f;
+            b.Box(GreekMaterial.Paint, top + Vector3.up * (height * 0.08f + abacus * 0.5f), new Vector3(radius * 1.38f, abacus * 0.5f, radius * 1.38f), Quaternion.identity);
+        }
+
+        /// <summary>
+        /// The raking sima along the slopes at both ends of a pediment roof built by Gable with the same measures, and the
+        /// acroteria at its peak and corners: painted terracotta, red as such simas were.
+        /// </summary>
+        static void RakingSima(GreekShips.MeshBuilder b, float w, float d, float h, float overhang, float pitch)
+        {
+            var slope = pitch * Mathf.Deg2Rad;
+            var rise = w * 0.5f * Mathf.Tan(slope);
+            var run = w * 0.5f + overhang;
+            foreach (var end in new[] { -1f, 1f })
+            {
+                var z = end * (d * 0.5f + overhang - 0.04f);
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    var turn = Quaternion.Euler(0f, 0f, -side * pitch);
+                    var centre = new Vector3(side * run * 0.5f, h + rise - run * 0.5f * Mathf.Tan(slope) + 0.12f, z);
+                    b.Box(GreekMaterial.Ochre, centre + turn * Vector3.up * 0.06f, new Vector3(run / Mathf.Cos(slope) * 0.5f, 0.16f, 0.04f), turn);
+                    b.Box(GreekMaterial.Ochre, new Vector3(side * run, h + rise - run * Mathf.Tan(slope) + 0.45f, z), new Vector3(0.14f, 0.2f, 0.04f), Quaternion.identity);
+                }
+                b.Box(GreekMaterial.Ochre, new Vector3(0f, h + rise + 0.55f, z), new Vector3(0.22f, 0.3f, 0.04f), Quaternion.identity);
+            }
+        }
+
+        /// <summary>A rectangular ring of four beams about the vertical axis: outside ex by ez half-extents, t deep, from y0 up height.</summary>
+        static void Ring(GreekShips.MeshBuilder b, GreekMaterial paint, float ex, float ez, float t, float y0, float height)
+        {
+            var y = y0 + height * 0.5f;
+            foreach (var side in new[] { -1f, 1f })
+            {
+                b.Box(paint, new Vector3(side * (ex - t * 0.5f), y, 0f), new Vector3(t * 0.5f, height * 0.5f, ez), Quaternion.identity);
+                b.Box(paint, new Vector3(0f, y, side * (ez - t * 0.5f)), new Vector3(ex - t, height * 0.5f, t * 0.5f), Quaternion.identity);
+            }
         }
 
         const float RoofPitch = 22f, Sink = 4f;
 
         /// <summary>A tiled roof with its ridge along z over walls w by d, h high, and the gable ends filled in the wall's finish.</summary>
-        static void Gable(GreekShips.MeshBuilder b, float w, float d, float h, GreekMaterial tiles, GreekMaterial ends, float overhang)
+        static void Gable(GreekShips.MeshBuilder b, float w, float d, float h, GreekMaterial tiles, GreekMaterial ends, float overhang, float pitch = RoofPitch)
         {
-            var slope = RoofPitch * Mathf.Deg2Rad;
+            var slope = pitch * Mathf.Deg2Rad;
             var rise = w * 0.5f * Mathf.Tan(slope);
             var run = w * 0.5f + overhang;
             foreach (var side in new[] { -1f, 1f })
             {
                 var centre = new Vector3(side * run * 0.5f, h + rise - run * 0.5f * Mathf.Tan(slope) + 0.12f, 0f);
-                b.Box(tiles, centre, new Vector3(run / Mathf.Cos(slope) * 0.5f, 0.1f, d * 0.5f + overhang), Quaternion.Euler(0f, 0f, -side * RoofPitch));
+                b.Box(tiles, centre, new Vector3(run / Mathf.Cos(slope) * 0.5f, 0.1f, d * 0.5f + overhang), Quaternion.Euler(0f, 0f, -side * pitch));
             }
             foreach (var end in new[] { -1f, 1f })
             {
@@ -359,7 +533,7 @@ namespace MorzaBogow.Presentation
         /// <summary>Poles at the corners and the middle of each side with two rings of planks, and a stone footing with stakes.</summary>
         void AddScaffold(Piece piece, float w, float d, float h)
         {
-            var poles = new GreekShips.MeshBuilder(null);
+            var poles = Builder();
             var tall = h + 1.6f;
             var x = w * 0.5f + 0.45f;
             var zz = d * 0.5f + 0.45f;
@@ -379,7 +553,7 @@ namespace MorzaBogow.Presentation
             }
             piece.Scaffold = Attach(piece.Root, "Scaffolding", poles.Build(GreekMaterial.Wood));
 
-            var footing = new GreekShips.MeshBuilder(null);
+            var footing = Builder();
             footing.Box(GreekMaterial.Stone, new Vector3(0f, -0.2f, 0f), new Vector3(w * 0.5f + 0.15f, 0.45f, d * 0.5f + 0.15f), Quaternion.identity);
             foreach (var px in new[] { -x, x })
             foreach (var pz in new[] { -zz, zz })
@@ -395,7 +569,7 @@ namespace MorzaBogow.Presentation
         {
             const float w = 5.6f, d = 4f, h = 3.3f;
             var piece = NewPiece(item, "Shed", -6f, -6.6f, w, d, h + 1.6f);
-            var body = new GreekShips.MeshBuilder(null);
+            var body = Builder();
             foreach (var px in new[] { -w * 0.5f + 0.2f, w * 0.5f - 0.2f })
             foreach (var pz in new[] { -d * 0.5f + 0.2f, 0f, d * 0.5f - 0.2f })
                 body.Box(GreekMaterial.Wood, new Vector3(px, (h - Sink) * 0.5f, pz), new Vector3(0.14f, (h + Sink) * 0.5f, 0.14f), Quaternion.identity);
@@ -416,43 +590,206 @@ namespace MorzaBogow.Presentation
                 body.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.7f, 0.18f + (i / 2) * 0.32f, d * 0.5f - 0.6f - (i % 2) * 0.36f), new Vector3(0.16f, 0.16f, 1.2f), Quaternion.Euler(0f, 90f, 0f));
             piece.Body = Attach(piece.Root, "Shed", body.Build(GreekMaterial.Wood, GreekMaterial.Stone, GreekMaterial.Rope, GreekMaterial.Pitch));
 
-            var roof = new GreekShips.MeshBuilder(null);
-            Gable(roof, w, d, h, GreekMaterial.Terracotta, GreekMaterial.Wood, 0.3f);
+            var roof = Builder();
+            TiledGable(roof, w, d, h, GreekMaterial.Wood, 0.3f);
             piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h);
         }
 
+        /// <summary>A storage jar 1.4 m tall, from its foot up (height, radius): egg-shaped, two raised rope bands, a rolled rim.</summary>
+        static readonly (float, float)[] Pithos =
+        {
+            (0f, 0.14f), (0.12f, 0.26f), (0.35f, 0.42f), (0.55f, 0.5f), (0.57f, 0.53f), (0.61f, 0.53f), (0.63f, 0.5f), (0.8f, 0.52f),
+            (0.95f, 0.5f), (0.97f, 0.53f), (1.01f, 0.53f), (1.03f, 0.49f), (1.15f, 0.4f), (1.25f, 0.3f), (1.3f, 0.26f), (1.33f, 0.31f),
+            (1.39f, 0.31f), (1.41f, 0.26f),
+        };
+
+        /// <summary>A transport amphora 0.8 m tall on its knobbed toe: ovoid body, sloping shoulder, tall neck, rim.</summary>
+        static readonly (float, float)[] Amphora =
+        {
+            (0f, 0.035f), (0.07f, 0.04f), (0.1f, 0.03f), (0.16f, 0.06f), (0.3f, 0.15f), (0.45f, 0.18f), (0.52f, 0.17f), (0.58f, 0.12f),
+            (0.62f, 0.065f), (0.76f, 0.055f), (0.78f, 0.07f), (0.81f, 0.065f),
+        };
+
         /// <summary>
-        /// The Sages' School on the highest terrace: a three-stepped base, a whitewashed hall inside a ring of columns, a
-        /// tiled roof with pediments at both ends; its front toward the harbour.
+        /// Before the store: big storage jars (pithoi) sunk to their shoulders, transport amphorae leaning on its wall, and
+        /// two anchors of the 4th century, one-armed and of wood with a lead-filled stock (R-ANCHORS): the port's trade
+        /// at a glance. One mesh beside the store, not a piece, so the store's place on the land (Footprint) is as it
+        /// was; the yard keeps north and south of the store's door.
+        /// </summary>
+        void AddStoreYard(Structure item, bool small)
+        {
+            var b = Builder();
+            var front = -3.8f + (small ? 2.2f : 2.5f);
+            // Three jars between the door and the town wall's inner face (z 8.75).
+            for (var i = 0; i < (small ? 2 : 3); i++)
+            {
+                var u = front + 0.6f;
+                var z = 6.3f + i * 0.9f;
+                var foot = Local(u, z, Ground(u, z) - 0.5f);
+                b.Lathe(GreekMaterial.Terracotta, Pithos, 16, foot);
+                // Sealed with a lid, or open and dark inside.
+                var lid = new[] { (1.3f, 0.27f), (1.37f, 0f) };
+                b.Lathe(i % 2 == 0 ? GreekMaterial.Pitch : GreekMaterial.Terracotta, lid, 12, foot);
+            }
+
+            var jar = Builder();
+            jar.Lathe(GreekMaterial.Terracotta, Amphora, 12);
+            foreach (var side in new[] { -1f, 1f })
+                jar.Tube(GreekMaterial.Terracotta, new List<Vector3> { new Vector3(side * 0.165f, 0.55f, 0f), new Vector3(side * 0.13f, 0.78f, 0f), new Vector3(side * 0.06f, 0.74f, 0f) }, 0.022f, 0.018f, 5);
+            var amphora = jar.Build(GreekMaterial.Terracotta);
+            for (var i = 0; i < (small ? 3 : 5); i++)
+            {
+                var u = front + 0.17f;
+                var z = 2.1f + i * 0.42f;
+                b.Append(amphora, Local(u, z, Ground(u, z)), Quaternion.Euler(0f, 0f, toward * 11f) * Quaternion.Euler(0f, 37f * i, 0f));
+            }
+            Discard(amphora.Mesh);
+
+            // Anchors leaning on the house's wall either side of its door: one-armed, of oak, the arm's tip shod with
+            // iron, the wooden stock filled with lead (Ma'agan Mikhael c. 400 BC, Kyrenia c. 300 BC: R-ANCHORS).
+            var anchor = Builder();
+            anchor.Box(GreekMaterial.Wood, new Vector3(0f, 1f, 0f), new Vector3(0.06f, 1f, 0.06f), Quaternion.identity);
+            anchor.Box(GreekMaterial.Wood, new Vector3(0.22f, 0.22f, 0f), new Vector3(0.28f, 0.05f, 0.05f), Quaternion.Euler(0f, 0f, 40f));
+            anchor.Box(GreekMaterial.Pitch, new Vector3(0.42f, 0.39f, 0f), new Vector3(0.06f, 0.055f, 0.055f), Quaternion.Euler(0f, 0f, 40f));
+            anchor.Box(GreekMaterial.Wood, new Vector3(0f, 1.82f, 0f), new Vector3(0.08f, 0.07f, 0.55f), Quaternion.identity);
+            foreach (var end in new[] { -0.3f, 0.3f })
+                anchor.Box(GreekMaterial.Lead, new Vector3(0f, 1.82f, end), new Vector3(0.085f, 0.05f, 0.12f), Quaternion.identity);
+            var made = anchor.Build(GreekMaterial.Wood, GreekMaterial.Pitch, GreekMaterial.Lead);
+            var house = -3.6f + (small ? 1.6f : 2f);
+            foreach (var z in new[] { -3.2f, 0f })
+            {
+                var u = house + 0.55f;
+                b.Append(made, Local(u, z, Ground(u, z)), Quaternion.Euler(0f, 0f, toward * 15f));
+            }
+            Discard(made.Mesh);
+            Attach(item.Root.transform, "Store yard", b.Build(GreekMaterial.Terracotta, GreekMaterial.Pitch, GreekMaterial.Wood, GreekMaterial.Lead));
+        }
+
+        /// <summary>The School's three steps (1 m in all), its columns' measures and axes: 0.35 m in from the stylobate's edge.</summary>
+        const float SchoolSteps = 1f, SchoolColumnHeight = 3.3f, SchoolColumnRadius = 0.26f, SchoolColumnX = 1.75f, SchoolColumnZ = 3.35f;
+
+        /// <summary>
+        /// The School's peristyle of 4 by 6 columns: the long side toward the harbour first, then round. Columns of 6.3
+        /// lower diameters: slender, as the Doric column grew century by century, the later 4th century's among the
+        /// slenderest (R-DORIC-PROPORTIONS).
+        /// </summary>
+        static List<Vector3> SchoolColumns()
+        {
+            var list = new List<Vector3>();
+            for (var i = 0; i < 6; i++) list.Add(new Vector3(SchoolColumnX, 0f, -SchoolColumnZ + i * 2f * SchoolColumnZ / 5f));
+            for (var i = 1; i < 3; i++) list.Add(new Vector3(SchoolColumnX - i * 2f * SchoolColumnX / 3f, 0f, SchoolColumnZ));
+            for (var i = 5; i >= 0; i--) list.Add(new Vector3(-SchoolColumnX, 0f, -SchoolColumnZ + i * 2f * SchoolColumnZ / 5f));
+            for (var i = 2; i >= 1; i--) list.Add(new Vector3(SchoolColumnX - i * 2f * SchoolColumnX / 3f, 0f, -SchoolColumnZ));
+            return list;
+        }
+
+        /// <summary>
+        /// The Sages' School as a hall of learning of the 4th century BC, the Academy's and the Lyceum's time: a
+        /// three-stepped base, a stuccoed hall inside a Doric peristyle (the game's choice), an entablature painted as
+        /// Doric ones were (bluish triglyphs as on the Vergina facades, R-VERGINA-PELLA; the red taenia and sima and the
+        /// blue tympana an interpretation), a tiled roof; its long side toward the harbour. While it is built the columns
+        /// go up a side at a time, the hall in courses inside them, then the architrave and the frieze are laid on.
         /// </summary>
         void AddSchool(Structure item)
         {
-            const float w = 5f, d = 8.2f, h = 4.6f, steps = 1.0f;
+            const float w = 5f, d = 8.2f, h = 4.6f, steps = SchoolSteps;
             var piece = NewPiece(item, "School", -11.6f, -0.5f, w, d, h + steps + 1.2f);
-            var body = new GreekShips.MeshBuilder(null);
+            var body = Builder();
             for (var i = 0; i < 3; i++)
             {
-                var inset = i * 0.25f;
+                var inset = i * 0.2f;
                 body.Box(GreekMaterial.Stone, new Vector3(0f, (steps * (i + 1) / 3f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f - inset, (steps * (i + 1) / 3f + Sink) * 0.5f, d * 0.5f - inset), Quaternion.identity);
             }
-            body.Box(GreekMaterial.Paint, new Vector3(-0.3f, steps + h * 0.5f, 0f), new Vector3(w * 0.5f - 1.2f, h * 0.5f, d * 0.5f - 1.3f), Quaternion.identity);
-            body.Box(GreekMaterial.Pitch, new Vector3(w * 0.5f - 1.17f, steps + 1.05f, 0f), new Vector3(0.05f, 1.05f, 0.6f), Quaternion.identity);
-            var columns = new List<Vector3>();
-            for (var i = 0; i < 6; i++) foreach (var side in new[] { -1f, 1f }) columns.Add(new Vector3(-w * 0.5f + 0.75f + i * (w - 1.5f) / 5f, 0f, side * (d * 0.5f - 0.75f)));
-            for (var i = 1; i < 5; i++) foreach (var side in new[] { -1f, 1f }) columns.Add(new Vector3(side * (w * 0.5f - 0.75f), 0f, -d * 0.5f + 0.75f + i * (d - 1.5f) / 5f));
-            foreach (var at in columns)
-            {
-                body.Tube(GreekMaterial.Paint, new List<Vector3> { at + Vector3.up * steps, at + Vector3.up * (steps + h) }, 0.2f, 0.16f, 8);
-                body.Box(GreekMaterial.Paint, at + Vector3.up * (steps + h + 0.05f), new Vector3(0.26f, 0.06f, 0.26f), Quaternion.identity);
-            }
-            // The architrave over the columns.
-            body.Box(GreekMaterial.Paint, new Vector3(0f, steps + h + 0.3f, 0f), new Vector3(w * 0.5f - 0.5f, 0.22f, d * 0.5f - 0.5f), Quaternion.identity);
-            piece.Body = Attach(piece.Root, "Colonnade", body.Build(GreekMaterial.Stone, GreekMaterial.Paint, GreekMaterial.Pitch));
+            piece.Body = Attach(piece.Root, "Crepis", body.Build(GreekMaterial.Stone));
+            var floor = Vector3.up * steps;
 
-            var roof = new GreekShips.MeshBuilder(null);
-            Gable(roof, w - 0.8f, d - 0.8f, steps + h + 0.52f, GreekMaterial.Terracotta, GreekMaterial.Paint, 0.35f);
-            piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, GreekMaterial.Paint));
+            // Each stage of the work is laid twice: as its own course, shown while the School rises, and into the whole.
+            var all = Builder();
+            var columns = SchoolColumns();
+            foreach (var (first, count) in new[] { (0, 6), (6, 2), (8, 6), (14, 2) })
+            {
+                var c = Builder();
+                foreach (var target in new[] { c, all })
+                    for (var i = first; i < first + count; i++) DoricColumn(target, floor + columns[i], SchoolColumnHeight, SchoolColumnRadius, 20);
+                piece.Courses.Add(Attach(piece.Body, $"Columns {first}", c.Build(GreekMaterial.Paint)));
+            }
+
+            // The hall: stone orthostates, then stuccoed courses up under the roof; a tall door toward the harbour.
+            const float epistyle = 0.42f, frieze = 0.48f, cornice = 0.2f, hallW = 2.1f, hallD = 5.2f, door = 0.5f, doorTop = 2.2f;
+            var hall = floor + new Vector3(-0.15f, 0f, 0f);
+            const int courses = 6;
+            var course = (SchoolColumnHeight + epistyle + frieze) / courses;
+            for (var k = 0; k < courses; k++)
+            {
+                var y0 = k * course;
+                var c = Builder();
+                foreach (var target in new[] { c, all })
+                {
+                    WallCourse(target, k == 0 ? GreekMaterial.Stone : GreekMaterial.Paint, hall, hallW, hallD, y0, course, 0.3f, door, doorTop);
+                    if (y0 < doorTop)
+                        target.Box(GreekMaterial.Pitch, hall + new Vector3(hallW * 0.5f - 0.25f, y0 + course * 0.5f, 0f), new Vector3(0.03f, course * 0.5f, door), Quaternion.identity);
+                }
+                piece.Courses.Add(Attach(piece.Body, $"Hall course {k}", c.Build(GreekMaterial.Stone, GreekMaterial.Paint, GreekMaterial.Pitch)));
+            }
+
+            // The architrave on the capitals, its red taenia and the blue regulae under each triglyph.
+            var top = steps + SchoolColumnHeight;
+            var ex = SchoolColumnX + 0.24f;
+            var ez = SchoolColumnZ + 0.24f;
+            var triglyphs = new List<(Vector3 at, bool alongZ)>();
+            foreach (var side in new[] { -1f, 1f })
+            {
+                for (var i = 0; i <= 10; i++)
+                {
+                    var z = i == 0 ? -(ez - 0.13f) : i == 10 ? ez - 0.13f : -SchoolColumnZ + i * SchoolColumnZ / 5f;
+                    triglyphs.Add((new Vector3(side * ex, 0f, z), true));
+                }
+                for (var i = 0; i <= 6; i++)
+                {
+                    var x = i == 0 ? -(ex - 0.13f) : i == 6 ? ex - 0.13f : -SchoolColumnX + i * SchoolColumnX / 3f;
+                    triglyphs.Add((new Vector3(x, 0f, side * ez), false));
+                }
+            }
+            var architrave = Builder();
+            foreach (var target in new[] { architrave, all })
+            {
+                Ring(target, GreekMaterial.Paint, ex, ez, 0.48f, top, epistyle);
+                Ring(target, GreekMaterial.Ochre, ex + 0.03f, ez + 0.03f, 0.06f, top + epistyle - 0.06f, 0.06f);
+                foreach (var (at, alongZ) in triglyphs)
+                {
+                    var out1 = alongZ ? new Vector3(Mathf.Sign(at.x) * 0.02f, 0f, 0f) : new Vector3(0f, 0f, Mathf.Sign(at.z) * 0.02f);
+                    var half = alongZ ? new Vector3(0.02f, 0.025f, 0.13f) : new Vector3(0.13f, 0.025f, 0.02f);
+                    target.Box(GreekMaterial.Azure, at + out1 + Vector3.up * (top + epistyle - 0.085f), half, Quaternion.identity);
+                }
+            }
+            piece.Courses.Add(Attach(piece.Body, "Architrave", architrave.Build(GreekMaterial.Paint, GreekMaterial.Ochre, GreekMaterial.Azure)));
+
+            // The frieze of blue triglyphs standing proud of white metopes, the cornice over it with its blue mutules.
+            var entablature = Builder();
+            var friezeAt = top + epistyle;
+            foreach (var target in new[] { entablature, all })
+            {
+                Ring(target, GreekMaterial.Paint, ex - 0.05f, ez - 0.05f, 0.4f, friezeAt, frieze);
+                foreach (var (at, alongZ) in triglyphs)
+                {
+                    var back = alongZ ? new Vector3(-Mathf.Sign(at.x) * 0.04f, 0f, 0f) : new Vector3(0f, 0f, -Mathf.Sign(at.z) * 0.04f);
+                    var half = alongZ ? new Vector3(0.04f, frieze * 0.5f, 0.13f) : new Vector3(0.13f, frieze * 0.5f, 0.04f);
+                    target.Box(GreekMaterial.Azure, at + back + Vector3.up * (friezeAt + frieze * 0.5f), half, Quaternion.identity);
+                }
+                Ring(target, GreekMaterial.Azure, ex + 0.15f, ez + 0.15f, 0.15f, friezeAt + frieze - 0.03f, 0.03f);
+                Ring(target, GreekMaterial.Paint, ex + 0.15f, ez + 0.15f, 0.4f, friezeAt + frieze, cornice);
+            }
+            piece.Courses.Add(Attach(piece.Body, "Frieze and cornice", entablature.Build(GreekMaterial.Paint, GreekMaterial.Azure)));
+            piece.Whole = Attach(piece.Body, "Colonnade and hall", all.Build(GreekMaterial.Paint, GreekMaterial.Stone, GreekMaterial.Pitch, GreekMaterial.Ochre, GreekMaterial.Azure));
+
+            // The roof at a temple's low pitch, blue tympana in the pediments, the red raking sima and acroteria.
+            const float pitch = 15f, overhang = 0.25f;
+            var eaves = friezeAt + frieze + cornice;
+            var roof = Builder();
+            TiledGable(roof, 2f * (ex + 0.15f), 2f * (ez + 0.15f), eaves, GreekMaterial.Azure, overhang, pitch);
+            RakingSima(roof, 2f * (ex + 0.15f), 2f * (ez + 0.15f), eaves, overhang, pitch);
+            piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, GreekMaterial.Azure, GreekMaterial.Ochre, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h + steps);
         }
 
@@ -467,7 +804,9 @@ namespace MorzaBogow.Presentation
             piece.Root.SetParent(item.Root.transform, false);
             item.Pieces.Add(piece);
             const float back = -14.6f, front = 0.6f, side = 9.2f, gate = 3.6f;
-            var body = new GreekShips.MeshBuilder(null);
+            var body = Builder();
+            var roofs = Builder();
+            // A curtain of regular ashlar (Messene's walls, R-MESSENE); its crenellated parapet is an interpretation.
             void Stretch(float u0, float z0, float u1, float z1)
             {
                 var length = Mathf.Sqrt((u1 - u0) * (u1 - u0) + (z1 - z0) * (z1 - z0));
@@ -480,14 +819,31 @@ namespace MorzaBogow.Presentation
                     var ground = Ground(u, z);
                     var centre = Local(u, z, ground + (WallHeight - Sink) * 0.5f);
                     var along = Local(u1 - u0, z1 - z0, 0f).normalized;
-                    body.Box(GreekMaterial.Stone, centre, new Vector3(0.45f, (WallHeight + Sink) * 0.5f, length / count * 0.5f + 0.06f), Quaternion.LookRotation(along));
+                    var turn = Quaternion.LookRotation(along);
+                    body.Box(GreekMaterial.Stone, centre, new Vector3(0.45f, (WallHeight + Sink) * 0.5f, length / count * 0.5f + 0.06f), turn);
+                    foreach (var end in new[] { -0.25f, 0.25f })
+                        body.Box(GreekMaterial.Stone, Local(u, z, ground + WallHeight + 0.3f) + along * (end * length / count), new Vector3(0.47f, 0.3f, 0.38f), turn);
                 }
             }
+            // Square towers rising a storey over the wall-walk, loopholes in the upper room, a gabled roof (R-MESSENE;
+            // its tiles are an interpretation).
             void Tower(float u, float z)
             {
                 var ground = Ground(u, z) - 0.6f;
+                var top = ground + WallHeight + 1.4f;
                 body.Box(GreekMaterial.Stone, Local(u, z, ground + (WallHeight + 1.4f - Sink) * 0.5f), new Vector3(1.1f, (WallHeight + 1.4f + Sink) * 0.5f, 1.1f), Quaternion.identity);
-                body.Box(GreekMaterial.Pitch, Local(u, z, ground + WallHeight + 1.42f), new Vector3(0.7f, 0.02f, 0.7f), Quaternion.identity);
+                var slit = Local(u, z, ground + WallHeight + 0.6f);
+                foreach (var face in new[] { -1f, 1f })
+                foreach (var across in new[] { -0.45f, 0.45f })
+                {
+                    body.Box(GreekMaterial.Pitch, slit + new Vector3(face * 1.11f, 0f, across), new Vector3(0.02f, 0.32f, 0.07f), Quaternion.identity);
+                    body.Box(GreekMaterial.Pitch, slit + new Vector3(across, 0f, face * 1.11f), new Vector3(0.07f, 0.32f, 0.02f), Quaternion.identity);
+                }
+                var cap = Builder();
+                TiledGable(cap, 2.2f, 2.2f, 0f, GreekMaterial.Stone, 0.18f);
+                var mesh = cap.Build(GreekMaterial.Terracotta, GreekMaterial.Stone, GreekMaterial.Wood);
+                roofs.Append(mesh, Local(u, z, top), Quaternion.identity);
+                Discard(mesh.Mesh);
             }
             Stretch(back, -side, back, side);
             Stretch(back, -side, front, -side);
@@ -496,8 +852,9 @@ namespace MorzaBogow.Presentation
             Stretch(front, gate, front, side);
             foreach (var (u, z) in new[] { (back, -side), (back, side), (front, -side), (front, side), (front, -gate), (front, gate) }) Tower(u, z);
             piece.Body = Attach(piece.Root, "Wall and towers", body.Build(GreekMaterial.Stone, GreekMaterial.Pitch));
+            piece.Roof = Attach(piece.Root, "Tower roofs", roofs.Build(GreekMaterial.Terracotta, GreekMaterial.Stone, GreekMaterial.Wood));
             // A wall rises from its footing like any building: the stretches grow from the ground they stand on.
-            var footing = new GreekShips.MeshBuilder(null);
+            var footing = Builder();
             foreach (var (u0, z0, u1, z1) in new[] { (back, -side, back, side), (back, -side, front, -side), (back, side, front, side) })
             {
                 var steps = 8;
@@ -528,7 +885,7 @@ namespace MorzaBogow.Presentation
             piece.Root.SetParent(item.Root.transform, false);
             item.Pieces.Add(piece);
 
-            var crane = new GreekShips.MeshBuilder(null);
+            var crane = Builder();
             var apex = Local(24.2f, -1.8f, 9.4f);
             foreach (var u in new[] { 20.4f, 22.4f })
                 crane.Tube(GreekMaterial.Wood, new List<Vector3> { Local(u, -1.75f, JettyTop), apex }, 0.2f, 0.15f, 6);
@@ -548,14 +905,7 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>A body of revolution at a point (the builder's lathe works about the origin).</summary>
-        static void AppendLathe(GreekShips.MeshBuilder b, GreekMaterial paint, Vector3 at, (float, float)[] profile, int sides)
-        {
-            var lathe = new GreekShips.MeshBuilder(null);
-            lathe.Lathe(paint, profile, sides);
-            var mesh = lathe.Build(paint);
-            b.Append(mesh, at, Quaternion.identity);
-            Object.Destroy(mesh.Mesh);
-        }
+        static void AppendLathe(GreekShips.MeshBuilder b, GreekMaterial paint, Vector3 at, (float, float)[] profile, int sides) => b.Lathe(paint, profile, sides, at);
 
         /// <summary>A bronze tripod with a fire bowl before the School's front, lit while the sages research.</summary>
         void BuildFire()
@@ -566,7 +916,7 @@ namespace MorzaBogow.Presentation
             fire.SetParent(school.Root.transform, false);
             var u = front.U + front.W * 0.5f + 1.3f;
             fire.localPosition = Local(u, front.Z, Ground(u, front.Z));
-            var stand = new GreekShips.MeshBuilder(null);
+            var stand = Builder();
             foreach (var angle in new[] { 0f, 120f, 240f })
             {
                 var foot = Quaternion.Euler(0f, angle, 0f) * new Vector3(0.45f, 0f, 0f);
@@ -574,7 +924,7 @@ namespace MorzaBogow.Presentation
             }
             AppendLathe(stand, GreekMaterial.Bronze, new Vector3(0f, 1.05f, 0f), new[] { (0f, 0.08f), (0.12f, 0.36f), (0.26f, 0.42f) }, 10);
             Attach(fire, "Tripod", stand.Build(GreekMaterial.Bronze));
-            var light = new GreekShips.MeshBuilder(null);
+            var light = Builder();
             light.Lathe(GreekMaterial.Ochre, new[] { (0f, 0.34f), (0.35f, 0.26f), (0.8f, 0.1f), (1.05f, 0.01f) }, 8);
             var mesh = light.Build(GreekMaterial.Ochre);
             owned.Add(mesh.Mesh);
@@ -603,7 +953,7 @@ namespace MorzaBogow.Presentation
             ruin.transform.SetParent(root, false);
             foreach (var piece in item.Pieces)
             {
-                var b = new GreekShips.MeshBuilder(null);
+                var b = Builder();
                 var holder = new GameObject(piece.Root.name + " (ruin)").transform;
                 holder.SetParent(ruin.transform, false);
                 holder.localPosition = piece.Root.localPosition;
@@ -644,18 +994,30 @@ namespace MorzaBogow.Presentation
                     var wall = item.Kind == PortBuilding.Store && piece.Root.name == "Store" ? GreekMaterial.Stone : GreekMaterial.Paint;
                     if (item.Kind == PortBuilding.SageSchool)
                     {
-                        b.Box(GreekMaterial.Stone, new Vector3(0f, (0.6f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f, (0.6f + Sink) * 0.5f, d * 0.5f), Quaternion.identity);
-                        for (var i = 0; i < 6; i++)
-                        foreach (var sideZ in new[] { -1f, 1f })
-                        {
-                            var at = new Vector3(-w * 0.5f + 0.75f + i * (w - 1.5f) / 5f, 0.6f, sideZ * (d * 0.5f - 0.75f));
-                            b.Tube(GreekMaterial.Paint, new List<Vector3> { at, at + Vector3.up * Next(0.4f, 1.8f) }, 0.2f, 0.18f, 8);
-                        }
+                        // The steps stand; of the peristyle stumps are left, some columns gone, drums fallen about.
                         for (var i = 0; i < 3; i++)
                         {
-                            var at = new Vector3(Next(-w, w) * 0.6f, 0.85f, Next(-d, d) * 0.5f);
-                            var dir = Quaternion.Euler(0f, Next(0f, 360f), 0f) * Vector3.forward;
-                            b.Tube(GreekMaterial.Paint, new List<Vector3> { at, at + dir * 1.4f }, 0.2f, 0.2f, 8);
+                            var inset = i * 0.2f;
+                            b.Box(GreekMaterial.Stone, new Vector3(0f, (SchoolSteps * (i + 1) / 3f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f - inset, (SchoolSteps * (i + 1) / 3f + Sink) * 0.5f, d * 0.5f - inset), Quaternion.identity);
+                        }
+                        const float r = SchoolColumnRadius;
+                        foreach (var at in SchoolColumns())
+                        {
+                            if (random.NextDouble() < 0.25) continue;
+                            // A stump broken off, its top a low rough cone.
+                            var tall = Next(0.4f, 1.8f);
+                            b.Lathe(GreekMaterial.Paint, new[] { (0f, r), (tall, r * 0.97f), (tall + Next(0.03f, 0.12f), 0f) }, 10, at + Vector3.up * SchoolSteps);
+                        }
+                        for (var i = 0; i < 4; i++)
+                        {
+                            // Drums fallen on the stylobate, whole bodies with their faces.
+                            var length = Next(0.6f, 1.4f);
+                            var drum = Builder();
+                            drum.Lathe(GreekMaterial.Paint, new[] { (-0.02f, 0f), (0f, r), (length, r), (length + 0.02f, 0f) }, 10);
+                            var mesh = drum.Build(GreekMaterial.Paint);
+                            var at = new Vector3(Next(-w, w) * 0.6f, SchoolSteps + r, Next(-d, d) * 0.5f);
+                            b.Append(mesh, at, Quaternion.Euler(0f, Next(0f, 360f), 0f) * Quaternion.Euler(90f, 0f, 0f));
+                            Discard(mesh.Mesh);
                         }
                     }
                     else if (item.Kind == PortBuilding.Workshop)
@@ -716,16 +1078,28 @@ namespace MorzaBogow.Presentation
             return list;
         }
 
+        /// <summary>Dressed limestone and lime plaster for buildings, baked by the editor's BuildingTextureBaker into Resources.</summary>
+        public const string AshlarMaterial = "Buildings/Ashlar", StuccoMaterial = "Buildings/Stucco";
+
         public static Material MaterialFor(GreekMaterial paint, PlaceholderMaterials materials)
         {
             if (materials == null) return null;
             var stone = materials.Limestone != null ? materials.Limestone : materials.Neutral;
+            // Where the baked masonry is missing: the land's own limestone, and plain paint for plaster.
+            var ashlar = Resources.Load<Material>(AshlarMaterial);
+            var plaster = Resources.Load<Material>(StuccoMaterial);
+            var masonry = ashlar != null ? ashlar : stone;
+            var painted = plaster != null ? plaster : materials.Neutral != null ? materials.Neutral : stone;
             switch (paint)
             {
-                case GreekMaterial.Stone: return stone;
-                case GreekMaterial.Paint: return Tint(stone, "whitewash", new Color(1f, 0.98f, 0.94f), 0.3f);
+                case GreekMaterial.Stone: return masonry;
+                case GreekMaterial.Paint: return Tint(painted, "whitewash", new Color(1f, 0.98f, 0.94f), 0.3f);
                 case GreekMaterial.Pitch: return Tint(materials.Timber, "charred", new Color(0.07f, 0.06f, 0.055f), 0.1f);
                 case GreekMaterial.Wood: return materials.Timber != null ? materials.Timber : GreekShips.MaterialFor(paint, materials);
+                // The painters' colours on plaster and terracotta: Egyptian blue and red ochre.
+                case GreekMaterial.Azure: return Tint(painted, "egyptian blue", GreekShips.Palette.Azure, 0.25f);
+                case GreekMaterial.Ochre: return Tint(painted, "red ochre", GreekShips.Palette.Ochre, 0.25f);
+                case GreekMaterial.Lead: return Tint(materials.Neutral != null ? materials.Neutral : stone, "lead", GreekShips.Palette.Lead, 0.4f);
                 default: return GreekShips.MaterialFor(paint, materials);
             }
         }
