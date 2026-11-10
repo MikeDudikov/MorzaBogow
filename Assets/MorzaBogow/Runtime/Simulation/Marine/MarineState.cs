@@ -82,14 +82,21 @@ namespace MorzaBogow.Simulation
         /// <summary>The sea at the start of a match: the open sea's state for the wind, settled around the islands.</summary>
         internal void Initialise(double settleSeconds) => Waves.Initialise(Wind, settleSeconds);
 
+        /// <summary>Cost of the marine part of the world's ticks so far (measurement only; never read by the simulation).</summary>
+        public double TickMilliseconds { get; private set; }
+        public int TimedTicks { get; private set; }
+
         internal void Tick()
         {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             if (world.Islands.Count != islandCount) Build();
             Wind.Advance(Rules.Dt * Climate.WeatherTimeScale);
             Waves.Tick(Wind);
-            if (!WindAffectsMovement) return;
-            foreach (var ship in world.Ships)
-                if ((ship.Id + world.Tick) % ShipUpdateTicks == 0) UpdateShip(ship);
+            if (WindAffectsMovement)
+                foreach (var ship in world.Ships)
+                    if ((ship.Id + world.Tick) % ShipUpdateTicks == 0) UpdateShip(ship);
+            TickMilliseconds += (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            TimedTicks++;
         }
 
         /// <summary>Seconds of simulation time for the wave phases: the weather's acceleration never changes the dispersion.</summary>

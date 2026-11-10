@@ -135,7 +135,8 @@
         "MorzaBogow.Tests.MarineTests.Planar_SwitchOffLeavesMovementUnchanged",
         "MorzaBogow.Tests.MarineTests.Planar_WindChangesSpeedAndDriftWhenSwitchedOn",
         "MorzaBogow.Tests.MarineTests.Planar_MeanAddedResistanceInWaves",
-        "MorzaBogow.Tests.MarineTests.Marine_WavePhasesUseSimulationTimeAtAnyWeatherScale"
+        "MorzaBogow.Tests.MarineTests.Marine_WavePhasesUseSimulationTimeAtAnyWeatherScale",
+        "MorzaBogow.Tests.MarineTests.Marine_MatchWeatherFollowsTheAegeanSummerAndIsNeverAStorm"
       ]
     },
     "PlayMode": {

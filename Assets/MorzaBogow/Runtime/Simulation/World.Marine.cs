@@ -19,6 +19,15 @@ namespace MorzaBogow.Simulation
             return Marine;
         }
 
+        /// <summary>Weather seconds a new match's sea settles around the islands before the first tick.</summary>
+        public const double MatchSettleSeconds = 120;
+
+        /// <summary>
+        /// The wind and sea a new match starts with: summer weather drawn from the world's seed (MarineClimate.ForMatch),
+        /// the wind not moving ships. The battle and any headless run of the same match call this alike.
+        /// </summary>
+        public MarineState EnableMarineForMatch() => EnableMarine(MarineClimate.ForMatch(Random.State), Random.State, false, MatchSettleSeconds);
+
         void StepMarine() => Marine?.Tick();
 
         /// <summary>Whether the wind and the waves move ships in this match.</summary>

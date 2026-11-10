@@ -119,6 +119,18 @@ namespace MorzaBogow.Simulation
         public static MarineClimate Default => Aegean(WindRegime.EtesianModerate, AegeanRegion.Central);
 
         /// <summary>
+        /// Summer weather of the central Aegean for a match, drawn from its seed without touching the game's random
+        /// numbers: calm 10%, breeze 20%, moderate Etesian 50%, strong Etesian 20% (Etesian days are 35–65% of July and
+        /// August: Gandham 2025, Koletsis 2009). Never a storm in a match.
+        /// </summary>
+        public static MarineClimate ForMatch(ulong seed)
+        {
+            var draw = (MarineHash.SplitMix64(seed) >> 11) * (1.0 / (1UL << 53));
+            var regime = draw < 0.1 ? WindRegime.Calm : draw < 0.3 ? WindRegime.Breeze : draw < 0.8 ? WindRegime.EtesianModerate : WindRegime.EtesianStrong;
+            return Aegean(regime, AegeanRegion.Central);
+        }
+
+        /// <summary>
         /// Summer Aegean weather. Etesian means: 7–8 m/s in the central and south Aegean, 4.5–6.7 in the north
         /// (Soukissian 2008, Badger 2015); strong episodes 11–15 m/s with gusts to 20 (Koletsis 2009/2010).
         /// </summary>

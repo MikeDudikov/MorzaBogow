@@ -973,6 +973,27 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Marine_MatchWeatherFollowsTheAegeanSummerAndIsNeverAStorm()
+        {
+            var counts = new Dictionary<WindRegime, int>();
+            for (ulong seed = 1; seed <= 4000; seed++)
+            {
+                var climate = MarineClimate.ForMatch(seed * 7919);
+                counts[climate.Regime] = (counts.TryGetValue(climate.Regime, out var n) ? n : 0) + 1;
+                Assert.That(climate.Regime, Is.Not.EqualTo(WindRegime.StormShowcase), "No storm in a match.");
+                Assert.That(climate.MeanWind, Is.LessThanOrEqualTo(climate.MaxMeanWind));
+            }
+            int Share(WindRegime regime) => counts.TryGetValue(regime, out var n) ? n : 0;
+            Assert.That(Share(WindRegime.EtesianModerate) + Share(WindRegime.EtesianStrong), Is.InRange(2600, 3000), "About 70% Etesian days (35–65% of July–August, more in the afternoon hours played).");
+            Assert.That(Share(WindRegime.Calm), Is.InRange(300, 500), "About one match in ten calm.");
+            var world = MapFactory.CreateSkirmish(77, MatchLength.Short);
+            var state = world.Random.State;
+            world.EnableMarineForMatch();
+            Assert.That(world.Random.State, Is.EqualTo(state), "Choosing the weather draws nothing from the game's random numbers.");
+            Assert.That(world.Marine.Climate.Name, Is.EqualTo(MarineClimate.ForMatch(state).Name));
+        }
+
+        [Test]
         public void Marine_WavePhasesUseSimulationTimeAtAnyWeatherScale()
         {
             var slow = MarineClimate.Aegean(WindRegime.EtesianModerate, AegeanRegion.Central);

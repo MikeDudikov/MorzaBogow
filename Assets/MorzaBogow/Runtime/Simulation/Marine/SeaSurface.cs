@@ -91,6 +91,12 @@ namespace MorzaBogow.Simulation
         public const double ReferenceDepth = 13;
         public const double DepthLimitedRatio = 0.55;
 
+        /// <summary>
+        /// Along a hull, components weaker than 5% of the strongest one are left out (each carries under 0.25% of its
+        /// energy): about a quarter of them remain, and the hull's motion keeps its character at a quarter of the cost.
+        /// </summary>
+        public const double LineFloor = 0.05;
+
         public readonly WaveField Waves;
         public readonly Bathymetry Depths;
         public readonly double[] WaveNumberX = new double[Components], WaveNumberY = new double[Components];
@@ -209,15 +215,15 @@ namespace MorzaBogow.Simulation
         /// whole line (taken at its middle) and a complex recurrence along it: one sine and cosine per component.
         /// </summary>
         public void SampleLine(double x0, double y0, double dx, double dy, int count, double time, double blend, double draft,
-            double[] height, double[] verticalVelocity)
+            double[] height, double[] verticalVelocity, double floorShare = LineFloor, bool sameAmplitudes = false)
         {
-            Amplitudes(x0 + dx * (count - 1) / 2, y0 + dy * (count - 1) / 2, blend, amplitude);
+            if (!sameAmplitudes) Amplitudes(x0 + dx * (count - 1) / 2, y0 + dy * (count - 1) / 2, blend, amplitude);
             Array.Clear(height, 0, count);
             Array.Clear(verticalVelocity, 0, count);
             double largest = 0;
             for (var c = 0; c < Components; c++) largest = Math.Max(largest, amplitude[c]);
             if (largest <= 0) return;
-            var floor = 0.01 * largest;
+            var floor = floorShare * largest;
             for (var c = 0; c < Components; c++)
             {
                 var a = amplitude[c];

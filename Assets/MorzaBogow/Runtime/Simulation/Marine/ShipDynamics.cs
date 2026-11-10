@@ -13,7 +13,7 @@ namespace MorzaBogow.Simulation
     /// <item>mass = ρ_w·V at the draft (the hull floats at its draft by construction);</item>
     /// <item>GM 8–10% of the waterline beam, radii of gyration 0.4·B (roll) and 0.25·L (pitch);</item>
     /// <item>added mass in heave 0.7·ρ·(π/8)·B²·L (strip theory with a 3-D factor), in pitch the same times L²/12, in roll
-    /// 0.2 of the roll inertia; damping as fractions of critical: 0.25 in heave and pitch, 0.08 in roll (+0.1 with the
+    /// 0.2 of the roll inertia; damping as fractions of critical: 0.25 in heave and pitch, 0.15 in roll (+0.1 with the
     /// oars in the water) and a quadratic roll term;</item>
     /// <item>square sail 0.07–0.08·L² on galleys (auxiliary sail), 0.15·L² on the cutter, 0.25·L² on the merchant, centre
     /// of effort 0.22–0.30·L above the water.</item>
@@ -113,7 +113,9 @@ namespace MorzaBogow.Simulation
             HeaveDamping = 2 * 0.25 * Math.Sqrt(HeaveStiffness * (Mass + HeaveAddedMass));
             PitchDamping = 2 * 0.25 * Math.Sqrt(PitchStiffness * (PitchInertia + PitchAddedInertia));
             var critical = 2 * Math.Sqrt(RollStiffness * (RollInertia + RollAddedInertia));
-            RollDamping = 0.08 * critical;
+            // 0.15 of critical: small open hulls damp roll by keel, hull and eddy drag at 0.1–0.2 (Ikeda's components);
+            // at 0.08 a 12 m cutter rolled 20° in a 0.8 m beam sea at resonance, its deck edge in the water.
+            RollDamping = 0.15 * critical;
             RollDampingOars = 0.1 * critical;
             // Quadratic roll damping: worth another 0.05 of critical at 0.1 rad/s.
             RollQuadratic = 0.05 * critical / 0.1;
@@ -126,13 +128,29 @@ namespace MorzaBogow.Simulation
             WettedSurface = Length * (1.7 * Draft + BlockCoefficient * Beam);
         }
 
+        // (z/T)^(q+1) tabulated over the draft: the sections' only costly term, read many times a tick.
+        const int ShapeSamples = 256;
+        double[] shapeTable;
+
+        double SectionShape(double fraction)
+        {
+            if (shapeTable == null)
+            {
+                shapeTable = new double[ShapeSamples + 1];
+                for (var n = 0; n <= ShapeSamples; n++) shapeTable[n] = Math.Pow(n / (double)ShapeSamples, SectionPower + 1);
+            }
+            var t = Math.Max(0, Math.Min(1, fraction)) * ShapeSamples;
+            var i = Math.Min(ShapeSamples - 1, (int)t);
+            return shapeTable[i] + (shapeTable[i + 1] - shapeTable[i]) * (t - i);
+        }
+
         /// <summary>Immersed area of a station's section at an immersion (m): y = b·(z/T)^q below the waterline, wall-sided above, nothing above the deck.</summary>
         public double SectionArea(int station, double immersion)
         {
             if (immersion <= 0) return 0;
             var b = StationHalfBeam[station];
             var below = Math.Min(immersion, Draft);
-            var area = 2 * b * Draft * SectionCoefficient * Math.Pow(below / Draft, SectionPower + 1);
+            var area = 2 * b * Draft * SectionCoefficient * SectionShape(below / Draft);
             if (immersion > Draft) area += 2 * b * (Math.Min(immersion, Draft + Freeboard) - Draft);
             return area;
         }
@@ -260,14 +278,15 @@ namespace MorzaBogow.Simulation
     /// <item>roll from GM about the effective wave slope across the hull (linear restoring, Δ·g·GM·sin(φ − α));</item>
     /// <item>damping on the motion relative to the water's vertical velocity, linear plus quadratic in roll;</item>
     /// <item>wind heel and trim moments from SailForces;</item>
-    /// <item>semi-implicit Euler, four sub-steps per tick, the surface sampled once per tick and carried by its own
+    /// <item>semi-implicit Euler, two sub-steps per tick, the surface sampled once per tick and carried by its own
     /// vertical velocity inside the tick.</item>
     /// </list>
     /// Horizontal motion is not integrated here: the ship's track belongs to the simulation.
     /// </summary>
     public sealed class Seakeeping
     {
-        public const int Substeps = 4;
+        /// <summary>Two sub-steps a tick: ω·h ≤ 0.08 for the stiffest hull, far inside semi-implicit Euler's limit of 2.</summary>
+        public const int Substeps = 2;
         const int N = HullForm.Stations;
 
         readonly double[] portHeight = new double[N], starboardHeight = new double[N];
@@ -275,6 +294,39 @@ namespace MorzaBogow.Simulation
 
         /// <summary>Settles a hull at rest on calm water: floating at its draft, level.</summary>
         public static ShipMotion AtRest() => new ShipMotion();
+
+        /// <summary>Effective water height at the bow station in the last step (for spray and bow immersion).</summary>
+        public double BowHeight => 0.5 * (portHeight[N - 1] + starboardHeight[N - 1]);
+
+        /// <summary>
+        /// Lays a hull on the water it floats in (heave at the mean height, pitch and roll along the effective slopes, at
+        /// rest), so a hull coming into view does not drop onto the waves from calm water.
+        /// </summary>
+        public void Settle(HullForm hull, ref ShipMotion motion, SeaSurface surface, double x, double y, double heading, double time, double blend)
+        {
+            motion = new ShipMotion();
+            if (surface == null) return;
+            var ex = Math.Cos(heading);
+            var ey = Math.Sin(heading);
+            var half = hull.Beam / 4;
+            var spacing = hull.StationLength;
+            var sternX = x + ex * hull.StationX[0];
+            var sternY = y + ey * hull.StationX[0];
+            surface.SampleLine(sternX - ey * half, sternY + ex * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, portHeight, portRate);
+            surface.SampleLine(sternX + ey * half, sternY - ex * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, starboardHeight, starboardRate);
+            double mean = 0, along = 0, sumX2 = 0, across = 0;
+            for (var i = 0; i < N; i++)
+            {
+                var h = 0.5 * (portHeight[i] + starboardHeight[i]);
+                mean += h / N;
+                along += hull.StationX[i] * h;
+                sumX2 += hull.StationX[i] * hull.StationX[i];
+                across += (portHeight[i] - starboardHeight[i]) / (2 * half) / N;
+            }
+            motion.Heave = mean;
+            motion.Pitch = Math.Atan(along / sumX2);
+            motion.Roll = Math.Atan(across);
+        }
 
         /// <summary>
         /// Advances the motion over dt seconds for a hull centred at (x, y) heading along an angle, on the surface at a
@@ -293,8 +345,9 @@ namespace MorzaBogow.Simulation
             var sternY = y + ey * hull.StationX[0];
             if (surface != null)
             {
+                // Both sides share the amplitudes taken at the port line's middle: they are a quarter beam apart.
                 surface.SampleLine(sternX + px * half, sternY + py * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, portHeight, portRate);
-                surface.SampleLine(sternX - px * half, sternY - py * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, starboardHeight, starboardRate);
+                surface.SampleLine(sternX - px * half, sternY - py * half, ex * spacing, ey * spacing, N, time, blend, hull.Draft, starboardHeight, starboardRate, SeaSurface.LineFloor, true);
             }
             else
             {
