@@ -460,6 +460,7 @@ namespace MorzaBogow.Tests
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = 100;
             ship.Swordsmen = 3;
+            ship.Javelins = 0;
             ship.Archers = 0;
             settlement.Wood = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
@@ -842,6 +843,9 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var (ram, target) = RamSetup(world, Math.PI / 2);
+            // The target's posts stay unmanned, so no shot lands on the ram in the step of the impact.
+            target.Javelins = 0;
+            target.Archers = 0;
             ram.Speed = 8;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Ram, ShipIds = new[] { ram.Id }, TargetId = target.Id });
             var hits = 0;
@@ -856,7 +860,7 @@ namespace MorzaBogow.Tests
                 if (hit == null) continue;
                 hits++;
                 dealt = hit.Amount;
-                var archery = world.Events.Any(item => item.Type == "volley" && item.OtherId == ram.Id);
+                var archery = world.Events.Any(item => item.Type == "projectile_hit" && item.SubjectId == ram.Id);
                 Assert.That(archery, Is.False, "This step must isolate the ram damage.");
                 ramLossAtImpact = ramBefore - ram.Hull;
             }
@@ -901,6 +905,7 @@ namespace MorzaBogow.Tests
             var world = Empty();
             var (boarder, target) = BoardSetup(world, 5);
             boarder.Swordsmen = 9;
+            boarder.Javelins = 0;
             boarder.Archers = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
             world.Step();
@@ -987,22 +992,23 @@ namespace MorzaBogow.Tests
                 // E04 prices sailors at 0.5 S and fighters at 1 S: the default crew is the one the price was set for.
                 var standard = definition.PlanFor(definition.DefaultPreset);
                 Assert.That(standard.Sailors, Is.EqualTo(definition.StandardSailors));
-                Assert.That(standard.Swordsmen + standard.Archers, Is.EqualTo(definition.StandardSoldiers));
+                Assert.That(standard.Swordsmen + standard.Javelins + standard.Archers, Is.EqualTo(definition.StandardSoldiers));
                 var ship = Empty().SpawnShip(0, shipClass, 0, 0);
-                Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers), Is.EqualTo((standard.Sailors, standard.Swordsmen, standard.Archers)));
+                Assert.That((ship.Sailors, ship.Swordsmen, ship.Javelins, ship.Archers), Is.EqualTo((standard.Sailors, standard.Swordsmen, standard.Javelins, standard.Archers)));
+                // Every post of the default loadout has its crew.
+                Assert.That(World.Manned(ship).Where((manned, i) => ship.Mounts[i] != WeaponType.None).All(manned => manned), Is.True, $"{shipClass} mans its posts.");
             }
             Assert.That(ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Archers, Is.GreaterThan(ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Swordsmen), "A crew destroyer is a ship of archers.");
             Assert.That(ShipCatalog.Get(ShipClass.Boarder).PlanFor(CrewPreset.Boarding).Swordsmen, Is.GreaterThan(ShipCatalog.Get(ShipClass.Boarder).PlanFor(CrewPreset.Boarding).Archers), "A boarder is a ship of swordsmen.");
         }
 
         [Test]
-        public void Crew_ArchersOfACrewDestroyerHurtCrewsAsItsArcherPostsDid()
+        public void Weapons_FourArcherBanksHurtCrewsAsTheCrewDestroyerDidBefore()
         {
-            var archers = ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Archers;
-            var now = archers * Rules.ArcherAccuracy * Rules.ArcherShotCrewDamage;
-            var before = 4 * Rules.ArcherAccuracy * 4.0;
-            Assert.That(now, Is.EqualTo(before).Within(0.5), "Crew damage per volley.");
-            Assert.That(archers * Rules.ArcherAccuracy * Rules.ArcherShotHullDamage, Is.EqualTo(4 * Rules.ArcherAccuracy * 2.0).Within(0.3), "Hull damage per volley.");
+            // Stage 2: 29 archers x 0.75 x 0.55 men-HP a volley; now four banks of 3.5 at a reference hit rate of 0.85.
+            var bank = WeaponCatalog.Get(WeaponType.ArcherBank);
+            Assert.That(4 * bank.Men * 0.85, Is.EqualTo(29 * 0.75 * 0.55).Within(0.5), "Crew damage per volley.");
+            Assert.That(ShipCatalog.Get(ShipClass.CrewDestroyer).DefaultLoadout.Count(item => item == WeaponType.ArcherBank), Is.EqualTo(4));
         }
 
         [Test]
@@ -1020,8 +1026,8 @@ namespace MorzaBogow.Tests
                 Run(world, 30);
                 return crew - target.Crew;
             }
-            Assert.That(Lost(29), Is.GreaterThan(Lost(6)));
-            Assert.That(Lost(0), Is.Zero);
+            Assert.That(Lost(29), Is.GreaterThan(Lost(6)), "Four banks against one.");
+            Assert.That(Lost(3), Is.Zero, "Three archers cannot man a bank of four.");
         }
 
         [Test]
@@ -1189,6 +1195,7 @@ namespace MorzaBogow.Tests
             var port = world.SettlementOf(0);
             var ship = world.SpawnShip(0, ShipClass.Ram, port.X + 400, 0);
             var before = (ship.Sailors, ship.Swordsmen, ship.Archers);
+            var beforeJavelins = ship.Javelins;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.SetCrewPlan, ShipIds = new[] { ship.Id }, Preset = CrewPreset.Boarding });
             Run(world, 5);
             Assert.That(ship.Plan.Preset, Is.EqualTo(CrewPreset.Boarding));
@@ -1198,8 +1205,11 @@ namespace MorzaBogow.Tests
             var silver = port.Silver;
             Run(world, 60);
             Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers), Is.EqualTo((ship.Plan.Sailors, ship.Plan.Swordsmen, ship.Plan.Archers)));
-            var moved = ship.Plan.Swordsmen - before.Swordsmen;
-            Assert.That(silver - port.Silver, Is.EqualTo(moved * Rules.RetrainSilver), "Archers retrained as swordsmen.");
+            Assert.That(ship.Javelins, Is.EqualTo(ship.Plan.Javelins));
+            // Every man the new plan wants in another trade is one retraining.
+            var moved = Math.Max(0, ship.Plan.Swordsmen - before.Swordsmen) + Math.Max(0, ship.Plan.Javelins - beforeJavelins) + Math.Max(0, ship.Plan.Archers - before.Archers);
+            Assert.That(moved, Is.GreaterThan(0));
+            Assert.That(silver - port.Silver, Is.EqualTo(moved * Rules.RetrainSilver), "Archers retrained for the boarding crew.");
         }
 
         // ---------- Fog of war ----------

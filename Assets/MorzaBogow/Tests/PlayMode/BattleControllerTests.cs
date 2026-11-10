@@ -184,7 +184,7 @@ namespace MorzaBogow.Tests
             battle.RunTicks(1);
             battle.SelectForTest(ram.Id);
             yield return WaitForInterface();
-            Assert.That(hud.CrewText, Is.EqualTo($"{ram.Sailors}|{ram.Swordsmen}/{ram.Plan.Swordsmen}|{ram.Archers}|2"), "Sailors, swordsmen against the plan, archers, wounded.");
+            Assert.That(hud.CrewText, Is.EqualTo($"{ram.Sailors}|{ram.Swordsmen}/{ram.Plan.Swordsmen}|{ram.Javelins}|{ram.Archers}|2"), "Sailors, swordsmen against the plan, javelin men, archers, wounded.");
             Assert.That(hud.CrewPlanOffered, Is.True, "An own warship offers the crew choice.");
 
             Assert.That(hud.OpenCrewPlanForTest(), Is.EqualTo(4), "Balanced, boarding, volley, seamen.");

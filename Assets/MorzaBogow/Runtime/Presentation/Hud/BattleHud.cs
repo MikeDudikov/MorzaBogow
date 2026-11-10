@@ -61,7 +61,7 @@ namespace MorzaBogow.Presentation
         VisualElement clearSelectionButton;
         VisualElement emptyView, shipView, groupView, portView, wreckView;
         VisualElement shipPortrait, shipBadge, shipCargoRow, moraleGlyph, shipBoardingRow;
-        Label shipName, shipTag, shipHull, shipSailors, shipSoldiers, shipArchers, shipWounded, shipMorale, shipCargo, shipPhase, shipBoarding;
+        Label shipName, shipTag, shipHull, shipSailors, shipSoldiers, shipJavelins, shipArchers, shipWounded, shipMorale, shipCargo, shipPhase, shipBoarding;
         MeterBar shipHullMeter, shipCargoMeter, shipBoardingOurs, shipBoardingTheirs;
         Button shipCrewButton;
         int shipShownId = -1;
@@ -431,6 +431,7 @@ namespace MorzaBogow.Presentation
             var crew = Element("card-row", card);
             shipSailors = CardStat(crew, "sailor", "żeglarze", () => new TipInfo { Title = "Żeglarze", Body = "Sterują, wiosłują i zbierają surowce. Mniej niż czwarta część załogi spowalnia okręt; nadmiar wioseł (skład Żegluga) dodaje 8% prędkości. Bronią się wręcz tylko, gdy na pokładzie nie zostało wojsko." });
             shipSoldiers = CardStat(crew, "soldier", "szermierze", () => new TipInfo { Title = "Szermierze", Body = "Walczą wręcz: niosą abordaż na wrogi pokład, odpierają go na własnym i przecinają liny abordażowe przeciwnika." });
+            shipJavelins = CardStat(crew, "attack", "oszczepnicy", () => new TipInfo { Title = "Oszczepnicy", Body = "Rzucają oszczepy na 5–45 m z banków po czterech i dobrze walczą w zwarciu – między szermierzem a łucznikiem." });
             shipArchers = CardStat(crew, "volley", "łucznicy", () => new TipInfo { Title = "Łucznicy", Body = "Ostrzeliwują załogi okrętów w zasięgu 15–100 m – każdy łucznik strzela. W abordażu wspierają z dystansu, a własnego pokładu bronią lepiej niż cudzego." });
             var crewMore = Element("card-row", card);
             shipWounded = CardStat(crewMore, "warning", "ranni", () => new TipInfo { Title = "Ranni", Body = "Dwóch na pięciu poległych to ranni: nie walczą ani nie wiosłują. Port leczy ich za 0,25 S i przywraca do służby." });
@@ -470,7 +471,7 @@ namespace MorzaBogow.Presentation
         readonly List<Action> crewPlanActions = new List<Action>();
 
         /// <summary>The crew counts shown on the ship card: sailors, swordsmen, archers, wounded.</summary>
-        public string CrewText => $"{shipSailors?.text}|{shipSoldiers?.text}|{shipArchers?.text}|{shipWounded?.text}";
+        public string CrewText => $"{shipSailors?.text}|{shipSoldiers?.text}|{shipJavelins?.text}|{shipArchers?.text}|{shipWounded?.text}";
 
         public bool CrewPlanOffered => shipCrewButton != null && shipCrewButton.resolvedStyle.display != DisplayStyle.None && shipView.resolvedStyle.display != DisplayStyle.None;
 
@@ -491,18 +492,18 @@ namespace MorzaBogow.Presentation
             var ship = battle.World.FindShip(shipShownId);
             if (ship == null || ship.Owner != BattleController.PlayerFaction || ship.Definition.IsEconomic) return;
             var panel = OpenPopover(shipCrewButton, $"Skład załogi – {BattleController.ClassName(ship.Class)}");
-            Text("żeglarze · szermierze · łucznicy; koszt w porcie", "popover-row-label", panel);
+            Text("żeglarze · szermierze · oszczepnicy · łucznicy; koszt w porcie", "popover-row-label", panel);
             foreach (var preset in new[] { CrewPreset.Balanced, CrewPreset.Boarding, CrewPreset.Volley, CrewPreset.Seamen })
             {
                 var plan = ship.Definition.PlanFor(preset);
-                var probe = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Archers = ship.Archers, Wounded = ship.Wounded, Plan = plan };
+                var probe = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Javelins = ship.Javelins, Archers = ship.Archers, Wounded = ship.Wounded, Plan = plan };
                 var cost = World.MusterCost(probe);
                 var chosen = preset;
                 var current = ship.Plan.Preset == preset;
                 Action pick = () => { battle.SetCrewPlan(ship.Id, chosen); ClosePopover(); };
                 crewPlanActions.Add(pick);
                 var item = MenuItem(panel, current ? "check" : preset == CrewPreset.Boarding ? "board" : preset == CrewPreset.Volley ? "volley" : preset == CrewPreset.Seamen ? "speed" : "soldier",
-                    BattleController.PresetName(preset), $"{plan.Sailors} · {plan.Swordsmen} · {plan.Archers} · {cost / (float)Rules.Centi:0.##} S", pick);
+                    BattleController.PresetName(preset), $"{plan.Sailors} · {plan.Swordsmen} · {plan.Javelins} · {plan.Archers} · {cost / (float)Rules.Centi:0.##} S", pick);
                 Tip(item, () => new TipInfo
                 {
                     Title = BattleController.PresetName(chosen),
@@ -689,8 +690,8 @@ namespace MorzaBogow.Presentation
         {
             yield return new CommandButton { Action = GameAction.Move, Icon = "move", Label = "Ruch", Full = "Płyń do punktu", Targeted = HudOrder.Move, Able = _ => true, Body = "Wskaż miejsce na morzu; statki omijają ląd i płycizny." };
             yield return new CommandButton { Action = GameAction.Stop, Icon = "stop", Label = "Stop", Full = "Zatrzymaj", Instant = hud => hud.battle.StopSelected(), Able = _ => true, Body = "Przerywa bieżący rozkaz." };
-            yield return new CommandButton { Action = GameAction.Attack, Icon = "attack", Label = "Atak", Full = "Ostrzał łuczników", Targeted = HudOrder.Attack, Able = ship => ship.Archers > 0, Body = "Łucznicy strzelają do wskazanego okrętu lub osady wroga." };
-            yield return new CommandButton { Action = GameAction.Ram, Icon = "ram", Label = "Taran", Full = "Szarża taranem", Targeted = HudOrder.Ram, Able = ship => ship.Class == ShipClass.Ram, Body = "Taranowiec szarżuje, odskakuje i ponawia atak." };
+            yield return new CommandButton { Action = GameAction.Attack, Icon = "attack", Label = "Atak", Full = "Ostrzał", Targeted = HudOrder.Attack, Able = ship => World.HasWeapons(ship), Body = "Stanowiska łuczników i oszczepników oraz machiny strzelają do wskazanego okrętu lub osady wroga, gdy cel jest w ich zasięgu i sektorze." };
+            yield return new CommandButton { Action = GameAction.Ram, Icon = "ram", Label = "Taran", Full = "Szarża taranem", Targeted = HudOrder.Ram, Able = ship => ship.Definition.CanRam, Body = "Każdy okręt wojenny ma taran; taranowiec uderza najmocniej (×1,5). Szarża jest zapowiedziana co najmniej 1,2 s przed uderzeniem; po niej odskok, 8 s odnowienia i odejście na długość kadłuba." };
             yield return new CommandButton { Action = GameAction.Board, Icon = "board", Label = "Abordaż", Full = "Abordaż", Targeted = HudOrder.Board, Able = ship => ship.Class == ShipClass.Boarder, Body = "Haki i walka wręcz o zdobycie okrętu." };
             yield return new CommandButton { Action = GameAction.Volley, Icon = "volley", Label = "Ostrzał", Full = "Ostrzał z abordażowca", Targeted = HudOrder.Volley, Able = ship => ship.Class == ShipClass.Boarder, Body = "Abordażowiec strzela zamiast szukać zwarcia. Także Alt+PPM." };
             yield return new CommandButton { Action = GameAction.Harvest, Icon = "gather", Label = "Zbiór", Full = "Zbiór surowca", Targeted = HudOrder.Harvest, Able = ship => ship.Definition.CanHarvest, Body = "Kutry na złoże drewna lub srebra i z urobkiem do portu; także zbiór wraków." };
@@ -1062,6 +1063,7 @@ namespace MorzaBogow.Presentation
             string Count(int now, int plan) => enemy || now == plan ? now.ToString() : $"{now}/{plan}";
             SetText(shipSailors, Count(ship.Sailors, ship.Plan.Sailors));
             SetText(shipSoldiers, Count(ship.Swordsmen, ship.Plan.Swordsmen));
+            SetText(shipJavelins, Count(ship.Javelins, ship.Plan.Javelins));
             SetText(shipArchers, Count(ship.Archers, ship.Plan.Archers));
             SetText(shipWounded, ship.Wounded.ToString());
             Show(shipCrewButton, !enemy && !definition.IsEconomic);

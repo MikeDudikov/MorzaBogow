@@ -8,7 +8,37 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 10;
+        public const int Version = 11;
+
+        /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
+        static void WriteArms(BinaryWriter writer, Ship ship)
+        {
+            writer.Write(ship.Mounts.Length);
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                writer.Write((int)ship.Mounts[i]); writer.Write(ship.Progress[i]); writer.Write(ship.ModuleHp[i]);
+            }
+            writer.Write(ship.ItemWood.Length);
+            for (var i = 0; i < ship.ItemWood.Length; i++) { writer.Write(ship.ItemWood[i]); writer.Write(ship.ItemSilver[i]); }
+        }
+
+        static void ReadArms(BinaryReader reader, Ship ship)
+        {
+            var count = reader.ReadInt32();
+            if (count < 0 || count > 16) throw new InvalidDataException("Damaged weapon posts.");
+            ship.Mounts = new WeaponType[count];
+            ship.Progress = new double[count];
+            ship.ModuleHp = new double[count];
+            for (var i = 0; i < count; i++)
+            {
+                ship.Mounts[i] = (WeaponType)reader.ReadInt32(); ship.Progress[i] = reader.ReadDouble(); ship.ModuleHp[i] = reader.ReadDouble();
+            }
+            var items = reader.ReadInt32();
+            if (items < 0 || items > 17) throw new InvalidDataException("Damaged item values.");
+            ship.ItemWood = new long[items];
+            ship.ItemSilver = new long[items];
+            for (var i = 0; i < items; i++) { ship.ItemWood[i] = reader.ReadInt64(); ship.ItemSilver[i] = reader.ReadInt64(); }
+        }
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -123,6 +153,8 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.CrewTicks);
                     writer.Write(ship.Plan.Sailors); writer.Write(ship.Plan.Swordsmen); writer.Write(ship.Plan.Archers); writer.Write((int)ship.Plan.Preset);
                     writer.Write(ship.WoundRemainder); writer.Write(ship.MusterTicks);
+                    writer.Write(ship.Javelins); writer.Write(ship.Plan.Javelins); writer.Write(ship.TelegraphTicks);
+                    WriteArms(writer, ship);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -145,6 +177,16 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(site.Id); writer.Write(site.X); writer.Write(site.Y);
                     writer.Write(site.SettlementId); writer.Write(site.BuilderShipId);
+                }
+
+                // Shots in the air land after loading exactly as they would have (docs/UZBROJENIE.md).
+                writer.Write(world.NextProjectileId);
+                writer.Write(world.Projectiles.Count);
+                foreach (var shot in world.Projectiles)
+                {
+                    writer.Write(shot.Id); writer.Write(shot.OwnerId); writer.Write(shot.ShooterId); writer.Write(shot.TargetShipId); writer.Write(shot.TargetSettlementId);
+                    writer.Write((int)shot.Weapon); writer.Write(shot.FromX); writer.Write(shot.FromY); writer.Write(shot.ToX); writer.Write(shot.ToY);
+                    writer.Write(shot.LaunchTick); writer.Write(shot.ArriveTick);
                 }
 
                 writer.Flush();
@@ -229,7 +271,7 @@ namespace MorzaBogow.Simulation
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
                 {
-                    world.Ships.Add(new Ship
+                    var ship = new Ship
                     {
                         Id = reader.ReadInt32(), Owner = reader.ReadInt32(), Class = (ShipClass)reader.ReadInt32(),
                         X = reader.ReadDouble(), Y = reader.ReadDouble(), Heading = reader.ReadDouble(), Speed = reader.ReadDouble(), Hull = reader.ReadDouble(),
@@ -250,7 +292,15 @@ namespace MorzaBogow.Simulation
                         CrewTicks = reader.ReadInt32(),
                         Plan = new CrewPlan { Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Archers = reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32() },
                         WoundRemainder = reader.ReadDouble(), MusterTicks = reader.ReadInt32(),
-                    });
+                    };
+                    ship.Javelins = reader.ReadInt32();
+                    var plan = ship.Plan;
+                    plan.Javelins = reader.ReadInt32();
+                    ship.Plan = plan;
+                    ship.TelegraphTicks = reader.ReadInt32();
+                    ReadArms(reader, ship);
+                    if (ship.Mounts.Length != ship.Definition.Slots.Length) throw new InvalidDataException("Weapon posts do not match the class.");
+                    world.Ships.Add(ship);
                 }
 
                 count = reader.ReadInt32();
@@ -281,6 +331,18 @@ namespace MorzaBogow.Simulation
                     {
                         Id = reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
                         SettlementId = reader.ReadInt32(), BuilderShipId = reader.ReadInt32(),
+                    });
+                }
+
+                world.NextProjectileId = reader.ReadInt32();
+                count = reader.ReadInt32();
+                for (var i = 0; i < count; i++)
+                {
+                    world.Projectiles.Add(new Projectile
+                    {
+                        Id = reader.ReadInt32(), OwnerId = reader.ReadInt32(), ShooterId = reader.ReadInt32(), TargetShipId = reader.ReadInt32(), TargetSettlementId = reader.ReadInt32(),
+                        Weapon = (WeaponType)reader.ReadInt32(), FromX = reader.ReadDouble(), FromY = reader.ReadDouble(), ToX = reader.ReadDouble(), ToY = reader.ReadDouble(),
+                        LaunchTick = reader.ReadInt32(), ArriveTick = reader.ReadInt32(),
                     });
                 }
                 return world;

@@ -1629,13 +1629,13 @@ namespace MorzaBogow.Presentation
             if (enemy != null)
             {
                 if (ships.All(ship => ship.Class == ShipClass.Ram)) return "ram";
-                return ships.Any(ship => ship.Archers > 0 || ship.Class == ShipClass.Ram || ship.Class == ShipClass.Boarder) ? "attack" : "blocked";
+                return ships.Any(ship => World.HasWeapons(ship) || ship.Definition.CanRam) ? "attack" : "blocked";
             }
             var warships = ships.Any(ship => !ship.Definition.IsEconomic);
             var ids = selected.ToArray();
             if (warships && NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id)) != null) return "escort";
             if (World.Settlements.Any(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item)))
-                return ships.Any(ship => ship.Archers > 0) ? "attack" : "blocked";
+                return ships.Any(ship => World.HasWeapons(ship)) ? "attack" : "blocked";
             if (ships.Any(ship => ship.Class == ShipClass.Merchant))
             {
                 if (World.Sites.Any(item => World.IsSiteFree(item) && World.IsExplored(PlayerFaction, item.X, item.Y)
@@ -1788,7 +1788,7 @@ namespace MorzaBogow.Presentation
                 if (ship == null) continue;
                 var kind = ship.Class == ShipClass.Ram ? CommandKind.Ram
                     : ship.Class == ShipClass.Boarder && Input.GetKey(KeyCode.LeftAlt) == false ? CommandKind.Board
-                    : ship.Archers > 0 ? CommandKind.AttackShip
+                    : World.HasWeapons(ship) ? CommandKind.AttackShip
                     : CommandKind.Move;
                 if (kind == CommandKind.Move) Send(kind, new[] { id }, ToWorld(enemy));
                 else Send(kind, new[] { id }, target: enemy.Id);
@@ -1983,7 +1983,7 @@ namespace MorzaBogow.Presentation
                     break;
                 case HudOrder.Attack:
                 {
-                    var archers = Ids(ship => ship.Archers > 0);
+                    var archers = Ids(ship => World.HasWeapons(ship));
                     if (enemy != null && archers.Length > 0) { Send(CommandKind.AttackShip, archers, target: enemy.Id); done = true; break; }
                     var port = World.Settlements.FirstOrDefault(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item));
                     if (port != null && archers.Length > 0) { Send(CommandKind.AttackSettlement, archers, target: port.Id); done = true; }
@@ -1991,7 +1991,7 @@ namespace MorzaBogow.Presentation
                 }
                 case HudOrder.Ram:
                 {
-                    var rams = Ids(ship => ship.Class == ShipClass.Ram);
+                    var rams = Ids(ship => ship.Definition.CanRam);
                     if (enemy != null && rams.Length > 0) { Send(CommandKind.Ram, rams, target: enemy.Id); done = true; }
                     break;
                 }
@@ -2003,7 +2003,7 @@ namespace MorzaBogow.Presentation
                 }
                 case HudOrder.Volley:
                 {
-                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder && ship.Archers > 0);
+                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder && World.HasWeapons(ship));
                     if (enemy != null && boarders.Length > 0) { Send(CommandKind.AttackShip, boarders, target: enemy.Id); done = true; }
                     break;
                 }
@@ -2208,7 +2208,7 @@ namespace MorzaBogow.Presentation
                     break;
                 default:
                     var focus = World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Order == OrderKind.Ram)
-                                ?? World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Archers > 0)
+                                ?? World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && World.HasWeapons(ship))
                                 ?? World.Ships.First(ship => ship.Owner == PlayerFaction);
                     pivot = ToWorld(focus);
                     height = 90f;

@@ -172,11 +172,11 @@ namespace MorzaBogow.Presentation
                 ram.localPosition = new Vector3(0f, 0.3f, length * 0.58f);
             }
 
-            for (var slot = 0; slot < definition.LightSlots; slot++)
+            for (var slot = 0; slot < definition.Slots.Length; slot++)
             {
                 var mount = new GameObject($"Mount {slot}").transform;
                 mount.SetParent(visual.model, false);
-                var offset = definition.LightSlots == 1 ? 0f : Mathf.Lerp(-0.3f, 0.3f, slot / (definition.LightSlots - 1f));
+                var offset = definition.Slots.Length == 1 ? 0f : Mathf.Lerp(-0.3f, 0.3f, slot / (definition.Slots.Length - 1f));
                 mount.localPosition = new Vector3(0f, 1.6f, offset * length);
                 var weapon = Part(mount, PrimitiveType.Cube, "Weapon", materials?.Bronze);
                 weapon.localScale = new Vector3(1.4f, 1.0f, 1.4f);

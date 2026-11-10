@@ -62,7 +62,8 @@ namespace MorzaBogow.Simulation
                 Plan = definition.PlanFor(definition.DefaultPreset),
             };
             ship.Sailors = ship.Plan.Sailors;
-            if (fullCrew) { ship.Swordsmen = ship.Plan.Swordsmen; ship.Archers = ship.Plan.Archers; }
+            if (fullCrew) { ship.Swordsmen = ship.Plan.Swordsmen; ship.Javelins = ship.Plan.Javelins; ship.Archers = ship.Plan.Archers; }
+            Fit(ship, definition.DefaultLoadout, definition.ItemValues());
             Ships.Add(ship);
             return ship;
         }
@@ -77,6 +78,7 @@ namespace MorzaBogow.Simulation
             StepOrdersAndMovement();
             StepRams();
             StepWeapons();
+            StepProjectiles();
             StepBoarding();
             StepRecovery();
             StepWrecks();
@@ -174,8 +176,9 @@ namespace MorzaBogow.Simulation
                 case CommandKind.Board:
                     var target = FindShip(command.TargetId);
                     if (target == null || target.Owner == ship.Owner || !CanSee(ship.Owner, target)) return;
-                    if (command.Kind == CommandKind.AttackShip && ship.Archers == 0) return;
-                    if (command.Kind == CommandKind.Ram && ship.Class != ShipClass.Ram) return;
+                    if (command.Kind == CommandKind.AttackShip && !HasWeapons(ship)) return;
+                    // Every warship carries a ram (docs/UZBROJENIE.md); working ships do not.
+                    if (command.Kind == CommandKind.Ram && !ship.Definition.CanRam) return;
                     if (command.Kind == CommandKind.Board && (ship.Class == ShipClass.Cutter || ship.Soldiers < Rules.BoardMinSoldiers)) return;
                     ClearOrder(ship);
                     ship.TargetId = target.Id;
@@ -191,7 +194,7 @@ namespace MorzaBogow.Simulation
                     break;
                 case CommandKind.Repair:
                     // A sound hull still goes to the dock when its crew is short of the plan or has wounded.
-                    if (ship.Hull >= ship.Definition.Hull && !NeedsMuster(ship)) return;
+                    if (ship.Hull >= ship.Definition.Hull && !NeedsMuster(ship) && !ModulesDamaged(ship)) return;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Repair;
                     break;
@@ -210,7 +213,7 @@ namespace MorzaBogow.Simulation
                 case CommandKind.Escort: BeginEscort(ship, command); break;
                 case CommandKind.AttackSettlement:
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
-                    if (settlement == null || settlement.Owner == ship.Owner || settlement.Destroyed || ship.Archers == 0) return;
+                    if (settlement == null || settlement.Owner == ship.Owner || settlement.Destroyed || !HasWeapons(ship)) return;
                     if (!CanSee(ship.Owner, settlement.X, settlement.Y)) return;
                     ClearOrder(ship);
                     ship.Order = OrderKind.AttackSettlement;
@@ -393,13 +396,25 @@ namespace MorzaBogow.Simulation
 
             if (ship.RamState == RamPhase.Cooldown)
             {
+                // Another charge needs the cooldown and a hull's length of sea room (docs/UZBROJENIE.md).
                 var away = Math.Atan2(ship.Y - target.Y, ship.X - target.X);
                 Steer(ship, ship.X + Math.Cos(away) * 80, ship.Y + Math.Sin(away) * 80, ship.Definition.Speed * 0.6, 0);
-                if (--ship.RamTimer <= 0) ship.RamState = RamPhase.Approach;
+                if (ship.RamTimer > 0) ship.RamTimer--;
+                var room = Distance(ship.X, ship.Y, target.X, target.Y) - ship.Definition.Radius - target.Definition.Radius;
+                if (ship.RamTimer <= 0 && room >= ship.Definition.Radius * 2) ship.RamState = RamPhase.Approach;
                 return;
             }
 
             if (!CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; return; }
+            var gap = Distance(ship.X, ship.Y, target.X, target.Y) - ship.Definition.Radius - target.Definition.Radius;
+            // The charge is called when the target is a few seconds' sailing off: the drums quicken for all to see.
+            if (ship.RamState == RamPhase.Approach && gap <= ship.Definition.Speed * Rules.RamCallSeconds)
+            {
+                ship.RamState = RamPhase.Telegraph;
+                ship.TelegraphTicks = (int)Math.Ceiling(Rules.RamTelegraphSeconds * Rules.TickRate);
+                Emit("ram_telegraph", ship.Id, target.Id, ship.X, ship.Y, 0);
+            }
+            if (ship.RamState == RamPhase.Telegraph && ship.TelegraphTicks > 0) ship.TelegraphTicks--;
             var lead = Distance(ship.X, ship.Y, target.X, target.Y) / Math.Max(1, ship.Definition.Speed);
             lead = Math.Min(lead, 8);
             var aimX = target.X + Math.Cos(target.Heading) * target.Speed * lead;
@@ -407,9 +422,14 @@ namespace MorzaBogow.Simulation
             Steer(ship, aimX, aimY, ship.Definition.Speed, -100);
         }
 
+        /// <summary>
+        /// Contact during a charge resolves once. Only a charge called at least RamTelegraphSeconds before strikes; an
+        /// uncalled or early contact, a glancing bow or too slow a closing fails, and every outcome goes through recoil
+        /// and cooldown, so orders cannot be spammed past the telegraph.
+        /// </summary>
         void StepRams()
         {
-            foreach (var ship in Ships.Where(item => item.Order == OrderKind.Ram && item.RamState == RamPhase.Approach).OrderBy(item => item.Id).ToList())
+            foreach (var ship in Ships.Where(item => item.Order == OrderKind.Ram && (item.RamState == RamPhase.Approach || item.RamState == RamPhase.Telegraph)).OrderBy(item => item.Id).ToList())
             {
                 var target = FindShip(ship.TargetId);
                 if (target == null || ship.Hull <= 0 || target.Hull <= 0) continue;
@@ -420,10 +440,11 @@ namespace MorzaBogow.Simulation
                 var bowError = Math.Abs(NormalizeAngle(toTarget - ship.Heading));
                 var closing = ship.Speed * Math.Cos(bowError)
                               - target.Speed * Math.Cos(NormalizeAngle(target.Heading - toTarget));
+                var called = ship.RamState == RamPhase.Telegraph && ship.TelegraphTicks <= 0;
 
                 ship.RamState = RamPhase.Recoil;
                 ship.RamTimer = (int)(Rules.RamBackoffSeconds * Rules.TickRate);
-                if (bowError > Math.PI / 4 || closing < Rules.RamMinClosing)
+                if (!called || bowError > Math.PI / 4 || closing < Rules.RamMinClosing)
                 {
                     Emit("ram_failed", ship.Id, target.Id, ship.X, ship.Y, closing);
                     continue;
@@ -437,88 +458,26 @@ namespace MorzaBogow.Simulation
             }
         }
 
+        /// <summary>
+        /// Base damage = min(400, 120 x (closing/8)^2 x the attacker's ram x angle x mass ratio). Angle: abeam 1, from
+        /// astern 0.75, head on 0.5, a glancing bow 0.25. Projectile armour does not protect against a ram.
+        /// </summary>
         public static double RamDamage(Ship attacker, Ship target, double closing, double bowError)
         {
             var impactDirection = Math.Atan2(target.Y - attacker.Y, target.X - attacker.X);
-            var sideness = Math.Abs(Math.Sin(NormalizeAngle(target.Heading - impactDirection)));
-            var angle = bowError > 0.35 ? 0.25 : sideness >= 0.7 ? 1.0 : 0.5;
+            var relative = NormalizeAngle(target.Heading - impactDirection);
+            var sideness = Math.Abs(Math.Sin(relative));
+            var astern = Math.Cos(relative) > 0;
+            var angle = bowError > 0.35 ? 0.25 : sideness >= 0.7 ? 1.0 : astern ? Rules.RamSternFactor : 0.5;
             var massRatio = Math.Max(0.5, Math.Min(1.5, attacker.Definition.Mass / target.Definition.Mass));
             var speed = closing / Rules.RamReferenceSpeed;
-            return Math.Min(Rules.RamMaxDamage, Rules.RamBase * speed * speed * angle * massRatio);
+            return Math.Min(Rules.RamMaxDamage, Rules.RamBase * speed * speed * attacker.Definition.RamMultiplier * angle * massRatio);
         }
 
         void ApplyHullDamage(Ship ship, double amount)
         {
             ship.Hull -= amount;
             ship.LastDamagedTick = Tick;
-        }
-
-        // ---------- Ranged fire: seeded hit roll, reload in simulation time ----------
-
-        void StepWeapons()
-        {
-            foreach (var ship in Ships.OrderBy(item => item.Id))
-            {
-                // Every archer aboard shoots (docs/ZALOGA_I_ABORDAZ.md); a ship without archers does not.
-                var archers = ship.Archers;
-                if (archers == 0) continue;
-                if (ship.Reload > 0) { ship.Reload -= Rules.Dt; continue; }
-                // Locked to a boarding, the archers fight on the decks instead (StepBoarding).
-                if (Boardings.Any(link => link.Hooked && (link.AttackerId == ship.Id || link.TargetId == ship.Id))) continue;
-
-                Ship shipTarget = null;
-                Settlement settlementTarget = null;
-                if (ship.Order == OrderKind.AttackSettlement) settlementTarget = Settlements.FirstOrDefault(item => item.Id == ship.TargetId);
-                else if (ship.Order == OrderKind.AttackShip) shipTarget = FindShip(ship.TargetId);
-                if (shipTarget == null && settlementTarget == null && ship.Order != OrderKind.Ram) shipTarget = NearestVisibleEnemyInRange(ship);
-                if (shipTarget == null && settlementTarget == null) continue;
-
-                if (settlementTarget != null)
-                {
-                    var range = Distance(ship.X, ship.Y, settlementTarget.X, settlementTarget.Y);
-                    if (range > Rules.ArcherRange || settlementTarget.Destroyed) continue;
-                    ship.Reload = Rules.ArcherReloadSeconds;
-                    var landed = VolleyHits(archers * Rules.ArcherAccuracy);
-                    settlementTarget.Hull -= landed * Rules.ArcherShotHullDamage;
-                    Emit("volley", ship.Id, settlementTarget.Id, settlementTarget.X, settlementTarget.Y, archers);
-                    continue;
-                }
-
-                var distance = Distance(ship.X, ship.Y, shipTarget.X, shipTarget.Y);
-                if (distance > Rules.ArcherRange || distance < Rules.ArcherMinRange) continue;
-                if (HasIslandBetween(ship.X, ship.Y, shipTarget.X, shipTarget.Y)) continue;
-
-                ship.Reload = Rules.ArcherReloadSeconds;
-                var movementPenalty = 1.0 - 0.25 * Math.Min(1.0, Math.Abs(ship.Speed) / ship.Definition.Speed);
-                var hits = VolleyHits(archers * Rules.ArcherAccuracy * movementPenalty);
-                if (hits > 0)
-                {
-                    ApplyHullDamage(shipTarget, hits * Rules.ArcherShotHullDamage);
-                    ApplyCrewDamage(shipTarget, hits * Rules.ArcherShotCrewDamage);
-                }
-                Emit("volley", ship.Id, shipTarget.Id, shipTarget.X, shipTarget.Y, archers);
-            }
-        }
-
-        /// <summary>
-        /// Arrows that strike from a volley whose expected hits are given: the whole part always, the fraction with
-        /// its own chance. One seeded draw per volley, however many archers shoot; on average exactly the expectation.
-        /// </summary>
-        int VolleyHits(double expected) => (int)Math.Floor(expected + Random.NextDouble());
-
-        Ship NearestVisibleEnemyInRange(Ship ship)
-        {
-            Ship best = null;
-            var bestDistance = double.MaxValue;
-            foreach (var other in Ships)
-            {
-                if (other.Owner == ship.Owner || !CanSee(ship.Owner, other)) continue;
-                var distance = Distance(ship.X, ship.Y, other.X, other.Y);
-                if (distance > Rules.ArcherRange || distance < Rules.ArcherMinRange || distance >= bestDistance) continue;
-                bestDistance = distance;
-                best = other;
-            }
-            return best;
         }
 
         public bool HasIslandBetween(double ax, double ay, double bx, double by)
@@ -542,13 +501,15 @@ namespace MorzaBogow.Simulation
             while (ship.CrewDamage >= Rules.SoldierHitPoints && ship.Crew > 0)
             {
                 ship.CrewDamage -= Rules.SoldierHitPoints;
-                // Arrows find the men on deck first, the more numerous trade before the other; rowers below last.
-                var trade = ship.Soldiers > 0 ? (ship.Archers >= ship.Swordsmen ? CrewTrade.Archer : CrewTrade.Swordsman) : CrewTrade.Sailor;
+                // Shots find the fighting men on deck first, the most numerous trade first; rowers below last.
+                var trade = ship.Soldiers == 0 ? CrewTrade.Sailor
+                    : ship.Archers >= ship.Swordsmen && ship.Archers >= ship.Javelins ? CrewTrade.Archer
+                    : ship.Swordsmen >= ship.Javelins ? CrewTrade.Swordsman : CrewTrade.Javelin;
                 LoseMan(ship, trade);
             }
         }
 
-        public enum CrewTrade { Sailor, Swordsman, Archer }
+        public enum CrewTrade { Sailor, Swordsman, Archer, Javelin }
 
         /// <summary>
         /// One man of a trade falls: of every five, two are wounded (Rules.WoundedShare) and stay aboard unable to fight
@@ -560,6 +521,7 @@ namespace MorzaBogow.Simulation
             {
                 case CrewTrade.Sailor: if (ship.Sailors == 0) return; ship.Sailors--; break;
                 case CrewTrade.Swordsman: if (ship.Swordsmen == 0) return; ship.Swordsmen--; break;
+                case CrewTrade.Javelin: if (ship.Javelins == 0) return; ship.Javelins--; break;
                 default: if (ship.Archers == 0) return; ship.Archers--; break;
             }
             ship.WoundRemainder += Rules.WoundedShare;
@@ -656,20 +618,21 @@ namespace MorzaBogow.Simulation
             Rules.BoardFrontBase + (int)Math.Floor(Math.Min(attacker.Definition.Beam, target.Definition.Beam));
 
         /// <summary>
-        /// What a crew brings to one round on deck: the men in the front, swordsmen first, then archers, and sailors only
-        /// when no fighters are left aboard; the archers behind the front shooting onto the other deck; all scaled by
-        /// morale. A defender fights on its own deck: its archers count for more.
+        /// What a crew brings to one round on deck: the men in the front (swordsmen first, then javelin men, then archers,
+        /// and sailors only when no fighters are left aboard); the javelin men and archers behind the front throwing and
+        /// shooting onto the other deck; all scaled by morale. A defender fights on its own deck: its missiles count for more.
         /// </summary>
-        public static (double strength, int swordsmen, int archers, int sailors) DeckStrength(Ship ship, int front, bool attacking)
+        public static (double strength, int swordsmen, int javelins, int archers, int sailors) DeckStrength(Ship ship, int front, bool attacking)
         {
             var swordsmen = Math.Min(ship.Swordsmen, front);
-            var archers = Math.Min(ship.Archers, front - swordsmen);
+            var javelins = Math.Min(ship.Javelins, front - swordsmen);
+            var archers = Math.Min(ship.Archers, front - swordsmen - javelins);
             var sailors = ship.Soldiers == 0 ? Math.Min(ship.Sailors, front) : 0;
             var melee = attacking
-                ? swordsmen * Rules.SwordAttack + archers * Rules.ArcherAttack + sailors * Rules.SailorAttack
-                : swordsmen * Rules.SwordDefence + archers * Rules.ArcherDefence + sailors * Rules.SailorDefence;
-            var support = (ship.Archers - archers) * (attacking ? Rules.ArcherSupportAttack : Rules.ArcherSupportDefence);
-            return ((melee + support) * (0.5 + ship.Morale / 100.0), swordsmen, archers, sailors);
+                ? swordsmen * Rules.SwordAttack + javelins * Rules.JavelinAttack + archers * Rules.ArcherAttack + sailors * Rules.SailorAttack
+                : swordsmen * Rules.SwordDefence + javelins * Rules.JavelinDefence + archers * Rules.ArcherDefence + sailors * Rules.SailorDefence;
+            var support = (ship.Archers - archers + ship.Javelins - javelins) * (attacking ? Rules.ArcherSupportAttack : Rules.ArcherSupportDefence);
+            return ((melee + support) * (0.5 + ship.Morale / 100.0), swordsmen, javelins, archers, sailors);
         }
 
         /// <summary>
@@ -696,8 +659,8 @@ namespace MorzaBogow.Simulation
             var defend = DeckStrength(target, front, false);
             link.AttackerStrength = attack.strength;
             link.TargetStrength = defend.strength;
-            link.AttackerFront = attack.swordsmen + attack.archers + attack.sailors;
-            link.TargetFront = defend.swordsmen + defend.archers + defend.sailors;
+            link.AttackerFront = attack.swordsmen + attack.javelins + attack.archers + attack.sailors;
+            link.TargetFront = defend.swordsmen + defend.javelins + defend.archers + defend.sailors;
 
             link.AttackerLossRemainder += defend.strength * Rules.DeckLossFraction;
             link.TargetLossRemainder += attack.strength * Rules.DeckLossFraction;
@@ -706,44 +669,53 @@ namespace MorzaBogow.Simulation
             link.AttackerLossRemainder -= attackerLosses;
             link.TargetLossRemainder -= targetLosses;
 
-            Fall(attacker, attackerLosses, attack.swordsmen, attack.archers, attack.sailors);
-            Fall(target, targetLosses, defend.swordsmen, defend.archers, defend.sailors);
+            Fall(attacker, attackerLosses, new[] { attack.swordsmen, attack.javelins, attack.archers, attack.sailors });
+            Fall(target, targetLosses, new[] { defend.swordsmen, defend.javelins, defend.archers, defend.sailors });
             attacker.LastDamagedTick = target.LastDamagedTick = Tick;
         }
 
-        static void Fall(Ship ship, int losses, int swordsmen, int archers, int sailors)
+        static readonly CrewTrade[] FrontOrder = { CrewTrade.Swordsman, CrewTrade.Javelin, CrewTrade.Archer, CrewTrade.Sailor };
+
+        /// <summary>The fallen come from the front, each time from its most numerous trade (in front order on ties).</summary>
+        static void Fall(Ship ship, int losses, int[] front)
         {
             var fallen = 0;
-            for (var i = 0; i < losses && swordsmen + archers + sailors > 0; i++, fallen++)
+            for (; fallen < losses; fallen++)
             {
-                if (swordsmen >= archers && swordsmen >= sailors && swordsmen > 0) { swordsmen--; LoseMan(ship, CrewTrade.Swordsman); }
-                else if (archers >= sailors && archers > 0) { archers--; LoseMan(ship, CrewTrade.Archer); }
-                else { sailors--; LoseMan(ship, CrewTrade.Sailor); }
+                var pick = -1;
+                for (var t = 0; t < front.Length; t++) if (front[t] > 0 && (pick < 0 || front[t] > front[pick])) pick = t;
+                if (pick < 0) break;
+                front[pick]--;
+                LoseMan(ship, FrontOrder[pick]);
             }
             ship.Morale = Math.Max(0, ship.Morale - fallen * Rules.DeckMoralePerCrew / ship.Definition.MaxCrew);
         }
 
         /// <summary>
-        /// The prize is taken whole: hull, cargo, paid cost and fittings stay with it. Its sailors row on for the new
-        /// owner, its wounded are lost, and a prize crew of the attacker's fighters (swordsmen first) goes across; if
-        /// the prize has too few sailors to keep way, part of the prize crew takes the oars. Its port will train it to
-        /// the class's usual crew.
+        /// The prize is taken whole: hull, cargo, paid cost and fitted weapons (with their state) stay with it. Its
+        /// sailors row on for the new owner, its wounded are lost, and a prize crew of the attacker's fighters
+        /// (swordsmen first, then javelin men, then archers) goes across; if the prize has too few sailors to keep way,
+        /// part of the prize crew takes the oars. Its port will train it to the class's usual crew.
         /// </summary>
         void Capture(Ship attacker, Ship target)
         {
             var definition = target.Definition;
             var prize = Math.Min(attacker.Soldiers, definition.BaseSailors);
             var swordsmen = Math.Min(attacker.Swordsmen, prize);
-            var archers = prize - swordsmen;
+            var javelins = Math.Min(attacker.Javelins, prize - swordsmen);
+            var archers = prize - swordsmen - javelins;
             attacker.Swordsmen -= swordsmen;
+            attacker.Javelins -= javelins;
             attacker.Archers -= archers;
 
+            // Rowers come from the prize crew, archers first, then javelin men, then swordsmen.
             var rowers = Math.Min(prize, Math.Max(0, definition.BaseSailors - target.Sailors));
-            var fromArchers = Math.Min(archers, rowers);
-            archers -= fromArchers;
-            swordsmen -= rowers - fromArchers;
+            var take = Math.Min(archers, rowers); archers -= take; var left = rowers - take;
+            take = Math.Min(javelins, left); javelins -= take; left -= take;
+            swordsmen -= left;
             target.Sailors += rowers;
             target.Swordsmen = swordsmen;
+            target.Javelins = javelins;
             target.Archers = archers;
             target.Wounded = 0;
             target.WoundRemainder = 0;

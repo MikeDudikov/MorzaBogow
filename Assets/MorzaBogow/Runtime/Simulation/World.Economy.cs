@@ -486,7 +486,7 @@ namespace MorzaBogow.Simulation
             var settlement = ClosestYard(ship);
             var definition = ship.Definition;
             var hullDone = ship.Hull >= definition.Hull;
-            if (settlement == null || settlement.Destroyed || (hullDone && !NeedsMuster(ship) && ship.MusterTicks == 0))
+            if (settlement == null || settlement.Destroyed || (hullDone && !ModulesDamaged(ship) && !NeedsMuster(ship) && ship.MusterTicks == 0))
             {
                 if (settlement != null && settlement.RepairShipId == ship.Id) Emit("ship_restored", ship.Id, settlement.Id, ship.X, ship.Y, ship.Crew);
                 ReleaseDock(ship);
@@ -509,6 +509,9 @@ namespace MorzaBogow.Simulation
 
             if (hullDone)
             {
+                // After the hull: the posts' modules, then the crew; one job at a time, each charged as it starts.
+                if (ship.MusterTicks > 0) { ship.MusterTicks--; return; }
+                if (RepairModule(ship, settlement)) return;
                 Muster(ship, settlement);
                 return;
             }
@@ -535,13 +538,67 @@ namespace MorzaBogow.Simulation
 
         /// <summary>The crew differs from its plan, or there are wounded aboard.</summary>
         public static bool NeedsMuster(Ship ship) =>
-            ship.Wounded > 0 || ship.Sailors != ship.Plan.Sailors || ship.Swordsmen != ship.Plan.Swordsmen || ship.Archers != ship.Plan.Archers;
+            ship.Wounded > 0 || ship.Sailors != ship.Plan.Sailors || ship.Swordsmen != ship.Plan.Swordsmen
+            || ship.Javelins != ship.Plan.Javelins || ship.Archers != ship.Plan.Archers;
+
+        /// <summary>A fitted post's module is below full strength.</summary>
+        public static bool ModulesDamaged(Ship ship)
+        {
+            for (var i = 0; i < ship.Mounts.Length; i++) if (ship.Mounts[i] != WeaponType.None && ship.ModuleHp[i] < Rules.ModuleHitPoints) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// What mending one module costs (docs/UZBROJENIE.md): 25% of the item's worth times the share of its hit points
+        /// restored, wood and silver apart, rounded down to 0.01; and how long, the whole module taking at most 10 s.
+        /// </summary>
+        public static (long wood, long silver, int ticks) ModuleRepair(Ship ship, int slot)
+        {
+            var missing = Math.Max(0, Rules.ModuleHitPoints - ship.ModuleHp[slot]) / Rules.ModuleHitPoints;
+            var wood = (long)(ship.ItemWood[slot] * Rules.ModuleRepairFraction * missing);
+            var silver = (long)(ship.ItemSilver[slot] * Rules.ModuleRepairFraction * missing);
+            return (wood, silver, (int)Math.Ceiling(missing * Rules.ModuleRepairSeconds * Rules.TickRate - 1e-9));
+        }
+
+        /// <summary>All modules' repair together, as the interface quotes it.</summary>
+        public static (long wood, long silver) ModuleRepairCost(Ship ship)
+        {
+            long wood = 0, silver = 0;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (ship.Mounts[i] == WeaponType.None) continue;
+                var (w, s, _) = ModuleRepair(ship, i);
+                wood += w;
+                silver += s;
+            }
+            return (wood, silver);
+        }
+
+        /// <summary>Mends the first damaged module if the port can pay; true while there is module work (done or waiting).</summary>
+        bool RepairModule(Ship ship, Settlement port)
+        {
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (ship.Mounts[i] == WeaponType.None || ship.ModuleHp[i] >= Rules.ModuleHitPoints) continue;
+                var (wood, silver, ticks) = ModuleRepair(ship, i);
+                if (port.Available(ResourceType.Wood) < wood || port.Available(ResourceType.Silver) < silver) return true;
+                port.Wood -= wood;
+                port.Silver -= silver;
+                SpentWood += wood;
+                SpentSilver += silver;
+                ship.ModuleHp[i] = Rules.ModuleHitPoints;
+                ship.MusterTicks = Math.Max(0, ticks - 1);
+                Emit("module_repaired", ship.Id, port.Id, ship.X, ship.Y, i);
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>Silver the port needs to bring the crew to its plan: healing, then recruits, then retraining.</summary>
         public static long MusterCost(Ship ship)
         {
             // The same steps Muster takes, on a copy of the crew, so the price shown is the price paid.
-            var copy = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Archers = ship.Archers, Wounded = ship.Wounded, Plan = ship.Plan };
+            var copy = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Javelins = ship.Javelins, Archers = ship.Archers, Wounded = ship.Wounded, Plan = ship.Plan };
             long cost = 0;
             for (var guard = 0; guard < 1000 && NeedsMuster(copy); guard++)
             {
@@ -618,24 +675,25 @@ namespace MorzaBogow.Simulation
         }
 
         static CrewTrade? Surplus(Ship ship) =>
-            ship.Swordsmen > ship.Plan.Swordsmen ? CrewTrade.Swordsman : ship.Archers > ship.Plan.Archers ? CrewTrade.Archer
-            : ship.Sailors > ship.Plan.Sailors ? CrewTrade.Sailor : (CrewTrade?)null;
+            ship.Swordsmen > ship.Plan.Swordsmen ? CrewTrade.Swordsman : ship.Javelins > ship.Plan.Javelins ? CrewTrade.Javelin
+            : ship.Archers > ship.Plan.Archers ? CrewTrade.Archer : ship.Sailors > ship.Plan.Sailors ? CrewTrade.Sailor : (CrewTrade?)null;
 
+        /// <summary>The trade the plan lacks most; ties go sailors, swordsmen, javelin men, archers.</summary>
         static CrewTrade? MostLacking(Ship ship)
         {
             var plan = ship.Plan;
-            var sailors = plan.Sailors - ship.Sailors;
-            var swordsmen = plan.Swordsmen - ship.Swordsmen;
-            var archers = plan.Archers - ship.Archers;
-            if (sailors <= 0 && swordsmen <= 0 && archers <= 0) return null;
-            if (sailors >= swordsmen && sailors >= archers) return CrewTrade.Sailor;
-            return swordsmen >= archers ? CrewTrade.Swordsman : CrewTrade.Archer;
+            var gaps = new[] { plan.Sailors - ship.Sailors, plan.Swordsmen - ship.Swordsmen, plan.Javelins - ship.Javelins, plan.Archers - ship.Archers };
+            var trades = new[] { CrewTrade.Sailor, CrewTrade.Swordsman, CrewTrade.Javelin, CrewTrade.Archer };
+            var pick = -1;
+            for (var i = 0; i < gaps.Length; i++) if (gaps[i] > 0 && (pick < 0 || gaps[i] > gaps[pick])) pick = i;
+            return pick < 0 ? (CrewTrade?)null : trades[pick];
         }
 
         static void Add(Ship ship, CrewTrade trade, int count)
         {
             if (trade == CrewTrade.Sailor) ship.Sailors += count;
             else if (trade == CrewTrade.Swordsman) ship.Swordsmen += count;
+            else if (trade == CrewTrade.Javelin) ship.Javelins += count;
             else ship.Archers += count;
         }
 
@@ -654,7 +712,7 @@ namespace MorzaBogow.Simulation
         bool SendToDockIfNeeded(Ship ship)
         {
             if ((Tick + ship.Id) % Rules.TickRate != 0) return false;
-            var hurt = ship.Hull < ship.Definition.Hull;
+            var hurt = ship.Hull < ship.Definition.Hull || ModulesDamaged(ship);
             if (!hurt && !NeedsMuster(ship)) return false;
             var port = ClosestYard(ship);
             if (port == null || port.Destroyed || Distance(ship.X, ship.Y, port.X, port.Y) > Rules.MusterRange) return false;

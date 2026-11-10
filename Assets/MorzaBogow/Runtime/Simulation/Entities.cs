@@ -6,7 +6,8 @@ namespace MorzaBogow.Simulation
     public enum TransportPhase { ToSource, WaitSourceBerth, Loading, ToDestination, WaitDestinationBerth, Unloading, Building }
     /// <summary>Landing: the crew goes ashore before work starts. Embarking: the crew is back aboard before the cutter casts off.</summary>
     public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked, Landing, Embarking }
-    public enum RamPhase { Approach, Recoil, Cooldown }
+    /// <summary>Approach, then the called charge (Telegraph, at least 1.2 s before contact), the strike, recoil and cooldown.</summary>
+    public enum RamPhase { Approach, Recoil, Cooldown, Telegraph }
 
     /// <summary>Hinterland: the large island behind a port or a work point's islet, joined to it, as the land a town or a forest stands on.</summary>
     public enum IslandKind { Coast, ResourceSite, Settlement, Hinterland }
@@ -116,9 +117,21 @@ namespace MorzaBogow.Simulation
         /// boarding or repelling boarders; archers shoot at the crews of nearby ships and defend their own deck. The
         /// wounded fight and row no more until a port replaces them. Plan is the crew the ship's port brings it back to.
         /// </summary>
-        public int Sailors, Swordsmen, Archers, Wounded;
-        public int Soldiers => Swordsmen + Archers;
-        public int Crew => Sailors + Swordsmen + Archers;
+        public int Sailors, Swordsmen, Javelins, Archers, Wounded;
+        public int Soldiers => Swordsmen + Javelins + Archers;
+        public int Crew => Sailors + Swordsmen + Javelins + Archers;
+
+        /// <summary>
+        /// The weapon in each post (ShipDefinition.Slots order), how far its cycle has come (1 = ready), its module's hit
+        /// points and what the fitted item is worth (docs/UZBROJENIE.md). Captured with the ship.
+        /// </summary>
+        public WeaponType[] Mounts = System.Array.Empty<WeaponType>();
+        public double[] Progress = System.Array.Empty<double>();
+        public double[] ModuleHp = System.Array.Empty<double>();
+        public long[] ItemWood = System.Array.Empty<long>(), ItemSilver = System.Array.Empty<long>();
+
+        /// <summary>The charge's telegraph ticks left, and the ram's own worth for repairs (the last item value).</summary>
+        public int TelegraphTicks;
         public CrewPlan Plan;
         public double CrewDamage, Morale = 100;
 
@@ -183,9 +196,18 @@ namespace MorzaBogow.Simulation
     /// <summary>The crew a ship should carry: its port recruits, heals and retrains toward it.</summary>
     public struct CrewPlan
     {
-        public int Sailors, Swordsmen, Archers;
+        public int Sailors, Swordsmen, Javelins, Archers;
         public CrewPreset Preset;
-        public int Total => Sailors + Swordsmen + Archers;
+        public int Total => Sailors + Swordsmen + Javelins + Archers;
+    }
+
+    /// <summary>A shot in the air: it lands where it was aimed (scatter already drawn) when its flight is done.</summary>
+    public sealed class Projectile
+    {
+        public int Id, OwnerId, ShooterId, TargetShipId = -1, TargetSettlementId = -1;
+        public WeaponType Weapon;
+        public double FromX, FromY, ToX, ToY;
+        public int LaunchTick, ArriveTick;
     }
 
     /// <summary>Ready-made crews a port can train a ship's people to; Custom is a plan given in numbers.</summary>

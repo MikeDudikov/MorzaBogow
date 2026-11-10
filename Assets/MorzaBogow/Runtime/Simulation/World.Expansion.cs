@@ -346,7 +346,7 @@ namespace MorzaBogow.Simulation
             var threat = Ships
                 .Where(item => item.Owner != ship.Owner && CanSee(ship.Owner, item) && Distance(item.X, item.Y, escorted.X, escorted.Y) <= Rules.EscortZone)
                 .OrderBy(item => Distance2(item.X, item.Y, escorted.X, escorted.Y)).ThenBy(item => item.Id).FirstOrDefault();
-            if (threat != null && ship.Archers > 0)
+            if (threat != null && HasWeapons(ship))
             {
                 Pursue(ship, threat.X, threat.Y, Rules.ArcherRange * 0.8);
                 return;
