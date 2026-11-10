@@ -4,8 +4,8 @@
   "name": "Taranowiec (bryła + retekstura Meshy)",
   "category": "ship",
   "shipClass": "Ram",
-  "description": "A lean Aegean warship with a low dark hull, a painted eye at the bow, a blue sheer stripe, a square linen sail and a bronze ram.",
+  "description": "A lean Aegean galley of the 12th century BC: pitch-black hull, red ochre wale and bow, a white zigzag band along the wale, a square linen sail and a bronze-sheathed spur at the waterline.",
   "generation": { "provider": "blockout" },
-  "texturing": { "provider": "meshy_retexture", "prompt": "Weathered dark pine planks, blue painted sheer stripe, off-white linen sail, polished bronze ram, hand-painted look readable from far away" },
+  "texturing": { "provider": "meshy_retexture", "originalUv": false, "prompt": "Pitch-blackened pine planking with visible seams, red ochre wale and bow, white painted zigzag band, weathered off-white linen sail, dull bronze spur; realistic, readable from far away" },
   "lods": 3
 }

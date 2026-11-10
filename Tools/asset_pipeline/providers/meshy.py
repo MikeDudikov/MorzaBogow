@@ -156,8 +156,10 @@ class Meshy:
             payload["image_urls"] = images[:4]
         return payload
 
-    def retexture_payload(self, model_path, style: str) -> dict:
-        return {"model_url": data_uri(model_path, "application/octet-stream"), "text_style_prompt": style, "enable_original_uv": True,
+    def retexture_payload(self, model_path, style: str, original_uv: bool = True) -> dict:
+        # original_uv=False lets Meshy lay out its own UVs: needed when the model's UVs tile or overlap (the game's
+        # generator gives UVs in metres), which would make Meshy paint every part into the same texels.
+        return {"model_url": data_uri(model_path, "application/octet-stream"), "text_style_prompt": style, "enable_original_uv": original_uv,
                 "enable_pbr": True, "ai_model": self.settings.get("aiModel", "latest"), "target_formats": ["glb"], "remove_lighting": True}
 
     def rigging_payload(self, model: dict, ctx, height: float) -> dict:

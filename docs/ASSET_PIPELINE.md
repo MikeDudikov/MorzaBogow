@@ -24,7 +24,7 @@ Stan na 2026-11-10. Polecenie `ap capabilities` pokazuje bieżący stan konfigur
 |---|---|---|---|
 | **Okręt z generatora gry** (`GreekShips` eksportowany przez Unity, `providers/blockout.py`) | generowanie | uruchomiony: testy i przebieg E2E | dostępny |
 | **Unity 6000.3.28f1** (batch, `AIAssetBatch`) | import, materiały HDRP, prefab, LOD, walidacja, podgląd | uruchomione: 19 testów EditMode i przebieg E2E | dostępne |
-| **Meshy API** | Text-, Image- i Multi-image-to-3D, retekstura, remesh, szkielet, animacje | dokumentacja docs.meshy.ai sprawdzona 2026-11-10; **bez próby na żywo** (brak klucza) | `needs_configuration`: `MESHY_API_KEY` |
+| **Meshy API** | Text-, Image- i Multi-image-to-3D, retekstura, remesh, szkielet, animacje | dokumentacja docs.meshy.ai sprawdzona 2026-11-10. Na żywo 2026-11-10 tylko retekstura: 2 zadania po 10 kr. Pozostałe tryby bez próby na żywo | dostępny po ustawieniu `MESHY_API_KEY` |
 | **ComfyUI** | koncept, tekstury | trasy serwera z dokumentacji (`/prompt`, `/history`, `/queue`, `/view`); **bez próby na żywo** | `needs_configuration`: `COMFYUI_URL` i własny workflow |
 | **Blender** (headless) | geometria: osie, skala, punkt zaczepienia, czyszczenie, UV, decymacja, LOD, eksport FBX i GLB | Blender 5.2.3 LTS portable (`C:\Users\noirp\Tools\blender-5.2.3-windows-x64`, SHA-256 zgodny z blender.org). Próba `prepare.py` 2026-11-10: model źródłowy w cm, dziobem w −X → 12,00 m, stępka −0,70 m, dziób +Z, LOD 1904/665/228. Import tej próby do Unity nieuruchomiony | dostępny po ustawieniu `BLENDER_PATH` |
 | **Substance 3D Painter** | tekstury | **nieweryfikowane** (brak dostępnej dokumentacji automatyzacji) | przekazanie ręczne |
@@ -335,7 +335,13 @@ Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `A
 
 - **Okręt z generatora to nie jest grafika docelowa.** To ta sama geometria, którą gra rysuje w bitwie (`GreekShips`), z płaską paletą bez tekstur PBR. Jest wejściem dla retekstury Meshy (`ArtWorkspace/briefs/ship_ram_retexture.json`, 10 kr.). Gra buduje okręty w locie z tego samego generatora, więc prefab nie musi być podpięty do `ShipVisual`.
 - **Blender:** pierwsze uruchomienie znalazło błąd ścieżek. Blender z Windows zwraca `C:\...`, a Python w WSL doklejał je do katalogu zadania. Poprawione w `blender/__init__.py`; test `test_blender.py`.
-- **Meshy i ComfyUI** nie zostały uruchomione na żywo: brak klucza i serwera. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
+- **Retekstura Meshy okrętu z generatora** (`ArtWorkspace/briefs/ship_ram_retexture.json`), 2026-11-10:
+  - **Pierwsze zadanie** `ship_ram_retexture-20261110-144306-18fa` (10 kr.): ready, ale cały okręt w jednolitym jasnym drewnie. Generator ma UV w metrach, powtarzane i nakładające się, a Meshy przy `enable_original_uv` malował wszystkie części w te same teksele.
+  - **Poprawka:** opcja briefu `texturing.originalUv: false`. Meshy rozkłada wtedy własne UV, a potok bierze zwrócony model i robi z niego LOD w Blenderze. Test `test_meshy_retexture.py`.
+  - **Drugie zadanie** `ship_ram_retexture-20261110-145054-4d03` (10 kr.): ready. Ciemny kadłub, ochra wzdłuż burty, lniany żagiel, spiż na taranie; LOD 2976/1040/357; stępka −1,20 m; długość 20 m.
+  - **Ostrzeżenia:** jeden materiał, więc żagiel nie przyjmie barwy strony; 32 px/m przy celu 64. Biały zygzak nieczytelny.
+  - Prefab: `Assets/MorzaBogow/Art/Generated/ship_ram_retexture`. Gra go nie używa.
+- **ComfyUI** nie zostało uruchomione na żywo: brak serwera. Text-, Image-to-3D, szkielet i animacje Meshy też bez próby na żywo. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
 - **Kierunek dziobu** modelu z Meshy jest nieznany, gdy brief ma `forward: auto`. Unity bierze dłuższą oś poziomą z dodatnim zwrotem, a raport ostrzega o konieczności sprawdzenia podglądu.
 - **Bez Blendera** model z Meshy idzie jako jeden poziom LOD z mesh LOD importera Unity. Naprawa przekroczonej geometrii wymaga Blendera.
 - **Substance, DeepMotion i Cascadeur** działają tylko przez przekazanie ręczne.

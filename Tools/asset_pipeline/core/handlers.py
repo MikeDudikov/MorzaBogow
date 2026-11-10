@@ -178,11 +178,23 @@ def texturing(ctx):
         if not source:
             raise NeedsConfiguration("Retekstura Meshy potrzebuje modelu GLB (Blender albo bryła ją tworzy).", ["BLENDER_PATH"])
         style = briefs.texture_prompt(ctx.brief, ctx.config)
-        task = ctx.remote(meshy, "retexture", meshy.retexture_payload(absolute(ctx, source), style), {"text_style_prompt": style, "type": "retexture"},
-                          meshy.cost("retexture"))
-        files = meshy.download(ctx, task, out, textures_only=True)
+        original_uv = bool(ctx.brief["texturing"].get("originalUv", True))
+        task = ctx.remote(meshy, "retexture", meshy.retexture_payload(absolute(ctx, source), style, original_uv),
+                          {"text_style_prompt": style, "type": "retexture"}, meshy.cost("retexture"))
+        files = meshy.download(ctx, task, out, textures_only=original_uv)
         ctx.artifacts["textures"] = {"provider": "meshy_retexture", "maps": files["maps"], "remote_task": task["remote_id"], "complete": True}
-        return f"Retekstura Meshy: {', '.join(sorted(files['maps']))}"
+        if original_uv:
+            return f"Retekstura Meshy: {', '.join(sorted(files['maps']))}"
+        # Meshy's own UVs live only on the model it returns: its LODs come from that model, through Blender.
+        returned = files.get("glb") or files.get("unity")
+        if not returned:
+            raise NeedsReview("Retekstura Meshy z własnym UV nie zwróciła modelu.")
+        blender = ctx.providers["blender"]
+        if not blender.available():
+            raise NeedsConfiguration("Retekstura z UV od Meshy potrzebuje Blendera do LOD.", ["BLENDER_PATH"])
+        result = blender.prepare(ctx, absolute(ctx, returned), False)
+        ctx.artifacts["geometry"] = {"method": "blender", **result}
+        return f"Retekstura Meshy z jej UV: {', '.join(sorted(files['maps']))}; Blender: {len(result['lods'])} LOD, {', '.join(str(t) for t in result['triangles'])} trójkątów"
     if provider == "comfyui":
         comfy = ctx.providers["comfyui"]
         comfy.require()
