@@ -4,8 +4,12 @@ using UnityEngine;
 
 namespace MorzaBogow.Presentation
 {
-    /// <summary>The few paints of a ship. A mesh lists them per submesh; the renderer takes the matching materials.</summary>
-    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail }
+    /// <summary>
+    /// The few paints of a ship. A mesh lists them per submesh; the renderer takes the matching materials. The last five
+    /// dress the stays and the gear on deck (rope, linen, wicker, stone anchors, terracotta jars); the asset export folds
+    /// them into the six paints of its budget.
+    /// </summary>
+    public enum GreekMaterial { Pitch, Ochre, Paint, Wood, Bronze, Sail, Rope, Linen, Wicker, Stone, Terracotta }
 
     /// <summary>A mesh and the paint of each of its submeshes, in submesh order.</summary>
     public sealed class GreekMesh
@@ -96,6 +100,24 @@ namespace MorzaBogow.Presentation
             public static readonly Color Wood = new Color(0.56f, 0.41f, 0.25f);
             public static readonly Color Bronze = new Color(0.74f, 0.50f, 0.24f);
             public static readonly Color Linen = new Color(0.89f, 0.85f, 0.75f);
+            public static readonly Color Rope = new Color(0.64f, 0.54f, 0.37f);
+            public static readonly Color Wicker = new Color(0.68f, 0.55f, 0.34f);
+            public static readonly Color Stone = new Color(0.74f, 0.71f, 0.64f);
+            public static readonly Color Terracotta = new Color(0.64f, 0.36f, 0.23f);
+
+            public static Color Of(GreekMaterial paint) => paint switch
+            {
+                GreekMaterial.Pitch => Pitch,
+                GreekMaterial.Ochre => Ochre,
+                GreekMaterial.Paint => Paint,
+                GreekMaterial.Bronze => Bronze,
+                GreekMaterial.Sail or GreekMaterial.Linen => Linen,
+                GreekMaterial.Rope => Rope,
+                GreekMaterial.Wicker => Wicker,
+                GreekMaterial.Stone => Stone,
+                GreekMaterial.Terracotta => Terracotta,
+                _ => Wood,
+            };
         }
 
         public const int Details = 3;
@@ -224,9 +246,9 @@ namespace MorzaBogow.Presentation
             var ring = detail == 0 ? 6 : detail == 1 ? 4 : 2;
             var cuts = new[] { -f.Length * 0.5f + f.Length * 0.36f, -f.Length * 0.5f + f.Length * 0.68f };
 
+            // The painted band along the wale is its own mesh (Band), so a workshop's pattern can differ on the same hull.
             var hull = new MeshBuilder(cuts);
             BuildShell(hull, f, stations, ring);
-            BuildZigzag(hull, f, detail);
             BuildStern(hull, f, detail);
             BuildStem(hull, f, detail);
 
@@ -254,14 +276,14 @@ namespace MorzaBogow.Presentation
 
             var rig = new MeshBuilder(null);
             BuildRig(rig, f, detail, parts);
-            parts.Rig = rig.Build(GreekMaterial.Wood, GreekMaterial.Ochre);
+            parts.Rig = rig.Build(GreekMaterial.Wood, GreekMaterial.Ochre, GreekMaterial.Rope);
 
             var steering = new MeshBuilder(null);
             BuildSteering(steering, f);
             parts.Steering = steering.Build(GreekMaterial.Wood);
 
             var sail = new MeshBuilder(null);
-            BuildSail(sail, detail);
+            BuildSail(sail, f, detail);
             parts.Sail = sail.Build(GreekMaterial.Sail, GreekMaterial.Paint);
 
             BuildOars(f, parts, detail);
@@ -283,16 +305,21 @@ namespace MorzaBogow.Presentation
         {
             for (var side = -1; side <= 1; side += 2)
             {
-                var u0 = side < 0 ? 0f : 0.5f;
                 var rows = new int[stations + 1, ring + 1];
                 for (var i = 0; i <= stations; i++)
                 {
                     var s = i / (float)stations;
+                    var girth = 0f;
+                    var previous = Section(f, s, 0f);
                     for (var k = 0; k <= ring; k++)
                     {
                         var p = Section(f, s, k / (float)ring);
-                        p.x *= -side;
-                        rows[i, k] = b.Vertex(p, new Vector2(u0 + 0.5f * s, 0.5f * (1f - k / (float)ring)));
+                        girth += Vector3.Distance(p, previous);
+                        previous = p;
+                        var placed = p;
+                        placed.x *= -side;
+                        // Metres along the hull and down from the gunwale: the strakes run along u, as planks do.
+                        rows[i, k] = b.Vertex(placed, new Vector2(p.z, girth));
                     }
                 }
                 for (var i = 0; i < stations; i++)
@@ -311,46 +338,88 @@ namespace MorzaBogow.Presentation
             foreach (var (s, direction) in new[] { (0f, -1f), (1f, 1f) })
             {
                 var centre = new Vector3(0f, (Sheer(f, s) - Depth(f, s)) * 0.5f, Z(f, s));
-                var c = b.Vertex(centre, new Vector2(0.3f, 0.8f));
+                var c = b.Vertex(centre, new Vector2(centre.x, centre.y));
                 var ids = new List<int>();
-                for (var k = 0; k <= ring; k++) ids.Add(b.Vertex(Section(f, s, k / (float)ring), new Vector2(0.28f, 0.78f)));
+                for (var k = 0; k <= ring; k++)
+                {
+                    var p = Section(f, s, k / (float)ring);
+                    ids.Add(b.Vertex(p, new Vector2(p.x, p.y)));
+                }
                 for (var k = ring - 1; k >= 0; k--)
                 {
                     var p = Section(f, s, k / (float)ring);
                     p.x = -p.x;
-                    ids.Add(b.Vertex(p, new Vector2(0.32f, 0.78f)));
+                    ids.Add(b.Vertex(p, new Vector2(p.x, p.y)));
                 }
                 for (var j = 0; j < ids.Count; j++) b.Triangle(GreekMaterial.Pitch, c, ids[j], ids[(j + 1) % ids.Count], new Vector3(0f, 0f, direction));
             }
         }
 
-        /// <summary>A white zigzag painted along the red wale, as on the pottery of the age.</summary>
-        static void BuildZigzag(MeshBuilder b, GreekShipForm f, int detail)
+        /// <summary>The approved patterns painted along the red wale.</summary>
+        public static readonly string[] BandPatterns = { "zigzag", "wave", "none" };
+
+        static readonly Dictionary<(ShipClass, string, int), GreekMesh> bands = new Dictionary<(ShipClass, string, int), GreekMesh>();
+
+        /// <summary>
+        /// The white pattern painted on the red wale, a mesh of its own so one hull can carry its workshop's band: a zigzag
+        /// or a wavy line (motifs of the pottery of the age, an interpretation for hulls), or none (null). The lowest detail
+        /// has no band.
+        /// </summary>
+        public static GreekMesh Band(ShipClass shipClass, string pattern, int detail = 0)
         {
-            if (detail == 2) return;
-            var teeth = detail == 0 ? 18 : 9;
-            var ring = 6f;
+            detail = Mathf.Clamp(detail, 0, Details - 1);
+            if (detail == 2 || string.IsNullOrEmpty(pattern) || pattern == "none") return null;
+            if (bands.TryGetValue((shipClass, pattern, detail), out var made) && made.Mesh != null) return made;
+            var f = Form(shipClass);
+            var b = new MeshBuilder(null);
+            const float top = 0.12f / 6f, bottom = 0.85f / 6f;
             for (var side = -1; side <= 1; side += 2)
             {
+                Vector3 On(float s, float t)
+                {
+                    var p = Section(f, s, t);
+                    p.x *= -side;
+                    return p + new Vector3(side * 0.025f, 0f, 0f);
+                }
+                var outward = new Vector3(side, 0f, 0f);
+                if (pattern == "wave")
+                {
+                    // A wavy line: a thin painted band swinging between the edges of the wale.
+                    var steps = detail == 0 ? 96 : 48;
+                    var mid = (top + bottom) * 0.5f;
+                    var swing = (bottom - top) * 0.36f;
+                    var half = (bottom - top) * 0.13f;
+                    int upperBefore = -1, lowerBefore = -1;
+                    for (var i = 0; i <= steps; i++)
+                    {
+                        var s = Mathf.Lerp(0.2f, 0.8f, i / (float)steps);
+                        var centre = mid + swing * Mathf.Sin(i / (float)steps * 9f * Mathf.PI * 2f);
+                        var upperAt = On(s, centre - half);
+                        var lowerAt = On(s, centre + half);
+                        var upper = b.Vertex(upperAt, new Vector2(upperAt.z, 0f));
+                        var lower = b.Vertex(lowerAt, new Vector2(lowerAt.z, 0.1f));
+                        if (i > 0) b.Quad(GreekMaterial.Paint, upperBefore, upper, lower, lowerBefore, outward);
+                        upperBefore = upper;
+                        lowerBefore = lower;
+                    }
+                    continue;
+                }
+                var teeth = detail == 0 ? 18 : 9;
                 for (var i = 0; i < teeth; i++)
                 {
                     var s0 = Mathf.Lerp(0.2f, 0.8f, i / (float)teeth);
                     var s1 = Mathf.Lerp(0.2f, 0.8f, (i + 1f) / teeth);
                     var low = i % 2 == 0;
-                    Vector3 On(float s, float t)
-                    {
-                        var p = Section(f, s, t);
-                        p.x *= -side;
-                        return p + new Vector3(side * 0.025f, 0f, 0f);
-                    }
-                    var top = 0.12f / ring;
-                    var bottom = 0.85f / ring;
-                    var a = b.Vertex(On(s0, low ? top : bottom), new Vector2(0.4f, 0.9f));
-                    var c = b.Vertex(On(s1, low ? top : bottom), new Vector2(0.42f, 0.9f));
-                    var d = b.Vertex(On((s0 + s1) * 0.5f, low ? bottom : top), new Vector2(0.41f, 0.92f));
-                    b.Triangle(GreekMaterial.Paint, a, c, d, new Vector3(side, 0f, 0f));
+                    var pa = On(s0, low ? top : bottom);
+                    var pc = On(s1, low ? top : bottom);
+                    var pd = On((s0 + s1) * 0.5f, low ? bottom : top);
+                    b.Triangle(GreekMaterial.Paint, b.Vertex(pa, new Vector2(pa.z, 0f)), b.Vertex(pc, new Vector2(pc.z, 0f)), b.Vertex(pd, new Vector2(pd.z, 0.1f)), outward);
                 }
             }
+            made = b.Build(GreekMaterial.Paint);
+            made.Mesh.name = $"Greek ship band ({shipClass}, {pattern})";
+            bands[(shipClass, pattern, detail)] = made;
+            return made;
         }
 
         /// <summary>The stern post curling up and inboard, as on the ships painted on Mycenaean kraters.</summary>
@@ -410,24 +479,27 @@ namespace MorzaBogow.Presentation
         {
             var from = Mathf.Max(1, Mathf.RoundToInt(stations * 0.04f));
             var to = stations - from;
-            var edges = new List<(int left, int right, int wallLeft, int wallRight)>();
+            // Deck planks run fore and aft: UV in metres along (z) and across (x); the bulwark's inside along (z) and up (y).
+            var edges = new List<(int left, int right, int footLeft, int footRight, int wallLeft, int wallRight)>();
             for (var i = from; i <= to; i++)
             {
                 var s = i / (float)stations;
                 var w = HalfWidth(f, s) * 0.97f;
                 var y = DeckAt(f, s);
                 var gunwale = Sheer(f, s);
-                edges.Add((b.Vertex(new Vector3(-w, y, Z(f, s)), new Vector2(0.5f * s, 0.5f)), b.Vertex(new Vector3(w, y, Z(f, s)), new Vector2(0.5f * s, 0.75f)),
-                           b.Vertex(new Vector3(-w, gunwale, Z(f, s)), new Vector2(0.5f * s, 0.52f)), b.Vertex(new Vector3(w, gunwale, Z(f, s)), new Vector2(0.5f * s, 0.73f))));
+                var z = Z(f, s);
+                edges.Add((b.Vertex(new Vector3(-w, y, z), new Vector2(z, -w)), b.Vertex(new Vector3(w, y, z), new Vector2(z, w)),
+                           b.Vertex(new Vector3(-w, y, z), new Vector2(z, y)), b.Vertex(new Vector3(w, y, z), new Vector2(z, y)),
+                           b.Vertex(new Vector3(-w, gunwale, z), new Vector2(z, gunwale)), b.Vertex(new Vector3(w, gunwale, z), new Vector2(z, gunwale))));
             }
             for (var i = 0; i + 1 < edges.Count; i++)
             {
-                var (l0, r0, wl0, wr0) = edges[i];
-                var (l1, r1, wl1, wr1) = edges[i + 1];
+                var (l0, r0, fl0, fr0, wl0, wr0) = edges[i];
+                var (l1, r1, fl1, fr1, wl1, wr1) = edges[i + 1];
                 b.Quad(GreekMaterial.Wood, l0, l1, r1, r0, Vector3.up);
                 // The inside of the bulwark, so the hollow above the deck is never seen through.
-                b.Quad(GreekMaterial.Wood, l0, l1, wl1, wl0, Vector3.right);
-                b.Quad(GreekMaterial.Wood, r0, r1, wr1, wr0, Vector3.left);
+                b.Quad(GreekMaterial.Wood, fl0, fl1, wl1, wl0, Vector3.right);
+                b.Quad(GreekMaterial.Wood, fr0, fr1, wr1, wr0, Vector3.left);
             }
 
             if (f.Class == ShipClass.Cutter || f.Class == ShipClass.Merchant)
@@ -582,8 +654,9 @@ namespace MorzaBogow.Presentation
             {
                 var stem = new Vector3(0f, Sheer(f, 1f), Z(f, 1f));
                 var stern = new Vector3(0f, Sheer(f, 0.05f), Z(f, 0.05f));
-                b.Tube(GreekMaterial.Wood, new List<Vector3> { top, stem }, 0.035f, 0.035f, 3);
-                b.Tube(GreekMaterial.Wood, new List<Vector3> { top, stern }, 0.035f, 0.035f, 3);
+                // Forestay and backstay: rope, not wood.
+                b.Tube(GreekMaterial.Rope, new List<Vector3> { top, stem }, 0.035f, 0.035f, 3);
+                b.Tube(GreekMaterial.Rope, new List<Vector3> { top, stern }, 0.035f, 0.035f, 3);
             }
             parts.MastFoot = foot;
             parts.SailTop = new Vector3(0f, yardY - 0.12f, yardZ + 0.15f);
@@ -607,12 +680,19 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        /// <summary>A square sail 1 x 1 hanging from Y = 0, bellied toward +Z, with the pale lines of its brails.</summary>
-        static void BuildSail(MeshBuilder b, int detail)
+        /// <summary>
+        /// A point of the unit sail (1 x 1, hanging down from Y = 0, bellied toward +Z) at u across (0..1) and v down (0..1).
+        /// The sail's transform scales it to the class's size and billow, so anything placed by this function stays on it.
+        /// </summary>
+        public static Vector3 SailPoint(float u, float v) =>
+            new Vector3(u - 0.5f, -v - 0.08f * Mathf.Sin(Mathf.PI * u) * (1f - v), Mathf.Sin(Mathf.PI * u) * (0.3f + 0.7f * Mathf.Sin(Mathf.PI * Mathf.Min(1f, v * 1.1f))));
+
+        /// <summary>A square sail 1 x 1 hanging from Y = 0, bellied toward +Z, with the pale lines of its brails. UV: metres across, 0..1 down.</summary>
+        static void BuildSail(MeshBuilder b, GreekShipForm f, int detail)
         {
             var columns = detail == 0 ? 8 : detail == 1 ? 4 : 1;
             var rows = detail == 0 ? 5 : detail == 1 ? 3 : 1;
-            Vector3 At(float u, float v) => new Vector3(u - 0.5f, -v - 0.08f * Mathf.Sin(Mathf.PI * u) * (1f - v), Mathf.Sin(Mathf.PI * u) * (0.3f + 0.7f * Mathf.Sin(Mathf.PI * Mathf.Min(1f, v * 1.1f))));
+            Vector3 At(float u, float v) => SailPoint(u, v);
             foreach (var (face, shift) in new[] { (1f, 0f), (-1f, -0.015f) })
             {
                 var grid = new int[rows + 1, columns + 1];
@@ -621,7 +701,8 @@ namespace MorzaBogow.Presentation
                 {
                     var u = c / (float)columns;
                     var v = r / (float)rows;
-                    grid[r, c] = b.Vertex(At(u, v) + new Vector3(0f, 0f, shift), new Vector2(face > 0 ? 0.5f + 0.25f * u : 0.75f + 0.25f * u, 1f - 0.5f * v));
+                    // The cloths of the sail run up and down: across in metres, so their width is the same on every class.
+                    grid[r, c] = b.Vertex(At(u, v) + new Vector3(0f, 0f, shift), new Vector2(u * f.SailWidth, v));
                 }
                 for (var r = 0; r < rows; r++)
                 for (var c = 0; c < columns; c++)
@@ -771,13 +852,90 @@ namespace MorzaBogow.Presentation
             return mesh;
         }
 
-        /// <summary>Small props for effects and wrecks, built once: arrow, javelin, bolt, stone, plank, jar, ingot, silver, mast piece, breach.</summary>
+        /// <summary>
+        /// Small props built once: for effects and wrecks an arrow, javelin, bolt, stone, plank, jar, ingot, silver, mast piece
+        /// and breach; and the gear a crew keeps on deck (names "gear.*"): a water jar in a rope ring, sacks of provisions,
+        /// a wicker basket, a coil of rope, folded cloth and pierced stone anchors. Gear stands on its base at Y = 0, facing +Z.
+        /// </summary>
         public static GreekMesh Prop(string name)
         {
             if (props.TryGetValue(name, out var mesh) && mesh.Mesh != null) return mesh;
             var b = new MeshBuilder(null);
             switch (name)
             {
+                case "gear.water-jar":
+                {
+                    // A jar for water lashed upright in a ring of rope, with a coil under its pointed toe.
+                    var jar = new[] { (0.02f, 0.01f), (0.06f, 0.07f), (0.19f, 0.13f), (0.33f, 0.15f), (0.43f, 0.13f), (0.48f, 0.05f), (0.54f, 0.045f), (0.57f, 0.055f) };
+                    b.Lathe(GreekMaterial.Terracotta, jar, 10);
+                    b.Tube(GreekMaterial.Rope, Ring(0.33f, 0.155f, 10), 0.018f, 0.018f, 4);
+                    b.Tube(GreekMaterial.Rope, Ring(0.03f, 0.1f, 10), 0.03f, 0.03f, 4);
+                    mesh = b.Build(GreekMaterial.Terracotta, GreekMaterial.Rope);
+                    break;
+                }
+                case "gear.sacks":
+                {
+                    // Three sacks of grain or bread, tied at the neck, leaning on each other.
+                    var at = new[] { new Vector3(-0.2f, 0.15f, 0.02f), new Vector3(0.14f, 0.16f, -0.06f), new Vector3(0.0f, 0.13f, 0.24f) };
+                    for (var i = 0; i < at.Length; i++)
+                    {
+                        var turn = Quaternion.Euler(0f, i * 52f - 30f, i == 1 ? 9f : -6f);
+                        b.Box(GreekMaterial.Linen, at[i], new Vector3(0.15f, 0.14f, 0.22f), turn);
+                        b.Box(GreekMaterial.Linen, at[i] + turn * new Vector3(0f, 0.02f, 0.26f), new Vector3(0.07f, 0.07f, 0.05f), turn);
+                        b.Box(GreekMaterial.Rope, at[i] + turn * new Vector3(0f, 0.02f, 0.225f), new Vector3(0.08f, 0.08f, 0.015f), turn);
+                    }
+                    mesh = b.Build(GreekMaterial.Linen, GreekMaterial.Rope);
+                    break;
+                }
+                case "gear.basket":
+                {
+                    // A wicker basket, its load under a cloth.
+                    b.Lathe(GreekMaterial.Wicker, new[] { (0f, 0.17f), (0.03f, 0.21f), (0.3f, 0.26f), (0.33f, 0.27f) }, 10);
+                    b.Tube(GreekMaterial.Wicker, Ring(0.33f, 0.27f, 10), 0.025f, 0.025f, 4);
+                    b.Ellipse(GreekMaterial.Linen, new Vector3(0f, 0.31f, 0f), Vector3.right, Vector3.forward, Vector3.up, 0.25f, 0.25f, 10);
+                    b.Ellipse(GreekMaterial.Wicker, new Vector3(0f, 0.005f, 0f), Vector3.right, Vector3.forward, Vector3.down, 0.17f, 0.17f, 10);
+                    mesh = b.Build(GreekMaterial.Wicker, GreekMaterial.Linen);
+                    break;
+                }
+                case "gear.rope-coil":
+                {
+                    // A coil of rope flaked down flat on the deck, two layers.
+                    var path = new List<Vector3>();
+                    for (var i = 0; i <= 64; i++)
+                    {
+                        var turn = i / 64f * 3f * Mathf.PI * 2f;
+                        var r = Mathf.Lerp(0.12f, 0.3f, i / 64f);
+                        path.Add(new Vector3(Mathf.Cos(turn) * r, i < 40 ? 0.035f : 0.09f, Mathf.Sin(turn) * r));
+                    }
+                    b.Tube(GreekMaterial.Rope, path, 0.035f, 0.035f, 5);
+                    mesh = b.Build(GreekMaterial.Rope);
+                    break;
+                }
+                case "gear.cloth":
+                {
+                    // Folded cloth (an awning or a spare cloth for the sail), tied with a cord.
+                    b.Box(GreekMaterial.Linen, new Vector3(0f, 0.06f, 0f), new Vector3(0.42f, 0.06f, 0.28f), Quaternion.identity);
+                    b.Box(GreekMaterial.Linen, new Vector3(0.03f, 0.165f, -0.02f), new Vector3(0.36f, 0.045f, 0.25f), Quaternion.Euler(0f, 6f, 0f));
+                    b.Box(GreekMaterial.Rope, new Vector3(0.02f, 0.11f, 0f), new Vector3(0.02f, 0.125f, 0.3f), Quaternion.identity);
+                    mesh = b.Build(GreekMaterial.Linen, GreekMaterial.Rope);
+                    break;
+                }
+                case "gear.anchor-stones":
+                {
+                    // Two pierced stone anchors, the Bronze Age kind: tapering slabs with a hole for the rope at the narrow end.
+                    foreach (var (place, turn) in new[] { (new Vector3(-0.16f, 0.07f, 0f), 8f), (new Vector3(0.2f, 0.07f, 0.06f), -14f) })
+                    {
+                        var rotation = Quaternion.Euler(0f, turn, 0f);
+                        b.Box(GreekMaterial.Stone, place, new Vector3(0.15f, 0.07f, 0.26f), rotation);
+                        b.Box(GreekMaterial.Stone, place + rotation * new Vector3(0f, 0f, 0.3f), new Vector3(0.1f, 0.06f, 0.07f), rotation);
+                        b.Ellipse(GreekMaterial.Pitch, place + rotation * new Vector3(0f, 0.072f, 0.29f), rotation * Vector3.right, rotation * Vector3.forward, Vector3.up, 0.035f, 0.035f, 8);
+                    }
+                    b.Tube(GreekMaterial.Rope, new List<Vector3> { new Vector3(-0.16f, 0.14f, 0.3f), new Vector3(0.0f, 0.2f, 0.42f), new Vector3(0.26f, 0.14f, 0.36f) }, 0.022f, 0.022f, 4);
+                    mesh = b.Build(GreekMaterial.Stone, GreekMaterial.Rope, GreekMaterial.Pitch);
+                    break;
+                }
+                case var unknown when unknown.StartsWith("gear."):
+                    throw new System.ArgumentException($"No such gear: {unknown}");
                 case "arrow":
                 case "javelin":
                 case "bolt":
@@ -858,6 +1016,146 @@ namespace MorzaBogow.Presentation
             return mesh;
         }
 
+        // Marks of one ship's history -------------------------------------------------------------------------------------
+        /// <summary>
+        /// A point on the outside of the hull at s along it and height y above the empty waterline, on a side (-1 port,
+        /// +1 starboard), with its outward normal. False above the gunwale or below the keel.
+        /// </summary>
+        public static bool SurfacePoint(GreekShipForm f, float s, float y, float side, out Vector3 point, out Vector3 normal)
+        {
+            point = normal = Vector3.zero;
+            s = Mathf.Clamp01(s);
+            if (y > Sheer(f, s) || y < -Depth(f, s)) return false;
+            // The section's height falls steadily from the gunwale (t = 0) to the keel (t = 1): bisect for the height.
+            float low = 0f, high = 1f;
+            for (var i = 0; i < 24; i++)
+            {
+                var mid = (low + high) * 0.5f;
+                if (Section(f, s, mid).y > y) low = mid; else high = mid;
+            }
+            var t = (low + high) * 0.5f;
+            var p = Section(f, s, t);
+            var down = Section(f, s, Mathf.Min(1f, t + 0.01f)) - Section(f, s, Mathf.Max(0f, t - 0.01f));
+            var ahead = Section(f, Mathf.Min(1f, s + 0.01f), t) - Section(f, Mathf.Max(0f, s - 0.01f), t);
+            p.x *= -side;
+            down.x *= -side;
+            ahead.x *= -side;
+            normal = Vector3.Cross(ahead, down).normalized;
+            if (Vector3.Dot(normal, new Vector3(side, 0f, 0f)) < 0f) normal = -normal;
+            point = p;
+            return true;
+        }
+
+        /// <summary>
+        /// A patch on the hull: centre at s along the hull and height Y, Length along the planks and Height up them, in
+        /// metres, tilted by Angle degrees, on Side (-1 port, +1 starboard). A Ragged patch has an irregular edge (worn
+        /// pitch); a plain one is a clean rectangle (planks put in).
+        /// </summary>
+        public struct HullPatch
+        {
+            public float S, Y, Length, Height, Angle;
+            public int Side, Seed;
+            public bool Ragged;
+            public GreekMaterial Paint;
+        }
+
+        /// <summary>
+        /// The patches of one ship as one small mesh lying 2 cm off its hull and following its curve, one submesh per paint.
+        /// UV 0..1 over each patch, so a worn-pitch texture darkens toward the patch's edge. A patch that would leave the hull
+        /// is left out. Null when there is nothing to draw.
+        /// </summary>
+        public static GreekMesh HullPatches(GreekShipForm f, IReadOnlyList<HullPatch> patches)
+        {
+            if (patches == null || patches.Count == 0) return null;
+            var b = new MeshBuilder(null);
+            var sPerMetre = 1f / Mathf.Max(1f, BowEnd(f) + f.Length * 0.5f);
+            const int along = 6, up = 3;
+            var points = new Vector3[along + 1, up + 1];
+            var drawn = 0;
+            foreach (var patch in patches)
+            {
+                var rng = new System.Random(patch.Seed);
+                var slope = Mathf.Tan(patch.Angle * Mathf.Deg2Rad);
+                var inside = true;
+                for (var i = 0; i <= along && inside; i++)
+                for (var j = 0; j <= up && inside; j++)
+                {
+                    var a = (i / (float)along - 0.5f) * patch.Length;
+                    var h = (j / (float)up - 0.5f) * patch.Height;
+                    if (patch.Ragged && (i == 0 || i == along || j == 0 || j == up))
+                    {
+                        // Worn pitch has no straight edge: pull the rim in by a random part of the way.
+                        var pull = 1f - 0.3f * (float)rng.NextDouble();
+                        a *= pull;
+                        h *= pull;
+                    }
+                    inside = SurfacePoint(f, patch.S + a * sPerMetre, patch.Y + h + a * slope, patch.Side, out var point, out var normal);
+                    points[i, j] = point + normal * 0.02f;
+                }
+                if (!inside) continue;
+                var ids = new int[along + 1, up + 1];
+                for (var i = 0; i <= along; i++)
+                for (var j = 0; j <= up; j++)
+                    ids[i, j] = b.Vertex(points[i, j], new Vector2(i / (float)along, j / (float)up));
+                var outward = new Vector3(patch.Side, 0f, 0f);
+                for (var i = 0; i < along; i++)
+                for (var j = 0; j < up; j++)
+                    b.Quad(patch.Paint, ids[i, j], ids[i + 1, j], ids[i + 1, j + 1], ids[i, j + 1], outward);
+                drawn++;
+            }
+            if (drawn == 0) return null;
+            var mesh = b.Build(GreekMaterial.Pitch, GreekMaterial.Wood);
+            mesh.Mesh.name = "Ship patches";
+            return mesh;
+        }
+
+        /// <summary>A patch sewn on the sail: centre (U across, V down, 0..1) and size as parts of the sail's width and height.</summary>
+        public struct SailPatch
+        {
+            public float U, V, Width, Height;
+        }
+
+        /// <summary>
+        /// The patches of one ship's sail as one small mesh in the unit sail's space, on both faces, following its belly, so
+        /// they move, billow and come down with the sail. UV like the sail's: metres across, 0..1 down. Null when none.
+        /// </summary>
+        public static GreekMesh SailPatches(GreekShipForm f, IReadOnlyList<SailPatch> patches)
+        {
+            if (patches == null || patches.Count == 0) return null;
+            var b = new MeshBuilder(null);
+            const int cells = 3;
+            foreach (var patch in patches)
+            foreach (var (face, lift) in new[] { (1f, 0.03f), (-1f, -0.045f) })
+            {
+                var ids = new int[cells + 1, cells + 1];
+                for (var i = 0; i <= cells; i++)
+                for (var j = 0; j <= cells; j++)
+                {
+                    var u = Mathf.Clamp01(patch.U + (i / (float)cells - 0.5f) * patch.Width);
+                    var v = Mathf.Clamp01(patch.V + (j / (float)cells - 0.5f) * patch.Height);
+                    ids[i, j] = b.Vertex(SailPoint(u, v) + new Vector3(0f, 0f, lift), new Vector2(u * f.SailWidth, v));
+                }
+                for (var i = 0; i < cells; i++)
+                for (var j = 0; j < cells; j++)
+                    b.Quad(GreekMaterial.Sail, ids[i, j], ids[i + 1, j], ids[i + 1, j + 1], ids[i, j + 1], new Vector3(0f, 0f, face));
+            }
+            var mesh = b.Build(GreekMaterial.Sail);
+            mesh.Mesh.name = "Sail patches";
+            return mesh;
+        }
+
+        /// <summary>A closed circle of points at a height, for rings of rope or a basket's rim.</summary>
+        static List<Vector3> Ring(float y, float radius, int points)
+        {
+            var path = new List<Vector3>();
+            for (var i = 0; i <= points; i++)
+            {
+                var angle = i * Mathf.PI * 2f / points;
+                path.Add(new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius));
+            }
+            return path;
+        }
+
         /// <summary>A storage jar of the eastern trade (a "Canaanite jar"): pointed toe, high shoulders, short neck, two handles. Terracotta.</summary>
         static GreekMesh Jar(int detail)
         {
@@ -865,10 +1163,10 @@ namespace MorzaBogow.Presentation
             if (props.TryGetValue(key, out var made) && made.Mesh != null) return made;
             var b = new MeshBuilder(null);
             var profile = new[] { (0f, 0.02f), (0.1f, 0.12f), (0.35f, 0.25f), (0.62f, 0.28f), (0.8f, 0.24f), (0.9f, 0.1f), (1.02f, 0.08f), (1.07f, 0.1f) };
-            b.Lathe(GreekMaterial.Ochre, profile, detail == 0 ? 10 : 6);
+            b.Lathe(GreekMaterial.Terracotta, profile, detail == 0 ? 10 : 6);
             foreach (var side in new[] { -1f, 1f })
-                b.Box(GreekMaterial.Ochre, new Vector3(side * 0.24f, 0.74f, 0f), new Vector3(0.025f, 0.09f, 0.03f), Quaternion.Euler(0f, 0f, side * -25f));
-            made = b.Build(GreekMaterial.Ochre);
+                b.Box(GreekMaterial.Terracotta, new Vector3(side * 0.24f, 0.74f, 0f), new Vector3(0.025f, 0.09f, 0.03f), Quaternion.Euler(0f, 0f, side * -25f));
+            made = b.Build(GreekMaterial.Terracotta);
             props[key] = made;
             return made;
         }
@@ -887,14 +1185,15 @@ namespace MorzaBogow.Presentation
                 GreekMaterial.Ochre => materials.Ochre,
                 GreekMaterial.Paint => materials.Paint,
                 GreekMaterial.Bronze => materials.Bronze,
-                _ => materials.Wood,
+                GreekMaterial.Wood => materials.Wood,
+                _ => null,
             };
             if (given != null) return given;
             var source = materials.Wood;
             if (source == null) return null;
             if (fallbacks.TryGetValue((source, paint), out var copy) && copy != null) return copy;
             copy = new Material(source) { name = $"{source.name} ({paint})" };
-            var colour = paint switch { GreekMaterial.Pitch => Palette.Pitch, GreekMaterial.Ochre => Palette.Ochre, GreekMaterial.Paint => Palette.Paint, GreekMaterial.Bronze => Palette.Bronze, _ => Palette.Wood };
+            var colour = Palette.Of(paint);
             if (copy.HasProperty("_BaseColor")) copy.SetColor("_BaseColor", colour);
             copy.color = colour;
             fallbacks[(source, paint)] = copy;
@@ -909,14 +1208,17 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>A child object drawing the mesh with the matching materials; no collider.</summary>
-        public static Transform Attach(Transform parent, string name, GreekMesh mesh, PlaceholderMaterials materials, Material sail = null)
+        public static Transform Attach(Transform parent, string name, GreekMesh mesh, PlaceholderMaterials materials, Material sail = null) =>
+            Attach(parent, name, mesh, MaterialsFor(mesh, materials, sail));
+
+        /// <summary>A child object drawing the mesh with the given materials, one per submesh; no collider.</summary>
+        public static Transform Attach(Transform parent, string name, GreekMesh mesh, Material[] list)
         {
             var item = new GameObject(name);
             item.transform.SetParent(parent, false);
             item.AddComponent<MeshFilter>().sharedMesh = mesh.Mesh;
             var renderer = item.AddComponent<MeshRenderer>();
-            var list = MaterialsFor(mesh, materials, sail);
-            if (System.Array.TrueForAll(list, m => m != null)) renderer.sharedMaterials = list;
+            if (list != null && System.Array.TrueForAll(list, m => m != null)) renderer.sharedMaterials = list;
             return item.transform;
         }
 
@@ -931,6 +1233,8 @@ namespace MorzaBogow.Presentation
             readonly List<Vector3> positions = new List<Vector3>();
             readonly List<Vector2> uvs = new List<Vector2>();
             readonly List<(GreekMaterial paint, int a, int b, int c, int section)> triangles = new List<(GreekMaterial, int, int, int, int)>();
+            /// <summary>Pairs of vertices at the same place where a round body's UV wraps; their normals are joined after the build.</summary>
+            readonly List<(int a, int b)> seams = new List<(int, int)>();
 
             public MeshBuilder(float[] cuts) => this.cuts = cuts;
 
@@ -975,8 +1279,18 @@ namespace MorzaBogow.Presentation
                 foreach (var face in faces)
                 {
                     var mid = (corners[face[0]] + corners[face[1]] + corners[face[2]] + corners[face[3]]) * 0.25f;
+                    // Metres in the face's plane, u along its longer edge: the grain of a plank or a post runs along it.
+                    var first = corners[face[1]] - corners[face[0]];
+                    var second = corners[face[3]] - corners[face[0]];
+                    var longer = first.sqrMagnitude >= second.sqrMagnitude;
+                    var along = (longer ? first : second).normalized;
+                    var across = (longer ? second : first).normalized;
                     var ids = new int[4];
-                    for (var j = 0; j < 4; j++) ids[j] = Vertex(corners[face[j]], new Vector2(j == 1 || j == 2 ? 0.25f : 0f, j >= 2 ? 1f : 0.75f));
+                    for (var j = 0; j < 4; j++)
+                    {
+                        var p = corners[face[j]];
+                        ids[j] = Vertex(p, new Vector2(Vector3.Dot(p, along), Vector3.Dot(p, across)));
+                    }
                     Quad(paint, ids[0], ids[1], ids[2], ids[3], mid - centre);
                 }
             }
@@ -985,26 +1299,31 @@ namespace MorzaBogow.Presentation
             public void Tube(GreekMaterial paint, List<Vector3> path, float startRadius, float endRadius, int sides)
             {
                 var rings = new List<int[]>();
+                var along = 0f;
                 for (var i = 0; i < path.Count; i++)
                 {
+                    if (i > 0) along += Vector3.Distance(path[i], path[i - 1]);
                     var tangent = (i + 1 < path.Count ? path[i + 1] - path[i] : path[i] - path[i - 1]).normalized;
                     var side = Vector3.Cross(tangent, Mathf.Abs(tangent.y) > 0.9f ? Vector3.forward : Vector3.up).normalized;
                     var up = Vector3.Cross(side, tangent);
                     var r = Mathf.Lerp(startRadius, endRadius, path.Count == 1 ? 0f : i / (path.Count - 1f));
-                    var ring = new int[sides];
-                    for (var j = 0; j < sides; j++)
+                    // One extra vertex closes the ring where the UV wraps; u runs along the tube in metres (the grain of a
+                    // mast or an oar's loom, the lay of a rope), v around it.
+                    var ring = new int[sides + 1];
+                    for (var j = 0; j <= sides; j++)
                     {
                         var angle = j * Mathf.PI * 2f / sides;
-                        ring[j] = Vertex(path[i] + (side * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * r, new Vector2(0.25f * j / sides, 0.75f + 0.25f * i / Mathf.Max(1, path.Count - 1)));
+                        ring[j] = Vertex(path[i] + (side * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * r, new Vector2(along, angle * r));
                     }
+                    seams.Add((ring[0], ring[sides]));
                     rings.Add(ring);
                 }
                 for (var i = 0; i + 1 < rings.Count; i++)
                 for (var j = 0; j < sides; j++)
                 {
                     var a = rings[i][j];
-                    var b = rings[i][(j + 1) % sides];
-                    var c = rings[i + 1][(j + 1) % sides];
+                    var b = rings[i][j + 1];
+                    var c = rings[i + 1][j + 1];
                     var d = rings[i + 1][j];
                     var mid = (positions[a] + positions[c]) * 0.5f;
                     var axis = (path[i] + path[i + 1]) * 0.5f;
@@ -1029,47 +1348,57 @@ namespace MorzaBogow.Presentation
             /// <summary>A thin flat strip along a path, facing one way (rope lines on a sail, a bow string).</summary>
             public void Strip(GreekMaterial paint, List<Vector3> path, float width, Vector3 facing)
             {
+                var along = 0f;
                 for (var i = 0; i + 1 < path.Count; i++)
                 {
                     var a = path[i];
                     var b = path[i + 1];
+                    var length = Vector3.Distance(a, b);
                     var across = Vector3.Cross((b - a).normalized, facing).normalized * width * 0.5f;
-                    var v0 = Vertex(a - across, new Vector2(0.5f, 0.6f));
-                    var v1 = Vertex(a + across, new Vector2(0.51f, 0.6f));
-                    var v2 = Vertex(b + across, new Vector2(0.51f, 0.61f));
-                    var v3 = Vertex(b - across, new Vector2(0.5f, 0.61f));
+                    var v0 = Vertex(a - across, new Vector2(along, 0f));
+                    var v1 = Vertex(a + across, new Vector2(along, width));
+                    var v2 = Vertex(b + across, new Vector2(along + length, width));
+                    var v3 = Vertex(b - across, new Vector2(along + length, 0f));
+                    along += length;
                     Quad(paint, v0, v1, v2, v3, facing);
                 }
             }
 
             public void Ellipse(GreekMaterial paint, Vector3 centre, Vector3 along, Vector3 up, Vector3 normal, float halfLength, float halfHeight, int points)
             {
-                var c = Vertex(centre, new Vector2(0.4f, 0.8f));
+                var c = Vertex(centre, Vector2.zero);
                 var rim = new int[points];
                 for (var i = 0; i < points; i++)
                 {
                     var angle = i * Mathf.PI * 2f / points;
-                    rim[i] = Vertex(centre + along * Mathf.Cos(angle) * halfLength + up * Mathf.Sin(angle) * halfHeight, new Vector2(0.41f, 0.81f));
+                    var x = Mathf.Cos(angle) * halfLength;
+                    var y = Mathf.Sin(angle) * halfHeight;
+                    rim[i] = Vertex(centre + along * x + up * y, new Vector2(x, y));
                 }
                 for (var i = 0; i < points; i++) Triangle(paint, c, rim[i], rim[(i + 1) % points], normal);
             }
 
-            /// <summary>A body of revolution around +Y from (height, radius) pairs.</summary>
+            /// <summary>A body of revolution around +Y from (height, radius) pairs. UV: metres around (at the widest girth) and up.</summary>
             public void Lathe(GreekMaterial paint, (float height, float radius)[] profile, int sides)
             {
-                var rings = new int[profile.Length, sides];
+                var widest = 0f;
+                foreach (var (_, radius) in profile) widest = Mathf.Max(widest, radius);
+                var rings = new int[profile.Length, sides + 1];
                 for (var i = 0; i < profile.Length; i++)
-                for (var j = 0; j < sides; j++)
                 {
-                    var angle = j * Mathf.PI * 2f / sides;
-                    rings[i, j] = Vertex(new Vector3(Mathf.Cos(angle) * profile[i].radius, profile[i].height, Mathf.Sin(angle) * profile[i].radius), new Vector2(j / (float)sides * 0.25f, 0.75f));
+                    for (var j = 0; j <= sides; j++)
+                    {
+                        var angle = j * Mathf.PI * 2f / sides;
+                        rings[i, j] = Vertex(new Vector3(Mathf.Cos(angle) * profile[i].radius, profile[i].height, Mathf.Sin(angle) * profile[i].radius), new Vector2(angle * widest, profile[i].height));
+                    }
+                    seams.Add((rings[i, 0], rings[i, sides]));
                 }
                 for (var i = 0; i + 1 < profile.Length; i++)
                 for (var j = 0; j < sides; j++)
                 {
                     var a = rings[i, j];
-                    var b = rings[i, (j + 1) % sides];
-                    var c = rings[i + 1, (j + 1) % sides];
+                    var b = rings[i, j + 1];
+                    var c = rings[i + 1, j + 1];
                     var d = rings[i + 1, j];
                     var mid = (positions[a] + positions[c]) * 0.5f;
                     Quad(paint, a, b, c, d, new Vector3(mid.x, 0f, mid.z));
@@ -1164,6 +1493,18 @@ namespace MorzaBogow.Presentation
                     mesh.SetTriangles(list, i, false);
                 }
                 mesh.RecalculateNormals();
+                if (seams.Count > 0)
+                {
+                    // Round bodies stay smooth across the place where their UV wraps.
+                    var normals = mesh.normals;
+                    foreach (var (a, b) in seams)
+                    {
+                        var joined = (normals[a] + normals[b]).normalized;
+                        normals[a] = joined;
+                        normals[b] = joined;
+                    }
+                    mesh.normals = normals;
+                }
                 mesh.RecalculateBounds();
                 return new GreekMesh { Mesh = mesh, Slots = used.ToArray() };
             }

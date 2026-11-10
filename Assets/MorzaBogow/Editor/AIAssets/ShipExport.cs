@@ -31,6 +31,9 @@ namespace MorzaBogow.Editor.AIAssets
                 (parts.Sail, Matrix4x4.TRS(parts.SailTop, Quaternion.identity, new Vector3(parts.SailSize.x, parts.SailSize.y, 0.3f))),
             };
             if (parts.Ram != null) placed.Add((parts.Ram, Matrix4x4.identity));
+            // The class's ship as the harbour yard paints it: the white zigzag on the wale (a separate mesh in the game).
+            var band = GreekShips.Band(shipClass, "zigzag", detail);
+            if (band != null) placed.Add((band, Matrix4x4.identity));
             for (var side = -1; side <= 1; side += 2)
             for (var i = 0; i < parts.OarPins.Length; i++)
             {
@@ -68,7 +71,7 @@ namespace MorzaBogow.Editor.AIAssets
                 }
                 for (var sub = 0; sub < source.subMeshCount; sub++)
                 {
-                    faces.Append("usemtl ").Append(mesh.Slots[sub].ToString().ToLowerInvariant()).Append('\n');
+                    faces.Append("usemtl ").Append(PaintName(mesh.Slots[sub])).Append('\n');
                     var list = source.GetTriangles(sub);
                     for (var t = 0; t < list.Length; t += 3)
                     {
@@ -85,6 +88,16 @@ namespace MorzaBogow.Editor.AIAssets
             File.WriteAllText(path, text.Append(faces).ToString());
             return triangles;
         }
+
+        /// <summary>The export's paint for a generator paint: rope and wicker are wood, linen is paint, stone pitch, terracotta ochre.</summary>
+        public static string PaintName(GreekMaterial paint) => paint switch
+        {
+            GreekMaterial.Rope or GreekMaterial.Wicker => "wood",
+            GreekMaterial.Linen => "paint",
+            GreekMaterial.Stone => "pitch",
+            GreekMaterial.Terracotta => "ochre",
+            _ => paint.ToString().ToLowerInvariant(),
+        };
 
         /// <summary>The flat paints as OBJ materials (sRGB Kd), and the same values for the pipeline's Unity import.</summary>
         public static (string name, Color colour, float metallic, float smoothness)[] Paints() => new[]

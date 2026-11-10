@@ -96,6 +96,76 @@ namespace MorzaBogow.Tests
             }
         }
 
+        /// <summary>Share of a submesh's triangles (those the filter keeps) whose U runs along the axis: the grain's direction.</summary>
+        static float UAlong(GreekMesh mesh, GreekMaterial paint, Vector3 axis, Func<Vector3, Vector3, bool> keep)
+        {
+            var vertices = mesh.Mesh.vertices;
+            var uvs = mesh.Mesh.uv;
+            var triangles = mesh.Mesh.GetTriangles(Array.IndexOf(mesh.Slots, paint));
+            int along = 0, counted = 0;
+            for (var i = 0; i < triangles.Length; i += 3)
+            {
+                int a = triangles[i], b = triangles[i + 1], c = triangles[i + 2];
+                var e1 = vertices[b] - vertices[a];
+                var e2 = vertices[c] - vertices[a];
+                var normal = Vector3.Cross(e1, e2).normalized;
+                if (!keep((vertices[a] + vertices[b] + vertices[c]) / 3f, normal)) continue;
+                float du1 = uvs[b].x - uvs[a].x, dv1 = uvs[b].y - uvs[a].y, du2 = uvs[c].x - uvs[a].x, dv2 = uvs[c].y - uvs[a].y;
+                var det = du1 * dv2 - du2 * dv1;
+                if (Mathf.Abs(det) < 1e-8f) continue;
+                var tangent = ((e1 * dv2 - e2 * dv1) / det).normalized;
+                counted++;
+                if (Mathf.Abs(Vector3.Dot(tangent, axis)) > 0.8f) along++;
+            }
+            Assert.That(counted, Is.GreaterThan(4), $"{paint}: no triangles to judge");
+            return along / (float)counted;
+        }
+
+        [Test]
+        public void Ships_UvsRunAlongPlanksAndSpars()
+        {
+            foreach (var shipClass in Classes)
+            {
+                var parts = GreekShips.Parts(shipClass);
+                var form = parts.Form;
+                float S(Vector3 p) => Mathf.InverseLerp(GreekShips.Z(form, 0f), GreekShips.Z(form, 1f), p.z);
+                // The strakes of the hull run fore and aft, in metres: U spans the hull's length.
+                Assert.That(UAlong(parts.Hull, GreekMaterial.Pitch, Vector3.forward, (p, n) => S(p) > 0.3f && S(p) < 0.7f && Mathf.Abs(n.x) > 0.6f), Is.GreaterThan(0.9f), $"{shipClass}: hull");
+                var u = parts.Hull.Mesh.uv.Select(uv => uv.x).ToArray();
+                Assert.That(u.Max() - u.Min(), Is.EqualTo(parts.Hull.Mesh.bounds.size.z).Within(form.Length * 0.15f), $"{shipClass}: UV in metres");
+                // The deck's planks too, and every oar's loom along its length.
+                Assert.That(UAlong(parts.Deck, GreekMaterial.Wood, Vector3.forward, (p, n) => n.y > 0.9f && Mathf.Abs(p.y - GreekShips.DeckAt(form, S(p))) < 0.05f), Is.GreaterThan(0.9f), $"{shipClass}: deck");
+                Assert.That(UAlong(parts.Oars[0], GreekMaterial.Wood, Vector3.right, (p, n) => Mathf.Abs(n.x) < 0.5f), Is.GreaterThan(0.9f), $"{shipClass}: oar");
+                // The mast's grain runs up the mast.
+                Assert.That(UAlong(parts.Rig, GreekMaterial.Wood, Vector3.up, (p, n) => Mathf.Abs(p.z - parts.MastFoot.z) < 0.6f && p.y < parts.SailTop.y - 0.5f && Mathf.Abs(n.y) < 0.3f), Is.GreaterThan(0.9f), $"{shipClass}: mast");
+            }
+        }
+
+        [Test]
+        public void Ships_TheWaleBandIsItsOwnMeshInEveryApprovedPattern()
+        {
+            foreach (var shipClass in Classes)
+            {
+                var parts = GreekShips.Parts(shipClass);
+                var hull = parts.Hull.Mesh.bounds;
+                foreach (var pattern in new[] { "zigzag", "wave" })
+                {
+                    var band = GreekShips.Band(shipClass, pattern);
+                    Assert.That(band, Is.Not.Null, $"{shipClass} {pattern}");
+                    Assert.That(band.Slots, Is.EqualTo(new[] { GreekMaterial.Paint }), "white paint only");
+                    var bounds = band.Mesh.bounds;
+                    // Along the middle of the hull, on the wale just under the gunwale, standing off the planking on both sides.
+                    Assert.That(bounds.size.z, Is.InRange(hull.size.z * 0.5f, hull.size.z * 0.7f), $"{shipClass} {pattern}: along the middle");
+                    Assert.That(bounds.max.x, Is.GreaterThan(hull.max.x * 0.95f), $"{shipClass} {pattern}: on the side");
+                    Assert.That(bounds.min.x, Is.LessThan(hull.min.x * 0.95f), $"{shipClass} {pattern}: on both sides");
+                    Assert.That(bounds.min.y, Is.GreaterThan(GreekShips.Sheer(parts.Form, 0.5f) * 0.6f), $"{shipClass} {pattern}: high on the wale");
+                }
+                Assert.That(GreekShips.Band(shipClass, "none"), Is.Null, "the plain workshop paints no band");
+                Assert.That(GreekShips.Band(shipClass, "zigzag", 2), Is.Null, "the lowest detail draws no band");
+                Assert.That(GreekShips.BandPatterns, Is.EqualTo(new[] { "zigzag", "wave", "none" }));
+            }
+        }
+
         [Test]
         public void Ships_LowerDetailHasFewerTriangles()
         {

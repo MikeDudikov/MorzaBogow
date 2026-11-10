@@ -24,6 +24,9 @@ namespace MorzaBogow.Presentation
         [SerializeField] ulong seed = 20261109;
 
         readonly Dictionary<int, ShipVisual> views = new Dictionary<int, ShipVisual>();
+        /// <summary>The lasting looks of this match's ships by id; -morzaPlainShips draws every ship in its class's plain look, to measure the difference.</summary>
+        ShipLookBook looks = new ShipLookBook();
+        readonly bool plainShips = Array.IndexOf(Environment.GetCommandLineArgs(), "-morzaPlainShips") >= 0;
         readonly Dictionary<int, int> viewOwners = new Dictionary<int, int>();
         readonly Dictionary<int, ShipClass> viewClasses = new Dictionary<int, ShipClass>();
         readonly Dictionary<int, Vector3> previous = new Dictionary<int, Vector3>();
@@ -202,9 +205,10 @@ namespace MorzaBogow.Presentation
             hud = BattleHud.Create(this);
         }
 
-        void StartMatch(World world, int opponentBuildIndex)
+        void StartMatch(World world, int opponentBuildIndex, ShipLookBook savedLooks = null)
         {
             ClearViews();
+            looks = savedLooks ?? new ShipLookBook();
             if (effects == null) effects = new BattleEffects(materials);
             World = world;
             if (fog == null) fog = new BattleFog(materials?.Fog);
@@ -1460,7 +1464,7 @@ namespace MorzaBogow.Presentation
             {
                 if (!views.TryGetValue(ship.Id, out var view))
                 {
-                    view = ShipVisual.Create(ship, materials);
+                    view = ShipVisual.Create(ship, materials, plainShips ? null : looks.For(ship));
                     views[ship.Id] = view;
                     viewOwners[ship.Id] = ship.Owner;
                     viewClasses[ship.Id] = ship.Class;
@@ -2196,7 +2200,10 @@ namespace MorzaBogow.Presentation
 
         public void QuickSave(string path)
         {
-            SaveGame.WriteFile(path, SaveGame.Serialize(World, opponent.BuildIndex));
+            var data = SaveGame.Serialize(World, opponent.BuildIndex);
+            SaveGame.WriteFile(path, data);
+            // The ships' looks go beside the save, tied to it by its hash; the save itself stays the simulation's alone.
+            looks.WriteBeside(path, data, World.Ships.Select(ship => ship.Id));
             Notify("Zapisano grę.");
         }
 
@@ -2204,8 +2211,9 @@ namespace MorzaBogow.Presentation
         {
             try
             {
-                var world = SaveGame.Deserialize(File.ReadAllBytes(path), out var build);
-                StartMatch(world, build);
+                var data = File.ReadAllBytes(path);
+                var world = SaveGame.Deserialize(data, out var build);
+                StartMatch(world, build, ShipLookBook.ReadBeside(path, data));
                 Notify("Wczytano grę.");
                 return true;
             }
@@ -2709,6 +2717,7 @@ namespace MorzaBogow.Presentation
             report.Append($"  \"interrupted\": {(interrupted ? "true" : "false")},\n  \"elapsedSeconds\": {Mathf.RoundToInt(smokeElapsed)},\n  \"fullScreenMode\": \"{Screen.fullScreenMode}\",\n");
             report.Append($"  \"tick\": {World.Tick},\n  \"outcome\": \"{World.Outcome}\",\n  \"winner\": {World.Winner},\n");
             report.Append($"  \"ships\": {World.Ships.Count},\n  \"views\": {views.Count},\n  \"maxVisibleEnemies\": {smokeMaxVisibleEnemies},\n");
+            report.Append($"  \"shipLooks\": \"{(plainShips ? "plain" : ShipLookLibrary.Aegean)}\",\n  \"lookRenderers\": {views.Values.Sum(view => view != null ? view.LookRenderers.Count : 0)},\n  \"lookMaterials\": {ShipPaints.PaletteSize},\n");
             report.Append($"  \"coastPrefabLoaded\": {(coastPrefab != null ? "true" : "false")},\n  \"coast\": \"{coastScaleNote}\",\n");
             report.Append($"  \"profile\": \"{QualitySettings.names[QualitySettings.GetQualityLevel()]}\",\n  \"screen\": \"{Screen.width}x{Screen.height}\",\n");
             report.Append($"  \"wood\": [{World.Settlements[0].Wood / Rules.Centi}, {World.Settlements[1].Wood / Rules.Centi}],\n");

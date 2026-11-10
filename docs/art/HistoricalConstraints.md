@@ -33,7 +33,21 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 | Głowa ptaka na dziobnicy, gniazdo na maszcie, żagiel z brajlami bez dolnej rei | **niepotwierdzone w odczytanych źródłach** (strony o Medinet Habu nie opisują okrętów); przyjęte jako interpretacja na podstawie wiedzy ogólnej, do weryfikacji w publikacji Epigraphic Survey | R-MEDINET | `GreekShips`: głowa ptaka, gniazdo, żagiel |
 | Drewniana ostroga na przodzie stępki zamiast brązowego taranu z trzema płetwami | interpretacja (brązowe tarany należą do okresów późniejszych) | — | klasy taranujące: `BuildSpur` |
 | Smoła na kadłubie, czerwona ochra na dziobie (homeryckie „czarne okręty”, „o czerwonych policzkach”) | interpretacja literacka (eposy homeryckie; tekst nie został odczytany w tej sesji) | — | paleta `Pitch`, `Ochre` |
-| Zygzak na pasie burty jak na ceramice epoki | interpretacja artystyczna | — | `BuildZigzag` |
+| Zygzak na pasie burty jak na ceramice epoki | interpretacja artystyczna | — | `GreekShips.Band` (wzór `zigzag`) |
+
+## Warianty okrętów (wygląd jednostek, [ShipVariants.md](ShipVariants.md))
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Kamienne kotwice wożone przy dziobie | **ustalenie** dla Uluburun: 24 kotwice (22 z piaskowca, 2 wapienne), 16 przy dziobie. Kształt płyty z otworem na linę to interpretacja | R-ULUBURUN (tekst strony Wikipedii, 2026-11-10) | wyposażenie `anchor-stones`, tylko na miejscach dziobowych |
+| Lina na pokładzie | **ustalenie**: lina z ostatniego rejsu Uluburun wśród datowanych próbek | R-ULUBURUN | `rope-coil`, sztagi w farbie `Rope` |
+| Dzban na wodę w pierścieniu z liny | interpretacja: Uluburun wiózł dzbany kananejskie i pithoi z żywnością i żywicą; wody w dzbanach strona nie podaje | R-ULUBURUN | `water-jar` |
+| Kosze, worki z zapasami, złożone płótno | interpretacja: koszy nie ma w odczytanym tekście, tylko w automatycznym streszczeniu nieodczytanej części | — | `basket`, `sacks`, `cloth` |
+| Linia falista na pasie burty, obok zygzaka i pasa bez wzoru | interpretacja: motyw ceramiki przeniesiony na kadłub; strona o ceramice mykeńskiej nie wymienia motywów LH IIIC w odczytanym tekście | — | `GreekShips.Band` (`zigzag`, `wave`, `none`) |
+| Trzy warsztaty: stocznia portowa, wyspiarski, skromny | decyzja gry dla spójności i rozpoznawalności flot; nazwy bez twierdzeń o regionach | — | `ShipLookLibrary.Families` |
+| Żagiel szyty z pionowych pasów płótna, łaty z innego płótna w barwie strony | interpretacja | — | tekstury `canvas_*`, łaty żagla |
+| Smoła w kilku odcieniach i połyskach, przetarcia do drewna, dawne naprawy | interpretacja (smołowanie kadłubów jako konserwacja) | — | odcienie `pitch.*`, ślady `repair` i `worn` |
+| Barwa właściciela tylko na żaglu i łatach, bez godeł | decyzja gry: zatwierdzony zestaw to granat gracza i czerwień przeciwnika | — | `ShipPaints.Sail`, `SailPatch` |
 
 ## Uzbrojenie i ubiór
 

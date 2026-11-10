@@ -77,12 +77,27 @@ namespace MorzaBogow.Presentation
     /// broken posts, a list, a torn sail). The root follows simulation data; named mount points keep costs, damage
     /// and controls independent from the art. All animation here is presentation only and never feeds back into the
     /// simulation.
+    ///
+    /// Its look (ShipLook) is its own and lasting: the workshop's band and tones, its timber, cloth, patches, old repairs
+    /// and gear. The layers are put together in one order, each by this class alone: the type (shared meshes), then the
+    /// look (once, at creation or on an explicit ApplyLook), then the state of the fight (events and SetCondition), then
+    /// the owner's colours (SetOwner). Nothing of the look is computed per frame.
     /// </summary>
     public sealed class ShipVisual : MonoBehaviour
     {
-        public const int MaxBreaches = 8, MaxStuckArrows = 12;
+        public const int MaxBreaches = 8, MaxStuckArrows = 12, MaxFreshRepairs = 3;
 
         readonly List<(Transform pivot, int side, float offset, float tilt)> oars = new List<(Transform, int, float, float)>();
+        /// <summary>The type's parts with the mesh each draws, so a new look can repaint them.</summary>
+        readonly List<(Renderer renderer, GreekMesh mesh)> painted = new List<(Renderer, GreekMesh)>();
+        readonly List<(Transform item, ShipLookLibrary.GearItem spec)> gear = new List<(Transform, ShipLookLibrary.GearItem)>();
+        readonly List<Renderer> lookRenderers = new List<Renderer>();
+        readonly List<(Transform plank, Mesh mesh)> freshRepairs = new List<(Transform, Mesh)>();
+        ShipLook look;
+        ShipPaints paints;
+        Transform lookRoot, band, sailPatches;
+        Mesh repairsMesh, wearMesh, patchesMesh;
+        int owner, sailOwner, pendingOwner = -1;
         readonly List<Transform> breaches = new List<Transform>();
         readonly List<Transform> stuck = new List<Transform>();
         Transform model;
@@ -97,7 +112,7 @@ namespace MorzaBogow.Presentation
         Transform targetRing;
         GreekShipParts parts;
         PlaceholderMaterials materials;
-        Material sailMaterial, pendingSail;
+        Material sailMaterial;
         float sailDrop;
         bool sailLowering;
         readonly List<Transform> sailHoles = new List<Transform>();
@@ -146,9 +161,39 @@ namespace MorzaBogow.Presentation
         public int StuckArrows => stuck.Count;
         public float HullFraction => hullFraction;
         public Material SailMaterial => sailMaterial;
-        public bool SailChanging => sailLowering || pendingSail != null;
+        public bool SailChanging => sailLowering || pendingOwner >= 0;
         public bool IsPostBroken(int slot) => slot >= 0 && slot < broken.Length && broken[slot];
         public bool RamBent => ramBent;
+
+        /// <summary>The ship's lasting look (never null).</summary>
+        public ShipLook Look => look;
+        /// <summary>Renderers that belong to the look itself (patches, marks, gear), not to the type or the fight.</summary>
+        public IReadOnlyList<Renderer> LookRenderers => lookRenderers;
+        /// <summary>Meshes made for this ship alone (its marks and patches); every other mesh is shared.</summary>
+        public int OwnMeshes => (repairsMesh != null ? 1 : 0) + (wearMesh != null ? 1 : 0) + (patchesMesh != null ? 1 : 0) + freshRepairs.Count;
+        public int GearShown
+        {
+            get
+            {
+                var shown = 0;
+                foreach (var (item, _) in gear) if (item != null && item.gameObject.activeSelf) shown++;
+                return shown;
+            }
+        }
+        public int FreshRepairs => freshRepairs.Count;
+
+        /// <summary>The look's materials for one of the generator's meshes, as this ship paints it (sail in its owner's dye).</summary>
+        public Material[] MaterialsFor(GreekMesh mesh) => paints.For(mesh, sailOwner);
+
+        /// <summary>Gear that drifts off when the ship goes down.</summary>
+        public IEnumerable<Transform> FloatingGear
+        {
+            get
+            {
+                foreach (var (item, spec) in gear)
+                    if (item != null && item.gameObject.activeSelf && spec.Floats) yield return item;
+            }
+        }
 
         /// <summary>The simulation's draft: the empty draft, deeper as the hold fills. Shallows are judged by the same value.</summary>
         public static float DraftFor(float emptyDraft, float loadFraction) => emptyDraft * (1f + (float)Rules.DraftPerLoad * Mathf.Clamp01(loadFraction));
@@ -168,7 +213,11 @@ namespace MorzaBogow.Presentation
         public GameObject Selection { get; private set; }
         public bool IsMarkedAsTarget => targetRing != null && targetRing.gameObject.activeSelf;
 
-        public static ShipVisual Create(Ship ship, PlaceholderMaterials materials)
+        /// <summary>
+        /// The ship's view in its look; without a look, the class's plain look (the scene's paints, no marks or gear), as
+        /// before looks existed. The battle passes the look kept for the ship's id (ShipLookBook).
+        /// </summary>
+        public static ShipVisual Create(Ship ship, PlaceholderMaterials materials, ShipLook look = null)
         {
             var parts = GreekShips.Parts(ship.Class);
             var root = new GameObject($"Ship {ship.Id} {ship.Class} ({parts.Form.TypeName})");
@@ -178,6 +227,9 @@ namespace MorzaBogow.Presentation
             visual.seed = ship.Id * 1.37f;
             visual.parts = parts;
             visual.materials = materials;
+            visual.look = look ?? ShipLookComposer.Plain(ship.Id, ship.Class, ship.Owner);
+            visual.paints = new ShipPaints(visual.look, materials);
+            visual.owner = visual.sailOwner = ship.Owner;
             var definition = ship.Definition;
             visual.model = new GameObject("Model").transform;
             visual.model.SetParent(root.transform, false);
@@ -189,11 +241,11 @@ namespace MorzaBogow.Presentation
             visual.beam = beam;
             visual.emptyDraft = (float)definition.Draft;
 
-            GreekShips.Attach(visual.model, "Hull", parts.Hull, materials);
-            GreekShips.Attach(visual.model, "Deck", parts.Deck, materials);
-            GreekShips.Attach(visual.model, "Steering oars", parts.Steering, materials);
-            if (parts.Ram != null) visual.ram = GreekShips.Attach(visual.model, "Ram", parts.Ram, materials);
-            visual.rig = GreekShips.Attach(visual.model, "Rig", parts.Rig, materials);
+            visual.Paint(visual.model, "Hull", parts.Hull);
+            visual.Paint(visual.model, "Deck", parts.Deck);
+            visual.Paint(visual.model, "Steering oars", parts.Steering);
+            if (parts.Ram != null) visual.ram = visual.Paint(visual.model, "Ram", parts.Ram);
+            visual.rig = visual.Paint(visual.model, "Rig", parts.Rig);
             visual.SetOwner(ship.Owner, false);
             visual.oarReach = (float)Rules.OarReach(definition);
 
@@ -210,7 +262,7 @@ namespace MorzaBogow.Presentation
                     var pivot = new GameObject("Oar").transform;
                     pivot.SetParent(visual.model, false);
                     pivot.localPosition = new Vector3(side * pin.x, pin.y, pin.z);
-                    var blade = GreekShips.Attach(pivot, "Blade", parts.Oars[bank], materials);
+                    var blade = visual.Paint(pivot, "Blade", parts.Oars[bank]);
                     blade.localPosition = new Vector3(side * parts.OarLength[bank] * 0.5f, 0f, 0f);
                     blade.localRotation = side < 0 ? Quaternion.Euler(0f, 180f, 0f) : Quaternion.identity;
                     visual.oars.Add((pivot, side, index * 0.35f, parts.OarTilt[i]));
@@ -227,7 +279,7 @@ namespace MorzaBogow.Presentation
                 var mount = new GameObject($"Mount {slot}").transform;
                 mount.SetParent(visual.model, false);
                 mount.localPosition = parts.Mounts[slot];
-                var weapon = GreekShips.Attach(mount, "Weapon", GreekShips.Weapon(definition.Slots[slot]), materials);
+                var weapon = visual.Paint(mount, "Weapon", GreekShips.Weapon(definition.Slots[slot]));
                 visual.weapons[slot] = weapon;
                 visual.weaponRest[slot] = weapon.localPosition;
             }
@@ -259,8 +311,244 @@ namespace MorzaBogow.Presentation
             visual.bowFoam.deepFoamDimmer = 0f;
             visual.motion = new HullMotion(length, beam);
             visual.spray = CreateSpray(root.transform, materials?.Spray, length);
+            visual.BuildLook();
             visual.ApplyDraft();
             return visual;
+        }
+
+        /// <summary>A part of the type, drawn in the look's paints and remembered so another look can repaint it.</summary>
+        Transform Paint(Transform parent, string name, GreekMesh mesh)
+        {
+            var part = GreekShips.Attach(parent, name, mesh, paints.For(mesh, sailOwner));
+            painted.Add((part.GetComponent<Renderer>(), mesh));
+            return part;
+        }
+
+        Renderer AttachLook(Transform parent, string name, GreekMesh mesh, Material[] list)
+        {
+            var renderer = GreekShips.Attach(parent, name, mesh, list).GetComponent<Renderer>();
+            lookRenderers.Add(renderer);
+            return renderer;
+        }
+
+        /// <summary>
+        /// The look's own pieces: the band on the wale; old repairs and worn pitch on the hull (one small mesh each, made for
+        /// this ship); the sail's patches, which follow the sail; and the gear at its places. Up close all of it shows, from
+        /// afar the patches and the larger gear, farther still only the band and the paints, which carry the ship's look too.
+        /// </summary>
+        void BuildLook()
+        {
+            var form = parts.Form;
+            var bandMesh = GreekShips.Band(Class, string.IsNullOrEmpty(look.Band) ? "zigzag" : look.Band);
+            if (bandMesh != null) band = AttachLook(model, "Band", bandMesh, paints.For(bandMesh, sailOwner)).transform;
+            lookRoot = new GameObject("Look").transform;
+            lookRoot.SetParent(model, false);
+            var near = new List<Renderer>();
+            var far = new List<Renderer>();
+
+            var repairs = new List<GreekShips.HullPatch>();
+            var worn = new List<GreekShips.HullPatch>();
+            for (var i = 0; i < look.Marks.Count; i++)
+            {
+                var mark = look.Marks[i];
+                var patch = new GreekShips.HullPatch
+                {
+                    S = mark.S, Y = mark.Y, Length = mark.Length, Height = mark.Height, Angle = mark.Angle, Side = mark.Side,
+                    Seed = (int)(look.Seed % 100003u) + i * 7919,
+                };
+                if (mark.Kind == "worn")
+                {
+                    patch.Ragged = true;
+                    patch.Paint = GreekMaterial.Wood;
+                    worn.Add(patch);
+                }
+                else
+                {
+                    // Planks put in: in pitch on a pitched hull, in timber on a merchantman's wooden topsides.
+                    patch.Paint = form.WoodenTopsides && mark.Y > 0.25f ? GreekMaterial.Wood : GreekMaterial.Pitch;
+                    repairs.Add(patch);
+                }
+            }
+            var repaired = GreekShips.HullPatches(form, repairs);
+            if (repaired != null)
+            {
+                repairsMesh = repaired.Mesh;
+                var list = new Material[repaired.Slots.Length];
+                for (var i = 0; i < list.Length; i++) list[i] = repaired.Slots[i] == GreekMaterial.Pitch ? paints.RepairPitch : paints.RepairWood;
+                near.Add(AttachLook(lookRoot, "Old repairs", repaired, list));
+            }
+            var wornThrough = GreekShips.HullPatches(form, worn);
+            if (wornThrough != null)
+            {
+                wearMesh = wornThrough.Mesh;
+                near.Add(AttachLook(lookRoot, "Worn pitch", wornThrough, new[] { paints.Worn }));
+            }
+            if (sail != null && look.Patches.Count > 0)
+            {
+                var specs = new List<GreekShips.SailPatch>();
+                foreach (var patch in look.Patches) specs.Add(new GreekShips.SailPatch { U = patch.U, V = patch.V, Width = patch.Width, Height = patch.Height });
+                var sewn = GreekShips.SailPatches(form, specs);
+                if (sewn != null)
+                {
+                    patchesMesh = sewn.Mesh;
+                    var renderer = AttachLook(sail, "Patches", sewn, new[] { paints.SailPatch(sailOwner) });
+                    sailPatches = renderer.transform;
+                    far.Add(renderer);
+                }
+            }
+            foreach (var placed in look.Gear)
+            {
+                var spec = ShipLookLibrary.ItemOf(placed.Item);
+                var place = ShipLookLibrary.PlaceOf(Class, placed.Anchor);
+                // A library without the item or the place draws the ship without that piece rather than guessing.
+                if (spec == null || place == null) continue;
+                var mesh = GreekShips.Prop(spec.Mesh);
+                var renderer = AttachLook(lookRoot, "Gear " + spec.Id, mesh, paints.For(mesh, sailOwner));
+                renderer.transform.localPosition = place.Point;
+                renderer.transform.localRotation = Quaternion.Euler(0f, placed.Yaw, 0f);
+                gear.Add((renderer.transform, spec));
+                (spec.NearOnly ? near : far).Add(renderer);
+            }
+
+            var group = model.GetComponent<LODGroup>();
+            if (near.Count + far.Count > 0)
+            {
+                if (group == null) group = model.gameObject.AddComponent<LODGroup>();
+                group.enabled = true;
+                var all = new List<Renderer>(near);
+                all.AddRange(far);
+                group.SetLODs(new[] { new LOD(0.05f, all.ToArray()), new LOD(0.015f, far.ToArray()) });
+                group.RecalculateBounds();
+            }
+            else if (group != null) group.enabled = false;
+            UpdateGear();
+        }
+
+        /// <summary>Takes the look's own pieces off; the type's parts, the marks of the fight and the colours stay.</summary>
+        void ClearLook()
+        {
+            foreach (var renderer in lookRenderers) Discard(renderer);
+            lookRenderers.Clear();
+            gear.Clear();
+            Discard(lookRoot);
+            lookRoot = band = sailPatches = null;
+            DiscardMesh(repairsMesh);
+            DiscardMesh(wearMesh);
+            DiscardMesh(patchesMesh);
+            repairsMesh = wearMesh = patchesMesh = null;
+            var group = model.GetComponent<LODGroup>();
+            if (group != null) group.enabled = false;
+        }
+
+        /// <summary>
+        /// Puts another look on this ship: repaints the type's parts and rebuilds the look's own pieces. The marks of the
+        /// fight (breaches, arrows, tears, broken posts, fresh repairs) and the owner's colours stay as they are.
+        /// </summary>
+        public void ApplyLook(ShipLook newLook)
+        {
+            look = newLook ?? ShipLookComposer.Plain(ShipId, Class, owner);
+            paints = new ShipPaints(look, materials);
+            ClearLook();
+            foreach (var (renderer, mesh) in painted)
+            {
+                if (renderer == null) continue;
+                var list = paints.For(mesh, sailOwner);
+                if (System.Array.TrueForAll(list, m => m != null)) renderer.sharedMaterials = list;
+            }
+            sailMaterial = paints.Sail(sailOwner);
+            BuildLook();
+        }
+
+        /// <summary>
+        /// Readies this view for another ship of the same class, as a pool would: nothing of the previous ship is left — no
+        /// breaches, arrows, tears, fresh repairs, broken posts, bent spur, lowered sail, spray, markers, colours or look.
+        /// </summary>
+        public void ResetForReuse(Ship ship, ShipLook newLook)
+        {
+            if (ship.Class != Class) throw new System.ArgumentException($"A view of a {Class} cannot show a {ship.Class}.");
+            ShipId = ship.Id;
+            gameObject.name = $"Ship {ship.Id} {ship.Class} ({parts.Form.TypeName})";
+            seed = ship.Id * 1.37f;
+            while (breaches.Count > 0) Remove(breaches, 0);
+            while (stuck.Count > 0) Remove(stuck, 0);
+            while (sailHoles.Count > 0) Remove(sailHoles, 0);
+            ClearFreshRepairs();
+            for (var slot = 0; slot < weapons.Length; slot++)
+            {
+                broken[slot] = false;
+                recoil[slot] = 0f;
+                weaponRest[slot] = Vector3.zero;
+                weapons[slot].localRotation = Quaternion.identity;
+                weapons[slot].localPosition = Vector3.zero;
+            }
+            ramBent = false;
+            if (ram != null)
+            {
+                ram.localRotation = Quaternion.identity;
+                ram.localPosition = Vector3.zero;
+            }
+            hullFraction = 1f;
+            listSide = 1f;
+            marks = 0;
+            sailDrop = 0f;
+            sailLowering = false;
+            pendingOwner = -1;
+            load = smoothedLoad = 0f;
+            rowing = 0f;
+            shipped[0] = shipped[1] = 1f;
+            roomPort = roomStarboard = float.MaxValue;
+            hasWater = false;
+            pose = smoothed = default;
+            motion = new HullMotion(size, beam);
+            immersion = sprayBudget = 0f;
+            if (spray != null) spray.Clear();
+            bowWave.amplitude = 0f;
+            hullFoam.surfaceFoamDimmer = hullFoam.deepFoamDimmer = 0f;
+            bowFoam.surfaceFoamDimmer = bowFoam.deepFoamDimmer = 0f;
+            SetTargetMarker(false);
+            Selection.SetActive(false);
+            owner = sailOwner = ship.Owner;
+            if (sail != null)
+            {
+                sail.localPosition = parts.SailTop;
+                sail.localScale = new Vector3(parts.SailSize.x, parts.SailSize.y, 0.2f);
+            }
+            ApplyLook(newLook);
+            ApplyDraft();
+        }
+
+        void ClearFreshRepairs()
+        {
+            foreach (var (plank, mesh) in freshRepairs)
+            {
+                Discard(plank);
+                DiscardMesh(mesh);
+            }
+            freshRepairs.Clear();
+        }
+
+        /// <summary>Out of the hierarchy at once (so nothing counts it any more) and destroyed.</summary>
+        static void Discard(Component part)
+        {
+            if (part == null) return;
+            var item = part.gameObject;
+            item.SetActive(false);
+            item.transform.SetParent(null, false);
+            if (Application.isPlaying) Destroy(item); else DestroyImmediate(item);
+        }
+
+        static void DiscardMesh(Mesh mesh)
+        {
+            if (mesh == null) return;
+            if (Application.isPlaying) Destroy(mesh); else DestroyImmediate(mesh);
+        }
+
+        void OnDestroy()
+        {
+            DiscardMesh(repairsMesh);
+            DiscardMesh(wearMesh);
+            DiscardMesh(patchesMesh);
+            foreach (var (_, mesh) in freshRepairs) DiscardMesh(mesh);
         }
 
         /// <summary>Water thrown up where the stem cuts a crest. World space, so spray stays where it was thrown.</summary>
@@ -355,38 +643,47 @@ namespace MorzaBogow.Presentation
         /// </summary>
         public void ApplyOwner(int owner, PlaceholderMaterials materials)
         {
-            if (materials != null) this.materials = materials;
+            if (materials != null && materials != this.materials)
+            {
+                this.materials = materials;
+                paints = new ShipPaints(look, materials);
+            }
             SetOwner(owner, sail != null);
         }
 
-        void SetOwner(int owner, bool lowerFirst)
+        void SetOwner(int newOwner, bool lowerFirst)
         {
-            var colour = owner == 0 ? materials?.PlayerSail : materials?.EnemySail;
+            owner = newOwner;
             if (sail == null)
             {
-                sail = GreekShips.Attach(model, "Sail", parts.Sail, materials, colour);
+                sailOwner = newOwner;
+                sail = Paint(model, "Sail", parts.Sail);
                 sail.localPosition = parts.SailTop;
                 sail.localScale = new Vector3(parts.SailSize.x, parts.SailSize.y, 0.2f);
-                sailMaterial = colour;
+                sailMaterial = paints.Sail(newOwner);
                 return;
             }
             if (!lowerFirst)
             {
-                SetSailMaterial(colour);
+                SetSailColours(newOwner);
                 return;
             }
-            pendingSail = colour ?? sailMaterial;
+            pendingOwner = newOwner;
             sailLowering = true;
         }
 
-        void SetSailMaterial(Material colour)
+        /// <summary>The owner's dye on the sail and its patches. The cloth, where the patches are and everything else stay.</summary>
+        void SetSailColours(int forOwner)
         {
-            sailMaterial = colour;
+            sailOwner = forOwner;
+            sailMaterial = paints.Sail(forOwner);
             var renderer = sail.GetComponent<MeshRenderer>();
             var list = renderer.sharedMaterials;
             for (var i = 0; i < parts.Sail.Slots.Length && i < list.Length; i++)
-                if (parts.Sail.Slots[i] == GreekMaterial.Sail) list[i] = colour;
+                if (parts.Sail.Slots[i] == GreekMaterial.Sail) list[i] = sailMaterial;
             if (System.Array.TrueForAll(list, m => m != null)) renderer.sharedMaterials = list;
+            var patch = paints.SailPatch(forOwner);
+            if (sailPatches != null && patch != null) sailPatches.GetComponent<MeshRenderer>().sharedMaterial = patch;
         }
 
         /// <summary>Latest pose from the real water surface. Smoothing keeps small waves from shaking the hull.</summary>
@@ -460,7 +757,8 @@ namespace MorzaBogow.Presentation
             var top = GreekShips.Sheer(form, s);
             var height = waterline ? 0.2f : Mathf.Lerp(0.35f, top * 0.8f, (float)random.NextDouble());
             var (point, normal) = SurfaceAt(form, s, height, side);
-            var breach = GreekShips.Attach(model, "Breach", GreekShips.Prop($"breach{random.Next(4)}"), materials);
+            var hole = GreekShips.Prop($"breach{random.Next(4)}");
+            var breach = GreekShips.Attach(model, "Breach", hole, paints.For(hole, sailOwner));
             breach.localPosition = point + normal * 0.04f;
             breach.localRotation = Quaternion.LookRotation(-normal, Vector3.up) * Quaternion.Euler(0f, 0f, (float)random.NextDouble() * 360f);
             breach.localScale = Vector3.one * Mathf.Clamp(size, 0.4f, 2.6f);
@@ -515,7 +813,8 @@ namespace MorzaBogow.Presentation
                     normal = Vector3.up;
                 }
                 else (point, normal) = SurfaceAt(form, s, Mathf.Lerp(0.4f, GreekShips.Sheer(form, s) * 0.9f, (float)random.NextDouble()), side);
-                var arrow = GreekShips.Attach(model, "Arrow", GreekShips.Prop("arrow"), materials);
+                var shaft = GreekShips.Prop("arrow");
+                var arrow = GreekShips.Attach(model, "Arrow", shaft, paints.For(shaft, sailOwner));
                 var slant = Quaternion.Euler(((float)random.NextDouble() - 0.5f) * 40f, ((float)random.NextDouble() - 0.5f) * 40f, 0f);
                 arrow.localRotation = Quaternion.LookRotation(-(slant * normal), Vector3.up);
                 arrow.localPosition = point + normal * 0.32f;
@@ -535,11 +834,16 @@ namespace MorzaBogow.Presentation
             if (fraction > hullFraction + 0.001f)
             {
                 var allowed = Mathf.CeilToInt((1f - fraction) * 10f);
-                while (breaches.Count > allowed) Remove(breaches, 0);
+                while (breaches.Count > allowed)
+                {
+                    MendBreach(breaches[0]);
+                    Remove(breaches, 0);
+                }
                 if (fraction > 0.99f) while (stuck.Count > 0) Remove(stuck, 0);
             }
             hullFraction = fraction;
             UpdateSailHoles();
+            UpdateGear();
             if (moduleHp == null) return;
             for (var slot = 0; slot < weapons.Length && slot < moduleHp.Length; slot++)
             {
@@ -568,13 +872,57 @@ namespace MorzaBogow.Presentation
             while (sailHoles.Count > wanted) Remove(sailHoles, sailHoles.Count - 1);
             while (sailHoles.Count < wanted && sail != null)
             {
-                var hole = GreekShips.Attach(sail, "Tear", GreekShips.Prop("breach" + (sailHoles.Count + 1)), materials);
+                var torn = GreekShips.Prop("breach" + (sailHoles.Count + 1));
+                var hole = GreekShips.Attach(sail, "Tear", torn, paints.For(torn, sailOwner));
                 var u = new[] { -0.22f, 0.18f, 0.02f }[sailHoles.Count];
                 var v = new[] { -0.55f, -0.3f, -0.75f }[sailHoles.Count];
                 hole.localPosition = new Vector3(u, v, 0.85f);
                 hole.localRotation = Quaternion.Euler(0f, 180f, sailHoles.Count * 70f);
                 hole.localScale = new Vector3(0.09f, 0.11f, 0.2f);
                 sailHoles.Add(hole);
+            }
+        }
+
+        /// <summary>
+        /// A breach mended in dock leaves new planks, not yet pitched, where it was; the oldest go when there are more than a
+        /// few. The ship's look itself is untouched: a repair never draws it anew.
+        /// </summary>
+        void MendBreach(Transform breach)
+        {
+            if (breach == null || parts == null) return;
+            var form = parts.Form;
+            var local = breach.localPosition;
+            var span = GreekShips.Z(form, 1f) - GreekShips.Z(form, 0f);
+            var patch = new GreekShips.HullPatch
+            {
+                S = Mathf.Clamp((local.z - GreekShips.Z(form, 0f)) / span, 0.1f, 0.9f),
+                Y = Mathf.Max(0.2f, local.y),
+                Length = Mathf.Clamp(breach.localScale.x * 1.6f, 0.8f, 2.4f),
+                Height = Mathf.Clamp(breach.localScale.x * 0.9f, 0.25f, 1.2f),
+                Side = local.x >= 0f ? 1 : -1,
+                Paint = GreekMaterial.Wood,
+            };
+            var mended = GreekShips.HullPatches(form, new[] { patch });
+            if (mended == null) return;
+            var planks = GreekShips.Attach(model, "Fresh repair", mended, new[] { paints.FreshWood });
+            freshRepairs.Add((planks, mended.Mesh));
+            while (freshRepairs.Count > MaxFreshRepairs)
+            {
+                var (old, mesh) = freshRepairs[0];
+                freshRepairs.RemoveAt(0);
+                Discard(old);
+                DiscardMesh(mesh);
+            }
+        }
+
+        /// <summary>Loose gear is washed over the side while the hull is badly holed and is back after a repair: state, not look.</summary>
+        void UpdateGear()
+        {
+            foreach (var (item, spec) in gear)
+            {
+                if (item == null) continue;
+                var shown = hullFraction >= spec.LostBelow;
+                if (item.gameObject.activeSelf != shown) item.gameObject.SetActive(shown);
             }
         }
 
@@ -588,8 +936,7 @@ namespace MorzaBogow.Presentation
         {
             var item = list[index];
             list.RemoveAt(index);
-            if (item == null) return;
-            if (Application.isPlaying) Destroy(item.gameObject); else DestroyImmediate(item.gameObject);
+            Discard(item);
         }
 
         // Animation --------------------------------------------------------------------------------------------------
@@ -681,8 +1028,8 @@ namespace MorzaBogow.Presentation
                 sailDrop = Mathf.MoveTowards(sailDrop, 1f, delta * 1.5f);
                 if (sailDrop >= 1f)
                 {
-                    SetSailMaterial(pendingSail);
-                    pendingSail = null;
+                    if (pendingOwner >= 0) SetSailColours(pendingOwner);
+                    pendingOwner = -1;
                     sailLowering = false;
                 }
             }

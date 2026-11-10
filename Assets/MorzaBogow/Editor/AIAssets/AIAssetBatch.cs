@@ -174,6 +174,52 @@ namespace MorzaBogow.Editor.AIAssets
             if (Application.isBatchMode) EditorApplication.Exit(code);
         }
 
+        /// <summary>
+        /// The comparison of ships on one base model under the same light (-aiOut folder, -aiShip class): eight of each side
+        /// in their own looks seen from the strategy camera, three of them up close, and the same eight of the player's side in
+        /// the class's plain look for reference.
+        /// </summary>
+        public static void PreviewLooks()
+        {
+            var output = Argument("-aiOut") ?? Path.Combine(Directory.GetParent(Application.dataPath).FullName, "artifacts-log", "ship-looks");
+            var shipClass = Enum.TryParse(Argument("-aiShip") ?? "Ram", out ShipClass parsed) ? parsed : ShipClass.Ram;
+            Directory.CreateDirectory(output);
+            var materials = ShipMaterials();
+            var world = new World(1);
+            var code = 0;
+            GameObject Fleet(string name, int[] sides, bool plain, int count)
+            {
+                var root = new GameObject(name);
+                var beam = (float)ShipCatalog.Get(shipClass).Beam;
+                for (var row = 0; row < sides.Length; row++)
+                for (var i = 0; i < count; i++)
+                {
+                    var ship = world.SpawnShip(sides[row], shipClass, 0, 0);
+                    var view = ShipVisual.Create(ship, materials, plain ? null : ShipLookComposer.Compose(ship.Id, ship.Class, ship.Owner));
+                    foreach (var decal in view.GetComponentsInChildren<UnityEngine.Rendering.HighDefinition.WaterDecal>(true)) decal.gameObject.SetActive(false);
+                    view.Animate(0.35f, 1f, 0.5f);
+                    view.transform.SetParent(root.transform, false);
+                    view.transform.localPosition = new Vector3(i * beam * 1.9f, 0f, -row * view.Length * 1.25f);
+                }
+                return root;
+            }
+            void Shoot(GameObject group, string file, float pitch, float yaw, bool orthographic, int width, int height)
+            {
+                if (!AIAssetPreview.RenderGroup(group, Path.Combine(output, file), pitch, yaw, orthographic, width, height, out var why))
+                {
+                    Debug.LogError($"[AIAssets] porównanie {file}: {why}");
+                    code = 2;
+                }
+                UnityEngine.Object.DestroyImmediate(group);
+            }
+            var name = shipClass.ToString().ToLowerInvariant();
+            Shoot(Fleet("Fleets", new[] { 0, 1 }, false, 8), $"{name}_floty_kamera_strategiczna.png", 52f, -150f, true, 1600, 1000);
+            Shoot(Fleet("Close", new[] { 0 }, false, 3), $"{name}_zblizenie.png", 30f, -125f, false, 1600, 900);
+            Shoot(Fleet("Plain", new[] { 0 }, true, 8), $"{name}_bez_wariantow.png", 52f, -150f, true, 1600, 600);
+            Debug.Log($"[AIAssets] porównanie wariantów: {output}");
+            if (Application.isBatchMode) EditorApplication.Exit(code);
+        }
+
         [MenuItem("Morza Bogów/Assety AI/Eksportuj wymiary okrętów")]
         public static void ExportDimensions()
         {

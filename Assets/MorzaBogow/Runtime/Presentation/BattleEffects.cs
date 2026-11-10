@@ -438,7 +438,8 @@ namespace MorzaBogow.Presentation
             wrecks.RemoveAll(item => item == null);
             foreach (var wreck in wrecks)
             {
-                var phase = wreck.GetInstanceID() * 0.37f;
+                // Each wreck rocks on its own beat, from where it lies (not from an instance id, which changes between runs).
+                var phase = wreck.position.x * 0.13f + wreck.position.z * 0.29f;
                 var position = wreck.position;
                 position.y = Mathf.Sin(clock * 0.8f + phase) * 0.12f;
                 wreck.position = position;
@@ -576,14 +577,14 @@ namespace MorzaBogow.Presentation
             void Break(BattleEffects effects, Transform model, GreekShipParts parts)
             {
                 broken = true;
-                foreach (var name in new[] { "Hull", "Deck", "Ram", "Steering oars" })
+                foreach (var name in new[] { "Hull", "Deck", "Ram", "Steering oars", "Band", "Look" })
                 {
                     var part = model.Find(name);
                     if (part != null) part.gameObject.SetActive(false);
                 }
-                // Breaches and stuck arrows were on the whole hull; they go with it.
+                // Breaches, stuck arrows and mended planks were on the whole hull; they go with it.
                 foreach (Transform child in model)
-                    if (child.name == "Breach" || child.name == "Arrow") child.gameObject.SetActive(false);
+                    if (child.name == "Breach" || child.name == "Arrow" || child.name == "Fresh repair") child.gameObject.SetActive(false);
                 pieces = new Transform[parts.Sections.Length];
                 pieceDrift = new Vector3[pieces.Length];
                 piecePitch = new float[pieces.Length];
@@ -592,7 +593,8 @@ namespace MorzaBogow.Presentation
                 var length = parts.Form.Length;
                 for (var i = 0; i < pieces.Length; i++)
                 {
-                    pieces[i] = GreekShips.Attach(model, $"Broken piece {i}", parts.Sections[i], effects.materials);
+                    // The pieces keep the ship's own pitch, ochre and timber.
+                    pieces[i] = GreekShips.Attach(model, $"Broken piece {i}", parts.Sections[i], view.MaterialsFor(parts.Sections[i]));
                     var end = i - 1;
                     pieceDrift[i] = new Vector3(((float)random.NextDouble() - 0.5f) * 1.5f, 0f, end * length * 0.08f);
                     // The ends rear up as the middle goes down first.
@@ -601,7 +603,7 @@ namespace MorzaBogow.Presentation
                 }
                 if (parts.Ram != null)
                 {
-                    var ram = GreekShips.Attach(pieces[pieces.Length - 1], "Ram", parts.Ram, effects.materials);
+                    var ram = GreekShips.Attach(pieces[pieces.Length - 1], "Ram", parts.Ram, view.MaterialsFor(parts.Ram));
                     ram.localPosition = Vector3.zero;
                 }
                 var cuts = new[] { -length * 0.5f + length * 0.36f, -length * 0.5f + length * 0.68f };
@@ -624,6 +626,13 @@ namespace MorzaBogow.Presentation
                     if (i % 3 != 0) { oars[i].gameObject.SetActive(false); continue; }
                     var outward = Vector3.ProjectOnPlane(oars[i].position - model.position, Vector3.up).normalized;
                     effects.FloatOff(oars[i], outward * Mathf.Lerp(0.6f, 1.6f, (float)random.NextDouble()), seed * 7 + i);
+                }
+                // Loose gear (jars, sacks, baskets, cloth) floats off with the oars; stone anchors and rope go down with her.
+                var gear = 0;
+                foreach (var item in new List<Transform>(view.FloatingGear))
+                {
+                    var outward = Vector3.ProjectOnPlane(item.position - model.position, Vector3.up).normalized;
+                    effects.FloatOff(item, outward * Mathf.Lerp(0.4f, 1.2f, (float)random.NextDouble()), seed * 11 + gear++);
                 }
                 var planks = Mathf.Clamp(Mathf.RoundToInt(form.Length / 3f), 4, 9);
                 for (var i = 0; i < planks; i++)

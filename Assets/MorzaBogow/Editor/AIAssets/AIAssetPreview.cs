@@ -19,6 +19,66 @@ namespace MorzaBogow.Editor.AIAssets
         /// <summary>Renders an object that lives in the open scene (not a prefab asset); it is moved into the preview scene and back.</summary>
         public static bool RenderObject(GameObject item, string pngPath, float yaw, out string why) => Render(item, pngPath, true, out why, yaw);
 
+        /// <summary>
+        /// A group of objects in one picture under the same light: orthographic from the strategy camera's height and angle
+        /// (levels of detail chosen as the game would choose them), or in perspective for a close look (everything at full
+        /// detail). The frame is fitted to the group.
+        /// </summary>
+        public static bool RenderGroup(GameObject group, string pngPath, float pitch, float yaw, bool orthographic, int width, int height, out string why)
+        {
+            why = string.Empty;
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) { why = "brak urządzenia graficznego (-nographics)"; return false; }
+            PreviewRenderUtility preview = null;
+            Texture2D image = null;
+            try
+            {
+                preview = new PreviewRenderUtility();
+                preview.AddSingleGO(group);
+                var renderers = group.GetComponentsInChildren<Renderer>(true);
+                if (!orthographic)
+                    foreach (var lods in group.GetComponentsInChildren<LODGroup>(true)) lods.ForceLOD(0);
+                var bounds = renderers[0].bounds;
+                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                var radius = Mathf.Max(bounds.extents.magnitude, 0.5f);
+                var camera = preview.camera;
+                var direction = Quaternion.Euler(pitch, yaw, 0f) * Vector3.forward;
+                var distance = orthographic ? radius * 4f : radius / Mathf.Sin(15f * Mathf.Deg2Rad) * 0.42f;
+                camera.orthographic = orthographic;
+                camera.orthographicSize = Mathf.Max(bounds.extents.x, bounds.extents.z) * 0.62f;
+                camera.fieldOfView = 30f;
+                camera.transform.position = bounds.center - direction * distance;
+                camera.transform.LookAt(bounds.center);
+                camera.nearClipPlane = 0.1f;
+                camera.farClipPlane = distance + radius * 3f;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = new Color(0.16f, 0.36f, 0.48f, 1f);
+                // A bright afternoon: the sun over the camera's shoulder and a strong sky fill, the same for every ship.
+                if (preview.lights.Length > 0)
+                {
+                    preview.lights[0].intensity = 2.2f;
+                    preview.lights[0].transform.rotation = Quaternion.Euler(50f, yaw + 25f, 0f);
+                }
+                if (preview.lights.Length > 1) preview.lights[1].intensity = 0.9f;
+                preview.ambientColor = new Color(0.5f, 0.52f, 0.56f);
+                preview.BeginStaticPreview(new Rect(0, 0, width, height));
+                preview.Render(true);
+                image = preview.EndStaticPreview();
+                Directory.CreateDirectory(Path.GetDirectoryName(pngPath) ?? ".");
+                File.WriteAllBytes(pngPath, image.EncodeToPNG());
+                return true;
+            }
+            catch (Exception error)
+            {
+                why = $"{error.GetType().Name}: {error.Message}";
+                return false;
+            }
+            finally
+            {
+                if (image != null) Object.DestroyImmediate(image);
+                preview?.Cleanup();
+            }
+        }
+
         static bool Render(GameObject source, string pngPath, bool existing, out string why, float yaw)
         {
             why = string.Empty;

@@ -89,7 +89,17 @@
         "MorzaBogow.Tests.GreekShipsTests.Ships_EachTypeKeepsItsOwnMarks",
         "MorzaBogow.Tests.GreekShipsTests.Ships_PiecesOfABrokenHullMakeUpTheWhole",
         "MorzaBogow.Tests.GreekShipsTests.Ships_HullFacesPointOutward",
-        "MorzaBogow.Tests.GreekShipsTests.Ships_LowerDetailHasFewerTriangles"
+        "MorzaBogow.Tests.GreekShipsTests.Ships_LowerDetailHasFewerTriangles",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_SameIdGivesTheSameLook",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_CreationOrderDoesNotChangeAnyShipsLook",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_UseNeitherTheGamesNorUnitysRandom",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_SavedDescriptionSurvivesALibraryInAnotherOrder",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_GearKeepsClearOfCrewStationsPassagesOarsAndPosts",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_AFleetDiffersShipToShipYetKeepsItsWorkshopAndColours",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Looks_StayWithinTheirLimitsAndNeverLookLikeDamage",
+        "MorzaBogow.Tests.ShipVariantRulesTests.Textures_BakerIsDeterministicAndImportSettingsFitTheirUse",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_UvsRunAlongPlanksAndSpars",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_TheWaleBandIsItsOwnMeshInEveryApprovedPattern"
       ]
     },
     "PlayMode": {
@@ -129,7 +139,17 @@
         "MorzaBogow.Tests.ShipLookTests.Fate_ABrokenShipPartsSinksAndLeavesWreckageThatGoesInTime",
         "MorzaBogow.Tests.ShipLookTests.Missiles_FlyOnlyWhereThePlayerCanSee",
         "MorzaBogow.Tests.ShipLookTests.Wreck_FloatsAsWreckageWithItsCargo",
-        "MorzaBogow.Tests.ShipLookTests.Boarding_LossesFellMenOnDeckOrOverTheSide"
+        "MorzaBogow.Tests.ShipLookTests.Boarding_LossesFellMenOnDeckOrOverTheSide",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_SaveAndLoadKeepEveryShipsLook",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_ReapplyingLeavesNothingOfThePreviousShip",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_ANewOwnerChangesOnlyTheColours",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_RepairAndDamageNeverRerollTheLook",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_ChangesNoStatsPointsOrColliders",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_FarAwayKeepsTheEssentialLook",
+        "MorzaBogow.Tests.ShipVariantTests.Variant_StaysInItsMeasuredBudget",
+        "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_PlainLook",
+        "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromThePalette",
+        "MorzaBogow.Tests.ShipLookBenchmark.Benchmark_LooksFromPropertyBlocks"
       ]
     }
   }

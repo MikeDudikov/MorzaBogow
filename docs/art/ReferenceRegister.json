@@ -18,11 +18,15 @@
         "Date of wreck: Late Bronze Age, ca. 1320 +/- 15 B.C. (INA)",
         "Built of Lebanese cedar with pegged mortise-and-tenon joints; a proto-keel rather than a true keel (INA)",
         "Bulk cargo of copper and tin ingots in the ratio of about 10:1 (INA); 354 copper ingots, 317 of oxhide shape; about 150 Canaanite jars (Wikipedia)",
-        "Hull estimated about 15 m long and 5 m wide from the cargo layout (Wikipedia)"
+        "Hull estimated about 15 m long and 5 m wide from the cargo layout (Wikipedia)",
+        "24 stone anchors: 22 of coastal sandstone (beachrock) and two smaller of limestone; 16 lay toward the bow, 8 at the bottom of the hold (Wikipedia, page text read 2026-11-10)",
+        "About 150 Canaanite jars of three sizes, flasks and large jars (pithoi), with remains of terebinth resin, grapes, figs, pomegranate, olives and spices (Wikipedia, page text read 2026-11-10)",
+        "Rope and dunnage from the last voyage were among the samples dated by radiocarbon (Wikipedia, page text read 2026-11-10)",
+        "Not found in the page text read: baskets (only in an automatic summary of the unread part), linen or cloth"
       ],
       "dating": "ca. 1320 +/- 15 BC",
-      "certainty": "date and construction stated by INA; hull size is an estimate",
-      "assets": ["ship.Merchant", "shipyard.slipway", "wreck.cargo"]
+      "certainty": "date and construction stated by INA; hull size is an estimate; anchors, jars and rope from the Wikipedia page text, to be checked in INA publications",
+      "assets": ["ship.Merchant", "shipyard.slipway", "wreck.cargo", "ship.variants (gear: stone anchors, water jar, rope coil)"]
     },
     {
       "id": "R-GELIDONYA",
