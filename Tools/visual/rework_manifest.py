@@ -128,6 +128,12 @@ entry("fx.boarding", "hooks, lines, crossing, fighting on the enemy deck", "haul
        "picture only: simulation results unchanged"], links=["Crew/CrewDirector.cs", "Crew/CrewAboard.cs", "CrewVisual.cs"])
 entry("fx.building-destruction", "ruin and destruction of port buildings", "PortBuildings ruin state", ["add-missing", "animation"],
       FX_CRIT + ["break-up into modules, falling tiles, dust; follows the game's state"], links=["PortBuildings.cs"])
+entry("fx.ship-damage", "a ship's damage stages afloat: breaches, arrows, torn sail, broken posts, bent ram, the mast giving way",
+      "breaches, arrows, sail tears, broken posts and a bent ram from the hull and module HP; no mast break", ["add-missing", "animation"],
+      FX_CRIT + ["stages from the game's hull alone (DamagePlan)", "the mast snaps above the deck and goes over the listing side, "
+                 "yard and sail with it, held alongside by two lines; moves with the hull, no velocity of its own",
+                 "mended in dock; a pooled view keeps nothing of it"],
+      links=["ShipVisual.cs", "ShipVisual.Mast.cs", "BattleEffects.cs"])
 entry("wreck.cargo", "World.Wrecks: salvageable cargo", "procedural jars and ingots", ["replace"],
       ["4th c. amphorae (Rhodian, Samian) and lead"], links=["BattleEffects.cs"])
 
@@ -216,7 +222,8 @@ STATUS = {
                          "Attic rocks among the boulders",
     "building.school": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature "
                        "(blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column "
-                       "by column and stands as one mesh (PortMasonryTests)",
+                       "by column and stands as one mesh (PortMasonryTests); the destruction slice's building: 150 elements "
+                       "(drums, capitals, entablature spans, brick walls, roof bays, pediments) that fail with the settlement's hull",
     "building.store": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; "
                       "yard of pithoi, amphorae and one-armed anchors with lead-filled stocks",
     "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE)",
@@ -232,9 +239,16 @@ STATUS = {
                            "second level of detail; no wind sway",
     "veg.cypress.columnar": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; "
                             "no wind sway",
-    "building.ruin": "collapse into the ruin when a settlement falls in sight: sinking walls, the roof falling in, dust, flying tiles",
-    "fx.building-destruction": "done: walls sink and lean, the roof falls in, two clouds of dust, tiles thrown, the ruin shows "
-                               "through the dust (2.6 s of game time; PortMasonryTests)",
+    "building.ruin": "the School's ruin is its own fallen elements (column stumps, rows of drums, entablature blocks, tile heaps, "
+                     "brick mounds); the other buildings still sink into their seeded ruins",
+    "fx.building-destruction": "vertical slice done for the School (docs/art/DESTRUCTION.md): stages from the settlement's hull, "
+                               "failures where the shots struck, support graph, columns topple into rows of drums, blocks drop, "
+                               "brick slumps, roof bays break into tile heaps; pooled pieces within budgets, one rubble mesh at "
+                               "rest; kept beside a quick save (BuildingDestructionTests 11/11, DestructionPresentationTests 1/1); "
+                               "the other buildings: the old sinking fall",
+    "fx.ship-damage": "vertical slice done for the mast (docs/art/DESTRUCTION.md): below 40% of the hull it snaps above the deck "
+                      "and goes over the listing side with yard and sail, two lines hold it alongside, splinters and a water "
+                      "column (ShipDestructionTests 4/4); oars and planks not yet broken afloat",
     "materials.masonry": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources",
 }
 for _entry in ENTRIES:

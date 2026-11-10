@@ -1,0 +1,1746 @@
+{
+ "schema": "morza-bogow/art-production-manifest@1",
+ "states": {
+  "planned": "described, not started",
+  "research": "sources being read",
+  "generating": "a generator (Meshy, ComfyUI, code) is making it",
+  "preparing": "geometry being prepared (Blender, generator code)",
+  "texturing": "materials and textures",
+  "rigging": "rig",
+  "animating": "animation",
+  "fracturing": "split into elements, damage stages, debris",
+  "importing": "import into Unity, prefabs, integration",
+  "validating": "tests and previews passed; awaiting measurement in the build or the user's look",
+  "ready": "accepted",
+  "needs_review": "rejected or doubtful after the allowed attempts; a person decides",
+  "blocked": "cannot go on (protected, out of scope or waiting on another decision)"
+ },
+ "anchor": {
+  "epoch": "E6 late classical, c. 400-323 BC",
+  "region": "R-LAD Attica (Piraeus, Zea, Laurion)",
+  "earlier": "E1 Late Helladic IIIC (earlier profile, inactive)",
+  "decision": "user 2026-11-10: Greece of the 4th c. BC (first 7th c., then corrected to the 4th c.)"
+ },
+ "meshy": {
+  "approvedCredits": 1000,
+  "spentCredits": 215
+ },
+ "counts": {
+  "blocked": 2,
+  "needs_review": 2,
+  "planned": 48,
+  "preparing": 9,
+  "ready": 6,
+  "validating": 5
+ },
+ "assets": [
+  {
+   "assetId": "ship.Cutter",
+   "use": "ShipClass.Cutter: gathering, scouting",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.Ram",
+   "use": "ShipClass.Ram: ramming; trial ship of the refresh",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "trireme features in the class's 20 m: eyes, finned ram, outrigger, side screens, aphlaston (scale compromise documented)"
+   ],
+   "state": "preparing",
+   "status": "in progress: 4th c. features in the generator (ram, eyes, volute, aphlaston; commit 10c5c70)",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "ship.CrewDestroyer",
+   "use": "archers' galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "trireme with archers' deck"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.Boarder",
+   "use": "boarding galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "broad decked four or five (tetreres/penteres) with marines"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.Merchant",
+   "use": "transport and bridgeheads",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "holkas after the Kyrenia ship: round hull, brailed square sail, amphora cargo"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.ShipKiller",
+   "use": "bolt-thrower galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "oxybeles (torsion bolt-shooter) on deck: no longer an anachronism in the 4th c. (early interpretation)"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.Bomber",
+   "use": "heavy stone-thrower galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "lithobolos on a heavy ship (Tyre 332 BC; early interpretation)"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.variants",
+   "use": "individual looks of ships of one class",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "keep",
+    "material"
+   ],
+   "criteria": [
+    "deterministic from the ship id; saved beside the quick save",
+    "4th c. workshop palettes and parasemon"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ship.slipway-stages",
+   "use": "ship build progress on a slipway/ship shed",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "geometry-fix",
+    "animation"
+   ],
+   "criteria": [
+    "stages follow the build progress; never finish production themselves",
+    "assembly visible (keel, planking, frames, deck); no scaling from zero"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "character.warrior",
+   "use": "epibatai (marines) and soldiers on deck",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "pilos helmet, linothorax or muscle cuirass, aspis with a city blazon, spear and sword"
+   ],
+   "state": "preparing",
+   "status": "in progress: 4th c. kit (pilos, Corinthian and Boeotian helmets, linothorax, aspis; commit 9ed303b)",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "character.archer",
+   "use": "Cretan archers of an archers' bank",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "bow, quiver, light dress"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "character.peltast",
+   "use": "javelin men of a javelin bank",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "pelte shield, javelins, exomis"
+   ],
+   "state": "preparing",
+   "status": "in progress: pelte and caps (commit 9ed303b)",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "character.rower",
+   "use": "rowers and sailors",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "exomis or loincloth; hands on the oar handle through the whole stroke"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "character.officers",
+   "use": "helmsman (kybernetes), bow officer (prorates), skipper",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "keleustes and trieraules only as looks of men already aboard"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "character.machine-crew",
+   "use": "crews of bolt and stone throwers",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "winding, loading, aiming, release in the sim's timing"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "character.worker",
+   "use": "shipwrights, miners, woodcutters, porters ashore",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "tools of the trade; work never changes stock or production speed"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "fx.missiles",
+   "use": "bolts, stones, arrows and javelins in flight",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "launch from the hand or machine; flight time as the simulation"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "fx.impacts",
+   "use": "hits and misses",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "a miss never looks like a hit"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "fx.sinking",
+   "use": "ship_sunk: settle, break-up, wreckage",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "break-up into hull sections with the ship's materials"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "fx.ram-contact",
+   "use": "ram impact",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "breach at the struck place; crew jolt"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "fx.boarding",
+   "use": "hooks, lines, crossing, fighting on the enemy deck",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "criteria": [
+    "broadside to broadside, never bow-first",
+    "boarders cross the rails and fight on the enemy deck",
+    "picture only: simulation results unchanged"
+   ],
+   "state": "ready",
+   "status": "done: broadside haul, oars in, the front crosses and fights on the other deck, the dead lie where they fell, return over the rails (BoardingPresentationTests 3/3)",
+   "meshy": [],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "fx.building-destruction",
+   "use": "ruin and destruction of port buildings",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "break-up into modules, falling tiles, dust; follows the game's state"
+   ],
+   "state": "validating",
+   "status": "vertical slice done for the School (docs/art/DESTRUCTION.md): stages from the settlement's hull, failures where the shots struck, support graph, columns topple into rows of drums, blocks drop, brick slumps, roof bays break into tile heaps; pooled pieces within budgets, one rubble mesh at rest; kept beside a quick save (BuildingDestructionTests 11/11, DestructionPresentationTests 1/1); the other buildings: the old sinking fall",
+   "meshy": [],
+   "nextAction": "measure in the build and show the previews",
+   "slice": false
+  },
+  {
+   "assetId": "fx.ship-damage",
+   "use": "a ship's damage stages afloat: breaches, arrows, torn sail, broken posts, bent ram, the mast giving way",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "stages from the game's hull alone (DamagePlan)",
+    "the mast snaps above the deck and goes over the listing side, yard and sail with it, held alongside by two lines; moves with the hull, no velocity of its own",
+    "mended in dock; a pooled view keeps nothing of it"
+   ],
+   "state": "validating",
+   "status": "vertical slice done for the mast (docs/art/DESTRUCTION.md): below 40% of the hull it snaps above the deck and goes over the listing side with yard and sail, two lines hold it alongside, splinters and a water column (ShipDestructionTests 4/4); oars and planks not yet broken afloat",
+   "meshy": [],
+   "class": "effect on every ship class with a mast (ShipVisual)",
+   "dating": "E6; warships' masts in battle: the light mast (R-SAILS-ASHORE, interpretation)",
+   "dimensions": "the class's mast (GreekShips.BuildRig): height = MastHeight of the form, radius 0.012 L + 0.08 m",
+   "materials": [
+    "the ship's look: wood, ochre, rope; sail in the owner's dye"
+   ],
+   "construction": "mast stepped on the keelson (R-KYRENIA-MASTSTEP), yard bowed at the masthead, forestay and backstay",
+   "movingParts": "the fallen mast with yard and sail pivots on its snap point; two loose lines from stem and stern to the masthead",
+   "attachmentPoints": "GreekShipParts.MastFoot, SailTop; the stem and stern heads (Sheer, Z) for the lines",
+   "animations": [
+    "the mast tips over the listing side in 1.5 s of game time, slow at first",
+    "the sail goes slack",
+    "it then lies still in the hull's frame and moves only with the hull"
+   ],
+   "damageZones": "breaches on the struck side (Hit), arrows (StickArrows), sail tears and the mast (hull share), broken posts and the bent ram (module HP)",
+   "destructionStages": "hull share >= 0.6: breaches and tears only; < 0.4 (PartialCollapse): the mast down; ship_sunk: ShipFate (break-up, wreckage) with the fallen mast going down where it lies; >= 0.5 again in dock: a new mast",
+   "lod": "the stump and spars are single meshes in the ship's materials; ropes are one shared unit mesh scaled",
+   "integration": "ShipVisual.Mast.cs (from SetCondition and AnimateSail, not from the water's methods), BattleController.MastEffects (splinters, water column), BattleEffects.ShipFate skips its own mast fall for a mast already down",
+   "tests": [
+    "ShipDestructionTests (fall side, moves with the hull, dock repair and pool reset, first seen down)",
+    "BattleControllerTests (Visual_DoesNotChangeSimulationResult)",
+    "water_guard check"
+   ],
+   "results": "artifacts-log/destruction/ship-*-stages*.png (preview without water: what lies under the waterline shows)",
+   "limitations": [
+    "oars are not broken afloat; planks fly only as splinters",
+    "crew may stand where the fallen mast lies",
+    "the sail is drawn even though warships left their large sails ashore (R-SAILS-ASHORE)"
+   ],
+   "nextAction": "furl or leave the sail in battle (art direction); broken oars on the rammed side",
+   "stages": [
+    {
+     "state": "fracturing",
+     "date": "2026-11-10",
+     "commit": "9810ecc"
+    },
+    {
+     "state": "validating",
+     "date": "2026-11-10",
+     "evidence": "ShipDestructionTests 4/4, previews in artifacts-log/destruction"
+    }
+   ],
+   "config": "ShipVisual.MastBreaksBelow 0.4, MastMendedAbove 0.5, MastFallSeconds 1.5",
+   "slice": true
+  },
+  {
+   "assetId": "wreck.cargo",
+   "use": "World.Wrecks: salvageable cargo",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. amphorae (Rhodian, Samian) and lead"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "building.store",
+   "use": "store and houses of a port",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "courtyard houses (Olynthus) and a stoa"
+   ],
+   "state": "preparing",
+   "status": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; yard of pithoi, amphorae and one-armed anchors with lead-filled stocks",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "building.workshop",
+   "use": "ProjectKind.Workshop (weapons)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ergasterion with forge and bellows"
+   ],
+   "state": "preparing",
+   "status": "in progress: tiled roof with antefixes",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "building.town",
+   "use": "home port town",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ashlar circuit walls with towers, tiled roofs"
+   ],
+   "state": "preparing",
+   "status": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE)",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "building.school",
+   "use": "School of Sages (research)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "gymnasion with a Doric peristyle (Academy, Lyceum)"
+   ],
+   "state": "validating",
+   "status": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature (blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column by column and stands as one mesh (PortMasonryTests); the destruction slice's building: 150 elements (drums, capitals, entablature spans, brick walls, roof bays, pediments) that fail with the settlement's hull",
+   "meshy": [],
+   "class": "building (PortBuilding.SageSchool): hall of learning in a Doric peristyle",
+   "dating": "E6, c. 400-323 BC (Academy, Lyceum); interpretation of a gymnasium hall",
+   "dimensions": "crepis 5 x 8.2 m in three steps (1 m); 4 x 6 columns 3.3 m, lower diameter 0.52 m; hall 2.1 x 5.2 m inside; eaves 5.4 m; footprint unchanged (PortMasonryTests)",
+   "materials": [
+    "ashlar limestone (Buildings/Ashlar)",
+    "lime plaster and whitewash (Buildings/Stucco)",
+    "sun-dried brick under the plaster (mudbrick tint)",
+    "terracotta tiles",
+    "timber rafters and door",
+    "Egyptian blue and red ochre paint"
+   ],
+   "construction": "crepis and hall socle (foundations); per column 5 drums and a capital on bed joints with a central pin (R-DRUM-JOINTS); architrave and frieze-cornice blocks per intercolumniation on two capitals; hall walls of brick in 8 stretches on the stone socle; roof in 4 bays a side on the frieze and the hall's wall; 2 pediments",
+   "movingParts": "none in use; in destruction: falling columns (as one piece from the joint that gave), blocks, roof bays, walls",
+   "attachmentPoints": "work spots while it rises (PortBuildings.WorkSpots); research fire before the front",
+   "animations": [
+    "rises column by column and course by course from the game's progress",
+    "falls element by element in game time (Topple, Drop, Crumble, CaveIn)"
+   ],
+   "damageZones": "every element is a zone: 16 columns (weak joint fixed per column), 16 spans x 2 blocks, 8 walls, 8 roof bays, 2 pediments, the door; scars on the faces nearest the shots",
+   "destructionStages": "Intact < 8% of the hull lost <= SurfaceDamage (scars) < 30% <= LocalFailure (1-3 own failures) < 60% <= PartialCollapse (4-9) < fallen = WreckOrRuin -> Settled",
+   "lod": "standing: one mesh (Whole) until an element fails; damaged: Standing + Scars + Rubble, one mesh each at rest; no separate LOD levels (to measure)",
+   "integration": "PortBuildings.School.cs, Destruction/*; BattleController: projectile_hit_settlement -> Struck, Unseen when out of sight, DestructionBook beside a quick save",
+   "tests": [
+    "BuildingDestructionTests (A, B, C, E, F, G, H, I, L, M, out of sight)",
+    "PortMasonryTests",
+    "DestructionPresentationTests",
+    "PortPresentationTests.PortViews_LeaveTheSimulationUntouched"
+   ],
+   "results": "artifacts-log/destruction/school-*.png (intact, surface, local, partial, falling, ruin; close and strategic)",
+   "limitations": [
+    "only the School breaks element by element; the other buildings sink into their ruins as before",
+    "mudbrick is a tint of the plaster texture, not a brick texture of its own",
+    "scars are flat patches, not carved geometry",
+    "cost of a whole collapse not yet measured in the Windows build"
+   ],
+   "nextAction": "measure a collapse in the build (smoke report); then the same elements for the houses and the store",
+   "stages": [
+    {
+     "state": "fracturing",
+     "date": "2026-11-10",
+     "commit": "6af648b"
+    },
+    {
+     "state": "validating",
+     "date": "2026-11-10",
+     "evidence": "BuildingDestructionTests 11/11, previews in artifacts-log/destruction"
+    }
+   ],
+   "config": "DamagePlan thresholds; StructureDamageView.MaxBodiesPerStructure 56, MaxBodies 112, MaxChunks 12",
+   "slice": true
+  },
+  {
+   "assetId": "building.dock",
+   "use": "dock (repairs for silver)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ship shed (neosoikos) after Zea: ramp, colonnade, roof"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "building.shipyard",
+   "use": "settlement shipyard and slipways",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ship sheds and slipway of the 4th c."
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "building.outpost",
+   "use": "outpost / bridgehead",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "field camp: palisade, tents, beached boats"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "building.jetty",
+   "use": "jetties at sites and settlements",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace"
+   ],
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "timber jetty or stone quay"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "site.silver",
+   "use": "silver mine site",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "criteria": [
+    "animations never change stock or production speed",
+    "state follows Stock and Capacity",
+    "no glowing silver",
+    "Laurion 4th c.: shaft and gallery mouth, ore baskets, washery (ergasterion) with cistern, furnace, slag",
+    "rock, ore, concentrate and metal told apart"
+   ],
+   "state": "preparing",
+   "status": "in progress: 4th c. ore workshop (flat-washing platform, stand tank, channel, settling tanks), open cistern, mortars, schist rock behind the adit (R-LAURION-WORKSHOPS)",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "site.wood",
+   "use": "timber yard",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "criteria": [
+    "animations never change stock or production speed",
+    "state follows Stock and Capacity",
+    "no glowing silver",
+    "fir and pine logs, hewn beams, planks, end grain (Theophrastus HP 5.7)"
+   ],
+   "state": "preparing",
+   "status": "in progress: fir log stacks, Aleppo pines and columnar cypresses from the pipeline at the timber yards (AegeanArt); felled as before, no wind sway yet",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "environment.coast",
+   "use": "coast rocks and shore",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "replace",
+    "geometry-fix"
+   ],
+   "criteria": [
+    "geology by region (limestone, marble, schist)",
+    "map topology and fields unchanged",
+    "boulder LOD merge fixed"
+   ],
+   "state": "preparing",
+   "status": "in progress: boulder merge fixed (finest level of detail only, was every level: x4 triangles); Attic rocks among the boulders",
+   "meshy": [],
+   "nextAction": "finish the generator work in progress and preview it",
+   "slice": false
+  },
+  {
+   "assetId": "rock.attica-set",
+   "use": "rock modules (limestone, marble, Laurion schist)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4-6 Meshy variants with LOD; strata, cracks, erosion"
+   ],
+   "state": "ready",
+   "status": "in the game: rock_attica_limestone_a and _c and rock_pentelic_marble_a among the shore boulders, darkened to schist behind the Laurion adit (AegeanArt); sea-stack and Laurion schist previews rejected",
+   "meshy": [
+    {
+     "meshyTask": "01a1c63b-a506-744a-9a40-c811e5251861",
+     "credits": 5
+    },
+    {
+     "meshyTask": "01a1c63d-87d2-77e2-8d9e-171f3a7033d2",
+     "credits": 10
+    }
+   ],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "veg.olive.cultivated",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.olive.wild",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.pine.halepensis",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "validating",
+   "status": "Meshy model (veg_pinus_halepensis_a) in the timber yards and the coastal woods, merged per island at its second level of detail; no wind sway",
+   "meshy": [],
+   "nextAction": "measure in the build and show the previews",
+   "slice": false
+  },
+  {
+   "assetId": "veg.pine.brutia",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.cypress.wild",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.cypress.columnar",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "validating",
+   "status": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; no wind sway",
+   "meshy": [],
+   "nextAction": "measure in the build and show the previews",
+   "slice": false
+  },
+  {
+   "assetId": "veg.quercus.coccifera",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.pistacia.lentiscus",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.phrygana",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "veg.halophytes",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.limestone.notch",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.marble-schist",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.beachrock",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.pebble-beach",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.sand-cove",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "coast.terra-rossa",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ore.laurion.outcrop",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "geometry-fix"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ore.face.E1",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E1 Late Helladic IIIC (earlier profile, inactive)",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ore.face.E5",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ore.heap",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "material"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "ore.washery.E5",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "yard.slipway.E1",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E1 Late Helladic IIIC (earlier profile, inactive)",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "yard.tools",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "material"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "yard.shed.zea2",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "prop.amphora",
+   "use": "transport amphorae (Rhodian, Samian, Chian)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "state": "ready",
+   "status": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
+   "meshy": [
+    {
+     "meshyTask": "01a1c63b-ba69-70a6-bd14-7af18f5f69ac",
+     "credits": 5
+    },
+    {
+     "meshyTask": "01a1c63d-75cd-72b7-836a-173fa2f83ca4",
+     "credits": 10
+    }
+   ],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "prop.pithos",
+   "use": "storage jars",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "state": "ready",
+   "status": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
+   "meshy": [],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "prop.anchor",
+   "use": "wooden-stock anchors with lead stock",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "state": "ready",
+   "status": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview (an admiralty anchor) rejected",
+   "meshy": [],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "prop.basket-net",
+   "use": "baskets, nets, rope coils",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "state": "needs_review",
+   "status": "in progress: wicker ore baskets at the Laurion washery and rope coils on the jetties and by the store (Meshy, AegeanArt); the net preview rejected (a cage of sticks)",
+   "meshy": [],
+   "nextAction": "a person decides: another attempt, a procedural model or none",
+   "slice": false
+  },
+  {
+   "assetId": "prop.herm-stele",
+   "use": "herms and stelae at harbours and sanctuaries",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "add-missing"
+   ],
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "state": "needs_review",
+   "status": "Meshy herm rejected (a bust on a round column, Roman); still missing",
+   "meshy": [],
+   "nextAction": "a person decides: another attempt, a procedural model or none",
+   "slice": false
+  },
+  {
+   "assetId": "textures.ship-look",
+   "use": "baked ship textures",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material"
+   ],
+   "criteria": [
+    "CC0 scans for wood, pitch, linen, rope; bronze"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "shader.ship-paint",
+   "use": "ship paint graph",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "keep",
+    "material"
+   ],
+   "criteria": [
+    "wet and charred bits wired to existing systems only"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "materials.pbr-library",
+   "use": "shared PBR material library",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "material"
+   ],
+   "criteria": [
+    "HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour; normals tested"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "shaders.catalog",
+   "use": "shader catalogue",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "keep"
+   ],
+   "criteria": [
+    "no new shader without a measured need"
+   ],
+   "state": "planned",
+   "status": "planned",
+   "meshy": [],
+   "nextAction": "read the sources, then write a brief (docs/ASSET_PIPELINE.md)",
+   "slice": false
+  },
+  {
+   "assetId": "materials.masonry",
+   "use": "limestone ashlar and lime plaster of the port's buildings",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "scope": [
+    "material"
+   ],
+   "criteria": [
+    "courses run level on upright faces (MeshBuilder.Level)",
+    "HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour",
+    "the keywords the boulders and the olive bark already use"
+   ],
+   "state": "ready",
+   "status": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources",
+   "meshy": [],
+   "nextAction": "none",
+   "slice": false
+  },
+  {
+   "assetId": "audio",
+   "use": "sound of the battle and the world",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "exclude"
+   ],
+   "criteria": [
+    "no audio layer exists; out of this refresh until decided"
+   ],
+   "state": "blocked",
+   "status": "out-of-scope",
+   "meshy": [],
+   "nextAction": "none until the reason goes",
+   "slice": false
+  },
+  {
+   "assetId": "water.system",
+   "use": "the sea: HDRP water, deformation, foam, wakes, spray, marine simulation",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "scope": [
+    "exclude"
+   ],
+   "criteria": [
+    "water_guard check passes (docs/art/WaterProtection.md)"
+   ],
+   "state": "blocked",
+   "status": "protected",
+   "meshy": [],
+   "nextAction": "none until the reason goes",
+   "slice": false
+  }
+ ]
+}

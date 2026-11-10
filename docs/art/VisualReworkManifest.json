@@ -935,7 +935,40 @@
     "break-up into modules, falling tiles, dust; follows the game's state"
    ],
    "covers": [],
-   "status": "done: walls sink and lean, the roof falls in, two clouds of dust, tiles thrown, the ruin shows through the dust (2.6 s of game time; PortMasonryTests)"
+   "status": "vertical slice done for the School (docs/art/DESTRUCTION.md): stages from the settlement's hull, failures where the shots struck, support graph, columns topple into rows of drums, blocks drop, brick slumps, roof bays break into tile heaps; pooled pieces within budgets, one rubble mesh at rest; kept beside a quick save (BuildingDestructionTests 11/11, DestructionPresentationTests 1/1); the other buildings: the old sinking fall"
+  },
+  {
+   "assetId": "fx.ship-damage",
+   "use": "a ship's damage stages afloat: breaches, arrows, torn sail, broken posts, bent ram, the mast giving way",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "breaches, arrows, sail tears, broken posts and a bent ram from the hull and module HP; no mast break",
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ShipVisual.cs",
+    "ShipVisual.Mast.cs",
+    "BattleEffects.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "stages from the game's hull alone (DamagePlan)",
+    "the mast snaps above the deck and goes over the listing side, yard and sail with it, held alongside by two lines; moves with the hull, no velocity of its own",
+    "mended in dock; a pooled view keeps nothing of it"
+   ],
+   "covers": [],
+   "status": "vertical slice done for the mast (docs/art/DESTRUCTION.md): below 40% of the hull it snaps above the deck and goes over the listing side with yard and sail, two lines hold it alongside, splinters and a water column (ShipDestructionTests 4/4); oars and planks not yet broken afloat"
   },
   {
    "assetId": "wreck.cargo",
@@ -1084,7 +1117,7 @@
    "covers": [
     "SageSchool"
    ],
-   "status": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature (blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column by column and stands as one mesh (PortMasonryTests)"
+   "status": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature (blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column by column and stands as one mesh (PortMasonryTests); the destruction slice's building: 150 elements (drums, capitals, entablature spans, brick walls, roof bays, pediments) that fail with the settlement's hull"
   },
   {
    "assetId": "building.dock",

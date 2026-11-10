@@ -115,6 +115,75 @@ namespace MorzaBogow.Editor
         }
 
         /// <summary>
+        /// What the School's destruction costs on this machine's CPU in the editor (informative only; the build decides):
+        /// building its elements, a local failure, the fall into ruin frame by frame at 60 frames a second, the rubble at
+        /// rest. Ten runs; medians and the worst frame in the log.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.MeasureSchoolDamage
+        /// </summary>
+        public static void MeasureSchoolDamage()
+        {
+            var materials = Materials();
+            var model = new System.Collections.Generic.List<double>();
+            var local = new System.Collections.Generic.List<double>();
+            var launch = new System.Collections.Generic.List<double>();
+            var frames = new System.Collections.Generic.List<double>();
+            var worst = 0.0;
+            var triangles = 0;
+            var renderers = 0;
+            for (var run = 0; run < 10; run++)
+            {
+                var root = new GameObject("Measure");
+                var settlement = new Settlement { Id = 3 + run, Owner = 0, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true };
+                var buildings = new PortBuildings(root.transform, materials, settlement, 1f, null, null);
+                buildings.Update(settlement, false, 0f);
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                settlement.Hull = settlement.MaxHull * 0.9;
+                buildings.Update(settlement, false, 0f);
+                model.Add(watch.Elapsed.TotalMilliseconds);
+                watch.Restart();
+                settlement.Hull = settlement.MaxHull * 0.5;
+                buildings.Update(settlement, false, 0f);
+                local.Add(watch.Elapsed.TotalMilliseconds);
+                for (var i = 0; i < 300 && buildings.Collapsing; i++) buildings.Update(settlement, false, 1f / 60f);
+                watch.Restart();
+                settlement.Hull = 0;
+                buildings.Update(settlement, true, 0f);
+                launch.Add(watch.Elapsed.TotalMilliseconds);
+                for (var i = 0; i < 300 && buildings.Collapsing; i++)
+                {
+                    watch.Restart();
+                    buildings.Update(settlement, true, 1f / 60f);
+                    var ms = watch.Elapsed.TotalMilliseconds;
+                    frames.Add(ms);
+                    worst = System.Math.Max(worst, ms);
+                }
+                var view = buildings.DamageOf(PortBuilding.SageSchool);
+                triangles = 0;
+                renderers = 0;
+                foreach (var filter in view.Frame.GetComponentsInChildren<MeshFilter>(false))
+                {
+                    if (filter.sharedMesh == null) continue;
+                    triangles += filter.sharedMesh.triangles.Length / 3;
+                    renderers++;
+                }
+                foreach (var owned in root.GetComponentsInChildren<OwnedMeshes>(true))
+                    if (owned.Meshes != null)
+                        foreach (var mesh in owned.Meshes.ToArray()) if (mesh != null) Object.DestroyImmediate(mesh);
+                view.Forget();
+                Object.DestroyImmediate(root);
+            }
+            double Median(System.Collections.Generic.List<double> list)
+            {
+                list.Sort();
+                return list.Count == 0 ? 0 : list[list.Count / 2];
+            }
+            Debug.Log($"[Destruction] School, 10 runs, editor CPU: elements built and first scars {Median(model):0.0} ms; local failure {Median(local):0.0} ms; " +
+                      $"fall into ruin started {Median(launch):0.0} ms; a frame of the fall median {Median(frames):0.00} ms, worst {worst:0.0} ms " +
+                      $"({frames.Count} frames); at rest {renderers} renderers, {triangles} triangles");
+            if (Application.isBatchMode) EditorApplication.Exit(0);
+        }
+
+        /// <summary>
         /// Ships at the stages of their damage (docs/art/DESTRUCTION.md), side by side under the same light: whole, holed
         /// and listing, the mast caught falling, the mast down over the side; a ram and a catapult ship.
         /// -executeMethod MorzaBogow.Editor.BuildingPreview.PreviewShipDamage

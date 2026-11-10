@@ -135,6 +135,21 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 | Pochylnia z płozami i podporami, narzędzia z brązu (topory, cioły, świdry) | interpretacja epoki | — | `Slipway`, `CrewTool.Axe` |
 | Budowle osady (stocznia, Warsztat, Miasto, Szkoła Mędrców, dok) | **do opracowania**: dziś prymitywy; wymagają zestawów modułowych z kamienia, cegły suszonej i drewna (mury cyklopowe tylko dla cytadel) | — | `AssetManifest.json`: `building.*` |
 
+## Zniszczenia budowli i okrętów (pionowy wycinek, [DESTRUCTION.md](DESTRUCTION.md))
+
+Wszystkie źródła tej sekcji mają poziom „search-summary”: widziane przez streszczenie wyszukiwarki, bez odczytu całej strony. Nie powołujemy się na strony ani cytaty.
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Trzon kolumny z bębnów łączonych środkowym kołkiem (polos, empolion) i opaską styku (anatyroza), bez zaprawy | **ustalenie** dla budowli V–IV w. (Partenon, Messene), wg streszczeń | R-DRUM-JOINTS | kolumna Szkoły: 5 bębnów i głowica; pęka na spoinie łożyska |
+| Przewrócona kolumna leży jako rząd bębnów wzdłuż kierunku upadku | **ustalenie** jako obserwowany układ (świątynia Zeusa w Olimpii, „domino”; odbudowa po 373 p.n.e.); położenie każdego bębna to interpretacja | R-OLYMPIA-QUAKE | `StructureDamageView.Rest` (Topple) |
+| Bloki architrawu i fryzu spoczywają na dwóch głowicach; tracąc jedną, spadają | **interpretacja** konstrukcyjna (statyka belki na dwóch podporach) | — | graf podparcia Szkoły |
+| Ściany z cegły suszonej na kamiennym cokole osiadają w kopce, cokół zostaje | **ustalenie** (mur z cegły na kamiennym fundamencie; masy zwalonej cegły przy ścianach w Atenach i Sardes); kształt kopca to interpretacja | R-MUDBRICK-DECAY, R-OLYNTHUS | ściany sali: kikut z tynkiem, kopiec cegły |
+| Dachówki na krokwiach: po zawaleniu sterta potłuczonej terakoty i połamane krokwie | **ustalenie** (dachówki są częstym znaleziskiem tam, gdzie cegła przepada); układ sterty to interpretacja | R-MUDBRICK-DECAY | przęsła dachu (CaveIn) |
+| Bez ognia: ogień tylko przy zdarzeniu gry, a gra go nie ma | decyzja gry (polecenie) | — | brak zwęgleń w nowych ruinach Szkoły |
+| Maszt pęka tuż nad pokładem, gdzie jest trzymany, i zostawia kikut w stępce | **interpretacja**: stępka masztu poświadczona (Kyrenia); o belkach wokół masztu źródła w tej sesji brak | R-KYRENIA-MASTSTEP | `ShipVisual.Mast` |
+| Okręty wojenne zostawiały duże żagle (może i maszty) na lądzie przed bitwą | **ustalenie** dla żagli (Ksenofont, Hellenika 6.2, Ifikrates; Ajgospotamoj); maszt w bitwie sporny | R-SAILS-ASHORE | maszt rysowany w walce to lekki maszt do ucieczki (interpretacja); zwinięty żagiel w walce: decyzja artystyczna do wdrożenia |
+
 ## Do weryfikacji w następnym kroku
 
 1. Okręty z Medinet Habu i Kynos: publikacje źródłowe (Epigraphic Survey; Dakoronia).

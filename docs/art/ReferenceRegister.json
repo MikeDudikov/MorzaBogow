@@ -699,6 +699,152 @@
       "assets": [
         "prop.anchor"
       ]
+    },
+    {
+      "id": "R-DRUM-JOINTS",
+      "object": "Joints of Classical column drums: a central wooden pin (polos and empolion) and a dressed contact band (anathyrosis); metal dowels and clamps set in lead",
+      "sources": [
+        {
+          "url": "https://repository.royalholloway.ac.uk/items/29755a9b-2ce1-7340-43b7-c68efd07b559/8/Pakkanen_2011_Messene_column_shaft.pdf",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.mdpi.com/2571-9408/8/1/2",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.wikipedia.org/wiki/Anathyrosis",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Drums were held in place by a wooden centring pin and the weight of the building (Pakkanen 2011, as the search summary gives it)",
+        "A central connector in the middle of the drums is reported for many monuments of the period: Parthenon, Propylaea, Hephaisteion, temple of Apollo Epikourios (MDPI Heritage 8/1/2, as the summary gives it)",
+        "Anathyrosis: the dressing of joints of dry-laid stone, used also for column drums; how far the central band applies is debated (Wikipedia; Pakkanen)",
+        "Off-centre metal dowels against twisting of drums and clamps set in lead are reported for some monuments (MDPI, as the summary gives it)"
+      ],
+      "dating": "5th-4th c. BC (Parthenon 447-432 BC; Messene from 369 BC)",
+      "certainty": "seen through search summaries only; no page or figure claimed; to be read in the papers",
+      "assets": [
+        "building.school (columns of five drums; a column breaks at a bed joint, its drums come apart)",
+        "fx.building-destruction"
+      ]
+    },
+    {
+      "id": "R-OLYMPIA-QUAKE",
+      "object": "Earthquake damage to the temple of Zeus at Olympia",
+      "sources": [
+        {
+          "url": "https://eclass-b.uoa.gr/modules/document/file.php/DI343/Post-earthquake_architecture_at_Olympia.pdf",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.curriculumvisions.com/newhome/history/ancientGreeks/8/2detail1.html",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Drums of the temple's columns collapsed in a domino-type pattern (the paper, as the summary gives it)",
+        "At least part of the temple was rebuilt after a major earthquake in 373 BC (the paper, as the summary gives it)",
+        "The fallen discs in front of the temple are the column drums (school site)"
+      ],
+      "dating": "earthquake 373 BC; the final collapse much later",
+      "certainty": "the arrangement of the fallen drums rests on one paper seen through a summary; how drums lie after a fall is used as an observed pattern, not as a measurement",
+      "assets": [
+        "building.school (a toppled column lies as a row of drums along the way it fell)",
+        "building.ruin"
+      ]
+    },
+    {
+      "id": "R-MUDBRICK-DECAY",
+      "object": "Sun-dried brick walls on stone socles and what is left of them",
+      "sources": [
+        {
+          "url": "https://ecampusontario.pressbooks.pub/housesandhouseholdsancientgreece/chapter/from-the-ground-up/",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://castlesandcoprolites.blogspot.com/2017/07/geoarchaeology-and-mudbricks.html",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://dspace.library.uu.nl/bitstream/handle/1874/361902/THE_AREOPAGOS_OVAL_BUILDING_RECONSIDERED.pdf?sequence=1",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.sardisexpedition.org/en/essays/r8-ramage-ch6-hob-lydian-ii",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Greek house walls of mud brick on stone foundations; mud brick much less durable than stone (house textbook)",
+        "At Olynthos the mud bricks hardly survive while roof tiles are common (excavation blog, informal)",
+        "Fallen mud brick lies as a degradation layer and masses beside the walls that carried it (Areopagos Oval Building; Sardis)"
+      ],
+      "dating": "Classical and earlier",
+      "certainty": "general pattern from summaries of several sites; no Olynthos collapse record read",
+      "assets": [
+        "building.school (hall walls slump into mounds, ragged stumps on the stone socle)",
+        "building.store",
+        "building.town"
+      ]
+    },
+    {
+      "id": "R-SAILS-ASHORE",
+      "object": "Triremes leaving their large sails (and perhaps masts) ashore before a battle",
+      "sources": [
+        {
+          "url": "https://fgh.perseids.org/read/greekLit/tlg0032/tlg001/perseus-eng2/6.2.16-6.2.35",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://www.Britannica.Com/technology/naval-ship/Greece",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://ramsravensandwrecks.blogspot.dk/2014_12_07_archive.html",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "Iphicrates set out round the Peloponnese with his large sails left at Athens, as he expected to fight (Xenophon, Hellenica 6.2, Perseus translation, as the summary gives it)",
+        "Britannica: the mast was lowered and stowed when rowing into the wind or in battle (as the summary gives it)",
+        "A blog argues that 4th-century triremes kept a light mast and sail aboard for escape, not the main mast (as the summary gives it)"
+      ],
+      "dating": "late 5th - 4th c. BC",
+      "certainty": "the Xenophon passage seen through a summary of the translation; the mast's place in battle is debated",
+      "assets": [
+        "ship.Ram and other warships (a mast drawn in battle is the light mast: an interpretation)",
+        "fx.ship-destruction (mast break)"
+      ]
+    },
+    {
+      "id": "R-KYRENIA-MASTSTEP",
+      "object": "The mast step of the Kyrenia ship (late 4th c. BC merchantman)",
+      "sources": [
+        {
+          "url": "https://en.wikipedia.org/wiki/The_Kyrenia_Ship",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://books.openbookpublishers.com/10.11647/obp.0167/ch3.xhtml",
+          "access": "search-summary"
+        },
+        {
+          "url": "https://ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Navires/Kyrenia/Kyrenia2-Tzalas2018.pdf",
+          "access": "search-summary"
+        }
+      ],
+      "claims": [
+        "The mast step timber sits on the floor timbers; it was moved up to three or four times in the ship's life (Wikipedia; Open Book Publishers, as the summaries give them)",
+        "The mast-step mechanism survived and the replica Kyrenia II was built with it (Tzalas 2018, as the summary gives it)",
+        "No source found in this session on mast partners or the deck beams round the mast"
+      ],
+      "dating": "late 4th c. BC",
+      "certainty": "the step is attested; where a mast would snap (just above the deck, where it is held) is an interpretation",
+      "assets": [
+        "fx.ship-destruction (the mast snaps a little above the deck and leaves a stump in its step)"
+      ]
     }
   ]
 }
