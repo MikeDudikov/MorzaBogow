@@ -60,9 +60,11 @@ namespace MorzaBogow.Presentation
         Label selectionTitle, selectionNote;
         VisualElement clearSelectionButton;
         VisualElement emptyView, shipView, groupView, portView, wreckView;
-        VisualElement shipPortrait, shipBadge, shipCargoRow, moraleGlyph;
-        Label shipName, shipTag, shipHull, shipSailors, shipSoldiers, shipMorale, shipCargo, shipPhase;
-        MeterBar shipHullMeter, shipCargoMeter;
+        VisualElement shipPortrait, shipBadge, shipCargoRow, moraleGlyph, shipBoardingRow;
+        Label shipName, shipTag, shipHull, shipSailors, shipSoldiers, shipArchers, shipWounded, shipMorale, shipCargo, shipPhase, shipBoarding;
+        MeterBar shipHullMeter, shipCargoMeter, shipBoardingOurs, shipBoardingTheirs;
+        Button shipCrewButton;
+        int shipShownId = -1;
         readonly List<(Button card, VisualElement portrait, Label name, MeterBar meter)> unitCards = new List<(Button, VisualElement, Label, MeterBar)>();
         Button moreCard;
         Label moreLabel;
@@ -425,14 +427,34 @@ namespace MorzaBogow.Presentation
             shipHull = Text(string.Empty, "card-value", hull);
             Tip(hull, () => new TipInfo { Title = "Kadłub", Body = "Wytrzymałość kadłuba. Przy zerze statek tonie i zostawia wrak. Remont w stoczni własnego portu.", Key = Keys(GameAction.Repair) + ": remont" });
 
+            // The crew by trade, each against the plan its port trains it to (docs/ZALOGA_I_ABORDAZ.md).
             var crew = Element("card-row", card);
-            shipSailors = CardStat(crew, "sailor", "marynarze", () => new TipInfo { Title = "Marynarze", Body = "Wioślarze i obsługa. Mniej niż minimum spowalnia statek." });
-            shipSoldiers = CardStat(crew, "soldier", "żołnierze", () => new TipInfo { Title = "Żołnierze", Body = "Walczą w abordażu i bronią przed nim." });
-            var morale = Element("card-stat", crew);
+            shipSailors = CardStat(crew, "sailor", "żeglarze", () => new TipInfo { Title = "Żeglarze", Body = "Sterują, wiosłują i zbierają surowce. Mniej niż czwarta część załogi spowalnia okręt; nadmiar wioseł (skład Żegluga) dodaje 8% prędkości. Bronią się wręcz tylko, gdy na pokładzie nie zostało wojsko." });
+            shipSoldiers = CardStat(crew, "soldier", "szermierze", () => new TipInfo { Title = "Szermierze", Body = "Walczą wręcz: niosą abordaż na wrogi pokład, odpierają go na własnym i przecinają liny abordażowe przeciwnika." });
+            shipArchers = CardStat(crew, "volley", "łucznicy", () => new TipInfo { Title = "Łucznicy", Body = "Ostrzeliwują załogi okrętów w zasięgu 15–100 m – każdy łucznik strzela. W abordażu wspierają z dystansu, a własnego pokładu bronią lepiej niż cudzego." });
+            var crewMore = Element("card-row", card);
+            shipWounded = CardStat(crewMore, "warning", "ranni", () => new TipInfo { Title = "Ranni", Body = "Dwóch na pięciu poległych to ranni: nie walczą ani nie wiosłują. Port leczy ich za 0,25 S i przywraca do służby." });
+            var morale = Element("card-stat", crewMore);
             moraleGlyph = Glyph(morale, "morale-high", "glyph-small");
             shipMorale = Text(string.Empty, "card-stat-value", morale);
             Text("morale", "card-stat-label", morale);
-            Tip(morale, () => new TipInfo { Title = "Morale", Body = "Duch załogi; niskie osłabia w walce wręcz. Ikona i liczba – nie tylko kolor." });
+            Tip(morale, () => new TipInfo { Title = "Morale", Body = "Duch załogi; niskie osłabia w walce wręcz. Poniżej 20% załoga poddaje okręt abordującemu. Ikona i liczba – nie tylko kolor." });
+            shipCrewButton = new Button(OpenCrewPlan) { text = "Skład", focusable = true };
+            shipCrewButton.AddToClassList("card-button");
+            crewMore.Add(shipCrewButton);
+            Tip(shipCrewButton, () => new TipInfo { Title = "Skład załogi", Body = "Wybierz, do jakiego składu port wyszkoli załogę. Zmiana następuje przy przegrupowaniu w porcie ze stocznią: okręt bez rozkazu w pobliżu portu sam wchodzi do doku, naprawia kadłub, leczy rannych i uzupełnia ludzi.", Key = Keys(GameAction.Repair) + ": do portu teraz" });
+
+            shipBoardingRow = Element("card-row", card);
+            Glyph(shipBoardingRow, "board", "glyph-small");
+            shipBoarding = Text(string.Empty, "small", shipBoardingRow);
+            shipBoarding.style.marginLeft = 6;
+            shipBoardingOurs = new MeterBar(HudPalette.Ally, 6);
+            shipBoardingOurs.AddToClassList("card-meter");
+            shipBoardingRow.Add(shipBoardingOurs);
+            shipBoardingTheirs = new MeterBar(HudPalette.Enemy, 6);
+            shipBoardingTheirs.AddToClassList("card-meter");
+            shipBoardingRow.Add(shipBoardingTheirs);
+            Tip(shipBoardingRow, () => new TipInfo { Title = "Abordaż", Body = "Najpierw haki (3 s) – szermierze obrońcy mogą przeciąć liny. Potem walka na burtach: walczy tylko tylu ludzi, ilu zmieści się przy relingu, a łucznicy wspierają z dystansu. Paski: siła twojej strony i przeciwnika w ostatniej rundzie." });
 
             shipCargoRow = Element("card-row", card);
             Glyph(shipCargoRow, "cargo", "glyph-small");
@@ -443,6 +465,54 @@ namespace MorzaBogow.Presentation
             shipCargo = Text(string.Empty, "card-value", shipCargoRow);
 
             shipPhase = Text(string.Empty, "card-phase", card);
+        }
+
+        readonly List<Action> crewPlanActions = new List<Action>();
+
+        /// <summary>The crew counts shown on the ship card: sailors, swordsmen, archers, wounded.</summary>
+        public string CrewText => $"{shipSailors?.text}|{shipSoldiers?.text}|{shipArchers?.text}|{shipWounded?.text}";
+
+        public bool CrewPlanOffered => shipCrewButton != null && shipCrewButton.resolvedStyle.display != DisplayStyle.None && shipView.resolvedStyle.display != DisplayStyle.None;
+
+        /// <summary>Opens the crew plan choice for the shown ship and returns how many crews it offers (tests).</summary>
+        public int OpenCrewPlanForTest()
+        {
+            OpenCrewPlan();
+            return crewPlanActions.Count;
+        }
+
+        /// <summary>Chooses one of the offered crews as a click would (tests).</summary>
+        public void PickCrewPlanForTest(int index) => crewPlanActions[index]();
+
+        /// <summary>The four ready crews for the shown ship: their numbers and what the port charges to train to them.</summary>
+        void OpenCrewPlan()
+        {
+            crewPlanActions.Clear();
+            var ship = battle.World.FindShip(shipShownId);
+            if (ship == null || ship.Owner != BattleController.PlayerFaction || ship.Definition.IsEconomic) return;
+            var panel = OpenPopover(shipCrewButton, $"Skład załogi – {BattleController.ClassName(ship.Class)}");
+            Text("żeglarze · szermierze · łucznicy; koszt w porcie", "popover-row-label", panel);
+            foreach (var preset in new[] { CrewPreset.Balanced, CrewPreset.Boarding, CrewPreset.Volley, CrewPreset.Seamen })
+            {
+                var plan = ship.Definition.PlanFor(preset);
+                var probe = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Archers = ship.Archers, Wounded = ship.Wounded, Plan = plan };
+                var cost = World.MusterCost(probe);
+                var chosen = preset;
+                var current = ship.Plan.Preset == preset;
+                Action pick = () => { battle.SetCrewPlan(ship.Id, chosen); ClosePopover(); };
+                crewPlanActions.Add(pick);
+                var item = MenuItem(panel, current ? "check" : preset == CrewPreset.Boarding ? "board" : preset == CrewPreset.Volley ? "volley" : preset == CrewPreset.Seamen ? "speed" : "soldier",
+                    BattleController.PresetName(preset), $"{plan.Sailors} · {plan.Swordsmen} · {plan.Archers} · {cost / (float)Rules.Centi:0.##} S", pick);
+                Tip(item, () => new TipInfo
+                {
+                    Title = BattleController.PresetName(chosen),
+                    Body = chosen == CrewPreset.Boarding ? "Przewaga szermierzy: do zdobywania okrętów."
+                        : chosen == CrewPreset.Volley ? "Przewaga łuczników: wybija załogi z dystansu i dobrze broni własnego pokładu."
+                        : chosen == CrewPreset.Seamen ? "40% żeglarzy: +8% prędkości, mniej wojska."
+                        : "Szermierze i łucznicy po równo.",
+                    Cost = $"Przegrupowanie w porcie: {cost / (float)Rules.Centi:0.##} S (leczenie 0,25 S, zaciąg 0,5 S żeglarz / 1 S wojownik, przeszkolenie 0,5 S).",
+                });
+            }
         }
 
         Label CardStat(VisualElement row, string icon, string label, Func<TipInfo> tip)
@@ -619,7 +689,7 @@ namespace MorzaBogow.Presentation
         {
             yield return new CommandButton { Action = GameAction.Move, Icon = "move", Label = "Ruch", Full = "Płyń do punktu", Targeted = HudOrder.Move, Able = _ => true, Body = "Wskaż miejsce na morzu; statki omijają ląd i płycizny." };
             yield return new CommandButton { Action = GameAction.Stop, Icon = "stop", Label = "Stop", Full = "Zatrzymaj", Instant = hud => hud.battle.StopSelected(), Able = _ => true, Body = "Przerywa bieżący rozkaz." };
-            yield return new CommandButton { Action = GameAction.Attack, Icon = "attack", Label = "Atak", Full = "Ostrzał łuczników", Targeted = HudOrder.Attack, Able = ship => ship.Definition.LightSlots > 0, Body = "Łucznicy strzelają do wskazanego okrętu lub osady wroga." };
+            yield return new CommandButton { Action = GameAction.Attack, Icon = "attack", Label = "Atak", Full = "Ostrzał łuczników", Targeted = HudOrder.Attack, Able = ship => ship.Archers > 0, Body = "Łucznicy strzelają do wskazanego okrętu lub osady wroga." };
             yield return new CommandButton { Action = GameAction.Ram, Icon = "ram", Label = "Taran", Full = "Szarża taranem", Targeted = HudOrder.Ram, Able = ship => ship.Class == ShipClass.Ram, Body = "Taranowiec szarżuje, odskakuje i ponawia atak." };
             yield return new CommandButton { Action = GameAction.Board, Icon = "board", Label = "Abordaż", Full = "Abordaż", Targeted = HudOrder.Board, Able = ship => ship.Class == ShipClass.Boarder, Body = "Haki i walka wręcz o zdobycie okrętu." };
             yield return new CommandButton { Action = GameAction.Volley, Icon = "volley", Label = "Ostrzał", Full = "Ostrzał z abordażowca", Targeted = HudOrder.Volley, Able = ship => ship.Class == ShipClass.Boarder, Body = "Abordażowiec strzela zamiast szukać zwarcia. Także Alt+PPM." };
@@ -987,8 +1057,30 @@ namespace MorzaBogow.Presentation
             var hull = (float)(ship.Hull / definition.Hull);
             shipHullMeter.Set(hull, HudPalette.Hull(hull), patterns && hull <= 0.3f);
             SetText(shipHull, $"{Mathf.CeilToInt((float)ship.Hull)} / {Mathf.CeilToInt((float)definition.Hull)}");
-            SetText(shipSailors, ship.Sailors.ToString());
-            SetText(shipSoldiers, ship.Soldiers.ToString());
+            shipShownId = ship.Id;
+            // Own crews against their plan; an enemy's only as seen now.
+            string Count(int now, int plan) => enemy || now == plan ? now.ToString() : $"{now}/{plan}";
+            SetText(shipSailors, Count(ship.Sailors, ship.Plan.Sailors));
+            SetText(shipSoldiers, Count(ship.Swordsmen, ship.Plan.Swordsmen));
+            SetText(shipArchers, Count(ship.Archers, ship.Plan.Archers));
+            SetText(shipWounded, ship.Wounded.ToString());
+            Show(shipCrewButton, !enemy && !definition.IsEconomic);
+            if (!enemy && !definition.IsEconomic) shipCrewButton.text = $"Skład: {BattleController.PresetName(ship.Plan.Preset)}";
+
+            var link = battle.BoardingOf(ship.Id);
+            Show(shipBoardingRow, link != null);
+            if (link != null)
+            {
+                var attacking = link.AttackerId == ship.Id;
+                var ours = attacking ? link.AttackerStrength : link.TargetStrength;
+                var theirs = attacking ? link.TargetStrength : link.AttackerStrength;
+                var most = Mathf.Max(1f, (float)Math.Max(ours, theirs));
+                shipBoardingOurs.Set((float)ours / most, HudPalette.Ally);
+                shipBoardingTheirs.Set((float)theirs / most, HudPalette.Enemy);
+                SetText(shipBoarding, link.Phase == BoardingPhase.Hooks
+                    ? (attacking ? "Haki – liny" : "Haki wroga – tniemy liny") + $" {Mathf.RoundToInt((float)link.CutProgress * 100)}%"
+                    : $"Walka na burtach · front {(attacking ? link.AttackerFront : link.TargetFront)}");
+            }
             var morale = Mathf.RoundToInt((float)ship.Morale);
             SetText(shipMorale, $"{morale}%");
             moraleGlyph.style.backgroundImage = Icon(morale >= 70 ? "morale-high" : morale >= 40 ? "morale-mid" : "morale-low");

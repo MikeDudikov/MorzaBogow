@@ -459,7 +459,8 @@ namespace MorzaBogow.Tests
             var settlement = world.SettlementOf(0);
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = 100;
-            ship.Soldiers = 3;
+            ship.Swordsmen = 3;
+            ship.Archers = 0;
             settlement.Wood = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
             Run(world, 5);
@@ -889,7 +890,8 @@ namespace MorzaBogow.Tests
         {
             var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
             var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 26, 0);
-            target.Soldiers = defenders;
+            target.Swordsmen = defenders;
+            target.Archers = 0;
             return (boarder, target);
         }
 
@@ -898,7 +900,8 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var (boarder, target) = BoardSetup(world, 5);
-            boarder.Soldiers = 9;
+            boarder.Swordsmen = 9;
+            boarder.Archers = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
             world.Step();
             Assert.That(boarder.Order, Is.Not.EqualTo(OrderKind.Board));
@@ -962,6 +965,241 @@ namespace MorzaBogow.Tests
             world.Step();
             Assert.That(world.Boardings, Is.Empty);
             Assert.That(target.Owner, Is.EqualTo(1));
+        }
+
+        // ---------- Crew by trade (docs/ZALOGA_I_ABORDAZ.md) ----------
+
+        static readonly ShipClass[] AllClasses = { ShipClass.Cutter, ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.Merchant };
+
+        [Test]
+        public void Crew_EveryPlanFillsTheHullAndTheDefaultKeepsThePrice()
+        {
+            foreach (var shipClass in AllClasses)
+            {
+                var definition = ShipCatalog.Get(shipClass);
+                foreach (CrewPreset preset in Enum.GetValues(typeof(CrewPreset)))
+                {
+                    if (preset == CrewPreset.Custom) continue;
+                    var plan = definition.PlanFor(preset);
+                    Assert.That(plan.Total, Is.EqualTo(definition.MaxCrew), $"{shipClass} {preset} fills the hull.");
+                    Assert.That(plan.Sailors, Is.GreaterThanOrEqualTo(definition.BaseSailors), $"{shipClass} {preset} keeps its rowers.");
+                }
+                // E04 prices sailors at 0.5 S and fighters at 1 S: the default crew is the one the price was set for.
+                var standard = definition.PlanFor(definition.DefaultPreset);
+                Assert.That(standard.Sailors, Is.EqualTo(definition.StandardSailors));
+                Assert.That(standard.Swordsmen + standard.Archers, Is.EqualTo(definition.StandardSoldiers));
+                var ship = Empty().SpawnShip(0, shipClass, 0, 0);
+                Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers), Is.EqualTo((standard.Sailors, standard.Swordsmen, standard.Archers)));
+            }
+            Assert.That(ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Archers, Is.GreaterThan(ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Swordsmen), "A crew destroyer is a ship of archers.");
+            Assert.That(ShipCatalog.Get(ShipClass.Boarder).PlanFor(CrewPreset.Boarding).Swordsmen, Is.GreaterThan(ShipCatalog.Get(ShipClass.Boarder).PlanFor(CrewPreset.Boarding).Archers), "A boarder is a ship of swordsmen.");
+        }
+
+        [Test]
+        public void Crew_ArchersOfACrewDestroyerHurtCrewsAsItsArcherPostsDid()
+        {
+            var archers = ShipCatalog.Get(ShipClass.CrewDestroyer).PlanFor(CrewPreset.Volley).Archers;
+            var now = archers * Rules.ArcherAccuracy * Rules.ArcherShotCrewDamage;
+            var before = 4 * Rules.ArcherAccuracy * 4.0;
+            Assert.That(now, Is.EqualTo(before).Within(0.5), "Crew damage per volley.");
+            Assert.That(archers * Rules.ArcherAccuracy * Rules.ArcherShotHullDamage, Is.EqualTo(4 * Rules.ArcherAccuracy * 2.0).Within(0.3), "Hull damage per volley.");
+        }
+
+        [Test]
+        public void Crew_FewerArchersShootLessAndNoneDoNotShoot()
+        {
+            int Lost(int archers)
+            {
+                var world = Empty(11);
+                var shooter = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
+                shooter.Archers = archers;
+                var target = world.SpawnShip(1, ShipClass.Boarder, 60, 0);
+                target.Hull = 1e6;
+                var crew = target.Crew;
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.AttackShip, ShipIds = new[] { shooter.Id }, TargetId = target.Id });
+                Run(world, 30);
+                return crew - target.Crew;
+            }
+            Assert.That(Lost(29), Is.GreaterThan(Lost(6)));
+            Assert.That(Lost(0), Is.Zero);
+        }
+
+        [Test]
+        public void Crew_OnlySailorsRowAndSpareOarsAddSpeed()
+        {
+            var world = Empty();
+            var ram = world.SpawnShip(0, ShipClass.Ram, 0, 0);
+            Assert.That(World.CrewSpeedFactor(ram), Is.EqualTo(1.0));
+            ram.Swordsmen += 20;
+            ram.Sailors = ram.Definition.BaseSailors / 2;
+            Assert.That(World.CrewSpeedFactor(ram), Is.LessThan(0.6), "Fighters do not row.");
+            var seamen = ram.Definition.PlanFor(CrewPreset.Seamen);
+            ram.Sailors = seamen.Sailors;
+            Assert.That(World.CrewSpeedFactor(ram), Is.EqualTo(1 + Rules.SeamenSpeedBonus).Within(1e-9));
+        }
+
+        // ---------- The fight on deck ----------
+
+        [Test]
+        public void Board_TheFrontLimitsWhoFightsAndArchersDefendTheirOwnDeck()
+        {
+            var world = Empty();
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            var narrow = World.DeckStrength(boarder, 4, true);
+            var wide = World.DeckStrength(boarder, 20, true);
+            Assert.That(narrow.swordsmen, Is.EqualTo(4));
+            Assert.That(wide.strength, Is.GreaterThan(narrow.strength), "A wider front brings more men to the rail.");
+
+            var swords = world.SpawnShip(0, ShipClass.Ram, 0, 0);
+            swords.Swordsmen = 20; swords.Archers = 0;
+            var bows = world.SpawnShip(0, ShipClass.Ram, 0, 0);
+            bows.Swordsmen = 0; bows.Archers = 20;
+            Assert.That(World.DeckStrength(swords, 10, true).strength, Is.GreaterThan(World.DeckStrength(bows, 10, true).strength), "Swordsmen carry an assault.");
+            Assert.That(World.DeckStrength(bows, 10, false).strength, Is.GreaterThan(World.DeckStrength(bows, 10, true).strength), "Archers fight better on their own deck.");
+        }
+
+        static (World world, Ship attacker, Ship target) Grappled(ShipClass attackerClass, ShipClass targetClass, ulong seed = 7)
+        {
+            var world = Empty(seed);
+            var attacker = world.SpawnShip(0, attackerClass, 0, 100);
+            var target = world.SpawnShip(1, targetClass, attacker.Definition.Radius + ShipCatalog.Get(targetClass).Radius + 2, 100);
+            attacker.Heading = target.Heading = 0;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { attacker.Id }, TargetId = target.Id });
+            return (world, attacker, target);
+        }
+
+        [Test]
+        public void Board_TheFallenAreTwoInFiveWoundedAndTheRestDead()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.Ram);
+            // A wounded man stays aboard, so able plus wounded falls only with the dead (and the prize crew sent across).
+            var killed = 0;
+            for (var i = 0; i < 60 * Rules.TickRate && target.Owner == 1; i++)
+            {
+                var aboard = attacker.Crew + attacker.Wounded;
+                world.Step();
+                if (target.Owner == 1) killed += aboard - (attacker.Crew + attacker.Wounded);
+            }
+            Assert.That(target.Owner, Is.EqualTo(0), "The boarder takes the ram.");
+            var fallen = killed + attacker.Wounded;
+            Assert.That(attacker.Wounded, Is.GreaterThan(0));
+            Assert.That(attacker.Wounded, Is.EqualTo(fallen * Rules.WoundedShare).Within(1.0));
+        }
+
+        [Test]
+        public void Board_ABrokenCrewSurrendersAndTheShipIsTakenWhole()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.CrewDestroyer);
+            target.CargoType = ResourceType.Wood;
+            target.Cargo = 40 * Rules.Centi;
+            var paid = target.PaidConstructionSilver;
+            var sailors = target.Sailors;
+            var surrendered = false;
+            for (var i = 0; i < 60 * Rules.TickRate && target.Owner == 1; i++)
+            {
+                if (world.Boardings.Any(link => link.Hooked)) target.Morale = Math.Min(target.Morale, Rules.SurrenderMorale - 1);
+                world.Step();
+                surrendered |= world.Events.Any(item => item.Type == "ship_surrendered");
+            }
+            Assert.That(surrendered, Is.True, "Fighters still aboard, but the crew is broken.");
+            Assert.That(target.Owner, Is.EqualTo(0));
+            Assert.That(target.Cargo, Is.EqualTo(40 * Rules.Centi), "Taken with its cargo.");
+            Assert.That(target.PaidConstructionSilver, Is.EqualTo(paid), "And its fittings and cost.");
+            Assert.That(target.Sailors, Is.GreaterThanOrEqualTo(Math.Min(sailors, target.Definition.BaseSailors)), "Its sailors row on for the new owner.");
+            Assert.That(target.Wounded, Is.Zero, "The enemy's wounded are lost.");
+            Assert.That(target.Plan.Total, Is.EqualTo(target.Definition.MaxCrew));
+        }
+
+        [Test]
+        public void Board_DefendingSwordsmenCutTheLinesOfAWeakerBoarder()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Ram, ShipClass.Boarder);
+            var cut = false;
+            for (var i = 0; i < 10 * Rules.TickRate && !cut; i++)
+            {
+                world.Step();
+                cut = world.Events.Any(item => item.Type == "hooks_cut" && item.Amount == 1);
+            }
+            Assert.That(cut, Is.True, "The boarder's swordsmen hack through a ram's grapples.");
+            Assert.That(target.Owner, Is.EqualTo(1));
+            Assert.That(World.BoardingOdds(target, attacker), Is.GreaterThan(1), "The other way round the odds favour the boarder.");
+        }
+
+        [Test]
+        public void Board_SaveDuringTheFightContinuesIdentically()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.CrewDestroyer);
+            for (var i = 0; i < 6 * Rules.TickRate; i++) world.Step();
+            Assert.That(world.Boardings.Any(link => link.Hooked), Is.True);
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            for (var i = 0; i < 8 * Rules.TickRate; i++) { world.Step(); loaded.Step(); }
+            foreach (var ship in world.Ships)
+            {
+                var copy = loaded.FindShip(ship.Id);
+                Assert.That((copy.Owner, copy.Sailors, copy.Swordsmen, copy.Archers, copy.Wounded, copy.Morale), Is.EqualTo((ship.Owner, ship.Sailors, ship.Swordsmen, ship.Archers, ship.Wounded, ship.Morale)));
+                Assert.That(copy.Plan.Total, Is.EqualTo(ship.Plan.Total));
+            }
+        }
+
+        // ---------- Regrouping in port ----------
+
+        [Test]
+        public void Port_AnIdleShipRegroupsByItselfForTheQuotedSilver()
+        {
+            var world = Empty();
+            var port = world.SettlementOf(0);
+            var ship = world.SpawnShip(0, ShipClass.Ram, port.X + 30, 0);
+            ship.Swordsmen -= 6;
+            ship.Archers -= 2;
+            ship.Wounded = 3;
+            var quote = World.MusterCost(ship);
+            Assert.That(quote, Is.EqualTo(3 * Rules.HealSilver + 5 * Rules.SoldierSilver), "Three healed, five recruited.");
+            var silver = port.Silver;
+            var restored = false;
+            for (var i = 0; i < 40 * Rules.TickRate && !restored; i++)
+            {
+                world.Step();
+                restored = world.Events.Any(item => item.Type == "ship_restored" && item.SubjectId == ship.Id);
+            }
+            Assert.That(restored, Is.True, "Went to the dock without an order.");
+            Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers, ship.Wounded), Is.EqualTo((ship.Plan.Sailors, ship.Plan.Swordsmen, ship.Plan.Archers, 0)));
+            Assert.That(silver - port.Silver, Is.EqualTo(quote));
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.Idle));
+        }
+
+        [Test]
+        public void Port_WithoutSilverTheMusterWaitsAndChargesNothing()
+        {
+            var world = Empty();
+            var port = world.SettlementOf(0);
+            port.Silver = Rules.SoldierSilver - 1;
+            var ship = world.SpawnShip(0, ShipClass.Ram, port.X + 30, 0);
+            ship.Swordsmen -= 4;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            var silver = port.Silver;
+            Run(world, 10);
+            Assert.That(ship.Swordsmen, Is.EqualTo(ship.Plan.Swordsmen - 4));
+            Assert.That(port.Silver, Is.EqualTo(silver));
+        }
+
+        [Test]
+        public void Port_ANewPlanChangesTheCrewOnlyAtPort()
+        {
+            var world = Empty();
+            var port = world.SettlementOf(0);
+            var ship = world.SpawnShip(0, ShipClass.Ram, port.X + 400, 0);
+            var before = (ship.Sailors, ship.Swordsmen, ship.Archers);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SetCrewPlan, ShipIds = new[] { ship.Id }, Preset = CrewPreset.Boarding });
+            Run(world, 5);
+            Assert.That(ship.Plan.Preset, Is.EqualTo(CrewPreset.Boarding));
+            Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers), Is.EqualTo(before), "Nobody retrains at sea.");
+
+            ship.X = port.X + 30;
+            var silver = port.Silver;
+            Run(world, 60);
+            Assert.That((ship.Sailors, ship.Swordsmen, ship.Archers), Is.EqualTo((ship.Plan.Sailors, ship.Plan.Swordsmen, ship.Plan.Archers)));
+            var moved = ship.Plan.Swordsmen - before.Swordsmen;
+            Assert.That(silver - port.Silver, Is.EqualTo(moved * Rules.RetrainSilver), "Archers retrained as swordsmen.");
         }
 
         // ---------- Fog of war ----------

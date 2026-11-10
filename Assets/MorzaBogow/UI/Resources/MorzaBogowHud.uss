@@ -157,7 +157,12 @@
 .card-row { flex-direction: row; align-items: center; margin-top: 4px; }
 .card-meter { height: 12px; flex-grow: 1; margin-left: 10px; margin-right: 10px; }
 .card-value { -unity-font-definition: url("Hud/Fonts/SourceSans3-SemiBold.ttf"); font-size: 20px; min-width: 96px; -unity-text-align: middle-right; }
-.card-stat { flex-direction: row; align-items: center; margin-right: 22px; }
+.card-stat { flex-direction: row; align-items: center; margin-right: 16px; }
+.card-button {
+    margin: 0 0 0 auto; padding: 1px 10px; font-size: 16px; color: rgb(243, 234, 214);
+    background-color: rgba(35, 54, 59, 0.95); border-width: 1px; border-color: rgba(190, 161, 108, 0.8); border-radius: 3px;
+}
+.card-button:hover, .card-button:focus { border-color: rgb(228, 185, 105); background-color: rgba(52, 76, 82, 0.95); }
 .card-stat-value { -unity-font-definition: url("Hud/Fonts/SourceSans3-SemiBold.ttf"); font-size: 20px; margin-left: 6px; }
 .card-stat-label { font-size: 16px; color: rgb(199, 199, 183); margin-left: 4px; }
 .card-phase { font-size: 18px; color: rgb(228, 185, 105); margin-top: 6px; white-space: normal; }

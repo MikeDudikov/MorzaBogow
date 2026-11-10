@@ -4,6 +4,68 @@ using UnityEngine;
 
 namespace MorzaBogow.Presentation
 {
+    /// <summary>
+    /// Men fighting across the rails while two decks are locked in a boarding: as many as the front holds, up to eight a
+    /// side, each in its side's colours, trading blows out of step. Fewer stand as the front thins. It only reads the
+    /// boarding's state; the fight itself is the simulation's.
+    /// </summary>
+    public sealed class DeckFight
+    {
+        public const int MaxPerSide = 8;
+        readonly CrewFigure[] attackers = new CrewFigure[MaxPerSide], defenders = new CrewFigure[MaxPerSide];
+        float time;
+
+        public int Shown { get; private set; }
+
+        public DeckFight(Transform parent, PlaceholderMaterials materials, int attackerOwner, int defenderOwner)
+        {
+            for (var i = 0; i < MaxPerSide; i++)
+            {
+                attackers[i] = new CrewFigure(parent, materials, attackerOwner);
+                defenders[i] = new CrewFigure(parent, materials, defenderOwner);
+                attackers[i].Show(false);
+                defenders[i].Show(false);
+            }
+        }
+
+        /// <summary>One figure for every two men at the front, so a full rail reads as a crowd without a crowd of meshes.</summary>
+        public static int FiguresFor(int front) => Mathf.Clamp(Mathf.CeilToInt(front * 0.5f), 0, MaxPerSide);
+
+        public void Update(Vector3 attackerDeck, Vector3 targetDeck, int attackerFront, int targetFront, float delta, bool visible)
+        {
+            time += delta;
+            var across = targetDeck - attackerDeck;
+            across.y = 0f;
+            var direction = across.sqrMagnitude > 1e-4f ? across.normalized : Vector3.forward;
+            var along = Vector3.Cross(Vector3.up, direction);
+            var middle = (attackerDeck + targetDeck) * 0.5f;
+            Shown = 0;
+            Shown += Place(attackers, visible ? FiguresFor(attackerFront) : 0, middle - direction * 0.6f, along, direction, 0f);
+            Shown += Place(defenders, visible ? FiguresFor(targetFront) : 0, middle + direction * 0.6f, along, -direction, 0.45f);
+        }
+
+        int Place(CrewFigure[] figures, int count, Vector3 line, Vector3 along, Vector3 facing, float offset)
+        {
+            for (var i = 0; i < figures.Length; i++)
+            {
+                var shown = i < count;
+                figures[i].Show(shown);
+                if (!shown) continue;
+                var spread = (i - (count - 1) * 0.5f) * 1.1f;
+                figures[i].Place(line + along * spread);
+                figures[i].Face(line + along * spread + facing);
+                figures[i].Strike(Mathf.Repeat(time * 1.3f + offset + i * 0.37f, 1f));
+            }
+            return count;
+        }
+
+        public void Destroy()
+        {
+            foreach (var figure in attackers) figure.Destroy();
+            foreach (var figure in defenders) figure.Destroy();
+        }
+    }
+
     public enum CrewTool { None, Axe, Pick }
     public enum CrewLoad { None, Log, Chest, Crate }
 

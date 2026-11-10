@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 9;
+        public const int Version = 10;
 
         static void WriteIds(BinaryWriter writer, List<int> ids)
         {
@@ -106,7 +106,7 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(ship.Id); writer.Write(ship.Owner); writer.Write((int)ship.Class);
                     writer.Write(ship.X); writer.Write(ship.Y); writer.Write(ship.Heading); writer.Write(ship.Speed); writer.Write(ship.Hull);
-                    writer.Write(ship.Sailors); writer.Write(ship.Soldiers); writer.Write(ship.CrewDamage); writer.Write(ship.Morale);
+                    writer.Write(ship.Sailors); writer.Write(ship.Swordsmen); writer.Write(ship.Archers); writer.Write(ship.Wounded); writer.Write(ship.CrewDamage); writer.Write(ship.Morale);
                     writer.Write(ship.Reload); writer.Write(ship.LastDamagedTick);
                     writer.Write(ship.PaidConstructionWood); writer.Write(ship.PaidConstructionSilver);
                     writer.Write((int)ship.Order); writer.Write(ship.TargetX); writer.Write(ship.TargetY); writer.Write(ship.TargetId);
@@ -121,6 +121,8 @@ namespace MorzaBogow.Simulation
                     writer.Write(ship.HasWaypoint); writer.Write(ship.WaypointX); writer.Write(ship.WaypointY);
                     writer.Write(ship.RouteX); writer.Write(ship.RouteY); writer.Write(ship.ReplanTick);
                     writer.Write(ship.CrewTicks);
+                    writer.Write(ship.Plan.Sailors); writer.Write(ship.Plan.Swordsmen); writer.Write(ship.Plan.Archers); writer.Write((int)ship.Plan.Preset);
+                    writer.Write(ship.WoundRemainder); writer.Write(ship.MusterTicks);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -135,6 +137,7 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(link.AttackerId); writer.Write(link.TargetId); writer.Write(link.HookTicks);
                     writer.Write(link.CycleTicks); writer.Write(link.ControlTicks); writer.Write(link.Hooked);
+                    writer.Write(link.CutProgress); writer.Write(link.AttackerLossRemainder); writer.Write(link.TargetLossRemainder);
                 }
 
                 writer.Write(world.Sites.Count);
@@ -230,7 +233,7 @@ namespace MorzaBogow.Simulation
                     {
                         Id = reader.ReadInt32(), Owner = reader.ReadInt32(), Class = (ShipClass)reader.ReadInt32(),
                         X = reader.ReadDouble(), Y = reader.ReadDouble(), Heading = reader.ReadDouble(), Speed = reader.ReadDouble(), Hull = reader.ReadDouble(),
-                        Sailors = reader.ReadInt32(), Soldiers = reader.ReadInt32(), CrewDamage = reader.ReadDouble(), Morale = reader.ReadDouble(),
+                        Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Archers = reader.ReadInt32(), Wounded = reader.ReadInt32(), CrewDamage = reader.ReadDouble(), Morale = reader.ReadDouble(),
                         Reload = reader.ReadDouble(), LastDamagedTick = reader.ReadInt32(),
                         PaidConstructionWood = reader.ReadInt64(), PaidConstructionSilver = reader.ReadInt64(),
                         Order = (OrderKind)reader.ReadInt32(), TargetX = reader.ReadDouble(), TargetY = reader.ReadDouble(), TargetId = reader.ReadInt32(),
@@ -245,6 +248,8 @@ namespace MorzaBogow.Simulation
                         HasWaypoint = reader.ReadBoolean(), WaypointX = reader.ReadDouble(), WaypointY = reader.ReadDouble(),
                         RouteX = reader.ReadDouble(), RouteY = reader.ReadDouble(), ReplanTick = reader.ReadInt32(),
                         CrewTicks = reader.ReadInt32(),
+                        Plan = new CrewPlan { Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Archers = reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32() },
+                        WoundRemainder = reader.ReadDouble(), MusterTicks = reader.ReadInt32(),
                     });
                 }
 
@@ -265,6 +270,7 @@ namespace MorzaBogow.Simulation
                     {
                         AttackerId = reader.ReadInt32(), TargetId = reader.ReadInt32(), HookTicks = reader.ReadInt32(),
                         CycleTicks = reader.ReadInt32(), ControlTicks = reader.ReadInt32(), Hooked = reader.ReadBoolean(),
+                        CutProgress = reader.ReadDouble(), AttackerLossRemainder = reader.ReadDouble(), TargetLossRemainder = reader.ReadDouble(),
                     });
                 }
 

@@ -20,6 +20,35 @@ namespace MorzaBogow.Simulation
         public int BaseSailors => (int)Math.Ceiling(MaxCrew * 0.25);
         public int StandardSailors => IsEconomic ? MaxCrew : BaseSailors;
         public int StandardSoldiers => MaxCrew - StandardSailors;
+
+        /// <summary>
+        /// The crew a new hull of this class carries (docs/ZALOGA_I_ABORDAZ.md): the crew destroyer is a ship of archers,
+        /// the boarder of swordsmen, the ram of both; working ships are all sailors. Every default keeps the 25% sailors
+        /// E04 prices, so template prices are unchanged.
+        /// </summary>
+        public CrewPreset DefaultPreset =>
+            IsEconomic ? CrewPreset.Seamen : Class == ShipClass.CrewDestroyer ? CrewPreset.Volley : Class == ShipClass.Boarder ? CrewPreset.Boarding : CrewPreset.Balanced;
+
+        /// <summary>A full crew trained to a preset. Sailors never fall below the 25% a hull needs to keep its speed.</summary>
+        public CrewPlan PlanFor(CrewPreset preset)
+        {
+            if (IsEconomic) return new CrewPlan { Sailors = MaxCrew, Preset = preset };
+            var sailors = preset == CrewPreset.Seamen ? (int)Math.Ceiling(MaxCrew * Rules.SeamenSailorShare) : BaseSailors;
+            var fighters = MaxCrew - sailors;
+            var swordShare = preset == CrewPreset.Boarding ? 0.80 : preset == CrewPreset.Volley ? 0.25 : 0.55;
+            var swordsmen = (int)Math.Round(fighters * swordShare, MidpointRounding.AwayFromZero);
+            return new CrewPlan { Sailors = sailors, Swordsmen = swordsmen, Archers = fighters - swordsmen, Preset = preset };
+        }
+
+        /// <summary>A plan given in numbers, held to the hull's size and to the sailors it needs.</summary>
+        public CrewPlan Clamp(CrewPlan plan)
+        {
+            if (IsEconomic) return new CrewPlan { Sailors = MaxCrew, Preset = CrewPreset.Custom };
+            var sailors = Math.Max(BaseSailors, Math.Min(MaxCrew, plan.Sailors));
+            var swordsmen = Math.Max(0, Math.Min(MaxCrew - sailors, plan.Swordsmen));
+            var archers = Math.Max(0, Math.Min(MaxCrew - sailors - swordsmen, plan.Archers));
+            return new CrewPlan { Sailors = sailors, Swordsmen = swordsmen, Archers = archers, Preset = CrewPreset.Custom };
+        }
     }
 
     public static class ShipCatalog
@@ -204,12 +233,57 @@ namespace MorzaBogow.Simulation
         public const long ReserveSilver = 20 * Centi;
         public const double SettlementHull = 1800, SettlementVision = 300;
 
-        public const double ArcherHullDamage = 2, ArcherCrewDamage = 4, ArcherRange = 100, ArcherMinRange = 15, ArcherReloadSeconds = 2, ArcherAccuracy = 0.75;
+        public const double ArcherRange = 100, ArcherMinRange = 15, ArcherReloadSeconds = 2, ArcherAccuracy = 0.75;
         public const double SoldierHitPoints = 10;
 
         public const double RamBase = 120, RamReferenceSpeed = 8, RamMaxDamage = 400, RamMinClosing = 3, RamRecoilFraction = 0.2, RamCooldownSeconds = 8, RamBackoffSeconds = 3;
         public const int BoardMinSoldiers = 10;
-        public const double BoardGap = 4, BoardRelativeSpeed = 1.5, BoardHookSeconds = 3, BoardControlSeconds = 3, BoardLossFraction = 0.05;
+        public const double BoardGap = 4, BoardRelativeSpeed = 1.5, BoardHookSeconds = 3, BoardControlSeconds = 3;
+
+        // ---------- Crew by trade and the fight on deck (docs/ZALOGA_I_ABORDAZ.md) ----------
+
+        /// <summary>
+        /// Every archer aboard looses an arrow each volley. Per hit: crew and hull damage chosen so a crew destroyer's
+        /// 29 archers hurt as much as its four archer posts did before (4 x 4 crew, 4 x 2 hull per volley).
+        /// </summary>
+        public const double ArcherShotCrewDamage = 0.55, ArcherShotHullDamage = 0.28;
+
+        /// <summary>The Seamen crew: 40% sailors, and the spare oars make the hull this much faster.</summary>
+        public const double SeamenSailorShare = 0.4, SeamenSpeedBonus = 0.08;
+
+        /// <summary>Men who can fight across the rail at once: this many plus one per metre of the narrower deck.</summary>
+        public const int BoardFrontBase = 4;
+
+        /// <summary>Hand-to-hand worth of each trade, attacking and defending its own deck.</summary>
+        public const double SwordAttack = 1.2, SwordDefence = 1.1, ArcherAttack = 0.4, ArcherDefence = 0.9, SailorAttack = 0.25, SailorDefence = 0.35;
+
+        /// <summary>Archers behind the front shoot onto the enemy deck; a defender shoots from its own, a little better.</summary>
+        public const double ArcherSupportAttack = 0.3, ArcherSupportDefence = 0.4;
+
+        /// <summary>
+        /// Men lost each second on deck per point of the enemy's strength, and the morale a crew loses for losing its
+        /// whole complement (in proportion for fewer). Tuned so a full boarder takes a full ram in about 20 s.
+        /// </summary>
+        public const double DeckLossFraction = 0.15, DeckMoralePerCrew = 120;
+
+        /// <summary>
+        /// Lines cut per second for each defending swordsman beyond half the attacker's. A boarder's 54 swordsmen cut a
+        /// ram's grapples before they hold (about 2.7 s); between equals the lines hold.
+        /// </summary>
+        public const double HookCutPerSwordsman = 0.008;
+
+        /// <summary>Of the men lost in a fight, this share is wounded rather than killed.</summary>
+        public const double WoundedShare = 0.4;
+
+        /// <summary>A crew whose morale falls below this, or with no fighters left, strikes its colours.</summary>
+        public const double SurrenderMorale = 20;
+
+        // Port muster (E04 crew prices): a recruit, a healed man, or a man retrained for another trade.
+        public const long SailorSilver = 50, SoldierSilver = 100, HealSilver = 25, RetrainSilver = 50;
+        public const double RecruitSeconds = 1, RetrainSeconds = 2, HealPerSecond = 4;
+
+        /// <summary>An idle ship this close to its own shipyard port regroups there by itself.</summary>
+        public const double MusterRange = 80;
 
         public const double RefundAfterStart = 0.8;
         public const double RepairFullFraction = 0.25, RepairHullPerSecond = 12;

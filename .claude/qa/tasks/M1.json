@@ -15,6 +15,18 @@
         "MorzaBogow.Tests.SimulationTests.Scale_YieldSlowsWorkAndTheNodeCapAlike",
         "MorzaBogow.Tests.SimulationTests.Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen",
         "MorzaBogow.Tests.SimulationTests.Land_EveryIsletHasAnIrregularNaturalShoreThatKeepsItsQuays",
+        "MorzaBogow.Tests.SimulationTests.Crew_EveryPlanFillsTheHullAndTheDefaultKeepsThePrice",
+        "MorzaBogow.Tests.SimulationTests.Crew_ArchersOfACrewDestroyerHurtCrewsAsItsArcherPostsDid",
+        "MorzaBogow.Tests.SimulationTests.Crew_FewerArchersShootLessAndNoneDoNotShoot",
+        "MorzaBogow.Tests.SimulationTests.Crew_OnlySailorsRowAndSpareOarsAddSpeed",
+        "MorzaBogow.Tests.SimulationTests.Board_TheFrontLimitsWhoFightsAndArchersDefendTheirOwnDeck",
+        "MorzaBogow.Tests.SimulationTests.Board_TheFallenAreTwoInFiveWoundedAndTheRestDead",
+        "MorzaBogow.Tests.SimulationTests.Board_ABrokenCrewSurrendersAndTheShipIsTakenWhole",
+        "MorzaBogow.Tests.SimulationTests.Board_DefendingSwordsmenCutTheLinesOfAWeakerBoarder",
+        "MorzaBogow.Tests.SimulationTests.Board_SaveDuringTheFightContinuesIdentically",
+        "MorzaBogow.Tests.SimulationTests.Port_AnIdleShipRegroupsByItselfForTheQuotedSilver",
+        "MorzaBogow.Tests.SimulationTests.Port_WithoutSilverTheMusterWaitsAndChargesNothing",
+        "MorzaBogow.Tests.SimulationTests.Port_ANewPlanChangesTheCrewOnlyAtPort",
         "MorzaBogow.Tests.ResolutionCatalogTests.Build_KeepsOnlyModesInRange"
       ]
     },
@@ -23,6 +35,8 @@
         "MorzaBogow.Tests.BattleControllerTests.Fog_HiddenEnemyHasNoActiveRenderers",
         "MorzaBogow.Tests.BattleControllerTests.Visual_DoesNotChangeSimulationResult",
         "MorzaBogow.Tests.BattleControllerTests.Save_LoadRestoresStateAndViews",
+        "MorzaBogow.Tests.BattleControllerTests.Hud_ShipCardShowsTheCrewByTradeAndTheCrewChoiceSetsThePlan",
+        "MorzaBogow.Tests.BattleControllerTests.Boarding_FightersStandOnTheRailsOnlyWhileTheDecksFight",
         "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing"
       ]
     }

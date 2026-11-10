@@ -171,6 +171,62 @@ namespace MorzaBogow.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator Hud_ShipCardShowsTheCrewByTradeAndTheCrewChoiceSetsThePlan()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var world = battle.World;
+            var home = world.SettlementOf(0);
+            var ram = world.SpawnShip(0, ShipClass.Ram, home.X + 300, 200);
+            ram.Swordsmen -= 3;
+            ram.Wounded = 2;
+            battle.RunTicks(1);
+            battle.SelectForTest(ram.Id);
+            yield return WaitForInterface();
+            Assert.That(hud.CrewText, Is.EqualTo($"{ram.Sailors}|{ram.Swordsmen}/{ram.Plan.Swordsmen}|{ram.Archers}|2"), "Sailors, swordsmen against the plan, archers, wounded.");
+            Assert.That(hud.CrewPlanOffered, Is.True, "An own warship offers the crew choice.");
+
+            Assert.That(hud.OpenCrewPlanForTest(), Is.EqualTo(4), "Balanced, boarding, volley, seamen.");
+            hud.PickCrewPlanForTest(1);
+            battle.RunTicks(1);
+            Assert.That(ram.Plan.Preset, Is.EqualTo(CrewPreset.Boarding), "The choice reaches the simulation as a command.");
+            Assert.That(ram.Swordsmen, Is.EqualTo(ram.Definition.PlanFor(CrewPreset.Balanced).Swordsmen - 3), "The people change only in port.");
+
+            // An enemy in sight of the ram (a hidden one cannot be selected at all).
+            var enemy = world.SpawnShip(1, ShipClass.Boarder, ram.X + 150, ram.Y);
+            battle.RunTicks(1);
+            battle.ClearSelectionKeepPort();
+            battle.SelectForTest(enemy.Id);
+            yield return WaitForInterface();
+            Assert.That(hud.CrewPlanOffered, Is.False, "No crew choice for an enemy.");
+        }
+
+        [UnityTest]
+        public IEnumerator Boarding_FightersStandOnTheRailsOnlyWhileTheDecksFight()
+        {
+            yield return null;
+            var world = battle.World;
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, -950);
+            var target = world.SpawnShip(1, ShipClass.Merchant, boarder.Definition.Radius + ShipCatalog.Get(ShipClass.Merchant).Radius + 2, -950);
+            boarder.Heading = target.Heading = 0;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+            battle.RunTicks(30);
+            Assert.That(world.Boardings.Any(link => !link.Hooked), Is.True, "Grapples thrown.");
+            Assert.That(battle.DeckFightersShown, Is.Zero, "No one crosses while the hooks are still biting.");
+
+            var fought = 0;
+            for (var i = 0; i < 20 && target.Owner == 1; i++)
+            {
+                battle.RunTicks(15);
+                fought = Mathf.Max(fought, battle.DeckFightersShown);
+            }
+            Assert.That(fought, Is.GreaterThan(0).And.LessThanOrEqualTo(2 * DeckFight.MaxPerSide), "Men fight on the rails during the melee.");
+            battle.RunTicks(150);
+            Assert.That(target.Owner, Is.EqualTo(0), "The merchant is taken.");
+            Assert.That(battle.DeckFightersShown, Is.Zero, "The figures go when the fight ends.");
+        }
+
         [Test]
         public void Keys_DefaultBindingsFollowTheContractWithoutConflicts()
         {
@@ -520,7 +576,9 @@ namespace MorzaBogow.Tests
             yield return null;
             var world = battle.World;
             world.SpawnShip(1, ShipClass.CrewDestroyer, 900, 900);
-            world.SpawnShip(0, ShipClass.CrewDestroyer, 900, -900).Soldiers = 0;
+            var unarmed = world.SpawnShip(0, ShipClass.CrewDestroyer, 900, -900);
+            unarmed.Swordsmen = 0;
+            unarmed.Archers = 0;
             var hiddenTarget = world.SpawnShip(0, ShipClass.Cutter, 950, 900);
             hiddenTarget.Hull = 100000;
             battle.Effects.Update(10f);

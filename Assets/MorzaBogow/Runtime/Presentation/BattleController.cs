@@ -333,6 +333,22 @@ namespace MorzaBogow.Presentation
                         break;
                     case "hooks_thrown":
                         if (seen && lastPositions.TryGetValue(item.SubjectId, out var boarder)) effects.Rope(boarder, at, 3f);
+                        if (World.FindShip(item.OtherId)?.Owner == PlayerFaction) Announce("Abordaż! Wróg zarzuca haki – szermierze mogą przeciąć liny.", HeraldLevel.Critical, at, HeraldTopic.Alarm, item.OtherId, $"board:{item.OtherId}");
+                        break;
+                    case "hooks_cut":
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce(item.Amount == 1 ? "Obrońcy przecięli liny abordażowe." : "Haki zerwane – cel się wyrwał.", HeraldLevel.Important, at);
+                        else if (World.FindShip(item.OtherId)?.Owner == PlayerFaction && item.Amount == 1) Announce("Szermierze przecięli liny – abordaż odparty.", HeraldLevel.Important, at);
+                        break;
+                    case "boarding_repelled":
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce("Abordaż odparty – nasi wojownicy polegli lub są ranni.", HeraldLevel.Important, at);
+                        else if (World.FindShip(item.OtherId)?.Owner == PlayerFaction) Announce("Odparliśmy abordaż.", HeraldLevel.Important, at);
+                        break;
+                    case "ship_surrendered":
+                        if (seen) Announce(World.FindShip(item.SubjectId)?.Owner == PlayerFaction ? "Załoga złamana – okręt się poddaje." : "Wroga załoga złożyła broń.", HeraldLevel.Important, at);
+                        break;
+                    case "ship_restored":
+                        var restored = World.FindShip(item.SubjectId);
+                        if (restored != null && restored.Owner == PlayerFaction) Announce($"Przegrupowano: {ClassName(restored.Class)} – kadłub i załoga gotowe.", HeraldLevel.Info, at, HeraldTopic.General, restored.Id, $"restored:{item.OtherId}");
                         break;
                     case "ship_captured":
                         if (seen) effects.Flash(at, 16f);
@@ -400,6 +416,8 @@ namespace MorzaBogow.Presentation
             inspectedSettlementId = -1;
             foreach (var crew in crews.Values) crew.Destroy();
             foreach (var gang in dockGangs.Values) gang.Destroy();
+            foreach (var fight in deckFights.Values) fight.Destroy();
+            deckFights.Clear();
             crews.Clear();
             dockGangs.Clear();
             docked.Clear();
@@ -595,6 +613,39 @@ namespace MorzaBogow.Presentation
             return fixedPart + Math.Min(untilFull, untilEmpty);
         }
 
+        readonly Dictionary<int, DeckFight> deckFights = new Dictionary<int, DeckFight>();
+
+        /// <summary>Figures now fighting on the rails of every boarding the player can see; zero when none.</summary>
+        public int DeckFightersShown => deckFights.Values.Sum(fight => fight.Shown);
+
+        /// <summary>
+        /// Men fight across the rails only while the grapples hold (the melee); before that the lines fly across
+        /// (BattleEffects.Rope). Each boarding gets its figures from the decks of both hulls as they ride the waves.
+        /// </summary>
+        void UpdateDeckFights(float delta)
+        {
+            foreach (var link in World.Boardings)
+            {
+                if (!link.Hooked || !views.TryGetValue(link.AttackerId, out var attackerView) || !views.TryGetValue(link.TargetId, out var targetView)) continue;
+                var attacker = World.FindShip(link.AttackerId);
+                var target = World.FindShip(link.TargetId);
+                if (attacker == null || target == null) continue;
+                if (!deckFights.TryGetValue(link.AttackerId, out var fight))
+                {
+                    fight = new DeckFight(crewRoot, materials, attacker.Owner, target.Owner);
+                    deckFights[link.AttackerId] = fight;
+                }
+                var visible = attackerView.gameObject.activeSelf && targetView.gameObject.activeSelf;
+                fight.Update(attackerView.DeckToward(targetView.transform.position), targetView.DeckToward(attackerView.transform.position),
+                    link.AttackerFront, link.TargetFront, delta, visible);
+            }
+            foreach (var id in deckFights.Keys.Where(id => !World.Boardings.Any(link => link.Hooked && link.AttackerId == id)).ToList())
+            {
+                deckFights[id].Destroy();
+                deckFights.Remove(id);
+            }
+        }
+
         void UpdateCrews(float delta)
         {
             if (crewRoot == null) crewRoot = new GameObject("Shore parties").transform;
@@ -642,6 +693,8 @@ namespace MorzaBogow.Presentation
                 crews[id].Destroy();
                 crews.Remove(id);
             }
+
+            UpdateDeckFights(delta);
 
             foreach (var pair in dockGangs)
             {
@@ -1576,13 +1629,13 @@ namespace MorzaBogow.Presentation
             if (enemy != null)
             {
                 if (ships.All(ship => ship.Class == ShipClass.Ram)) return "ram";
-                return ships.Any(ship => ship.Definition.LightSlots > 0 || ship.Class == ShipClass.Ram || ship.Class == ShipClass.Boarder) ? "attack" : "blocked";
+                return ships.Any(ship => ship.Archers > 0 || ship.Class == ShipClass.Ram || ship.Class == ShipClass.Boarder) ? "attack" : "blocked";
             }
             var warships = ships.Any(ship => !ship.Definition.IsEconomic);
             var ids = selected.ToArray();
             if (warships && NearestShip(point, ship => ship.Owner == PlayerFaction && ship.Class == ShipClass.Merchant && !ids.Contains(ship.Id)) != null) return "escort";
             if (World.Settlements.Any(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item)))
-                return ships.Any(ship => ship.Definition.LightSlots > 0) ? "attack" : "blocked";
+                return ships.Any(ship => ship.Archers > 0) ? "attack" : "blocked";
             if (ships.Any(ship => ship.Class == ShipClass.Merchant))
             {
                 if (World.Sites.Any(item => World.IsSiteFree(item) && World.IsExplored(PlayerFaction, item.X, item.Y)
@@ -1735,7 +1788,7 @@ namespace MorzaBogow.Presentation
                 if (ship == null) continue;
                 var kind = ship.Class == ShipClass.Ram ? CommandKind.Ram
                     : ship.Class == ShipClass.Boarder && Input.GetKey(KeyCode.LeftAlt) == false ? CommandKind.Board
-                    : ship.Definition.LightSlots > 0 ? CommandKind.AttackShip
+                    : ship.Archers > 0 ? CommandKind.AttackShip
                     : CommandKind.Move;
                 if (kind == CommandKind.Move) Send(kind, new[] { id }, ToWorld(enemy));
                 else Send(kind, new[] { id }, target: enemy.Id);
@@ -1882,6 +1935,16 @@ namespace MorzaBogow.Presentation
             World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.BuildShipyard, TargetId = port.Id });
         }
 
+        /// <summary>Sets the crew a ship's port will train it to; the people change only when it regroups in port.</summary>
+        public void SetCrewPlan(int shipId, CrewPreset preset) =>
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.SetCrewPlan, ShipIds = new[] { shipId }, Preset = preset });
+
+        /// <summary>The boarding this ship is part of, attacking or defending, if any.</summary>
+        public BoardingLink BoardingOf(int shipId) => World.Boardings.FirstOrDefault(link => link.AttackerId == shipId || link.TargetId == shipId);
+
+        public static string PresetName(CrewPreset preset) =>
+            preset == CrewPreset.Boarding ? "Abordaż" : preset == CrewPreset.Volley ? "Ostrzał" : preset == CrewPreset.Seamen ? "Żegluga" : preset == CrewPreset.Custom ? "Własny" : "Wyważony";
+
         public void StopSelected() => Send(CommandKind.Stop, selected.ToArray());
         public void RepairSelected() => Send(CommandKind.Repair, selected.ToArray());
         public void ScrapSelected() => Send(CommandKind.Scrap, selected.ToArray());
@@ -1920,7 +1983,7 @@ namespace MorzaBogow.Presentation
                     break;
                 case HudOrder.Attack:
                 {
-                    var archers = Ids(ship => ship.Definition.LightSlots > 0);
+                    var archers = Ids(ship => ship.Archers > 0);
                     if (enemy != null && archers.Length > 0) { Send(CommandKind.AttackShip, archers, target: enemy.Id); done = true; break; }
                     var port = World.Settlements.FirstOrDefault(item => item.Owner != PlayerFaction && !item.Destroyed && World.CanSee(PlayerFaction, item.X, item.Y) && IsOnSettlement(point, item));
                     if (port != null && archers.Length > 0) { Send(CommandKind.AttackSettlement, archers, target: port.Id); done = true; }
@@ -1940,7 +2003,7 @@ namespace MorzaBogow.Presentation
                 }
                 case HudOrder.Volley:
                 {
-                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder && ship.Definition.LightSlots > 0);
+                    var boarders = Ids(ship => ship.Class == ShipClass.Boarder && ship.Archers > 0);
                     if (enemy != null && boarders.Length > 0) { Send(CommandKind.AttackShip, boarders, target: enemy.Id); done = true; }
                     break;
                 }
@@ -2145,7 +2208,7 @@ namespace MorzaBogow.Presentation
                     break;
                 default:
                     var focus = World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Order == OrderKind.Ram)
-                                ?? World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Definition.LightSlots > 0)
+                                ?? World.Ships.FirstOrDefault(ship => ship.Owner == PlayerFaction && ship.Archers > 0)
                                 ?? World.Ships.First(ship => ship.Owner == PlayerFaction);
                     pivot = ToWorld(focus);
                     height = 90f;

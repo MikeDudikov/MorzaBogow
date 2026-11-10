@@ -235,7 +235,11 @@ namespace MorzaBogow.Simulation
             var active = new List<Ship>();
             foreach (var ship in warships)
             {
-                if (ship.Hull < ship.Definition.Hull * 0.3)
+                // A badly holed hull, or a crew with half its fighters gone, goes home to regroup.
+                // Only when the home port can pay the muster now: a ship waiting in the dock for silver is lost to the fleet.
+                var crewSpent = ship.Plan.Swordsmen + ship.Plan.Archers > 0 && ship.Soldiers * 2 < ship.Plan.Swordsmen + ship.Plan.Archers
+                                && home.Available(ResourceType.Silver) >= World.MusterCost(ship) + Rules.ReserveSilver;
+                if (ship.Hull < ship.Definition.Hull * 0.3 || crewSpent)
                 {
                     if (ship.Order != OrderKind.Repair) world.Issue(new Command { Faction = faction, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
                     continue;
@@ -255,7 +259,7 @@ namespace MorzaBogow.Simulation
                 if (target != null)
                 {
                     var kind = ship.Class == ShipClass.Ram ? CommandKind.Ram
-                        : ship.Class == ShipClass.Boarder && ship.Soldiers >= Rules.BoardMinSoldiers && target.Soldiers < ship.Soldiers ? CommandKind.Board
+                        : ship.Class == ShipClass.Boarder && ship.Soldiers >= Rules.BoardMinSoldiers && World.BoardingOdds(ship, target) > 1.2 ? CommandKind.Board
                         : CommandKind.AttackShip;
                     world.Issue(new Command { Faction = faction, Kind = kind, ShipIds = new[] { ship.Id }, TargetId = target.Id });
                 }

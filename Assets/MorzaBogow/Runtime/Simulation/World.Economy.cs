@@ -485,8 +485,10 @@ namespace MorzaBogow.Simulation
         {
             var settlement = ClosestYard(ship);
             var definition = ship.Definition;
-            if (settlement == null || settlement.Destroyed || ship.Hull >= definition.Hull)
+            var hullDone = ship.Hull >= definition.Hull;
+            if (settlement == null || settlement.Destroyed || (hullDone && !NeedsMuster(ship) && ship.MusterTicks == 0))
             {
+                if (settlement != null && settlement.RepairShipId == ship.Id) Emit("ship_restored", ship.Id, settlement.Id, ship.X, ship.Y, ship.Crew);
                 ReleaseDock(ship);
                 ship.Order = OrderKind.Idle;
                 return;
@@ -505,6 +507,12 @@ namespace MorzaBogow.Simulation
                 settlement.RepairShipId = ship.Id;
             }
 
+            if (hullDone)
+            {
+                Muster(ship, settlement);
+                return;
+            }
+
             // E06: 25% of the construction cost for a full repair, charged by restored hull.
             var hull = Math.Min(Rules.RepairHullPerSecond * Rules.Dt, definition.Hull - ship.Hull);
             var share = hull / definition.Hull * Rules.RepairFullFraction;
@@ -521,6 +529,138 @@ namespace MorzaBogow.Simulation
             ship.RepairWoodRemainder = wood - wholeWood;
             ship.RepairSilverRemainder = silver - wholeSilver;
             ship.Hull += hull;
+        }
+
+        // ---------- Muster at the dock: the wounded, recruits and retraining (docs/ZALOGA_I_ABORDAZ.md) ----------
+
+        /// <summary>The crew differs from its plan, or there are wounded aboard.</summary>
+        public static bool NeedsMuster(Ship ship) =>
+            ship.Wounded > 0 || ship.Sailors != ship.Plan.Sailors || ship.Swordsmen != ship.Plan.Swordsmen || ship.Archers != ship.Plan.Archers;
+
+        /// <summary>Silver the port needs to bring the crew to its plan: healing, then recruits, then retraining.</summary>
+        public static long MusterCost(Ship ship)
+        {
+            // The same steps Muster takes, on a copy of the crew, so the price shown is the price paid.
+            var copy = new Ship { Class = ship.Class, Sailors = ship.Sailors, Swordsmen = ship.Swordsmen, Archers = ship.Archers, Wounded = ship.Wounded, Plan = ship.Plan };
+            long cost = 0;
+            for (var guard = 0; guard < 1000 && NeedsMuster(copy); guard++)
+            {
+                var step = MusterStep(copy);
+                if (step < 0) break;
+                cost += step;
+            }
+            return cost;
+        }
+
+        /// <summary>
+        /// One step of the muster, after the hull is whole. The port works on one man at a time and charges as it starts:
+        /// a wounded man is healed and returns to the trade the plan lacks most (0.25 S, four a second); then a trade
+        /// still short gets a recruit (0.5 S a sailor, 1 S a fighter, a second each); when the numbers match but the
+        /// trades do not, a man of a surplus trade is retrained (0.5 S, two seconds). Without the silver it waits.
+        /// The wounded the plan has no room for are sent ashore at no cost.
+        /// </summary>
+        void Muster(Ship ship, Settlement port)
+        {
+            if (ship.MusterTicks > 0) { ship.MusterTicks--; return; }
+            var price = MusterPrice(ship, out var ticks);
+            if (price < 0) return;
+            if (price > 0 && !Pay(port, price)) return;
+            MusterStep(ship);
+            ship.MusterTicks = Math.Max(0, ticks - 1);
+        }
+
+        /// <summary>What the next muster step costs and how many ticks it takes; -1 when there is nothing to do.</summary>
+        static long MusterPrice(Ship ship, out int ticks)
+        {
+            var plan = ship.Plan;
+            var lacking = MostLacking(ship);
+            ticks = 0;
+            if (ship.Wounded > 0)
+            {
+                if (lacking == null) return 0;
+                ticks = (int)Math.Round(Rules.TickRate / Rules.HealPerSecond);
+                return Rules.HealSilver;
+            }
+            if (lacking != null && ship.Crew < plan.Total)
+            {
+                ticks = (int)(Rules.RecruitSeconds * Rules.TickRate);
+                return lacking.Value == CrewTrade.Sailor ? Rules.SailorSilver : Rules.SoldierSilver;
+            }
+            if (Surplus(ship) == null) return -1;
+            if (lacking == null) return 0;
+            ticks = (int)(Rules.RetrainSeconds * Rules.TickRate);
+            return Rules.RetrainSilver;
+        }
+
+        /// <summary>Carries out the next muster step on the crew and returns its price (-1: nothing to do).</summary>
+        static long MusterStep(Ship ship)
+        {
+            var price = MusterPrice(ship, out _);
+            if (price < 0) return -1;
+            var plan = ship.Plan;
+            var lacking = MostLacking(ship);
+            if (ship.Wounded > 0)
+            {
+                // A wounded man the plan has no room for is sent ashore at no cost.
+                ship.Wounded--;
+                if (lacking != null) Add(ship, lacking.Value, 1);
+                return price;
+            }
+            if (lacking != null && ship.Crew < plan.Total)
+            {
+                Add(ship, lacking.Value, 1);
+                return price;
+            }
+            // More men than the plan holds go ashore; otherwise a man of a surplus trade retrains for the lacking one.
+            Add(ship, Surplus(ship).Value, -1);
+            if (lacking != null) Add(ship, lacking.Value, 1);
+            return price;
+        }
+
+        static CrewTrade? Surplus(Ship ship) =>
+            ship.Swordsmen > ship.Plan.Swordsmen ? CrewTrade.Swordsman : ship.Archers > ship.Plan.Archers ? CrewTrade.Archer
+            : ship.Sailors > ship.Plan.Sailors ? CrewTrade.Sailor : (CrewTrade?)null;
+
+        static CrewTrade? MostLacking(Ship ship)
+        {
+            var plan = ship.Plan;
+            var sailors = plan.Sailors - ship.Sailors;
+            var swordsmen = plan.Swordsmen - ship.Swordsmen;
+            var archers = plan.Archers - ship.Archers;
+            if (sailors <= 0 && swordsmen <= 0 && archers <= 0) return null;
+            if (sailors >= swordsmen && sailors >= archers) return CrewTrade.Sailor;
+            return swordsmen >= archers ? CrewTrade.Swordsman : CrewTrade.Archer;
+        }
+
+        static void Add(Ship ship, CrewTrade trade, int count)
+        {
+            if (trade == CrewTrade.Sailor) ship.Sailors += count;
+            else if (trade == CrewTrade.Swordsman) ship.Swordsmen += count;
+            else ship.Archers += count;
+        }
+
+        bool Pay(Settlement port, long silver)
+        {
+            if (port.Available(ResourceType.Silver) < silver) return false;
+            port.Silver -= silver;
+            SpentSilver += silver;
+            return true;
+        }
+
+        /// <summary>
+        /// Quick regrouping: an idle ship lying off its own shipyard port sends itself to the dock when its hull is hurt
+        /// or its crew is short of the plan or wounded, provided the port can pay for the crew. Checked once a second.
+        /// </summary>
+        bool SendToDockIfNeeded(Ship ship)
+        {
+            if ((Tick + ship.Id) % Rules.TickRate != 0) return false;
+            var hurt = ship.Hull < ship.Definition.Hull;
+            if (!hurt && !NeedsMuster(ship)) return false;
+            var port = ClosestYard(ship);
+            if (port == null || port.Destroyed || Distance(ship.X, ship.Y, port.X, port.Y) > Rules.MusterRange) return false;
+            if (!hurt && port.Available(ResourceType.Silver) < MusterCost(ship)) return false;
+            ship.Order = OrderKind.Repair;
+            return true;
         }
 
         void StepScrap(Ship ship)

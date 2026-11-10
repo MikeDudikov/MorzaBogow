@@ -1,6 +1,6 @@
 # Morza Bogów — balans, skala i tempo rozgrywki
 
-Data: 2026-11-10. Gałąź: `balans-skala`. Status: etap 1 z 6 wdrożony (profile długości, złoża, skala lądu i drzew); etapy 2–6 zaplanowane.
+Data: 2026-11-10. Gałąź: `balans-skala`. Status: etapy 1 (profile długości, złoża, skala lądu i drzew) i 2 (załoga i abordaż) wdrożone; etapy 3–8 zaplanowane.
 
 ## Decyzja użytkownika (nadrzędna wobec dokumentów)
 
@@ -55,13 +55,25 @@ Gospodarka bez walki (`Opponent.Passive`: obie strony rozwijają się i nie atak
 
 Mecze AI kontra AI z walką kończą się wcześniej: Krótka 11–31 min, Standardowa 32–84 min, Długa 33–48 min. Obecne AI wysyła całą flotę naraz, przegrywa ją w jednym starciu i jego gospodarka się załamuje. Długość meczu z graczem zależy od gracza i od AI, a to jest zakres etapu 6. Czas walki w meczach AI to 1–4 min na mecz, więc **podziału 50/35/15 nie osiągnięto ani nie zmierzono** i wymaga on etapów 2–6 oraz playtestów.
 
-## Etapy dalsze (plan)
+## Mapa drogowa (po specyfikacji użytkownika z 2026-11-10)
 
-1. **Etap 2 — załoga i abordaż.** Załoga per okręt: wioślarze (prędkość), łucznicy (ostrzał), miecznicy i włócznicy (abordaż, obrona pokładu). Walka wręcz na pokładzie zamiast jednej formuły siły: tura co 1 s, starcia par na pokładzie, haki abordażowe jako etap (zarzucenie, przyciągnięcie, przejście), przejęcie okrętu w całości z ładunkiem. Ranni: część poległych to ranni, leczeni w porcie za srebro.
-2. **Etap 3 — uzbrojenie per okręt.** Gniazda lekkie, średnie i ciężkie (C04): balisty, katapulty, ogień grecki (pożar C05), montaż w porcie. Cena okrętu = kadłub + wybrane uzbrojenie + załoga.
-3. **Etap 4 — logistyka.** Szlaki zaopatrzenia i konwoje kupców z eskortą, odzysk z wraków (przegląd limitów 50%/30%/15%), koszt napraw i leczenia. Ketos jako rzadkie, niebezpieczne polowanie z dużą jednorazową premią D/S (pojedyncze stado na mapę, bez odnawiania).
-4. **Etap 5 — osady i obrona (~15%).** Poziomy głównego portu (magazyn, stocznia, koszary szkolenia załogi), szkoła mędrców z badaniami (pancerz, broń oblężnicza, szkolenie), fortece przybrzeżne gracza. Budynki w skali portu: zabudowa na wyspie zaplecza.
-5. **Etap 6 — bohaterowie i AI.** Bohaterowie z unikalnymi zdolnościami (C07). AI z falami, odwrotem i odbudową, żeby mecz z AI trwał docelowe 30–90 min. Pomiar udziału czasu (walka / gospodarka / osady) w telemetrii meczu.
+Decyzje użytkownika z 2026-11-10:
+
+- ludzie tylko jako obsada okrętów: żeglarze, szermierze, łucznicy (plus bohaterowie);
+- surowce w pełni odnawialne (ławice ryb, wraki po sztormach, neutralne konwoje), a ryby, bursztyn i szczątki zamieniane na D/S;
+- przejęcie okrętu razem z uzbrojeniem.
+
+Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z etapu 1 przestają być jedynym ograniczeniem.
+
+| Etap | Zakres | Stan |
+|---|---|---|
+| 2 | Trzy klasy załogi, składy wybierane w porcie, walka na burtach, ranni, przejęcie w całości, automatyczne przegrupowanie w porcie ([ZALOGA_I_ABORDAZ.md](ZALOGA_I_ABORDAZ.md)) | wdrożony |
+| 3 | Warsztat i modułowe uzbrojenie (skorpion, gastrafetes, katapulta kamienna; po badaniu balista, onager i katapulta z pociskami ołowianymi, z minimalnym zasięgiem; ogień grecki i wapno palone tylko na okrętach specjalnych), montaż na okrętach i w fortach, szablony floty, broń widoczna w 3D, karty porównawcze ze stożkami ostrzału | plan |
+| 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy | plan |
+| 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa; zagrożenia: wiry, rafy, harpie, meduzy | plan |
+| 6 | Osady: szkoła mędrców, warsztat, rozbudowa portu, forty przybrzeżne | plan |
+| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), programowanie zachowania okrętów, szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową | plan |
+| 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty i weteranami | plan |
 
 ## Granice weryfikacji
 

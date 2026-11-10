@@ -111,8 +111,22 @@ namespace MorzaBogow.Simulation
         public int Id, Owner;
         public ShipClass Class;
         public double X, Y, Heading, Speed, Hull;
-        public int Sailors, Soldiers;
+        /// <summary>
+        /// The crew by trade (docs/ZALOGA_I_ABORDAZ.md): sailors steer, row and gather; swordsmen fight hand to hand when
+        /// boarding or repelling boarders; archers shoot at the crews of nearby ships and defend their own deck. The
+        /// wounded fight and row no more until a port replaces them. Plan is the crew the ship's port brings it back to.
+        /// </summary>
+        public int Sailors, Swordsmen, Archers, Wounded;
+        public int Soldiers => Swordsmen + Archers;
+        public int Crew => Sailors + Swordsmen + Archers;
+        public CrewPlan Plan;
         public double CrewDamage, Morale = 100;
+
+        /// <summary>The share of a wounded man carried between casualties, so two of every five fallen are wounded.</summary>
+        public double WoundRemainder;
+
+        /// <summary>Ticks of work left on the man the port is healing, recruiting or retraining now.</summary>
+        public int MusterTicks;
         public double Reload;
         public int LastDamagedTick = -100000;
 
@@ -166,14 +180,40 @@ namespace MorzaBogow.Simulation
         public int ExpiresTick;
     }
 
+    /// <summary>The crew a ship should carry: its port recruits, heals and retrains toward it.</summary>
+    public struct CrewPlan
+    {
+        public int Sailors, Swordsmen, Archers;
+        public CrewPreset Preset;
+        public int Total => Sailors + Swordsmen + Archers;
+    }
+
+    /// <summary>Ready-made crews a port can train a ship's people to; Custom is a plan given in numbers.</summary>
+    public enum CrewPreset { Balanced, Boarding, Volley, Seamen, Custom }
+
+    /// <summary>Grapples hold for a few seconds before men can cross; then the decks fight a round each second.</summary>
+    public enum BoardingPhase { Hooks, Melee }
+
     public sealed class BoardingLink
     {
         public int AttackerId, TargetId;
         public int HookTicks, CycleTicks, ControlTicks;
         public bool Hooked;
+
+        /// <summary>How far the defender's swordsmen have hacked through the grapple lines (1 cuts them).</summary>
+        public double CutProgress;
+
+        /// <summary>Casualties owed to each side between rounds, so the fight loses no men to rounding.</summary>
+        public double AttackerLossRemainder, TargetLossRemainder;
+
+        /// <summary>Strength each side brought to the last round, for the interface. Not saved; derived next round.</summary>
+        public double AttackerStrength, TargetStrength;
+        public int AttackerFront, TargetFront;
+
+        public BoardingPhase Phase => Hooked ? BoardingPhase.Melee : BoardingPhase.Hooks;
     }
 
-    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard }
+    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan }
 
     public sealed class Command
     {
@@ -189,6 +229,10 @@ namespace MorzaBogow.Simulation
         /// <summary>Transfer: the source port and amounts in 0.01 units. Zero amounts let the order pick a load.</summary>
         public int SourceId = -1;
         public long Wood, Silver;
+
+        /// <summary>SetCrewPlan: a preset, or with Custom the plan's numbers.</summary>
+        public CrewPreset Preset;
+        public CrewPlan Plan;
     }
 
     public enum OutcomeKind { InProgress, Won, Draw }
