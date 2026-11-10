@@ -185,14 +185,14 @@ namespace MorzaBogow.Presentation.Landscape
                 var lower = AddBone(model, root, BoneRole.Trunk, origin, axis, 0.55f * forkHeight / Mathf.Max(0.5f, axis.y), radius, middle);
                 model.Bones[lower].Driver = lower;
                 // The upper stem turns another way: the twist of an old olive.
-                var upperAxis = Tilt(axis, Horizontal(random.Range(0f, 360f)), random.Range(6f, 15f));
+                var upperAxis = Tilt(axis, Horizontal(random.Range(0f, 360f)), random.Range(species.StemKinkMin, species.StemKinkMax));
                 var upper = AddBone(model, lower, BoneRole.Trunk, model.Bones[lower].Tip, upperAxis, 0.45f * forkHeight / Mathf.Max(0.5f, upperAxis.y), middle, radius * 0.8f);
                 Follow(model, upper, lower, 0.5f);
                 forks += model.Bones[upper].Tip;
                 tops.Add((upper, outward));
             }
             forks /= stems;
-            var crownBottom = Mathf.Max(forks.y, model.Height * 0.3f);
+            var crownBottom = Mathf.Max(forks.y, model.Height * species.CrownBase);
             var crownHeight = model.Height - crownBottom;
             model.CrownCentre = new Vector3(forks.x, crownBottom + crownHeight * 0.5f, forks.z);
             model.CrownAxes = new Vector3(model.CrownRadius, crownHeight * 0.5f, model.CrownRadius);
@@ -214,12 +214,12 @@ namespace MorzaBogow.Presentation.Landscape
                     // Limbs toward the lee grow longer, those into the wind shorter: a wind-trained crown.
                     var reach = 1f + 0.25f * exposure * Vector3.Dot(direction, leeward);
                     // Main limbs end well inside the crown: the foliage, not the limbs, makes its outline.
-                    var rise = (model.Height - fork.y) * random.Range(0.32f, 0.45f) * reach;
+                    var rise = (model.Height - fork.y) * random.Range(species.LimbRiseMin, species.LimbRiseMax) * reach;
                     var length = rise / Mathf.Max(0.4f, axis.y);
                     var radius = limbRadius * random.Range(0.9f, 1.1f);
                     var inner = AddBone(model, stem, BoneRole.Scaffold, fork, axis, 0.5f * length, radius, radius * 0.8f);
                     model.Bones[inner].Driver = inner;
-                    var outerAxis = Vector3.RotateTowards(axis, Vector3.up, random.Range(8f, 16f) * Mathf.Deg2Rad, 0f);
+                    var outerAxis = Vector3.RotateTowards(axis, Vector3.up, random.Range(species.LimbCurlMin, species.LimbCurlMax) * Mathf.Deg2Rad, 0f);
                     var outer = AddBone(model, inner, BoneRole.Scaffold, model.Bones[inner].Tip, outerAxis, 0.5f * length, radius * 0.8f, radius * 0.55f);
                     Follow(model, outer, inner, 0.6f);
                     Branches(model, ref random, inner, outer, direction);
@@ -241,8 +241,8 @@ namespace MorzaBogow.Presentation.Landscape
                 var radiusAt = Mathf.Lerp(p.BaseRadius, p.TipRadius, t);
                 var axis = leader
                     ? Vector3.RotateTowards(p.Axis, Vector3.up, random.Range(0f, 12f) * Mathf.Deg2Rad, 0f)
-                    : Tilt(Vector3.up, Quaternion.AngleAxis(random.Range(-70f, 70f), Vector3.up) * direction, random.Range(40f, 80f));
-                var length = model.Height * random.Range(0.2f, 0.32f) * (leader ? 1.1f : 1f);
+                    : Tilt(Vector3.up, Quaternion.AngleAxis(random.Range(-70f, 70f), Vector3.up) * direction, random.Range(model.Species.BranchTiltMin, model.Species.BranchTiltMax));
+                var length = model.Height * random.Range(model.Species.BranchLengthMin, model.Species.BranchLengthMax) * (leader ? 1.1f : 1f);
                 length = InsideCrown(model, at, axis, length);
                 var radius = Mathf.Min(radiusAt * random.Range(0.45f, 0.65f) * (leader ? 1.15f : 1f), radiusAt * 0.85f);
                 var branch = AddBone(model, parent, BoneRole.Branch, at, axis, length, radius, Mathf.Max(0.008f, radius * 0.3f));
@@ -255,8 +255,8 @@ namespace MorzaBogow.Presentation.Landscape
                     var b = model.Bones[branch];
                     var from = b.Origin + b.Axis * (b.Length * Mathf.Lerp(0.4f, 1f, (w + random.Range(0.2f, 0.8f)) / shoots));
                     var side = Quaternion.AngleAxis(random.Range(-80f, 80f), Vector3.up) * Flat(b.Axis, direction);
-                    var shootAxis = Tilt(Vector3.up, side, random.Range(55f, 105f));
-                    AddBone(model, branch, BoneRole.Twig, from, shootAxis, random.Range(0.35f, 0.7f) * Mathf.Clamp(model.Height / 6f, 0.6f, 1.2f), 0f, 0f);
+                    var shootAxis = Tilt(Vector3.up, side, random.Range(model.Species.ShootTiltMin, model.Species.ShootTiltMax));
+                    AddBone(model, branch, BoneRole.Twig, from, shootAxis, random.Range(model.Species.ShootLengthMin, model.Species.ShootLengthMax) * Mathf.Clamp(model.Height / 6f, 0.6f, 1.2f), 0f, 0f);
                 }
             }
         }
@@ -340,9 +340,6 @@ namespace MorzaBogow.Presentation.Landscape
             return 0.75f * full;
         }
 
-        /// <summary>Farthest a spray's centre sits from the shoot or branch that carries it, metres.</summary>
-        const float SprayReach = 0.6f;
-
         /// <summary>
         /// Leaves over the crown's outer layer, where the light is: points spread over the envelope (its underside left
         /// thin, as in a pruned olive), thinned by a smooth noise into masses with sky between them, each carried by
@@ -363,12 +360,12 @@ namespace MorzaBogow.Presentation.Landscape
             for (var attempt = 0; attempt < count * 8 && placed < count; attempt++)
             {
                 var direction = Unit(ref random);
-                if (direction.y < -0.45f) continue;
-                var point = model.CrownCentre + Vector3.Scale(direction, model.CrownAxes) * random.Range(0.72f, 1.02f);
+                if (direction.y < model.Species.SprayFloor) continue;
+                var point = model.CrownCentre + Vector3.Scale(direction, model.CrownAxes) * random.Range(model.Species.ShellInner, 1.02f);
                 if (random.Next() > Mathf.Clamp01(0.2f + Clumps(clumps, point / 1.1f))) continue;
                 var bone = NearestBearer(model, bearers, point, out var onWood);
                 var reach = point - onWood;
-                if (reach.magnitude > SprayReach) point = onWood + reach.normalized * SprayReach;
+                if (reach.magnitude > model.Species.SprayReach) point = onWood + reach.normalized * model.Species.SprayReach;
                 var outward = Outward(model, point);
                 var normal = (outward * 0.65f + Vector3.up * 0.55f + Unit(ref random) * 0.4f).normalized;
                 var along = point - onWood;
@@ -490,7 +487,7 @@ namespace MorzaBogow.Presentation.Landscape
             {
                 if (Mathf.FloorToInt((i + 1) * share) == Mathf.FloorToInt(i * share)) continue;
                 var spray = model.Sprays[i];
-                Card(model, mesh, spray, spray.Size * SprayGrowth[lod], lod > 0);
+                Card(model, mesh, spray, Mathf.Min(spray.Size * SprayGrowth[lod], Mathf.Max(spray.Size, model.Species.FarCardCap * model.CrownRadius)), lod > 0);
             }
         }
 

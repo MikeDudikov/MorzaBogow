@@ -45,6 +45,31 @@ namespace MorzaBogow.Presentation.Landscape
 
         public static IReadOnlyList<ManifestEntry> Entries { get; } = Build();
 
+        /// <summary>A bush of the maquis: the tree's entry with its own leaves, levels and tests.</summary>
+        static ManifestEntry Shrub(TreeSpecies species, string id, string leaves, string variants)
+        {
+            var entry = Tree(species, id, variants, "Maquis.Plant z BattleController.PlantGrove: mniej krzewów na wysepkach portów i wolnych brzegów, podszyt sosen na wysepkach zaplecza", AllRegions);
+            entry.Materials = new[]
+            {
+                "Environment/OliveBark (zamiennik kory: w gęstym krzewie prawie niewidoczna)",
+                $"Environment/{leaves} (HDRP/Lit Translucent, profil Foliage, alpha clip, atlas z LeafAtlas: {(species.LeafShape == LeafKind.Pinnate ? "liść parzystopierzasty na oskrzydlonej osadce" : "liść owalny, falisty, z kolcem na każdym zębie")})",
+            };
+            entry.Animations = new[]
+            {
+                "kołysanie pnia: model wahadła drzew liściastych przeniesiony na krzew (spekulacja, brak pomiarów)",
+                "konary i gałęzie: wsporniki k = 3EI/L, wymuszenie ruchem podstawy",
+                $"trzepotanie pędów {species.FlutterFrequency:0} Hz od {species.FlutterOnset.ToString("0.##", CultureInfo.InvariantCulture)} m/s (sztywne, skórzaste liście)",
+            };
+            entry.Lods = new[] { "LOD0 ≤ 5000 trójkątów", "LOD1 ≤ 1500", "LOD2 ≤ 400, karty nie większe niż 0,6 promienia korony", "wspólne kości wszystkich poziomów" };
+            entry.Tests = new[]
+            {
+                "ShrubTests.Shrubs_StayLowDenseToTheGroundAndWithinTheirBudgets", "ShrubTests.Shrubs_SwayFasterThanTheOlivesAsTheirModelSays",
+                "ShrubTests.Shrubs_AtlasesDrawTheirOwnLeaves", "ShrubTests.Maquis_KeepsOffBeachesCliffRimsTreesAndBuildings",
+                "LandscapeTests.Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt",
+            };
+            return entry;
+        }
+
         static ManifestEntry Tree(TreeSpecies species, string id, string variants, string integration, Region[] regions)
         {
             return new ManifestEntry
@@ -122,8 +147,8 @@ namespace MorzaBogow.Presentation.Landscape
                 Planned("veg.pine.brutia", "vegetation", "Sosna kalabryjska (Pinus brutia)", east, eras, "do ustalenia", "skład drewna w profilu Krety i wschodniej Egei", Confidence.Established, "2.x: JRC Atlas s. 122"),
                 Planned("veg.cypress.wild", "vegetation", "Cyprys rozłożysty (Cupressus sempervirens f. horizontalis)", east, eras, "do ustalenia", "zbocza Krety i Dodekanezu", Confidence.Established, "2.x: JRC Atlas s. 88–89"),
                 Planned("veg.cypress.columnar", "vegetation", "Cyprys kolumnowy (uprawny)", all, eras, "do ustalenia", "tylko sanktuaria i ogrody", Confidence.Interpretation, "2.x: JRC Atlas s. 88–89"),
-                Planned("veg.quercus.coccifera", "vegetation", "Dąb kermesowy (Quercus coccifera)", all, eras, "krzew 1–3 m (do potwierdzenia)", "makia na zboczach", Confidence.Established, "2.x: EUNIS F7.31 / makia"),
-                Planned("veg.pistacia.lentiscus", "vegetation", "Lentyszek (Pistacia lentiscus)", all, eras, "krzew 1–3 m (do potwierdzenia)", "makia przy brzegu", Confidence.Established, "2.x: EUNIS F7.31"),
+                Shrub(TreeSpecies.KermesOak, "veg.quercus.coccifera", "KermesLeaves", "kształt z hasza id: 3–6 pni, gęsta kopuła do ziemi, liście 1,5–3,5 cm z 4–8 kolcami"),
+                Shrub(TreeSpecies.Lentisk, "veg.pistacia.lentiscus", "LentiskLeaves", "kształt z hasza id: 2–5 pni, kopuła do ziemi, 3–5 par listków na liściu"),
                 Planned("veg.phrygana", "vegetation", "Poduszki frygany (Sarcopoterium spinosum, Thymbra capitata, Cistus)", all, eras, "poduszki 0,3–0,8 m", "suche wierzchowiny wysepek", Confidence.Established, "2.x: EUNIS F7.31"),
                 new ManifestEntry
                 {

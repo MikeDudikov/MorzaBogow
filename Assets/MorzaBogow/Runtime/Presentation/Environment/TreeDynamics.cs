@@ -122,7 +122,7 @@ namespace MorzaBogow.Presentation.Landscape
                     {
                         var centre = carried.SprayCentres / carried.Sprays;
                         var r = centre - bone.Origin;
-                        Accumulate(ref mode, ref jx, ref jz, carried.Sprays * TreeGenerator.SprayMass, r, axis);
+                        Accumulate(ref mode, ref jx, ref jz, carried.Sprays * species.SprayMass, r, axis);
                         AccumulateArea(ref mode, carried.Sprays * sprayArea, r, axis);
                     }
                 }

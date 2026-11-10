@@ -48,7 +48,7 @@ namespace MorzaBogow.Tests
             Assert.That(battle.World.Marine, Is.Not.Null, "A match has its wind.");
             Assert.That(Vegetation.Wind, Is.Not.Null);
 
-            var grove = groves.OrderByDescending(item => item.Count).First();
+            var grove = groves.Where(item => item.name == "Olives").OrderByDescending(item => item.Count).First();
             var paused = Rotations(grove);
             for (var i = 0; i < 5; i++) yield return null;
             Assert.That(paused.Zip(Rotations(grove), Quaternion.Angle).Max(), Is.LessThan(1e-3f), "In a paused game the trees hold still.");
@@ -61,6 +61,26 @@ namespace MorzaBogow.Tests
             Assert.That(leaves, Is.Not.Null);
             if (LandscapeArt.OliveLeaves != null) Assert.That(leaves, Is.SameAs(LandscapeArt.OliveLeaves), "The built translucent olive leaves, not the plain placeholder.");
             Assert.That(grove.GetComponent<LODGroup>().lodCount, Is.EqualTo(TreeGenerator.LodCount));
+        }
+
+        [UnityTest]
+        public IEnumerator Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt()
+        {
+            yield return null;
+            var maquis = Object.FindObjectsByType<TreeGrove>(FindObjectsSortMode.None).Where(grove => grove.name.StartsWith("Maquis")).ToArray();
+            Assert.That(maquis.Length, Is.GreaterThan(0), "Kermes oaks and lentisks grow on the islets.");
+            Assert.That(maquis.Sum(grove => grove.Count), Is.GreaterThan(5));
+            foreach (var grove in maquis)
+            {
+                var leaves = grove.Renderers[0].sharedMaterials[1];
+                Assert.That(leaves, Is.SameAs(LandscapeArt.KermesLeaves).Or.SameAs(LandscapeArt.LentiskLeaves), "Each bush wears its own leaves.");
+            }
+
+            var bush = maquis.OrderByDescending(item => item.Count).First();
+            var still = Rotations(bush);
+            for (var i = 0; i < 60; i++) bush.Advance(1f / 30f, true);
+            Assert.That(bush.WindAt(0).magnitude, Is.GreaterThan(0.5f), "The match's wind reaches the bushes.");
+            Assert.That(still.Zip(Rotations(bush), Quaternion.Angle).Max(), Is.GreaterThan(0.1f), "And moves them.");
         }
 
         [UnityTest]

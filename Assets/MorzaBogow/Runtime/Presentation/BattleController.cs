@@ -1651,6 +1651,8 @@ namespace MorzaBogow.Presentation
                 olive.Build(parent, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
                 TreesPlanted += olive.Count;
             }
+            // The maquis around the trees: fewer bushes where people live, the pines' undergrowth on the wooded islets.
+            Landscape.Maquis.Plant(parent, outline, lift, groveId, blocked, planted, settled: olives);
             return (planted.Count, pines);
         }
 

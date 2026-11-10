@@ -190,6 +190,11 @@ namespace MorzaBogow.Presentation.Landscape
         /// <summary>One spray: a main shoot with two or three side shoots, leaves in opposite pairs along all of them.</summary>
         static void Spray(TreeSpecies species, uint seed, Placement placement, Canvas top, Canvas under)
         {
+            if (species.LeafShape != LeafKind.Olive)
+            {
+                ShrubSpray(species, seed, placement, top, under);
+                return;
+            }
             var random = new StableHash.Sequence(seed);
             // Lengths in the branchlet's own units, so after its placement's scale the leaves keep their true size on the card.
             var unit = 1f / Mathf.Max(species.SprayLength * placement.Scale, 0.02f);
@@ -213,7 +218,7 @@ namespace MorzaBogow.Presentation.Landscape
             }
 
             // Shoots first, leaves over them.
-            foreach (var (path, width) in shoots) Shoot(path, width, placement, top, under);
+            foreach (var (path, width) in shoots) Shoot(species, path, width, placement, top, under);
             var spacing = 0.018f * unit;
             foreach (var (path, width) in shoots)
             {
@@ -237,6 +242,139 @@ namespace MorzaBogow.Presentation.Landscape
                         var shade = random.Range(0.86f, 1.1f);
                         Leaf(species, point, leafDirection, leafLength, leafWidth, curl, shade, youth, random.Range(0f, 1f), placement, top, under);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// A shrub's spray: a shoot with four to six side shoots and one leaf at each node, alternately left and right
+        /// (report 8.10): a spiny-toothed oval leaf (kermes oak, 8.2–8.4) or a pinnate leaf of paired leaflets on a
+        /// winged rachis (lentisk, 8.9–8.11).
+        /// </summary>
+        static void ShrubSpray(TreeSpecies species, uint seed, Placement placement, Canvas top, Canvas under)
+        {
+            var random = new StableHash.Sequence(seed);
+            var unit = 1f / Mathf.Max(species.SprayLength * placement.Scale, 0.02f);
+            var shoots = new List<(Vector2[] path, float width)>();
+            var main = Curve(new Vector2(0.5f, 0f), new Vector2(0.5f + random.Range(-0.08f, 0.08f), 0.5f), new Vector2(0.5f + random.Range(-0.1f, 0.1f), 0.95f), 24);
+            shoots.Add((main, 0.012f));
+            var sides = random.Range(6, 10);
+            for (var s = 0; s < sides; s++)
+            {
+                var at = Mathf.Lerp(0.12f, 0.75f, (s + random.Range(0.1f, 0.9f)) / sides);
+                var index = Mathf.Clamp(Mathf.RoundToInt(at * (main.Length - 1)), 1, main.Length - 2);
+                var direction = (main[index + 1] - main[index - 1]).normalized;
+                var side = s % 2 == 0 ? 1f : -1f;
+                var turned = Rotate(direction, side * random.Range(30f, 55f) * Mathf.Deg2Rad);
+                var length = random.Range(0.3f, 0.5f) * Mathf.Lerp(1f, 0.6f, at);
+                var end = main[index] + turned * length;
+                var bend = main[index] + turned * (0.5f * length) + Rotate(turned, side * Mathf.PI * 0.5f) * random.Range(-0.03f, 0.03f);
+                shoots.Add((Curve(main[index], bend, end, 12), 0.007f));
+            }
+            foreach (var (path, width) in shoots) Shoot(species, path, width, placement, top, under);
+
+            var pinnate = species.LeafShape == LeafKind.Pinnate;
+            // A node about every half leaf along a shoot: the oak's leaves crowd, the lentisk's long leaves lie apart.
+            var spacing = (pinnate ? 0.6f : 0.4f) * species.LeafLengthMax * unit;
+            foreach (var (path, _) in shoots)
+            {
+                var total = Length(path);
+                var nodes = Mathf.Max(2, Mathf.FloorToInt(total / spacing));
+                for (var n = 1; n <= nodes; n++)
+                {
+                    var along = Mathf.Min(total, n * spacing - random.Range(0f, 0.3f) * spacing);
+                    var (point, direction) = At(path, along);
+                    var youth = along / total;
+                    var side = n % 2 == 0 ? 1f : -1f;
+                    var leafDirection = Rotate(direction, side * random.Range(35f, 60f) * Mathf.Deg2Rad);
+                    var taper = Mathf.Lerp(1f, 0.65f, youth * youth);
+                    if (pinnate)
+                    {
+                        Pinnate(species, ref random, point, leafDirection, taper, unit, youth, placement, top, under);
+                        continue;
+                    }
+                    var length = random.Range(species.LeafLengthMin, species.LeafLengthMax) * unit * taper;
+                    var width = species.LeafWidth * unit * taper * random.Range(0.85f, 1.15f);
+                    SpinyLeaf(species, point, leafDirection, length, width, random.Range(species.TeethMin, species.TeethMax + 1), random.Range(0.88f, 1.1f), youth, placement, top, under);
+                }
+            }
+        }
+
+        /// <summary>A lentisk leaf: pairs of leathery leaflets on a winged rachis, no end leaflet (paripinnate, report 8.9).</summary>
+        static void Pinnate(TreeSpecies species, ref StableHash.Sequence random, Vector2 basePoint, Vector2 direction, float taper, float unit, float youth,
+            Placement placement, Canvas top, Canvas under)
+        {
+            var pairs = random.Range(species.LeafletPairsMin, species.LeafletPairsMax + 1);
+            var leaflet = random.Range(species.LeafLengthMin, species.LeafLengthMax) * unit * taper;
+            var gap = 0.55f * leaflet;
+            var across = Rotate(direction, Mathf.PI * 0.5f);
+            var rachis = Curve(basePoint, basePoint + direction * (0.5f * gap * pairs) + across * (random.Range(-0.2f, 0.2f) * gap), basePoint + direction * (gap * (pairs + 0.3f)), 10);
+            // Winged: the rachis drawn broader than a shoot of its length.
+            Shoot(species, rachis, 0.009f, placement, top, under);
+            for (var k = 0; k < pairs; k++)
+            {
+                var (point, along) = At(rachis, gap * (k + 0.6f));
+                var size = leaflet * Mathf.Lerp(0.85f, 1.05f, k / Mathf.Max(1f, pairs - 1f));
+                for (var side = -1; side <= 1; side += 2)
+                {
+                    var leafDirection = Rotate(along, side * random.Range(55f, 75f) * Mathf.Deg2Rad);
+                    var leafWidth = species.LeafWidth * unit * taper * random.Range(0.9f, 1.1f);
+                    Leaf(species, point, leafDirection, size, leafWidth, side * random.Range(-0.4f, 0.6f), random.Range(0.9f, 1.08f), youth, random.Next(), placement, top, under);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A kermes oak leaf: broadly oval on a short stalk, the margin wavy and running out to a sharp spine at each
+        /// tooth; dark green above with a paler midrib, paler below, glossy on both sides (report 8.2–8.4).
+        /// </summary>
+        static void SpinyLeaf(TreeSpecies species, Vector2 basePoint, Vector2 direction, float length, float width, int teeth, float shade, float youth,
+            Placement placement, Canvas top, Canvas under)
+        {
+            var size = top.Size;
+            var origin = placement.Map(basePoint) * size;
+            var d = placement.Turn(direction).normalized;
+            var p = new Vector2(-d.y, d.x);
+            var l = length * placement.Scale * size;
+            var w = width * placement.Scale * size;
+            if (l < 1.5f) return;
+            teeth = Mathf.Max(1, teeth);
+            var reach = l + w + 2f;
+            var minX = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(origin.x, origin.x + d.x * l) - reach * 0.5f - 2f));
+            var maxX = Mathf.Min(size - 1, Mathf.CeilToInt(Mathf.Max(origin.x, origin.x + d.x * l) + reach * 0.5f + 2f));
+            var minY = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(origin.y, origin.y + d.y * l) - reach * 0.5f - 2f));
+            var maxY = Mathf.Min(size - 1, Mathf.CeilToInt(Mathf.Max(origin.y, origin.y + d.y * l) + reach * 0.5f + 2f));
+            var upper = species.LeafTop * shade;
+            upper.g += 0.04f * youth;
+            var lower = species.LeafUnder * shade;
+            var rib = Color.Lerp(upper, new Color(0.75f, 0.78f, 0.6f), 0.35f);
+            for (var y = minY; y <= maxY; y++)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    var q = new Vector2(x + 0.5f, y + 0.5f) - origin;
+                    var along = Vector2.Dot(q, d);
+                    if (along < 0f || along > l + 1f) continue;
+                    var s = along / l;
+                    var t = Vector2.Dot(q, p);
+                    // A short stalk, then a broad oval blade.
+                    var oval = s < 0.07f ? 0.1f : Mathf.Sqrt(Mathf.Clamp01(Mathf.Sin(Mathf.PI * Mathf.Pow((s - 0.07f) / 0.93f, 0.9f))));
+                    // Each tooth runs out to a spine: the margin swells sharply at it and falls back between.
+                    var blade = Mathf.Clamp01((s - 0.12f) / 0.86f);
+                    var phase = Mathf.Repeat(blade * teeth, 1f);
+                    var spine = s > 0.12f ? Mathf.Pow(1f - Mathf.Abs(2f * phase - 1f), 4f) : 0f;
+                    var halfWidth = 0.5f * w * oval * (0.82f + 0.32f * spine);
+                    var alpha = Mathf.Clamp01(halfWidth - Mathf.Abs(t) + 0.5f) * Mathf.Clamp01(l - along + 0.5f);
+                    if (alpha <= 0f) continue;
+                    var across = halfWidth > 0.01f ? t / halfWidth : 0f;
+                    // Wavy: the blade rises and falls from tooth to tooth.
+                    var wave = Mathf.Sin(2f * Mathf.PI * blade * teeth);
+                    var tilt = -p * (0.22f * Mathf.Sign(t) * Mathf.Clamp01(Mathf.Abs(across) * 3f)) + d * (0.25f * wave * Mathf.Abs(across));
+                    var onRib = Mathf.Abs(t) < Mathf.Max(0.6f, 0.08f * halfWidth);
+                    var occlusion = 0.82f + 0.18f * s;
+                    var i0 = y * size + x;
+                    top.Put(i0, alpha, onRib ? rib : upper, tilt, species.LeafGlossTop, occlusion);
+                    under.Put(i0, alpha, onRib ? Color.Lerp(lower, Color.white, 0.15f) : lower, -tilt, species.LeafGlossUnder, occlusion);
                 }
             }
         }
@@ -281,7 +419,7 @@ namespace MorzaBogow.Presentation.Landscape
             return new Vector2(c * v.x - s * v.y, s * v.x + c * v.y);
         }
 
-        static void Shoot(Vector2[] path, float width, Placement placement, Canvas top, Canvas under)
+        static void Shoot(TreeSpecies species, Vector2[] path, float width, Placement placement, Canvas top, Canvas under)
         {
             var size = top.Size;
             for (var i = 1; i < path.Length; i++)
@@ -290,8 +428,8 @@ namespace MorzaBogow.Presentation.Landscape
                 var b = placement.Map(path[i]) * size;
                 var t0 = (i - 1f) / (path.Length - 1);
                 var half = 0.5f * width * placement.Scale * size * Mathf.Lerp(1f, 0.45f, t0);
-                var young = new Color(0.50f, 0.54f, 0.38f);
-                var old = new Color(0.46f, 0.43f, 0.36f);
+                var young = species.ShootYoung;
+                var old = species.ShootOld;
                 var colour = Color.Lerp(old, young, t0);
                 var minX = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.x, b.x) - half - 1f));
                 var maxX = Mathf.Min(size - 1, Mathf.CeilToInt(Mathf.Max(a.x, b.x) + half + 1f));
@@ -354,7 +492,8 @@ namespace MorzaBogow.Presentation.Landscape
                     var centre = bendPerPixel * along * along;
                     var t = Vector2.Dot(q, p) - centre;
                     // Lanceolate: a short stalk, widest a little below the middle, an acute tip.
-                    var blade = s < 0.08f ? 0.12f : Mathf.Pow(Mathf.Sin(Mathf.PI * Mathf.Pow((s - 0.08f) / 0.92f, 0.85f)), 0.9f);
+                    // Clamped: past the tip (along up to l + 1) the sine turns negative and its power would be NaN.
+                    var blade = s < 0.08f ? 0.12f : Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * Mathf.Pow(Mathf.Clamp01((s - 0.08f) / 0.92f), 0.85f))), 0.9f);
                     var halfWidth = 0.5f * w * blade;
                     var alpha = Mathf.Clamp01(halfWidth - Mathf.Abs(t) + 0.5f) * Mathf.Clamp01(l - along + 0.5f);
                     if (alpha <= 0f) continue;
@@ -367,8 +506,8 @@ namespace MorzaBogow.Presentation.Landscape
                     var colourUnder = onRib ? rib : lower;
                     var occlusion = 0.82f + 0.18f * s;
                     var i0 = y * size + x;
-                    top.Put(i0, alpha, colourTop, tilt, 0.55f, occlusion);
-                    under.Put(i0, alpha, colourUnder, -tilt, 0.3f, occlusion);
+                    top.Put(i0, alpha, colourTop, tilt, species.LeafGlossTop, occlusion);
+                    under.Put(i0, alpha, colourUnder, -tilt, species.LeafGlossUnder, occlusion);
                 }
             }
         }

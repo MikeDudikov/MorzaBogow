@@ -53,6 +53,13 @@ Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.jso
   - 3 poziomy LOD na wspólnych kościach; wiatr meczu tylko do odczytu;
   - gaj poza kadrem kamery nic nie liczy;
   - z daleka ruszają się tylko pień i konary.
+- **Makia** (`Maquis`, gatunki `TreeSpecies.KermesOak` i `Lentisk`, raport 8.1–8.14):
+  - dąb kermesowy 0,8–2 m (3–6 pni, liście z kolcami) i lentyszek 1–2,8 m (2–5 pni, liście parzystopierzaste), na tym samym generatorze, kościach i wietrze meczu co oliwki;
+  - kopuły sięgają prawie do ziemi; lentyszek w pasie nad brzegiem, kermes na zboczach;
+  - na wysepkach portów i wolnych brzegów najwyżej 10 krzewów (raport 8.6: przy zagrodach niższe i rzadsze), na wysepkach zaplecza do 22 jako podszyt sosen;
+  - nigdy na plaży, na krawędzi klifu, na gruncie budowli ani przy pniu drzewa; flaga `-morzaPlainOlives` wyłącza też makię;
+  - częstotliwości kołysania krzewów nie zmierzono w żadnym przeczytanym źródle: model wahadła drzew przeniesiony na krzew to spekulacja;
+  - z kamery strategicznej najdalszy poziom szczegółu rysuje mało kart, a kermes z góry wygląda jak pierścień (ograniczenie przy ok. 14 px na krzew).
 - **Wybrzeże** (`CoastFeatures`): warga notchu w sektorach klifów, mokry pas oraz płyty beachrocku na łagodnych brzegach.
 - **Plaża żwirowa** (`Shingle`):
   - odcinki na łagodnych brzegach, od 0,35 m pod wodą do 0,7 m nad nią, mokre i ciemne do 0,22 m, wyżej suche;
@@ -85,7 +92,7 @@ Builds/M1/MorzaBogow.exe -force-device-index 0 -morzaLandscapeShowcase <prefiks>
 - Pełnej klatki nie rozstrzygnięto: czas symulacji wahał się między przebiegami od 3 do 12 ms.
 
 **Jeszcze nie zrobione:**
-- frygana;
-- sosny, cyprysy, makia;
+- frygana (oddana przez sesję potoku assetów, jeszcze niezrobiona);
+- sosny i cyprysy na generatorze (dziś modele Meshy bez wiatru, sesja potoku assetów);
 - przodek E5 i płuczka;
 - animacja pracy szkutników.

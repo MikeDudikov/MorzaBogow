@@ -19,6 +19,16 @@ namespace MorzaBogow.Presentation.Landscape
 
         public static Material OliveLeaves => oliveLeaves != null ? oliveLeaves : oliveLeaves = Resources.Load<Material>("Environment/OliveLeaves");
 
+        static Material kermesLeaves, lentiskLeaves;
+
+        public static Material KermesLeaves => kermesLeaves != null ? kermesLeaves : kermesLeaves = Resources.Load<Material>("Environment/KermesLeaves");
+
+        public static Material LentiskLeaves => lentiskLeaves != null ? lentiskLeaves : lentiskLeaves = Resources.Load<Material>("Environment/LentiskLeaves");
+
+        /// <summary>The built leaf material of a species (each has its own atlas), or null before the editor has made it.</summary>
+        public static Material LeavesFor(TreeSpecies species) =>
+            species == TreeSpecies.KermesOak ? KermesLeaves : species == TreeSpecies.Lentisk ? LentiskLeaves : OliveLeaves;
+
         /// <summary>Rock or shingle in the swash: darker and glossy with a film of water.</summary>
         public static Material Wet(Material dry)
         {

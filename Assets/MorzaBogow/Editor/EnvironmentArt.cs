@@ -32,6 +32,9 @@ namespace MorzaBogow.Editor
             Folders();
             var bark = Bark("OliveBark", "bark_willow_02", new Color(0.82f, 0.82f, 0.8f));
             var leaves = Leaves("OliveLeaves", TreeSpecies.OliveCultivated);
+            // The maquis shrubs, each with its own leaf atlas; their bark is the olive's (barely seen in a dense bush).
+            Leaves("KermesLeaves", TreeSpecies.KermesOak);
+            Leaves("LentiskLeaves", TreeSpecies.Lentisk);
             // Rock samphire and sea lavender on the cliffs (CliffPlants), on the same translucent foliage material.
             var cliffPlants = FoliageMaterial("CliffPlants", CliffPlantAtlas.Bake(1024));
             AssetDatabase.SaveAssets();
@@ -51,6 +54,49 @@ namespace MorzaBogow.Editor
             Shot(Scene(0, true), Path.Combine(folder, "env-olive-close-wind.png"), 18f, 30f, false);
             Shot(Scene(1, false), Path.Combine(folder, "env-olive-lod1.png"), 45f, 30f, true);
             Shot(Scene(2, false), Path.Combine(folder, "env-olive-lod2.png"), 45f, 30f, true);
+        }
+
+        /// <summary>
+        /// The maquis shrubs, three kermes oaks and three lentisks, close up still and in a 12 m/s wind and from the
+        /// strategic camera at the farther levels. Batch mode with a graphics device: -executeMethod MorzaBogow.Editor.EnvironmentArt.PreviewShrubs
+        /// </summary>
+        public static void PreviewShrubs()
+        {
+            var folder = Path.Combine(Application.dataPath, "..", "artifacts-log");
+            Shot(ShrubScene(0, false), Path.Combine(folder, "env-shrubs-close.png"), 18f, 30f, false);
+            Shot(ShrubScene(0, true), Path.Combine(folder, "env-shrubs-close-wind.png"), 18f, 30f, false);
+            Shot(ShrubScene(1, false), Path.Combine(folder, "env-shrubs-lod1.png"), 45f, 30f, true);
+            Shot(ShrubScene(2, false), Path.Combine(folder, "env-shrubs-lod2.png"), 45f, 30f, true);
+        }
+
+        static GameObject ShrubScene(int lod, bool wind)
+        {
+            var root = new GameObject("Shrub preview");
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.transform.SetParent(root.transform, false);
+            ground.transform.localScale = new Vector3(1.2f, 1f, 1.2f);
+            for (var kind = 0; kind < 2; kind++)
+            {
+                var species = kind == 0 ? TreeSpecies.KermesOak : TreeSpecies.Lentisk;
+                var builder = new TreeGroveBuilder();
+                for (var i = 0; i < 3; i++) builder.Add(species, (uint)(21 + 10 * kind + i), new Vector3(-3f + 3f * i, 0f, kind == 0 ? 2f : -2f), 70f * i);
+                var grove = builder.Build(root.transform, species.Name, LandscapeArt.OliveBark, LandscapeArt.LeavesFor(species));
+                if (wind)
+                {
+                    grove.Wind = new SteadyWind(new Vector3(12f, 0f, 0f));
+                    for (var i = 0; i < 90; i++) grove.Advance(1f / 30f, true);
+                }
+                var source = grove.Renderers[lod];
+                var baked = new Mesh { indexFormat = source.sharedMesh.indexFormat };
+                source.BakeMesh(baked);
+                var drawn = new GameObject($"{species.Name} LOD{lod} baked");
+                drawn.transform.SetParent(root.transform, false);
+                drawn.transform.SetPositionAndRotation(source.transform.position, source.transform.rotation);
+                drawn.AddComponent<MeshFilter>().sharedMesh = baked;
+                drawn.AddComponent<MeshRenderer>().sharedMaterials = source.sharedMaterials;
+                Object.DestroyImmediate(grove.gameObject);
+            }
+            return root;
         }
 
         /// <summary>An islet with the game's shore materials, its notch, wet band and beachrock, over a flat blue sea.</summary>

@@ -6,6 +6,12 @@ namespace MorzaBogow.Presentation.Landscape
     /// <summary>How sure a claim is: read in a source, inferred from sources, a guess, or a choice made for the game.</summary>
     public enum Confidence { Established, Interpretation, Speculation, GameChoice }
 
+    /// <summary>
+    /// The leaf a species' atlas draws: the olive's lanceolate leaves in opposite pairs, a spiny-toothed oval leaf one
+    /// per node (kermes oak), or a pinnate leaf of paired leaflets one per node (lentisk).
+    /// </summary>
+    public enum LeafKind { Olive, SpinyOval, Pinnate }
+
     /// <summary>One claim behind a number or a shape, with the source (a key of docs/art/ReferenceRegister.json) and the place in it where it was read.</summary>
     public readonly struct SourceNote
     {
@@ -46,6 +52,40 @@ namespace MorzaBogow.Presentation.Landscape
         public float CrownWidthRatio;
         public float TrunkTwist;
         public float TrunkFluting;
+
+        // The crown's build. The defaults are the olive's: an open vase on a short stem, shoots hanging from it.
+
+        /// <summary>Lowest the foliage comes, as a share of the height (unless the forks stand higher).</summary>
+        public float CrownBase = 0.3f;
+
+        /// <summary>How far the upper stem turns from the lower one, degrees.</summary>
+        public float StemKinkMin = 6f, StemKinkMax = 15f;
+
+        /// <summary>How far the main limbs rise into the height left above the fork (share), and how much their outer half curls up (degrees).</summary>
+        public float LimbRiseMin = 0.32f, LimbRiseMax = 0.45f, LimbCurlMin = 8f, LimbCurlMax = 16f;
+
+        /// <summary>Side branches: tilt from the vertical (degrees) and length as a share of the height.</summary>
+        public float BranchTiltMin = 40f, BranchTiltMax = 80f, BranchLengthMin = 0.2f, BranchLengthMax = 0.32f;
+
+        /// <summary>Leafy shoots: tilt from the vertical (over 90° they hang) and length in metres on a 6 m tree.</summary>
+        public float ShootTiltMin = 55f, ShootTiltMax = 105f, ShootLengthMin = 0.35f, ShootLengthMax = 0.7f;
+
+        /// <summary>
+        /// Where the foliage sits: the lowest direction on the crown's envelope (y of a unit vector), the inner edge of
+        /// the leafy shell (share of the envelope), how far a spray sits from its wood (m) and one spray's mass (kg).
+        /// </summary>
+        public float SprayFloor = -0.45f, ShellInner = 0.72f, SprayReach = 0.6f, SprayMass = TreeGenerator.SprayMass;
+
+        /// <summary>Largest card of the farther levels, as a share of the crown's radius (the olive's are not capped).</summary>
+        public float FarCardCap = float.PositiveInfinity;
+
+        /// <summary>The leaf drawn in the atlas, and what that kind of leaf needs: spines per side, pairs of leaflets.</summary>
+        public LeafKind LeafShape = LeafKind.Olive;
+        public int TeethMin, TeethMax, LeafletPairsMin, LeafletPairsMax;
+
+        /// <summary>Smoothness of the leaf's upper side and underside, and the colour of young and old shoots (sRGB).</summary>
+        public float LeafGlossTop = 0.55f, LeafGlossUnder = 0.3f;
+        public Color ShootYoung = new Color(0.50f, 0.54f, 0.38f), ShootOld = new Color(0.46f, 0.43f, 0.36f);
 
         // Leaves: the leaf itself (for the baked texture) and the sprays of leaves drawn as cards.
         public float LeafLengthMin, LeafLengthMax, LeafWidth;
@@ -166,6 +206,142 @@ namespace MorzaBogow.Presentation.Landscape
         };
 
         public static IReadOnlyList<TreeSpecies> All { get; } = new[] { OliveCultivated, OliveWild };
+
+        /// <summary>
+        /// Kermes oak of the maquis: a dense, rounded, many-stemmed evergreen bush, the oval leaves stiff, spiny-toothed
+        /// and wavy, glossy on both sides (report 8.1–8.8). Kept at the browsed and the free form of Greek scrub,
+        /// 0.8–2 m, never the tree it grows into when no goat reaches it.
+        /// </summary>
+        public static readonly TreeSpecies KermesOak = new TreeSpecies
+        {
+            Id = "quercus_coccifera",
+            LatinName = "Quercus coccifera L.",
+            Name = "Dąb kermesowy",
+            HeightMin = 0.8f, HeightMax = 2f,
+            ForkHeightMin = 0.04f, ForkHeightMax = 0.12f,
+            StemDiameterMin = 0.03f, StemDiameterMax = 0.07f,
+            StemsMin = 3, StemsMax = 6,
+            ScaffoldsMin = 2, ScaffoldsMax = 3,
+            BranchesMin = 3, BranchesMax = 4,
+            ShootsMin = 3, ShootsMax = 5,
+            ScaffoldTiltMin = 25f, ScaffoldTiltMax = 50f,
+            CrownWidthRatio = 1.3f,
+            TrunkTwist = 0.1f,
+            TrunkFluting = 0.02f,
+            CrownBase = 0.04f,
+            StemKinkMin = 2f, StemKinkMax = 8f,
+            LimbRiseMin = 0.5f, LimbRiseMax = 0.7f, LimbCurlMin = 5f, LimbCurlMax = 12f,
+            BranchTiltMin = 30f, BranchTiltMax = 70f, BranchLengthMin = 0.25f, BranchLengthMax = 0.4f,
+            ShootTiltMin = 20f, ShootTiltMax = 70f, ShootLengthMin = 0.25f, ShootLengthMax = 0.45f,
+            SprayFloor = -0.95f, ShellInner = 0.6f, SprayReach = 0.3f, SprayMass = 0.02f,
+            FarCardCap = 0.6f,
+            LeafShape = LeafKind.SpinyOval,
+            TeethMin = 4, TeethMax = 8,
+            LeafLengthMin = 0.015f, LeafLengthMax = 0.035f, LeafWidth = 0.012f,
+            LeafGlossTop = 0.7f, LeafGlossUnder = 0.55f,
+            SprayLength = 0.3f,
+            SprayDensity = 35f,
+            LeafTop = new Color(0.22f, 0.32f, 0.17f),
+            LeafUnder = new Color(0.42f, 0.50f, 0.32f),
+            ShootYoung = new Color(0.47f, 0.45f, 0.36f),
+            ShootOld = new Color(0.40f, 0.38f, 0.34f),
+            WoodDensity = 1000f,
+            WoodModulus = 9e9f,
+            CrownDrag = 0.3f,
+            ReconfigurationSpeed = 3f,
+            VogelExponent = -1f,
+            SwayFrequency = 1.4f,
+            ReferenceDiameter = 0.4f,
+            ReferenceHeight = 5.5f,
+            TrunkDamping = 0.08f,
+            BranchDamping = 0.1f,
+            FlutterFrequency = 7f,
+            FlutterOnset = 2f,
+            Sources = ShrubSources(oak: true),
+        };
+
+        /// <summary>
+        /// Lentisk (mastic) of the maquis by the sea: a dense, rounded evergreen bush of a few stems, the leaves pinnate
+        /// with three to six pairs of leathery leaflets on a winged rachis (report 8.9–8.14). Kept at 1–2.8 m.
+        /// </summary>
+        public static readonly TreeSpecies Lentisk = new TreeSpecies
+        {
+            Id = "pistacia_lentiscus",
+            LatinName = "Pistacia lentiscus L.",
+            Name = "Lentyszek",
+            HeightMin = 1f, HeightMax = 2.8f,
+            ForkHeightMin = 0.05f, ForkHeightMax = 0.15f,
+            StemDiameterMin = 0.04f, StemDiameterMax = 0.1f,
+            StemsMin = 2, StemsMax = 5,
+            ScaffoldsMin = 2, ScaffoldsMax = 3,
+            BranchesMin = 3, BranchesMax = 4,
+            ShootsMin = 2, ShootsMax = 4,
+            ScaffoldTiltMin = 25f, ScaffoldTiltMax = 45f,
+            CrownWidthRatio = 1.2f,
+            TrunkTwist = 0.1f,
+            TrunkFluting = 0.02f,
+            CrownBase = 0.05f,
+            StemKinkMin = 2f, StemKinkMax = 8f,
+            LimbRiseMin = 0.5f, LimbRiseMax = 0.7f, LimbCurlMin = 5f, LimbCurlMax = 12f,
+            BranchTiltMin = 30f, BranchTiltMax = 65f, BranchLengthMin = 0.25f, BranchLengthMax = 0.4f,
+            ShootTiltMin = 25f, ShootTiltMax = 75f, ShootLengthMin = 0.3f, ShootLengthMax = 0.5f,
+            SprayFloor = -0.92f, ShellInner = 0.62f, SprayReach = 0.35f, SprayMass = 0.03f,
+            FarCardCap = 0.6f,
+            LeafShape = LeafKind.Pinnate,
+            LeafletPairsMin = 3, LeafletPairsMax = 5,
+            LeafLengthMin = 0.015f, LeafLengthMax = 0.035f, LeafWidth = 0.008f,
+            LeafGlossTop = 0.65f, LeafGlossUnder = 0.35f,
+            SprayLength = 0.35f,
+            SprayDensity = 28f,
+            LeafTop = new Color(0.20f, 0.31f, 0.16f),
+            LeafUnder = new Color(0.36f, 0.44f, 0.28f),
+            ShootYoung = new Color(0.55f, 0.38f, 0.28f),
+            ShootOld = new Color(0.45f, 0.43f, 0.40f),
+            WoodDensity = 1000f,
+            WoodModulus = 9e9f,
+            CrownDrag = 0.3f,
+            ReconfigurationSpeed = 3f,
+            VogelExponent = -1f,
+            SwayFrequency = 1.4f,
+            ReferenceDiameter = 0.4f,
+            ReferenceHeight = 5.5f,
+            TrunkDamping = 0.08f,
+            BranchDamping = 0.1f,
+            FlutterFrequency = 7f,
+            FlutterOnset = 2f,
+            Sources = ShrubSources(oak: false),
+        };
+
+        /// <summary>The maquis shrubs, on the same generator and wind as the trees.</summary>
+        public static IReadOnlyList<TreeSpecies> Shrubs { get; } = new[] { KermesOak, Lentisk };
+
+        static SourceNote[] ShrubSources(bool oak)
+        {
+            var notes = new List<SourceNote>();
+            if (oak)
+            {
+                notes.Add(new SourceNote("Zimozielony krzew do 2 m, rzadko małe drzewo; liście ok. 1,5–4 cm, sztywne, jajowate lub podłużne, brzeg kolczasto-ząbkowany i falisty, ogonek 1–4 mm; wierzch ciemnozielony, spód bladozielony.", "FloraEuropaea1964-vol1 (Plazi)", "s. 62 (długość liścia z tekstu po OCR)", Confidence.Established));
+                notes.Add(new SourceNote("Krzew 0,25–1,5 m, drzewo do 15 m, gdy nie jest zgryzany; liście 1–6 × 0,7–3 cm, 4–8 kolców na brzegu, obie strony błyszczące.", "CoombesCameron2021-TreesAndShrubsOnline", "strona gatunku", Confidence.Established));
+                notes.Add(new SourceNote("Korona gęsta, zaokrąglona; liście 1–3,5 × 0,7–2 cm, 5–8 par ostrych zębów, falisty brzeg.", "OaksOfTheWorld", "strona gatunku", Confidence.Interpretation));
+                notes.Add(new SourceNote("W Grecji forma niska 0,5–0,8 m i wysoka ok. 2 m; zgryzanie zagęszcza pędy.", "Tsiouvaras1987", "abstrakt", Confidence.Established));
+                notes.Add(new SourceNote("Krzewy przy zagrodach niższe i rzadsze.", "Papanastasis2009", "s. 49–50", Confidence.Established));
+                notes.Add(new SourceNote("Odporny na wypas, na suchych, kamienistych, często wapiennych glebach.", "EUFORGEN-Quercus-coccifera", "karta gatunku", Confidence.Established));
+            }
+            else
+            {
+                notes.Add(new SourceNote("Krzew lub małe drzewo 1–8 m; liście parzystopierzaste, (4–)8–12 listków 1–5 cm, skórzaste, z ością; osadka szeroko oskrzydlona.", "FloraEuropaea1981-vol2 (Plazi)", "s. 237 (szerokość listka z tekstu po OCR)", Confidence.Established));
+                notes.Add(new SourceNote("0,5–2 m, kora szara lub czerwonawa, liście naprzemianległe, listki całobrzegie.", "BlascoZumeta-FloraPinaDeEbro", "ark. 037", Confidence.Established));
+                notes.Add(new SourceNote("1–3(5) m, korona 1–2(10) m, liście ciemnozielone, 3–6 par listków.", "DiputacionCadiz-GuiaVirtual", "ark. 56", Confidence.Established));
+                notes.Add(new SourceNote("Korona kulista i gęsta, 3–5 par listków ok. 2,5 cm, młode przyrosty żółtozielone, młoda kora czerwonawa (okaz uprawny).", "UnivArizona-CampusArboretum", "strona taksonu", Confidence.Interpretation));
+                notes.Add(new SourceNote("Rośnie w makii od wybrzeża do 700–800(–1000) m n.p.m.", "FILMED-UniwWalencja", "strona gatunku", Confidence.Established));
+                notes.Add(new SourceNote("Rośnie w makii z dziką oliwką.", "JRC2016-Olea", "s. 111", Confidence.Established));
+            }
+            notes.Add(new SourceNote("Flory opisują stan współczesny; ten sam pokrój w latach 1200–400 p.n.e. to interpretacja.", "raport 8 (wstęp)", "-", Confidence.Interpretation));
+            notes.Add(new SourceNote("Zmierzonych częstotliwości kołysania krzewów nie znaleziono: model wahadła drzew liściastych (1,4 Hz przy 5,5 m) przeniesiony poniżej swojego zakresu 5–20 m daje 2–3 Hz.", "Jackson2021", "tab. 2 (przeniesienie)", Confidence.Speculation));
+            notes.Add(new SourceNote("Gęste struktury porowate dążą do V = −1; przeniesione na gęsty krzew.", "Gosselin2019", "tab. 1, równanie 4", Confidence.Speculation));
+            notes.Add(new SourceNote("Drewno, tłumienie i trzepotanie: wartości oliwki, tłumienie nieco większe dla gęstego krzewu; liście sztywne trzepoczą od 2 m/s.", "szacunek", "-", Confidence.Speculation));
+            return notes.ToArray();
+        }
 
         static SourceNote[] OliveSources(bool cultivated)
         {
