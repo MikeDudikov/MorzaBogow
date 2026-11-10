@@ -37,8 +37,10 @@ namespace MorzaBogow.Presentation
         readonly Dictionary<int, Transform> destinationMarkers = new Dictionary<int, Transform>();
         readonly Dictionary<int, ResourceSiteVisual> siteViews = new Dictionary<int, ResourceSiteVisual>();
         readonly HashSet<int> targetedShips = new HashSet<int>();
-        WaterSampler water;
-        int waterCursor;
+        WaterBatchSampler water;
+        HdrpWaterHeights waterHeights;
+        readonly List<ShipVisual> waterHulls = new List<ShipVisual>();
+        WeatherController weather;
         float maxRollSeen, maxHeaveSeen;
         BattleFog fog;
         float fogTimer;
@@ -137,10 +139,11 @@ namespace MorzaBogow.Presentation
         public IReadOnlyDictionary<int, GameObject> WreckViews => wreckViews;
         public BattleEffects Effects => effects;
         public BattleFog Fog => fog;
-        public WaterSampler Water => water;
+        /// <summary>Reads the sea under every visible hull once a frame; null without HDRP water in the scene.</summary>
+        public WaterBatchSampler Water => water;
 
-        /// <summary>Samples only some ships each frame; between samples the hull smoothly follows its last pose.</summary>
-        const int WaterShipsPerFrame = 24;
+        /// <summary>Presentation-only weather; calm in a match.</summary>
+        public WeatherController Weather => weather;
 
         public IReadOnlyDictionary<int, ResourceSiteVisual> SiteViews => siteViews;
         public IReadOnlyDictionary<int, GameObject> SettlementViews => settlementViews;
@@ -177,13 +180,22 @@ namespace MorzaBogow.Presentation
             StartMatch(MapFactory.CreateSkirmish(seed, LengthFromArguments(Environment.GetCommandLineArgs())), 0);
             if (surface != null)
             {
-                water = new WaterSampler(surface);
+                waterHeights = new HdrpWaterHeights(surface);
+                water = new WaterBatchSampler(waterHeights);
 
                 // Bow waves and surf live in a square of water that follows the view, not the distant camera.
                 decalAnchor = new GameObject("Water decal anchor").transform;
                 surface.decalRegionAnchor = decalAnchor;
             }
             sun = FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(light => light.type == LightType.Directional);
+
+            // Calm in a match; only the showcase calls a storm until scenarios decide the weather (stage 5). The scene's
+            // volume is never another battle's weather overlay.
+            var sceneVolume = FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsSortMode.None)
+                .Where(item => item.isGlobal && item.GetComponentInParent<WeatherController>(true) == null)
+                .OrderByDescending(item => item.priority).FirstOrDefault();
+            weather = gameObject.AddComponent<WeatherController>();
+            weather.Configure(surface, sun, sceneVolume);
             ReadSmokeArguments();
             hud = BattleHud.Create(this);
         }
@@ -204,6 +216,8 @@ namespace MorzaBogow.Presentation
             if (strategicCamera == null) strategicCamera = Camera.main;
             PendingOrder = HudOrder.None;
             lastAlarm.Clear();
+            // A new or loaded match starts calm; the weather is not part of a save.
+            weather?.SetWeather(0f, 0f);
             if (hud != null) hud.OnMatchStarted();
         }
 
@@ -374,7 +388,27 @@ namespace MorzaBogow.Presentation
                     pivot = new Vector3((float)home.X, 0f, (float)home.Y); height = 90f; yaw = ObliqueCamera.DefaultYaw;
                 } },
                 new ShowcaseStep { Shot = "karta-portu-rozbudowa", Ticks = 1, Setup = () => hud?.OpenBuildForTest() },
+                // Weather is presentation only: a storm rolls over the home waters and passes; the battle goes on unchanged.
+                new ShowcaseStep { Shot = "sztorm", Ticks = 12 * Rules.TickRate, Setup = () =>
+                {
+                    hud?.ClosePopoverForTest();
+                    selected.Clear();
+                    pivot = new Vector3((float)home.X + 45f, 0f, (float)home.Y - 10f); height = 70f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+                    weather?.SetWeather(1f, 6f);
+                } },
+                new ShowcaseStep { Shot = "po-sztormie", Ticks = 10 * Rules.TickRate, Setup = () =>
+                {
+                    LogWeather("storm");
+                    weather?.SetWeather(0f, 6f);
+                } },
+                new ShowcaseStep { Ticks = 1, Setup = () => LogWeather("calm again") },
             };
+        }
+
+        void LogWeather(string moment)
+        {
+            if (weather == null) return;
+            Debug.Log($"[Showcase] weather {moment}: intensity {weather.Intensity:0.00}, {weather.Sea}, sea changes {weather.SeaChanges}, sun {(sun != null ? sun.intensity : 0f):0} lx");
         }
 
         void ReadSmokeArguments()
@@ -438,8 +472,8 @@ namespace MorzaBogow.Presentation
         }
 
         readonly FrameTiming[] frameTiming = new FrameTiming[1];
-        double smokeSimMs, smokePresentMs, smokeCpuMs, smokeRenderMs, smokeGpuMs;
-        int smokeTimed;
+        double smokeSimMs, smokePresentMs, smokeCpuMs, smokeRenderMs, smokeGpuMs, smokeWaterMs;
+        int smokeTimed, smokeWaterFrames;
 
         void Advance(double seconds)
         {
@@ -563,10 +597,18 @@ namespace MorzaBogow.Presentation
         /// <summary>The map, shores, crews and yards are root objects of their own: they go with the battle.</summary>
         void OnDestroy()
         {
+            // The sea's native search buffers are released first, so nothing that fails below can leak them.
+            waterHeights?.Dispose();
+            waterHeights = null;
+            water = null;
             ClearViews();
             if (crewRoot != null) Destroy(crewRoot.gameObject);
             crewRoot = null;
+            effects?.Clear();
         }
+
+        /// <summary>Reads the sea from a stand-in instead of HDRP's water, for tests of the hull poses.</summary>
+        public void UseWaterForTest(IWaterHeights heights) => water = new WaterBatchSampler(heights);
 
         void ClearViews()
         {
@@ -1656,29 +1698,39 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        /// <summary>Reads the real surface under bow, stern, sides and center of visible ships.</summary>
+        /// <summary>
+        /// Reads the real surface under bow, stern, sides and centre of every visible ship in one batch a frame
+        /// (WaterBatchSampler). A hidden ship is not read; without sea data in a frame the hulls keep their last pose.
+        /// </summary>
         void UpdateWaterPoses()
         {
             if (water == null || World.Ships.Count == 0) return;
-            var count = Mathf.Min(WaterShipsPerFrame, World.Ships.Count);
-            for (var i = 0; i < count; i++)
+            var started = smokeReport != null ? System.Diagnostics.Stopwatch.GetTimestamp() : 0L;
+            water.Begin();
+            waterHulls.Clear();
+            foreach (var ship in World.Ships)
             {
-                waterCursor = (waterCursor + 1) % World.Ships.Count;
-                var ship = World.Ships[waterCursor];
                 if (!views.TryGetValue(ship.Id, out var view) || !World.CanSee(PlayerFaction, ship)) continue;
-
-                var center = view.transform.position;
-                var forward = view.transform.forward * (view.Length * 0.5f);
-                var side = view.transform.right * (view.Beam * 0.5f);
-                if (!water.TryHeight(center + forward, out var bow) || !water.TryHeight(center - forward, out var stern)
-                    || !water.TryHeight(center - side, out var port) || !water.TryHeight(center + side, out var starboard)
-                    || !water.TryHeight(center, out var middle)) continue;
-
-                var pose = HullPose.FromHeights(bow, stern, port, starboard, middle, view.Length, view.Beam);
-                view.SetWaterPose(pose, bow);
-                maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(pose.Roll), Mathf.Abs(pose.Pitch));
-                maxHeaveSeen = Mathf.Max(maxHeaveSeen, Mathf.Abs(pose.Heave));
+                var hull = view.transform;
+                water.Add(hull.position, hull.forward, hull.right, view.Length, view.Beam);
+                waterHulls.Add(view);
             }
+
+            if (water.Sample())
+            {
+                for (var i = 0; i < waterHulls.Count; i++)
+                {
+                    var view = waterHulls[i];
+                    var pose = water.Pose(i, view.Length, view.Beam);
+                    view.SetWaterPose(pose, water.Height(i, HullSamplePoints.Bow));
+                    maxRollSeen = Mathf.Max(maxRollSeen, Mathf.Abs(pose.Roll), Mathf.Abs(pose.Pitch));
+                    maxHeaveSeen = Mathf.Max(maxHeaveSeen, Mathf.Abs(pose.Heave));
+                }
+            }
+
+            if (smokeReport == null || smokeElapsed <= 5f) return;
+            smokeWaterMs += (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            smokeWaterFrames++;
         }
 
         static Vector3 ToWorld(Ship ship) => new Vector3((float)ship.X, 0f, (float)ship.Y);
@@ -2539,6 +2591,8 @@ namespace MorzaBogow.Presentation
             var culture = System.Globalization.CultureInfo.InvariantCulture;
             report.Append($"  \"outposts\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed)},\n  \"outpostShipyards\": {World.Settlements.Count(item => item.IsOutpost && !item.Destroyed && item.HasShipyard)},\n  \"merchants\": {World.Ships.Count(item => item.Class == ShipClass.Merchant)},\n");
             report.Append($"  \"waterSamples\": {(water != null ? water.Samples : 0)},\n  \"waterFailures\": {(water != null ? water.Failures : 0)},\n");
+            report.Append($"  \"waterMs\": {Ms(smokeWaterMs, smokeWaterFrames)},\n  \"waterMostHulls\": {(water != null ? water.MostHulls : 0)},\n");
+            report.Append($"  \"waterBufferAllocations\": {(waterHeights != null ? waterHeights.BufferAllocations : 0)},\n");
             report.Append($"  \"maxTiltDegrees\": {maxRollSeen.ToString("0.00", culture)},\n  \"maxHeaveMetres\": {maxHeaveSeen.ToString("0.00", culture)},\n");
             report.Append($"  \"combatEvents\": {combatEvents},\n");
             report.Append($"  \"boulders\": {BouldersPlaced},\n");

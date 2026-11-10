@@ -111,6 +111,54 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - Osada łączy port i stocznię w jednym obiekcie, więc zniszczenia samego portu nie ma; łup 30% ze zniszczonej osady nie jest wdrożony, bo jej zniszczenie kończy mecz.
 - SI jest prosta i zna pozycję startową wroga oraz położenie punktów pracy. Balans: NOT_RUN.
 
+## Efekty, fale i pogoda (2026-11-10)
+
+Partia B planu „Brakujące elementy z polecenia Senior Unity HDRP RTS”. Całość to prezentacja: symulacja, zapis gry i powtórka działają bez zmian.
+
+- **Pula efektów** (`EffectPool`).
+  - Ogólna pula obiektów prezentacji z limitem.
+  - Wypożyczenie włącza obiekt i uruchamia od początku jego systemy cząsteczek oraz efekty VFX Graph (`Reinit` i `pause = false`, jak przycisk Restart w edytorze VFX Graph).
+  - Zwrot zatrzymuje i czyści cząsteczki, reinicjuje i pauzuje efekty VFX, a obiekt wyłącza.
+  - `Prewarm` tworzy obiekty z wyprzedzeniem, `Clear` niszczy wszystkie.
+  - Cząsteczkami steruje od systemów na górze hierarchii obiektu, razem z dziećmi, więc sub-emitery odpalają tylko z cząsteczek rodzica.
+  - `BattleEffects` ma po jednej puli na rodzaj efektu i nadal pokazuje najwyżej 160 efektów naraz. Obiekty efektów i tonące kadłuby giną teraz razem z bitwą.
+- **Fale pod kadłubami** (`WaterBatchSampler`, `HdrpWaterHeights`).
+  - W każdej klatce woda pod każdym widocznym okrętem (dziób, rufa, obie burty, środek) jest odczytywana jednym zadaniem Burst HDRP (`WaterSimulationSearchJob`, tak jak w próbce HDRP `FitToWaterSurfaceBurst`). Wcześniej odczyt obejmował do 24 okrętów na klatkę, a każdy punkt był osobnym zapytaniem `ProjectPointOnWaterSurface`.
+  - Bufory natywne zostają między klatkami i tylko rosną. Zwalnia je koniec bitwy, a zwolnione źródło niczego już nie czyta ani nie alokuje.
+  - Zadanie kończy się w tej samej klatce, bo HDRP aktualizuje morze przy renderowaniu.
+  - Zapasowej ścieżki nie ma. `ProjectPointOnWaterSurface` czyta te same dane (`FillWaterSearchData`, `WaterSurface.cs` w HDRP 17.3), więc zawodzi w tych samych klatkach. Klatka bez danych morza zostawia kadłubom poprzednią pozę.
+- **Pogoda** (`WeatherController`). Natężenie od 0 (spokój sceny) do 1 (sztorm) zmienia się płynnie w czasie rzeczywistym przez `SetWeather(natężenie, sekundy)`:
+  - **morze:** wiatr dużych fal 30 → 60 km/h, chaos 0,8 → 0,95, wiatr zmarszczek 8 → 14 km/h (HDRP podaje oba wiatry w km/h). HDRP przebudowuje widmo fal przy każdej zmianie wiatru (`WaterSurface.CheckResources`), więc woda dostaje nowe wartości najwyżej 4 razy na sekundę;
+  - **mgła i ekspozycja:** osobny, nakładany Volume z profilem tworzonym w pamięci, o priorytecie wyższym o 1 od Volume sceny.
+    - Przy spokoju ma wagę 0, więc obraz jest dokładnie taki jak bez pogody.
+    - W sztormie gęstość mgły rośnie równomiernie do drogi 250 m w warstwie 90 m, a odcień nieba w mgle zmienia się na (0,55; 0,6; 0,66). Ekspozycja otwiera się o 0,75 EV, więc obraz ciemnieje mniej, niż słabnie słońce.
+    - Assety profili sceny się nie zmieniają. Przełączanie profili obrazu działa dalej, bo pogoda czyta bieżący profil sceny;
+  - **słońce:** 100 000 → 35 000 lx, 5600 → 7000 K.
+
+  W meczu pogoda jest zawsze spokojna; nowy mecz i wczytanie zapisu zaczynają się od spokoju, bo pogoda nie należy do zapisu. Ponowne wywołanie `SetWeather` z tym samym celem nie zaczyna przejścia od nowa. Etap 5 podłączy pogodę do zdarzeń gry.
+
+| Kontrola | Wynik | Zakres |
+|---|---|---|
+| Testy PlayMode partii B (11), osobny przebieg | PASS 11/11, 0 pominiętych | pula (w tym obiekt zniszczony w puli i system potomny), efekty bitwy z tonącym kadłubem, punkty i pozy z zastępczego morza, źródło HDRP bez morza i po zwolnieniu, bitwa czytająca tylko widoczne kadłuby, przejście pogody i powrót, ponowne `SetWeather`, limit zmian morza, wybór Volume sceny przy dwóch bitwach, niezmienność świata przy sztormie i fali; wynik bramki M1 w commicie i w `qa/reports` |
+| Build Windows64 Mono, scena M1_Battle | Success, 331674672 B, 0 błędów, 0 ostrzeżeń | |
+| Showcase (`-morzaShowcase`), zrzuty `sztorm` i `po-sztormie` | sztorm: natężenie 1,00, wiatr 60 km/h, chaos 0,95, zmarszczki 14 km/h, słońce 35000 lx, 22 zmiany morza w 6 s; po powrocie dokładnie 30 / 0,8 / 8 i 100000 lx | dwie klatki z profilu Ultra; ruchu fal i przejść nie oceniał człowiek |
+
+Pomiar testem dymnym, RTX 3050 Ti Laptop, profil Ultra, 1920×1080, 90 s rozgrywki SI, po dwa przebiegi. W obu wersjach było 16 okrętów, z czego 8 widocznych.
+
+| Wartość | Przed (build z `ce8d4a0`) | Po (`c9dd827` + partia B) |
+|---|---|---|
+| Prezentacja (CPU, ms na klatkę) | 1,50 / 1,41 | 1,16 / 1,13 |
+| Próbkowanie wody (ms na klatkę) | nie mierzone osobno | 0,09 / 0,10 |
+| Kadłuby czytane w klatce | do 24 (widocznych było 8) | wszystkie widoczne, najwięcej 8 |
+| Alokacje buforów natywnych | — | 1 / 1 |
+| Średnia klatka (ms) | 44,9 / 30,5 | 39,1 / 40,4 |
+| GPU (ms) | 35,4 / 28,4 | 36,9 / 38,4 |
+| CPU główny (ms) | 8,83 / 9,03 | 9,47 / 9,14 |
+| Najdłuższa klatka (ms) | 17250 / 267 | 2583 / 2833 |
+| Przechył / wznoszenie | 12° / 1,22 i 1,18 m | 12° / 1,33 i 1,18 m |
+
+Prezentacja zajmuje po zmianie około 0,3 ms mniej na klatkę. Całą klatkę ogranicza GPU, więc liczba klatek na sekundę się nie zmienia. Odczyty nieudane (8 przed, 40 po) to w obu wersjach jedna klatka startowa bez danych morza: dawny kod liczył pierwszy nieudany punkt każdego okrętu, nowy wszystkie punkty partii. Build „po” zawiera też etap 3c, część 1 (`c9dd827`, nowe klasy i budowy SI). W pierwszych 90 s liczba okrętów była jednak taka sama. Przebiegi 2026-11-10 uruchomiono z `-force-device-index 0`, a log pokazał RTX 3050 Ti.
+
 ## Znane ograniczenia
 
 - Unity zapisuje `asserts="0"` w wynikach NUnit także dla testów z asercjami. Bramka wymaga wtedy asercji w kodzie właściwej metody testu, więc asercja wyłącznie w metodzie pomocniczej blokuje wynik. Zmiana przeszła niezależny przegląd, po którym usunięto wykryte obejścia; poprawek nie przeglądano ponownie. Analiza kodu nie dowodzi, że asercja faktycznie się wykonała.
@@ -128,5 +176,8 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - Fizyczne wyświetlanie 2560×1440 i pozostałych trybów powyżej 1080p: BLOCKED, brak monitora.
 - Pełne przełączanie rozdzielczości i profili w buildzie, 20 cykli bez wycieków: NOT_RUN.
 - Pomiary GPU, VRAM oraz scen 100/200/400 statków: NOT_RUN.
+- Próbkowanie fal przy dużej flocie: NOT_RUN. Zmierzono najwyżej 8 widocznych kadłubów.
+- Sztorm w ruchu (fale zmieniane 4 razy na sekundę, mgła, światło) oraz na profilach innych niż Ultra, oceniany przez człowieka: NOT_RUN. Są tylko dwa zrzuty z Ultra.
+- Pula efektów z efektem VFX Graph: NOT_RUN. Projekt nie ma jeszcze żadnego efektu VFX, więc restart VFX nie ma testu.
 - Integracja hooków w działającym Claude Code: NOT_RUN.
 - Zewnętrzne CI: NOT_RUN.

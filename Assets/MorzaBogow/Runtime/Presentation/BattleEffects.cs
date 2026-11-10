@@ -4,8 +4,8 @@ using UnityEngine;
 namespace MorzaBogow.Presentation
 {
     /// <summary>
-    /// Short-lived combat effects from a bounded pool. The caller decides visibility, so effects of
-    /// hidden events are never created. Nothing here affects the simulation.
+    /// Short-lived combat effects, at most 160 at once, from one EffectPool per kind. The caller decides
+    /// visibility, so effects of hidden events are never created. Nothing here affects the simulation.
     /// </summary>
     public sealed class BattleEffects
     {
@@ -16,6 +16,7 @@ namespace MorzaBogow.Presentation
         sealed class Effect
         {
             public Kind Kind;
+            public GameObject Instance;
             public Transform Item;
             public Vector3 From, To;
             public float Age, Life, Size;
@@ -23,7 +24,7 @@ namespace MorzaBogow.Presentation
 
         readonly PlaceholderMaterials materials;
         readonly List<Effect> active = new List<Effect>();
-        readonly Dictionary<Kind, Stack<Transform>> pool = new Dictionary<Kind, Stack<Transform>>();
+        readonly Dictionary<Kind, EffectPool> pools = new Dictionary<Kind, EffectPool>();
         readonly List<(Transform item, float age)> sinking = new List<(Transform, float)>();
 
         public BattleEffects(PlaceholderMaterials materials)
@@ -33,6 +34,17 @@ namespace MorzaBogow.Presentation
 
         public int ActiveCount => active.Count;
         public int SinkingCount => sinking.Count;
+
+        /// <summary>Effect objects made so far, of every kind; they are reused, so this stops growing in a long battle.</summary>
+        public int CreatedObjects
+        {
+            get
+            {
+                var made = 0;
+                foreach (var pool in pools.Values) made += pool.CreatedCount;
+                return made;
+            }
+        }
 
         public void Arrows(Vector3 from, Vector3 to, int count)
         {
@@ -54,26 +66,35 @@ namespace MorzaBogow.Presentation
         void Add(Kind kind, Vector3 from, Vector3 to, float life, float size)
         {
             if (active.Count >= MaxEffects) return;
-            active.Add(new Effect { Kind = kind, Item = Rent(kind), From = from, To = to, Life = life, Size = size });
+            var item = PoolOf(kind).Rent();
+            if (item == null) return;
+            active.Add(new Effect { Kind = kind, Instance = item, Item = item.transform, From = from, To = to, Life = life, Size = size });
         }
 
-        Transform Rent(Kind kind)
+        EffectPool PoolOf(Kind kind)
         {
-            if (!pool.TryGetValue(kind, out var stack)) pool[kind] = stack = new Stack<Transform>();
-            if (stack.Count > 0)
-            {
-                var reused = stack.Pop();
-                reused.gameObject.SetActive(true);
-                return reused;
-            }
+            if (!pools.TryGetValue(kind, out var pool)) pools[kind] = pool = new EffectPool(() => Make(kind), MaxEffects);
+            return pool;
+        }
 
+        GameObject Make(Kind kind)
+        {
             var shape = kind == Kind.Flash ? PrimitiveType.Sphere : kind == Kind.Ping ? PrimitiveType.Cylinder : PrimitiveType.Cube;
             var item = GameObject.CreatePrimitive(shape);
             item.name = $"Effect {kind}";
             Object.Destroy(item.GetComponent<Collider>());
             var material = kind == Kind.Arrow ? materials?.Arrow : kind == Kind.Rope ? materials?.Rope : kind == Kind.Ping ? materials?.Selection : materials?.Flash;
             if (material != null) item.GetComponent<Renderer>().sharedMaterial = material;
-            return item.transform;
+            return item;
+        }
+
+        /// <summary>Destroys every effect object, shown or waiting, and every sinking hull, when the battle goes.</summary>
+        public void Clear()
+        {
+            foreach (var pool in pools.Values) pool.Clear();
+            active.Clear();
+            foreach (var (item, _) in sinking) if (item != null) Object.Destroy(item.gameObject);
+            sinking.Clear();
         }
 
         public void Update(float delta)
@@ -82,10 +103,10 @@ namespace MorzaBogow.Presentation
             {
                 var effect = active[i];
                 effect.Age += delta;
-                if (effect.Age >= effect.Life)
+                // An effect destroyed from outside, as with its scene, is only forgotten by its pool.
+                if (effect.Age >= effect.Life || effect.Instance == null)
                 {
-                    effect.Item.gameObject.SetActive(false);
-                    pool[effect.Kind].Push(effect.Item);
+                    pools[effect.Kind].Return(effect.Instance);
                     active.RemoveAt(i);
                     continue;
                 }

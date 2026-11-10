@@ -76,7 +76,18 @@
         "MorzaBogow.Tests.BattleControllerTests.Hud_AlarmsOfOneWatersJoinOneEntryHoweverLate",
         "MorzaBogow.Tests.BattleControllerTests.Hud_BoardingMarkerShowsTheHooksThenTheFronts",
         "MorzaBogow.Tests.BattleControllerTests.Map_RocksStayBareAndPortIsletsGrowOnlyLowTrees",
-        "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing"
+        "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing",
+        "MorzaBogow.Tests.EffectPoolTests.Pool_LendsTakesBackAndReusesWithinItsLimit",
+        "MorzaBogow.Tests.EffectPoolTests.Effects_KeepTheLimitOf160AndReuseTheirObjects",
+        "MorzaBogow.Tests.WaterBatchSamplerTests.Water_FivePointsPerHullAlongItsHeadingAndBeam",
+        "MorzaBogow.Tests.WaterBatchSamplerTests.Water_EveryHullIsReadInOneBatchAndItsPoseFollowsTheSea",
+        "MorzaBogow.Tests.WaterBatchSamplerTests.Water_AnUnreadableSeaIsCountedAndAnEmptyBatchAsksNothing",
+        "MorzaBogow.Tests.WaterBatchSamplerTests.Water_HdrpHeightsWithoutASeaReadNothingAndReleaseTwiceSafely",
+        "MorzaBogow.Tests.WaterBatchSamplerTests.Water_TheBattleReadsEveryVisibleHullAndNoHiddenOne",
+        "MorzaBogow.Tests.WeatherControllerTests.Weather_AStormComesSmoothlyAndTheCalmReturnsExactly",
+        "MorzaBogow.Tests.WeatherControllerTests.Weather_TheSeaChangesAtMostFourTimesASecondAndEndsExactly",
+        "MorzaBogow.Tests.WeatherControllerTests.Weather_TheBattleStaysCalmAndAStormChangesNothingInTheWorld",
+        "MorzaBogow.Tests.WeatherControllerTests.Weather_EachBattleTakesTheScenesVolumeNotAnotherOverlay"
       ]
     }
   }

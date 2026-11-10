@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
 
 namespace MorzaBogow.Presentation
 {
@@ -96,42 +95,5 @@ namespace MorzaBogow.Presentation
         /// </summary>
         public static float BowImmersion(HullPose hull, float bowWater, float length) =>
             bowWater - (hull.Heave + Mathf.Tan(-hull.Pitch * Mathf.Deg2Rad) * length * 0.5f);
-    }
-
-    /// <summary>Samples the real HDRP water surface, so ships move with the waves the player sees.</summary>
-    public sealed class WaterSampler
-    {
-        readonly WaterSurface surface;
-
-        public WaterSampler(WaterSurface surface)
-        {
-            this.surface = surface;
-        }
-
-        public long Samples { get; private set; }
-        public long Failures { get; private set; }
-
-        public bool TryHeight(Vector3 position, out float height)
-        {
-            var search = new WaterSearchParameters
-            {
-                targetPositionWS = new Unity.Mathematics.float3(position.x, 0f, position.z),
-                startPositionWS = new Unity.Mathematics.float3(position.x, 0f, position.z),
-                error = 0.05f,
-                maxIterations = 4,
-                // Bow waves and other local deformation count too, so a ship rides another's wake and its own bow wave.
-                includeDeformation = true,
-                excludeSimulation = false,
-            };
-            if (surface != null && surface.ProjectPointOnWaterSurface(search, out var result))
-            {
-                height = result.projectedPositionWS.y;
-                Samples++;
-                return true;
-            }
-            height = 0f;
-            Failures++;
-            return false;
-        }
     }
 }
