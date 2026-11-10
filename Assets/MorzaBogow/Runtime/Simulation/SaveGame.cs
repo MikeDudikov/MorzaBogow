@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 14;
+        public const int Version = 15;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -133,7 +133,7 @@ namespace MorzaBogow.Simulation
                     var yard = new List<BuildOrder>();
                     if (settlement.ShipyardBuild != null) yard.Add(settlement.ShipyardBuild);
                     WriteQueue(writer, yard);
-                    writer.Write(settlement.HasWorkshop); writer.Write(settlement.IsTown); writer.Write(settlement.HasSageSchool);
+                    writer.Write(settlement.HasWorkshop); writer.Write(settlement.IsTown); writer.Write(settlement.HasSageSchool); writer.Write(settlement.HasDock);
                     writer.Write((int)settlement.ProjectKind);
                     var project = new List<BuildOrder>();
                     if (settlement.Project != null) project.Add(settlement.Project);
@@ -154,7 +154,7 @@ namespace MorzaBogow.Simulation
                     writer.Write((int)ship.Order); writer.Write(ship.TargetX); writer.Write(ship.TargetY); writer.Write(ship.TargetId);
                     writer.Write(ship.NodeId); writer.Write(ship.WreckId); writer.Write((int)ship.Harvest); writer.Write((int)ship.CargoType); writer.Write(ship.Cargo);
                     writer.Write(ship.WorkRemainder); writer.Write(ship.UnloadRemainder);
-                    writer.Write(ship.RepairWoodRemainder); writer.Write(ship.RepairSilverRemainder); writer.Write(ship.ScrapTicks);
+                    writer.Write(ship.RepairSilverRemainder); writer.Write(ship.ScrapTicks);
                     writer.Write((int)ship.RamState); writer.Write(ship.RamTimer); writer.Write(ship.LastRamTick);
                     writer.Write(ship.PortId); writer.Write(ship.HoldWood); writer.Write(ship.HoldSilver);
                     writer.Write(ship.WantWood); writer.Write(ship.WantSilver); writer.Write((int)ship.Transport);
@@ -292,7 +292,7 @@ namespace MorzaBogow.Simulation
                     var yard = new List<BuildOrder>();
                     ReadQueue(reader, yard);
                     if (yard.Count > 0) settlement.ShipyardBuild = yard[0];
-                    settlement.HasWorkshop = reader.ReadBoolean(); settlement.IsTown = reader.ReadBoolean(); settlement.HasSageSchool = reader.ReadBoolean();
+                    settlement.HasWorkshop = reader.ReadBoolean(); settlement.IsTown = reader.ReadBoolean(); settlement.HasSageSchool = reader.ReadBoolean(); settlement.HasDock = reader.ReadBoolean();
                     settlement.ProjectKind = (ProjectKind)reader.ReadInt32();
                     var project = new List<BuildOrder>();
                     ReadQueue(reader, project);
@@ -317,7 +317,7 @@ namespace MorzaBogow.Simulation
                         Order = (OrderKind)reader.ReadInt32(), TargetX = reader.ReadDouble(), TargetY = reader.ReadDouble(), TargetId = reader.ReadInt32(),
                         NodeId = reader.ReadInt32(), WreckId = reader.ReadInt32(), Harvest = (HarvestPhase)reader.ReadInt32(), CargoType = (ResourceType)reader.ReadInt32(), Cargo = reader.ReadInt64(),
                         WorkRemainder = reader.ReadDouble(), UnloadRemainder = reader.ReadDouble(),
-                        RepairWoodRemainder = reader.ReadDouble(), RepairSilverRemainder = reader.ReadDouble(), ScrapTicks = reader.ReadInt32(),
+                        RepairSilverRemainder = reader.ReadDouble(), ScrapTicks = reader.ReadInt32(),
                         RamState = (RamPhase)reader.ReadInt32(), RamTimer = reader.ReadInt32(), LastRamTick = reader.ReadInt32(),
                         PortId = reader.ReadInt32(), HoldWood = reader.ReadInt64(), HoldSilver = reader.ReadInt64(),
                         WantWood = reader.ReadInt64(), WantSilver = reader.ReadInt64(), Transport = (TransportPhase)reader.ReadInt32(),

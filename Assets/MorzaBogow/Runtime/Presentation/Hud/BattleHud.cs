@@ -430,7 +430,7 @@ namespace MorzaBogow.Presentation
             shipHullMeter.AddToClassList("card-meter");
             hull.Add(shipHullMeter);
             shipHull = Text(string.Empty, "card-value", hull);
-            Tip(hull, () => new TipInfo { Title = "Kadłub", Body = "Wytrzymałość kadłuba. Przy zerze statek tonie i zostawia wrak. Remont w stoczni własnego portu.", Key = Keys(GameAction.Repair) + ": remont" });
+            Tip(hull, () => new TipInfo { Title = "Kadłub", Body = "Wytrzymałość kadłuba. Przy zerze statek tonie i zostawia wrak. Kadłub naprawia tylko dok (ulepszona stocznia Miasta), za srebro.", Key = Keys(GameAction.Repair) + ": remont" });
 
             // The crew by trade, each against the plan its port trains it to (docs/ZALOGA_I_ABORDAZ.md).
             var crew = Element("card-row", card);
@@ -453,7 +453,7 @@ namespace MorzaBogow.Presentation
             shipWeaponsButton.style.marginLeft = 6;
             crewMore.Add(shipWeaponsButton);
             Tip(shipWeaponsButton, () => WeaponsSummaryTip());
-            Tip(shipCrewButton, () => new TipInfo { Title = "Skład załogi", Body = "Wybierz, do jakiego składu port wyszkoli załogę. Zmiana następuje przy przegrupowaniu w porcie ze stocznią: okręt bez rozkazu w pobliżu portu sam wchodzi do doku, naprawia kadłub, leczy rannych i uzupełnia ludzi.", Key = Keys(GameAction.Repair) + ": do portu teraz" });
+            Tip(shipCrewButton, () => new TipInfo { Title = "Skład załogi", Body = "Wybierz, do jakiego składu port wyszkoli załogę. Zmiana następuje przy przegrupowaniu w porcie ze stocznią: okręt bez rozkazu w pobliżu portu sam wchodzi na stanowisko, leczy rannych i uzupełnia ludzi; kadłub i moduły broni naprawia tylko dok, za srebro.", Key = Keys(GameAction.Repair) + ": do portu teraz" });
 
             shipBoardingRow = Element("card-row", card);
             Glyph(shipBoardingRow, "board", "glyph-small");
@@ -541,8 +541,18 @@ namespace MorzaBogow.Presentation
             Text("Plan zmienia się od razu; broń wymienia port przy przegrupowaniu (zdjęcie 3 s, montaż 5 s / ciężka 10 s). Brakującą port zamawia w Warsztacie.", "popover-note", panel);
         }
 
-        /// <summary>Opens the active port's building menu (showcase pictures).</summary>
-        public void OpenBuildForTest() => OpenBuild();
+        /// <summary>Opens the active port's building menu and returns how many projects it lists (showcase, tests).</summary>
+        public int OpenBuildForTest()
+        {
+            OpenBuild();
+            return buildOptions;
+        }
+
+        int buildOptions;
+
+        /// <summary>The names of the projects the open building menu lists, in order (tests).</summary>
+        public IReadOnlyList<string> PopoverItemsForTest =>
+            popover == null ? (IReadOnlyList<string>)Array.Empty<string>() : popover.Query<Label>(className: "menu-item-label").ToList().Select(label => label.text).ToList();
 
         public void ClosePopoverForTest() => ClosePopover();
         /// <summary>Where the open popover lies on screen, or null (showcase diagnostics).</summary>
@@ -716,30 +726,34 @@ namespace MorzaBogow.Presentation
         Label portWorks;
         Button portBuildButton, portWorkshopButton;
 
-        /// <summary>The four projects with their price, state or what they still need; one click starts one.</summary>
+        /// <summary>The projects with their price, state or what they still need; one click starts one.</summary>
         void OpenBuild()
         {
             var port = battle.ActivePort;
             if (port == null) return;
             var panel = OpenPopover(portBuildButton, $"Rozbudowa – {battle.PortName(port)}");
-            foreach (var kind in new[] { ProjectKind.Workshop, ProjectKind.Town, ProjectKind.SageSchool, ProjectKind.HeavyArmsResearch })
+            buildOptions = 0;
+            foreach (var kind in new[] { ProjectKind.Workshop, ProjectKind.Town, ProjectKind.Dock, ProjectKind.SageSchool, ProjectKind.HeavyArmsResearch })
             {
                 var chosen = kind;
                 var (wood, silver, seconds) = World.ProjectCost(kind);
                 var done = kind == ProjectKind.Workshop ? port.HasWorkshop : kind == ProjectKind.Town ? port.IsTown
+                    : kind == ProjectKind.Dock ? port.HasDock
                     : kind == ProjectKind.SageSchool ? port.HasSageSchool : battle.World.HasHeavyArms(port.Owner);
                 var building = port.ProjectKind == kind && port.Project != null;
                 var value = done ? "gotowe" : building ? $"w budowie {Mathf.FloorToInt(100f * port.Project.DoneTicks / Mathf.Max(1, port.Project.TotalTicks))}%"
                     : $"{wood / Rules.Centi} D · {silver / Rules.Centi} S · {seconds:0} s";
                 var problem = done || building ? null : battle.World.ProjectProblem(port, kind);
-                var item = MenuItem(panel, done ? "check" : kind == ProjectKind.HeavyArmsResearch ? "help" : kind == ProjectKind.Workshop ? "shipyard" : "settlement",
+                var item = MenuItem(panel, done ? "check" : kind == ProjectKind.HeavyArmsResearch ? "help" : kind == ProjectKind.Workshop || kind == ProjectKind.Dock ? "shipyard" : "settlement",
                     BattleController.ProjectName(kind), value, () => { battle.BuildProject(chosen); ClosePopover(); });
                 item.EnableInClassList("disabled", done || building || problem != null);
+                buildOptions++;
                 Tip(item, () => new TipInfo
                 {
                     Title = BattleController.ProjectName(chosen),
                     Body = (chosen == ProjectKind.Workshop ? "Linia Warsztatu wytwarza machiny do arsenału portu; odblokowuje Bombowiec."
-                        : chosen == ProjectKind.Town ? "Osada staje się Miastem: mury mocniejsze o 25%, dostęp do Szkoły Mędrców."
+                        : chosen == ProjectKind.Town ? "Osada staje się Miastem: mury mocniejsze o 25%, dostęp do Szkoły Mędrców i doku."
+                        : chosen == ProjectKind.Dock ? "Stocznia Miasta staje się dokiem: jedynym miejscem naprawy kadłubów i modułów broni, tylko za srebro. Inne porty tylko przegrupowują załogę i wymieniają broń."
                         : chosen == ProjectKind.SageSchool ? "Badania floty."
                         : "Balista i katapulta z pociskami ołowianymi oraz onager w Warsztacie każdego portu.") + (problem != null ? "\n" + problem : string.Empty),
                     Cost = $"{wood / Rules.Centi} D · {silver / Rules.Centi} S · {seconds:0} s",
@@ -891,7 +905,7 @@ namespace MorzaBogow.Presentation
             yield return new CommandButton { Action = GameAction.Deliver, Icon = "deliver", Label = "Dostawa", Full = "Dostawa do portu", Targeted = HudOrder.Deliver, Able = ship => ship.Class == ShipClass.Merchant, Body = "Handlowiec wiezie ładunek z wybranego portu do wskazanego własnego portu." };
             yield return new CommandButton { Action = GameAction.Outpost, Icon = "outpost", Label = "Buduj", Full = "Zbuduj przyczółek", Targeted = HudOrder.Outpost, Able = ship => ship.Class == ShipClass.Merchant, Body = $"Handlowiec zakłada przyczółek na wskazanym wolnym brzegu ({Rules.OutpostWood / Rules.Centi} D / {Rules.OutpostSilver / Rules.Centi} S z ładowni)." };
             yield return new CommandButton { Action = GameAction.Escort, Icon = "escort", Label = "Eskorta", Full = "Eskortuj handlowca", Targeted = HudOrder.Escort, Able = ship => !ship.Definition.IsEconomic, Body = "Okręty płyną przy burcie wskazanego handlowca i bronią go w jego strefie." };
-            yield return new CommandButton { Action = GameAction.Repair, Icon = "repair", Label = "Remont", Full = "Remont w stoczni", Instant = hud => hud.battle.RepairSelected(), Able = _ => true, Body = "Statki płyną do stoczni najbliższego własnego portu." };
+            yield return new CommandButton { Action = GameAction.Repair, Icon = "repair", Label = "Remont", Full = "Remont w doku", Instant = hud => hud.battle.RepairSelected(), Able = _ => true, Body = "Uszkodzone statki płyną do najbliższego doku: kadłub i moduły broni naprawia tylko dok (ulepszona stocznia Miasta), za srebro. Bez doku statki płyną do najbliższej stoczni tylko po przegrupowanie załogi i wymianę broni." };
             yield return new CommandButton { Action = GameAction.Scrap, Icon = "scrap", Label = "Złomuj", Full = "Złomowanie", Instant = hud => hud.ConfirmScrap(), Able = _ => true, Body = "Rozbiera statek w porcie i odzyskuje część materiałów. Nie da się cofnąć." };
         }
 
@@ -1411,6 +1425,7 @@ namespace MorzaBogow.Presentation
                 var standing = new List<string>();
                 if (port.HasWorkshop) standing.Add("Warsztat");
                 if (port.IsTown) standing.Add("Miasto");
+                if (port.HasDock) standing.Add("Dok");
                 if (port.HasSageSchool) standing.Add("Szkoła");
                 parts.Add(standing.Count > 0 ? string.Join(" · ", standing) : "Bez rozbudowy");
             }

@@ -87,8 +87,11 @@ namespace MorzaBogow.Simulation
         public int BlueprintId = -1;
     }
 
-    /// <summary>What a port builds in its one construction slot (docs/UZBROJENIE.md): buildings and the research.</summary>
-    public enum ProjectKind { None, Workshop, Town, SageSchool, HeavyArmsResearch }
+    /// <summary>
+    /// What a port builds in its one construction slot (docs/UZBROJENIE.md): buildings and the research; the dock, a
+    /// town's shipyard upgraded to mend hulls (docs/UZGODNIENIE_SPECYFIKACJI.md). Saved by number: new kinds go last.
+    /// </summary>
+    public enum ProjectKind { None, Workshop, Town, SageSchool, HeavyArmsResearch, Dock }
 
     /// <summary>A fleet blueprint: a hull, the weapons for its posts and its crew, built with one order.</summary>
     public sealed class Blueprint
@@ -118,9 +121,10 @@ namespace MorzaBogow.Simulation
 
         /// <summary>
         /// Buildings beyond the shipyard (docs/UZBROJENIE.md): the workshop (arsenal) makes weapons into the port's
-        /// arsenal; a home port grows into a town, which may raise the Sages' School. One project at a time.
+        /// arsenal; a home port grows into a town, which may raise the Sages' School and upgrade its shipyard into a
+        /// dock, the only place where hulls and weapon modules are mended. One project at a time.
         /// </summary>
-        public bool HasWorkshop, IsTown, HasSageSchool;
+        public bool HasWorkshop, IsTown, HasSageSchool, HasDock;
         public ProjectKind ProjectKind;
         public BuildOrder Project;
         public readonly List<BuildOrder> WorkshopQueue = new List<BuildOrder>();
@@ -211,7 +215,8 @@ namespace MorzaBogow.Simulation
         public int BuildTicks;
         public long BuildUsedWood, BuildUsedSilver;
 
-        public double RepairWoodRemainder, RepairSilverRemainder;
+        /// <summary>Silver owed for hull repair below 0.01, carried to the next tick (repairs cost silver only).</summary>
+        public double RepairSilverRemainder;
         public int ScrapTicks;
 
         /// <summary>Ticks left while the shore party lands or comes back aboard at a work point.</summary>

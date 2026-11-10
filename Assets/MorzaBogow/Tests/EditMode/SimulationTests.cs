@@ -423,19 +423,60 @@ namespace MorzaBogow.Tests
         // ---------- Repair, scrap, wreck (E06) ----------
 
         [Test]
-        public void Repair_ChargesAQuarterOfConstructionForFullHull()
+        public void Repair_AtADockChargesAQuarterOfThePriceInSilverOnly()
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
+            settlement.HasDock = true;
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = 380;
+            var price = (ship.PaidConstructionWood + ship.PaidConstructionSilver) / 100.0;
             var wood = settlement.Wood;
             var silver = settlement.Silver;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
             Run(world, 40);
             Assert.That(ship.Hull, Is.EqualTo(760).Within(0.01));
-            Assert.That((wood - settlement.Wood) / 100.0, Is.EqualTo(192 * 0.25 * 0.5).Within(0.05));
-            Assert.That((silver - settlement.Silver) / 100.0, Is.EqualTo(27.4 * 0.25 * 0.5).Within(0.05));
+            Assert.That(settlement.Wood, Is.EqualTo(wood), "Repairs take no wood.");
+            Assert.That((silver - settlement.Silver) / 100.0, Is.EqualTo(price * Rules.RepairFullFraction * 0.5).Within(0.05), "A quarter of the whole price in silver for a full repair; half the hull here.");
+        }
+
+        [Test]
+        public void Repair_WithoutADockTheHullWaitsButTheCrewIsMustered()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            ship.Hull = 400;
+            ship.Swordsmen -= 4;
+            var wood = settlement.Wood;
+            var restored = false;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            for (var i = 0; i < 40 * Rules.TickRate; i++)
+            {
+                world.Step();
+                restored |= world.Events.Any(item => item.Type == "ship_restored" && item.SubjectId == ship.Id);
+            }
+            Assert.That(ship.Swordsmen, Is.EqualTo(ship.Plan.Swordsmen), "Any shipyard musters the crew.");
+            Assert.That(ship.Hull, Is.EqualTo(400), "Only a dock mends the hull.");
+            Assert.That(settlement.Wood, Is.EqualTo(wood));
+            Assert.That(restored, Is.True);
+            Assert.That(ship.Order, Is.Not.EqualTo(OrderKind.Repair));
+        }
+
+        [Test]
+        public void Repair_OrderForAHullAloneNeedsADock()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X + 100, 0);
+            ship.Hull = 400;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            world.Step();
+            Assert.That(ship.Order, Is.Not.EqualTo(OrderKind.Repair), "Nothing a port without a dock could do for it.");
+            settlement.HasDock = true;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            world.Step();
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.Repair), "With a dock on its side it sails to be mended.");
         }
 
         [Test]
@@ -443,6 +484,7 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
+            settlement.HasDock = true;
             var first = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             var second = world.SpawnShip(0, ShipClass.Ram, settlement.X, 5);
             first.Hull = second.Hull = 100;
@@ -457,16 +499,17 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var settlement = world.SettlementOf(0);
+            settlement.HasDock = true;
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = 100;
             ship.Swordsmen = 3;
             ship.Javelins = 0;
             ship.Archers = 0;
-            settlement.Wood = 0;
+            settlement.Silver = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
             Run(world, 5);
-            Assert.That(ship.Hull, Is.LessThan(110));
-            Assert.That(settlement.Wood, Is.GreaterThanOrEqualTo(0));
+            Assert.That(ship.Hull, Is.LessThan(110), "No silver, no repair.");
+            Assert.That(settlement.Silver, Is.GreaterThanOrEqualTo(0));
             Assert.That(ship.Soldiers, Is.EqualTo(3));
         }
 
@@ -480,14 +523,17 @@ namespace MorzaBogow.Tests
             var settlement = world.SettlementOf(0);
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = ship.Definition.Hull * condition;
-            var start = settlement.Wood;
+            var price = (ship.PaidConstructionWood + ship.PaidConstructionSilver) / 100.0;
+            var startWood = settlement.Wood;
+            var startSilver = settlement.Silver;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Scrap, ShipIds = new[] { ship.Id } });
             Run(world, 21);
             Assert.That(world.FindShip(ship.Id), Is.Null);
-            var refund = (settlement.Wood - start) / 100.0;
-            Assert.That(refund, Is.EqualTo(192 * 0.15 * condition).Within(0.01));
-            var viaRepair = 192 * 0.15 - 192 * 0.25 * (1 - condition);
-            Assert.That(viaRepair, Is.LessThanOrEqualTo(refund + 0.01));
+            // Repairs cost silver only and scrapping returns both stores, so the comparison counts wood and silver together.
+            var refund = (settlement.Wood - startWood + settlement.Silver - startSilver) / 100.0;
+            Assert.That(refund, Is.EqualTo(price * Rules.ScrapFraction * condition).Within(0.02));
+            var viaRepair = price * Rules.ScrapFraction - price * Rules.RepairFullFraction * (1 - condition);
+            Assert.That(viaRepair, Is.LessThanOrEqualTo(refund + 0.02), "Repairing first never pays better.");
             Assert.That(world.Wrecks, Is.Empty);
         }
 

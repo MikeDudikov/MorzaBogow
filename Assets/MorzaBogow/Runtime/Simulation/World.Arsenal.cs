@@ -28,14 +28,16 @@ namespace MorzaBogow.Simulation
                 case ProjectKind.Town: return (Rules.TownWood, Rules.TownSilver, Rules.TownSeconds);
                 case ProjectKind.SageSchool: return (Rules.SchoolWood, Rules.SchoolSilver, Rules.SchoolSeconds);
                 case ProjectKind.HeavyArmsResearch: return (Rules.HeavyArmsWood, Rules.HeavyArmsSilver, Rules.HeavyArmsSeconds);
+                case ProjectKind.Dock: return (Rules.DockWood, Rules.DockSilver, Rules.DockSeconds);
                 default: return (0, 0, 0);
             }
         }
 
         /// <summary>
         /// Why a port cannot start a project now, or null if it can. The chain: workshop at a port with a shipyard;
-        /// the home port with its workshop grows into a town; a town raises the Sages' School; the school and a workshop
-        /// research heavy weapons for the whole side. One project at a time; the price must be in the local store.
+        /// the home port with its workshop grows into a town; a town raises the Sages' School and upgrades its shipyard
+        /// into a dock; the school and a workshop research heavy weapons for the whole side. One project at a time; the
+        /// price must be in the local store.
         /// </summary>
         public string ProjectProblem(Settlement port, ProjectKind kind)
         {
@@ -59,6 +61,10 @@ namespace MorzaBogow.Simulation
                 case ProjectKind.HeavyArmsResearch:
                     if (HasHeavyArms(port.Owner)) return "Już zbadane.";
                     if (!port.HasSageSchool || !port.HasWorkshop) return "Wymaga Szkoły Mędrców i Warsztatu.";
+                    break;
+                case ProjectKind.Dock:
+                    if (port.HasDock) return "Dok już stoi.";
+                    if (!port.IsTown || !port.HasShipyard) return "Wymaga Miasta ze stocznią.";
                     break;
                 default: return "Nieznany projekt.";
             }
@@ -134,6 +140,7 @@ namespace MorzaBogow.Simulation
                         break;
                     case ProjectKind.SageSchool: port.HasSageSchool = true; break;
                     case ProjectKind.HeavyArmsResearch: HeavyArmsResearched |= 1 << port.Owner; break;
+                    case ProjectKind.Dock: port.HasDock = true; break;
                 }
                 Emit("project_done", port.Id, port.Owner, port.X, port.Y, (int)kind);
             }

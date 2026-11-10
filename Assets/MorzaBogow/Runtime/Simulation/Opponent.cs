@@ -95,17 +95,42 @@ namespace MorzaBogow.Simulation
         }
 
         /// <summary>
-        /// The workshop after about eight minutes, paid like the player's and only from a surplus that leaves a warship's
-        /// silver in store (docs/UZBROJENIE.md). The town, school and research follow with the new classes (stage 3c).
+        /// From about the eighth minute, one building at a time at the home port: the workshop, the town and its dock
+        /// (without a dock no hull is mended, docs/UZGODNIENIE_SPECYFIKACJI.md). Paid like the player's, with 150 S left
+        /// in store; the warship line saves its price meanwhile (BuildingSaving). The school and research follow with
+        /// the new classes (3c).
         /// </summary>
         void ManageBuildings(World world)
         {
             var home = world.SettlementOf(faction);
-            if (home == null || home.Destroyed || home.Project != null || home.HasWorkshop) return;
-            if (world.Tick < 8 * 60 * Rules.TickRate) return;
-            if (home.Available(ResourceType.Silver) < Rules.WorkshopSilver + 150 * Rules.Centi) return;
-            if (world.ProjectProblem(home, ProjectKind.Workshop) != null) return;
-            world.Issue(new Command { Faction = faction, Kind = CommandKind.BuildProject, Project = ProjectKind.Workshop, TargetId = home.Id });
+            var next = NextBuilding(world, home);
+            if (next == ProjectKind.None) return;
+            var (_, silver, _) = World.ProjectCost(next);
+            if (home.Available(ResourceType.Silver) < silver + 150 * Rules.Centi) return;
+            if (world.ProjectProblem(home, next) != null) return;
+            world.Issue(new Command { Faction = faction, Kind = CommandKind.BuildProject, Project = next, TargetId = home.Id });
+        }
+
+        const int BuildingsFromTick = 8 * 60 * Rules.TickRate;
+
+        /// <summary>The building due next at home: the workshop, the town, then the dock; none before the eighth minute or while one rises.</summary>
+        ProjectKind NextBuilding(World world, Settlement home)
+        {
+            if (home == null || home.Destroyed || home.Project != null || world.Tick < BuildingsFromTick) return ProjectKind.None;
+            return !home.HasWorkshop ? ProjectKind.Workshop : !home.IsTown ? ProjectKind.Town : !home.HasDock ? ProjectKind.Dock : ProjectKind.None;
+        }
+
+        /// <summary>
+        /// The price of the building due at home, kept from the warship line so the line does not reserve every silver
+        /// piece first (the dock alone mends hulls). Not while the base is threatened: warships come first then.
+        /// </summary>
+        (long wood, long silver) BuildingSaving(World world, Settlement home)
+        {
+            var next = NextBuilding(world, home);
+            if (next == ProjectKind.None) return (0, 0);
+            if (world.Ships.Any(ship => ship.Owner != faction && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
+            var (wood, silver, _) = World.ProjectCost(next);
+            return (wood, silver);
         }
 
         void ManageProduction(World world)
@@ -127,10 +152,12 @@ namespace MorzaBogow.Simulation
             {
                 var next = ShipCatalog.Get(BuildCycle[buildIndex % BuildCycle.Length]);
 
-                // A waiting merchant's cargo is paid for first; otherwise warships would spend every saving.
+                // A waiting merchant's cargo is paid for first, and so is the building due at home; otherwise warships
+                // would spend every saving.
                 var saved = port == settlement ? Saving(world, settlement) : (wood: 0L, silver: 0L);
-                var savedWood = saved.wood;
-                var savedSilver = saved.silver;
+                var building = port == settlement ? BuildingSaving(world, settlement) : (wood: 0L, silver: 0L);
+                var savedWood = saved.wood + building.wood;
+                var savedSilver = saved.silver + building.silver;
 
                 // E04: automatic military orders keep the reserve that protects rebuilding a cutter. Each port pays locally.
                 if (port.Available(ResourceType.Wood) < next.CostWood * Rules.Centi + Rules.ReserveWood + savedWood) continue;
@@ -250,11 +277,13 @@ namespace MorzaBogow.Simulation
             var active = new List<Ship>();
             foreach (var ship in warships)
             {
-                // A badly holed hull, or a crew with half its fighters gone, goes home to regroup.
-                // Only when the home port can pay the muster now: a ship waiting in the dock for silver is lost to the fleet.
+                // A badly holed hull goes to the dock when the side has one (only a dock mends); a crew with half its
+                // fighters gone goes home to regroup, only when the home port can pay the muster now: a ship waiting in
+                // port for silver is lost to the fleet.
+                var holed = ship.Hull < ship.Definition.Hull * 0.3 && world.HasDock(faction);
                 var crewSpent = ship.Plan.Swordsmen + ship.Plan.Archers > 0 && ship.Soldiers * 2 < ship.Plan.Swordsmen + ship.Plan.Archers
                                 && home.Available(ResourceType.Silver) >= World.MusterCost(ship) + Rules.ReserveSilver;
-                if (ship.Hull < ship.Definition.Hull * 0.3 || crewSpent)
+                if (holed || crewSpent)
                 {
                     if (ship.Order != OrderKind.Repair) world.Issue(new Command { Faction = faction, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
                     continue;

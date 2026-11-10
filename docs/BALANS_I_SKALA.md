@@ -31,6 +31,48 @@ Użytkownik: „złoża miały nie decydować o końcu rozgrywki”. Od tej zmia
 - **Mecze AI kontra AI** (ta sama mapa) kończą się zniszczeniem portu po 35–76 min.
 - **Etap 5** doda pozostałe odnawialne źródła: ławice ryb, wraki po sztormach i konwoje.
 
+## Naprawa w doku (uzgodnienie paczki, 2026-11-10)
+
+Decyzja użytkownika z uzgodnienia paczki specyfikacji ([UZGODNIENIE_SPECYFIKACJI.md](UZGODNIENIE_SPECYFIKACJI.md)): kadłuby naprawia tylko dok i tylko za srebro. Zastępuje to regułę E06, która pozwalała naprawiać w każdej stoczni za drewno i srebro.
+
+- **Dok** (`ProjectKind.Dock`, `Settlement.HasDock`): ulepszenie stoczni Miasta.
+  - Warunek: Miasto ze stocznią. Miastem może zostać tylko port macierzysty z Warsztatem (3b), więc łańcuch to Warsztat → Miasto → Dok.
+  - Koszt 200 D / 300 S, czas 45 s (`Rules.DockWood`, `DockSilver`, `DockSeconds`). Wartości własne, dobrane względem Miasta (300/400, 60 s) i Szkoły (200/500, 60 s).
+  - Płatny jak inne budowy portu: rezerwacja, zużycie w trakcie, anulowanie jak przy zamówieniach.
+- **Naprawa kadłuba** tylko w doku:
+  - 25% pełnej ceny okrętu (zapłacone drewno i srebro razem) w srebrze za pełną naprawę, płatne według odbudowanego kadłuba;
+  - 12 HP/s, jedno stanowisko na port, jak dawniej;
+  - bez srebra naprawa czeka.
+- **Naprawa modułów broni** tylko w doku: 25% wartości przedmiotu (drewno i srebro razem) razy brakująca część, w srebrze.
+- **Zostaje bez doku:** przegrupowanie załogi (leczenie, zaciąg, przeszkolenie) i wymiana broni według planu działają w każdym porcie ze stocznią.
+- **Rozkaz Remont.** Uszkodzony okręt płynie do najbliższego doku swojej strony, także obok bliższej stoczni (`World.RepairYard`). Rozkaz dla samego kadłuba lub modułu bez doku po swojej stronie jest odrzucany. Okręt bez rozkazu sam wchodzi do portu z powodu kadłuba tylko wtedy, gdy port ma dok.
+- **AI** od 8. minuty buduje w porcie macierzystym kolejno Warsztat, Miasto i Dok (cena plus 150 S zapasu).
+  - W tym czasie linia okrętów odkłada cenę następnej budowy (`Opponent.BuildingSaving`), chyba że wróg jest przy porcie. Bez tego zamówienia okrętów rezerwowały całe srebro i AI nie stawiało nawet Warsztatu.
+  - Kadłub naprawia dopiero wtedy, gdy ma dok. Okręty z przetrzebioną załogą wracają na przegrupowanie jak dawniej.
+- **Zapis gry** ma wersję 15 (`HasDock`; bez `RepairWoodRemainder`).
+- **Niezmiennik naprawy i złomowania.** Złomowanie zwraca 15% ceny razy stan kadłuba w obu surowcach, a naprawa kosztuje tylko srebro.
+  - W sumie D+S naprawa przed złomowaniem nigdy się nie opłaca (test `Scrap_RepairingFirstNeverPaysBetter`).
+  - W samym drewnie przestało to obowiązywać: naprawa i złomowanie zamieniają srebro na drewno. Dla taranu to ok. 1,8–1,9 S za 1 D (zależnie od podziału ceny), czyli strata przy srebrze rzadszym od drewna.
+  - Dawny model ekonomii (`docs/economy-model`) sprawdzał tę pętlę osobno dla każdego surowca, przy naprawie za oba surowce.
+
+**Pomiar z regułą doku** (simprof, AI kontra AI, 130 min, ziarna 9 i 23; „przed” to mapa z ograniczonym lądem bez reguły doku):
+
+| Profil | Okręty wojenne bez walki (strona), przed → z dokiem | Mecze AI, zwycięstwo po, przed → z dokiem | Cel |
+|---|---|---|---:|
+| Krótka | 48–74 → 59–62 | 30–38 → 31–38 min | 30 min |
+| Standardowa | 68–72 → 65–70 | 42–84 → 23–30 min | 60 min |
+| Długa | 55–62 → 61–63 | 91–107 → 50–61 min | 90 min |
+
+- **Budowy AI w grze bez walki:** Warsztat w 10.–16. min, Miasto w 18.–43. min, Dok w 25.–75. min.
+- **Mecze Standardowe i Długie kończą się teraz przed celem.** Obecne AI traci flotę w jednym–dwóch starciach. Dawniej naprawiało kadłuby w każdej stoczni, a teraz zanim postawi dok (w meczach Długich ok. 37.–42. min), nie naprawia ich wcale. W meczach Standardowych zwycięstwo pada w 23.–30. min, zanim AI ukończy Miasto, więc koszt i czas doku nie są tu wąskim gardłem.
+- **Sprawdzone warianty odkładania AI** (Standardowa, ziarna 9 / 23):
+  - bez odkładania: 35 / 29 min;
+  - odkładanie z wyjątkiem małej floty: 33 / 35 min;
+  - odkładanie przerywane tylko zagrożeniem: 30 / 23 min.
+
+  Został ostatni wariant, bo tylko w nim AI faktycznie dochodzi do Miasta i Doku.
+- **Kosztu i czasu doku nie zmieniano.** Rozbieżność z celami 60/90 min to sprawa AI (etap 7: odwrót, obrona, fale, odbudowa) albo ewentualnej zmiany reguły doku, do decyzji użytkownika. To pomiar AI kontra AI, nie playtest.
+
 ## Etap 1 — wdrożony
 
 ### Profile długości (`MatchProfile`, `Definitions.cs`)

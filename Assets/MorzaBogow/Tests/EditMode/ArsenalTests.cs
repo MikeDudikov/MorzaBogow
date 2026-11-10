@@ -59,6 +59,30 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Projects_TheDockFollowsTheTownAndIsPaidOnce()
+        {
+            var world = Empty();
+            var port = world.SettlementOf(0);
+            Assert.That(world.ProjectProblem(port, ProjectKind.Dock), Is.EqualTo("Wymaga Miasta ze stocznią."), "No dock without a town.");
+            port.HasWorkshop = true;
+            port.IsTown = true;
+            var wood = port.Wood;
+            var silver = port.Silver;
+            Project(world, port, ProjectKind.Dock);
+            Run(world, Rules.DockSeconds + 1);
+            Assert.That(port.HasDock, Is.True);
+            Assert.That((wood - port.Wood, silver - port.Silver), Is.EqualTo((Rules.DockWood, Rules.DockSilver)), "Paid once.");
+            Assert.That(port.ReservedWood + port.ReservedSilver, Is.Zero);
+            Assert.That(world.HasDock(0), Is.True);
+            Assert.That(world.HasDock(1), Is.False, "Each side builds its own.");
+            Assert.That(world.ProjectProblem(port, ProjectKind.Dock), Is.EqualTo("Dok już stoi."));
+
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            Assert.That(loaded.SettlementOf(0).HasDock, Is.True, "The dock is saved.");
+            Assert.That(loaded.HasDock(1), Is.False);
+        }
+
+        [Test]
         public void Projects_CancellingSettlesLikeAShipOrder()
         {
             var world = Empty();

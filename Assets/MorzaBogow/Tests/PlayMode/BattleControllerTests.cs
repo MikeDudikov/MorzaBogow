@@ -331,6 +331,18 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Hud_BuildMenuOffersTheDockAfterTheTown()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            Assert.That(hud.OpenBuildForTest(), Is.EqualTo(5), "Workshop, town, dock, school and research.");
+            var items = hud.PopoverItemsForTest;
+            Assert.That(items, Does.Contain(BattleController.ProjectName(ProjectKind.Dock)));
+            Assert.That(items.ToList().IndexOf(BattleController.ProjectName(ProjectKind.Dock)), Is.EqualTo(items.ToList().IndexOf(BattleController.ProjectName(ProjectKind.Town)) + 1), "Right after the town it needs.");
+            hud.ClosePopoverForTest();
+        }
+
+        [UnityTest]
         public IEnumerator Hud_WeaponChoiceStaysNarrowAndOpensAboveTheBand()
         {
             yield return WaitForInterface();

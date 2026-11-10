@@ -366,6 +366,22 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Repair_GoesToTheNearestDockForTheHull()
+        {
+            var world = Empty();
+            var outpost = AddOutpost(world, -200);
+            outpost.HasShipyard = true;
+            var home = world.SettlementOf(0);
+            home.HasDock = true;
+            var ram = world.SpawnShip(0, ShipClass.Ram, -200, 40);
+            Assert.That(world.RepairYard(ram), Is.EqualTo(outpost), "A sound hull musters at the nearest shipyard.");
+            ram.Hull = 300;
+            Assert.That(world.RepairYard(ram), Is.EqualTo(home), "A holed hull sails on to the dock, past a nearer yard.");
+            home.HasDock = false;
+            Assert.That(world.RepairYard(ram), Is.EqualTo(outpost), "Without a dock, the nearest yard for the muster.");
+        }
+
+        [Test]
         public void Outpost_LossDoesNotEndTheMatchAndFreesTheShore()
         {
             var world = Empty();
@@ -492,6 +508,8 @@ namespace MorzaBogow.Tests
             var world = MapFactory.CreateSkirmish(1);
             world.Ships.Clear();
             var home = world.SettlementOf(0);
+            // Only a dock mends a hull (docs/UZGODNIENIE_SPECYFIKACJI.md): the home yard is upgraded for this run.
+            home.HasDock = true;
             var ship = world.SpawnShip(0, shipClass, 0, 110);
             ship.Hull = ship.Definition.Hull / 2;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });

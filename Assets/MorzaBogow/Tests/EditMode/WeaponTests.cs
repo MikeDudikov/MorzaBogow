@@ -153,6 +153,7 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var port = world.SettlementOf(0);
+            port.HasDock = true;
             var ship = world.SpawnShip(0, ShipClass.CrewDestroyer, port.X + 30, 0);
             ship.ModuleHp[0] = 0;
             ship.ModuleHp[1] = 40;
@@ -162,7 +163,8 @@ namespace MorzaBogow.Tests
             enemy.Archers = 0;
             enemy.Hull = 1e6;
             var (wood, silver) = World.ModuleRepairCost(ship);
-            Assert.That(wood + silver, Is.GreaterThan(0));
+            Assert.That(wood, Is.Zero, "Modules are mended for silver only.");
+            Assert.That(silver, Is.GreaterThan(0));
             var silentFired = false;
             var sawHullRepairedFirst = false;
             for (var i = 0; i < 60 * Rules.TickRate && ship.ModuleHp.Any(item => item < Rules.ModuleHitPoints); i++)

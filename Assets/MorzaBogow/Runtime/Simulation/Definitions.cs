@@ -422,6 +422,9 @@ namespace MorzaBogow.Simulation
         public const double SchoolSeconds = 60;
         public const long HeavyArmsWood = 150 * Centi, HeavyArmsSilver = 300 * Centi;
         public const double HeavyArmsSeconds = 90;
+        // The dock: a town's shipyard upgraded to mend hulls and weapon modules (docs/UZGODNIENIE_SPECYFIKACJI.md).
+        public const long DockWood = 200 * Centi, DockSilver = 300 * Centi;
+        public const double DockSeconds = 45;
 
         /// <summary>Taking a weapon off, and fitting a medium or a heavy one, at the dock.</summary>
         public const double DismountSeconds = 3, MountMediumSeconds = 5, MountHeavySeconds = 10;

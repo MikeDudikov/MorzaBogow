@@ -88,15 +88,15 @@ AI wchodzi w abordaż, gdy `World.BoardingOdds` przekracza 1,2. Wskaźnik to si�
 
 ## Przegrupowanie w porcie
 
-**Automatyczne.** Okręt bez rozkazu, do 80 m od własnego portu ze stocznią, sam wchodzi do doku, gdy:
-- ma uszkodzony kadłub,
+**Automatyczne.** Okręt bez rozkazu, do 80 m od własnego portu ze stocznią, sam wchodzi na stanowisko, gdy:
+- ma uszkodzony kadłub lub moduł broni, a port ma dok (uzgodnienie paczki 2026-11-10: kadłub i moduły naprawia tylko dok),
 - ma rannych,
 - albo jego skład różni się od planu, a port ma srebro na przegrupowanie.
 
-Rozkaz Remont (P) robi to samo na żądanie.
+Rozkaz Remont (P) robi to samo na żądanie. Uszkodzony okręt płynie do najbliższego doku swojej strony, a bez doku do najbliższej stoczni, tylko po przegrupowanie i wymianę broni (`World.RepairYard`).
 
-**Kolejność w doku:**
-1. Kadłub: 25% kosztu budowy, 12 HP/s, jak w E06.
+**Kolejność na stanowisku:**
+1. Kadłub, tylko w doku: 25% pełnej ceny okrętu (drewno i srebro razem) w srebrze za pełną naprawę, 12 HP/s ([BALANS_I_SKALA.md](BALANS_I_SKALA.md#naprawa-w-doku-uzgodnienie-paczki-2026-11-10)).
 2. Ranni: 0,25 S za człowieka, czterech na sekundę. Wyleczony wraca do klasy, której najbardziej brakuje.
 3. Zaciąg: 0,5 S za żeglarza i 1 S za wojownika według cen E04, 1 s na człowieka.
 4. Przeszkolenie nadwyżki jednej klasy na brakującą: 0,5 S, 2 s.

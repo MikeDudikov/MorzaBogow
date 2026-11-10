@@ -199,8 +199,9 @@ namespace MorzaBogow.Simulation
                     ship.WreckId = command.TargetId;
                     break;
                 case CommandKind.Repair:
-                    // A sound hull still goes to the dock when its crew is short of the plan or has wounded.
-                    if (ship.Hull >= ship.Definition.Hull && !NeedsMuster(ship) && !ModulesDamaged(ship) && !NeedsRefit(ship, ClosestYard(ship))) return;
+                    // A sound hull still goes to port when its crew is short of the plan or has wounded, or its weapons
+                    // differ from the plan; a hull or a module needs a dock on its side, the only place they are mended.
+                    if (!(NeedsMending(ship) && HasDock(ship.Owner)) && !NeedsMuster(ship) && !NeedsRefit(ship, ClosestYard(ship))) return;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Repair;
                     break;

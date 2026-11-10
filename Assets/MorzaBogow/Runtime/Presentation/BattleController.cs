@@ -2218,7 +2218,8 @@ namespace MorzaBogow.Presentation
 
         public static string ProjectName(ProjectKind kind) =>
             kind == ProjectKind.Workshop ? "Warsztat (arsenał)" : kind == ProjectKind.Town ? "Awans na Miasto"
-            : kind == ProjectKind.SageSchool ? "Szkoła Mędrców" : kind == ProjectKind.HeavyArmsResearch ? "Badanie: broń ciężka" : "—";
+            : kind == ProjectKind.SageSchool ? "Szkoła Mędrców" : kind == ProjectKind.HeavyArmsResearch ? "Badanie: broń ciężka"
+            : kind == ProjectKind.Dock ? "Dok (ulepszenie stoczni)" : "—";
 
         /// <summary>Sets the crew a ship's port will train it to; the people change only when it regroups in port.</summary>
         public void SetCrewPlan(int shipId, CrewPreset preset) =>
@@ -2379,7 +2380,7 @@ namespace MorzaBogow.Presentation
                     }
                 case OrderKind.Escort: return "Rozkaz: eskorta handlowca.";
                 case OrderKind.Salvage: return "Rozkaz: zbiera wrak.";
-                case OrderKind.Repair: return "Rozkaz: remont w stoczni.";
+                case OrderKind.Repair: return World.RepairYard(ship)?.HasDock == true ? "Rozkaz: remont w doku." : "Rozkaz: przegrupowanie w porcie.";
                 case OrderKind.Scrap: return "Rozkaz: złomowanie.";
                 case OrderKind.Harvest:
                     var resource = World.FindNode(ship.NodeId)?.Type == ResourceType.Silver ? "srebro" : "drewno";

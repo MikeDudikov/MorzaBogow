@@ -512,12 +512,37 @@ namespace MorzaBogow.Simulation
 
         // ---------- Repair and scrap at the shipyard station ----------
 
+        /// <summary>A side has a dock somewhere: only there are hulls and weapon modules mended.</summary>
+        public bool HasDock(int faction) => PortsOf(faction).Any(item => item.HasDock && item.HasShipyard && !item.Destroyed);
+
+        /// <summary>The hull or a fitted module needs mending.</summary>
+        public static bool NeedsMending(Ship ship) => ship.Hull < ship.Definition.Hull || ModulesDamaged(ship);
+
+        /// <summary>
+        /// Where a ship goes on a repair order (docs/UZGODNIENIE_SPECYFIKACJI.md): the station it already holds; else,
+        /// with a hull or a module to mend and a dock on its side, the nearest dock; else the nearest shipyard, which
+        /// musters the crew and refits the weapons but mends nothing.
+        /// </summary>
+        public Settlement RepairYard(Ship ship)
+        {
+            var held = PortsOf(ship.Owner).FirstOrDefault(item => item.RepairShipId == ship.Id && !item.Destroyed);
+            if (held != null) return held;
+            if (NeedsMending(ship))
+            {
+                var dock = ClosestOf(ship, PortsOf(ship.Owner).Where(item => item.HasShipyard && item.HasDock && !item.Destroyed));
+                if (dock != null) return dock;
+            }
+            return ClosestYard(ship);
+        }
+
         void StepRepair(Ship ship)
         {
-            var settlement = ClosestYard(ship);
+            var settlement = RepairYard(ship);
             var definition = ship.Definition;
-            var hullDone = ship.Hull >= definition.Hull;
-            if (settlement == null || settlement.Destroyed || (hullDone && !ModulesDamaged(ship) && !NeedsRefit(ship, settlement) && !NeedsMuster(ship) && ship.MusterTicks == 0))
+            // Only a dock mends: elsewhere the hull and the modules count as done and the visit is the muster and refit.
+            var mends = settlement != null && settlement.HasDock;
+            var hullDone = ship.Hull >= definition.Hull || !mends;
+            if (settlement == null || settlement.Destroyed || (hullDone && (!mends || !ModulesDamaged(ship)) && !NeedsRefit(ship, settlement) && !NeedsMuster(ship) && ship.MusterTicks == 0))
             {
                 if (settlement != null && settlement.RepairShipId == ship.Id) Emit("ship_restored", ship.Id, settlement.Id, ship.X, ship.Y, ship.Crew);
                 ReleaseDock(ship);
@@ -540,28 +565,25 @@ namespace MorzaBogow.Simulation
 
             if (hullDone)
             {
-                // After the hull: the posts' modules, then the crew; one job at a time, each charged as it starts.
+                // After the hull: the posts' modules (at a dock), then the crew; one job at a time, each charged as it starts.
                 if (ship.MusterTicks > 0) { ship.MusterTicks--; return; }
-                if (RepairModule(ship, settlement)) return;
+                if (mends && RepairModule(ship, settlement)) return;
                 if (Refit(ship, settlement)) return;
                 Muster(ship, settlement);
                 return;
             }
 
-            // E06: 25% of the construction cost for a full repair, charged by restored hull.
+            // At a dock, for silver only (docs/UZGODNIENIE_SPECYFIKACJI.md, replacing E06's wood and silver): a full
+            // repair costs 25% of the whole price the hull was built for, wood and silver counted together, charged by
+            // restored hull.
             var hull = Math.Min(Rules.RepairHullPerSecond * Rules.Dt, definition.Hull - ship.Hull);
             var share = hull / definition.Hull * Rules.RepairFullFraction;
-            var wood = ship.RepairWoodRemainder + ship.PaidConstructionWood * share;
-            var silver = ship.RepairSilverRemainder + ship.PaidConstructionSilver * share;
-            var wholeWood = (long)wood;
+            var silver = ship.RepairSilverRemainder + (ship.PaidConstructionWood + ship.PaidConstructionSilver) * share;
             var wholeSilver = (long)silver;
-            if (settlement.Available(ResourceType.Wood) < wholeWood || settlement.Available(ResourceType.Silver) < wholeSilver) return;
+            if (settlement.Available(ResourceType.Silver) < wholeSilver) return;
 
-            settlement.Wood -= wholeWood;
             settlement.Silver -= wholeSilver;
-            SpentWood += wholeWood;
             SpentSilver += wholeSilver;
-            ship.RepairWoodRemainder = wood - wholeWood;
             ship.RepairSilverRemainder = silver - wholeSilver;
             ship.Hull += hull;
         }
@@ -581,15 +603,16 @@ namespace MorzaBogow.Simulation
         }
 
         /// <summary>
-        /// What mending one module costs (docs/UZBROJENIE.md): 25% of the item's worth times the share of its hit points
-        /// restored, wood and silver apart, rounded down to 0.01; and how long, the whole module taking at most 10 s.
+        /// What mending one module costs at a dock (docs/UZBROJENIE.md, docs/UZGODNIENIE_SPECYFIKACJI.md): 25% of the
+        /// item's whole worth, wood and silver counted together, times the share of its hit points restored, paid in
+        /// silver only and rounded down to 0.01; and how long, the whole module taking at most 10 s. The wood part is
+        /// always zero; it stays in the tuple for the quotes that show both stores.
         /// </summary>
         public static (long wood, long silver, int ticks) ModuleRepair(Ship ship, int slot)
         {
             var missing = Math.Max(0, Rules.ModuleHitPoints - ship.ModuleHp[slot]) / Rules.ModuleHitPoints;
-            var wood = (long)(ship.ItemWood[slot] * Rules.ModuleRepairFraction * missing);
-            var silver = (long)(ship.ItemSilver[slot] * Rules.ModuleRepairFraction * missing);
-            return (wood, silver, (int)Math.Ceiling(missing * Rules.ModuleRepairSeconds * Rules.TickRate - 1e-9));
+            var silver = (long)((ship.ItemWood[slot] + ship.ItemSilver[slot]) * Rules.ModuleRepairFraction * missing);
+            return (0, silver, (int)Math.Ceiling(missing * Rules.ModuleRepairSeconds * Rules.TickRate - 1e-9));
         }
 
         /// <summary>All modules' repair together, as the interface quotes it.</summary>
@@ -745,7 +768,8 @@ namespace MorzaBogow.Simulation
         {
             if ((Tick + ship.Id) % Rules.TickRate != 0) return false;
             var port = ClosestYard(ship);
-            var hurt = ship.Hull < ship.Definition.Hull || ModulesDamaged(ship) || NeedsRefit(ship, port);
+            // A hull or a module counts only beside a dock, which alone mends them; other ports muster and refit.
+            var hurt = (port != null && port.HasDock && NeedsMending(ship)) || NeedsRefit(ship, port);
             if (!hurt && !NeedsMuster(ship)) return false;
             if (port == null || port.Destroyed || Distance(ship.X, ship.Y, port.X, port.Y) > Rules.MusterRange) return false;
             if (!hurt && port.Available(ResourceType.Silver) < MusterCost(ship)) return false;
