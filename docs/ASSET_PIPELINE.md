@@ -346,6 +346,12 @@ Budowle portu buduje kod (`Runtime/Presentation/PortBuildings.cs`). Podglądy z 
 - **Przed magazynem:** pithoi wkopane do ramion, amfory oparte o ścianę, dwie kotwice jednoramienne z drewnianym poprzecznikiem wypełnionym ołowiem (R-ANCHORS). Nie są częścią obrysu budynku (`Footprint`).
 - **Budowa:** kolejne warstwy (kolumny jednej strony, warstwa muru, architraw, fryz z gzymsem) pojawiają się według postępu projektu, bez skalowania. Stojący budynek to jedna scalona siatka zamiast kilkunastu rendererów.
 - **Ruina Szkoły:** kikuty kolumn z nierównym wierzchem, leżące bębny, zwęglone belki, gruz.
+- **Zawalenie przy upadku osady** (budynki, które stały w zasięgu wzroku; inne od razu leżą w ruinie), 2,6 s czasu gry, pauza je zatrzymuje:
+  - ściany osiadają w gruz i przechylają się, dach zapada się pierwszy i szybciej;
+  - pierwszy obłok pyłu przy pęknięciu, drugi, gdy dach uderza: wtedy przez pył wyłania się ruina i lecą dachówki;
+  - na końcu elementy wracają, ukryte, na swoje miejsca, więc odbudowa stawia budynek tam, gdzie stał.
+
+  Pył to kopia materiału rozbryzgu sceny z własnym kolorem wapiennego pyłu; chroniony materiał wody zostaje nietknięty. Test `Port_AFallenTownCrumblesIntoItsRuinsInGameTime`.
 - **Materiały:** `Editor/BuildingTextureBaker.cs` wypieka deterministycznie, bez pobierania:
   - ciosy wapienne 2,4 × 1,6 m (warstwy 0,4 m, bloki 1,2 m, co druga warstwa przesunięta o pół bloku; gładka obwódka wokół szpicowanego lica jako interpretacja);
   - tynk 2 × 2 m.

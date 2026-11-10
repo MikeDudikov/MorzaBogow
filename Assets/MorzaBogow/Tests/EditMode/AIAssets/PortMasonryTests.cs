@@ -72,6 +72,40 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Port_AFallenTownCrumblesIntoItsRuinsInGameTime()
+        {
+            var settlement = Town();
+            var buildings = Port(settlement);
+            var school = buildings.Root.Find("SageSchool");
+            var piece = school.Find("School");
+            var standing = piece.localPosition;
+
+            buildings.Update(settlement, true, 0f);
+            Assert.That(buildings.Ruined, Is.True);
+            Assert.That(buildings.Collapsing, Is.True, "what stood falls, it does not vanish");
+            Assert.That(buildings.Shows(PortBuilding.SageSchool), Is.False);
+            Assert.That(school.gameObject.activeSelf, Is.True, "still standing as it gives");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.False, "the ruin shows later, through the dust");
+
+            buildings.Update(settlement, true, 0f);
+            Assert.That(piece.localPosition, Is.EqualTo(standing), "a pause holds the fall");
+
+            buildings.Update(settlement, true, PortBuildings.CollapseSeconds * 0.5f);
+            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the walls sink into their rubble");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.True, "the roof has struck: the ruin shows");
+
+            buildings.Update(settlement, true, PortBuildings.CollapseSeconds);
+            Assert.That(buildings.Collapsing, Is.False);
+            Assert.That(school.gameObject.activeSelf, Is.False, "fallen");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool) && buildings.ShowsRuin(PortBuilding.Store), Is.True, "what stood lies in ruins");
+            Assert.That(piece.localPosition, Is.EqualTo(standing), "put back, hidden, for the day it is raised again");
+
+            buildings.Update(settlement, false, 0f);
+            Assert.That(buildings.Shows(PortBuilding.SageSchool), Is.True, "raised again, it stands where it stood");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.False);
+        }
+
+        [Test]
         public void Port_SchoolIsADoricPeristyleOnItsStylobate()
         {
             var buildings = Port(Town());

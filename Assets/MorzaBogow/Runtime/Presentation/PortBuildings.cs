@@ -137,6 +137,7 @@ namespace MorzaBogow.Presentation
                 state = key;
                 Apply(settlement, ruined, project, progress);
             }
+            if (falling.Count > 0) Fall(delta);
 
             // The research fire flickers in game time.
             if (flame != null && flame.gameObject.activeInHierarchy)
@@ -166,6 +167,11 @@ namespace MorzaBogow.Presentation
                 _ => null,
             };
             if (ruined) rising = null;
+            // Only what an earlier state showed standing can fall; a settlement first seen fallen lies in ruins at once.
+            var stoodBefore = applied && !Ruined;
+            applied = true;
+            // A port raised again stands at once, whatever was still falling.
+            if (!ruined) StopFalling();
             Ruined = ruined;
             Rising = rising;
             RisingProgress = rising != null ? progress : 0f;
@@ -181,8 +187,10 @@ namespace MorzaBogow.Presentation
                 var item = Get(kind);
                 if (ruined)
                 {
-                    item.Root.SetActive(false);
                     if (whole && item.Ruin == null) item.Ruin = BuildRuin(item);
+                    // What stood in sight falls into its ruin; what never stood here, or fell before, lies in it at once.
+                    if (whole && stoodBefore && item.Root.activeSelf && StartFalling(item)) continue;
+                    item.Root.SetActive(false);
                     if (item.Ruin != null) item.Ruin.SetActive(whole);
                     continue;
                 }
@@ -1061,6 +1069,238 @@ namespace MorzaBogow.Presentation
             }
             ruin.SetActive(false);
             return ruin;
+        }
+
+        // ---------- Falling into ruin ----------
+
+        /// <summary>How long a building takes to fall into its ruin, in game seconds (a pause holds it).</summary>
+        public const float CollapseSeconds = 2.6f;
+
+        /// <summary>A building falling: where its pieces stood, the way each leans, the time since it gave.</summary>
+        sealed class Falling
+        {
+            public Structure Item;
+            public Vector3[] Position;
+            public Quaternion[] Rotation;
+            public Vector3[] Lean;
+            public float Time;
+            public bool Struck;
+        }
+
+        readonly List<Falling> falling = new List<Falling>();
+        ParticleSystem dust, tiles;
+        Mesh tileMesh;
+        bool applied;
+
+        /// <summary>Some building of the settlement is still falling into its ruin.</summary>
+        public bool Collapsing => falling.Count > 0;
+
+        /// <summary>Starts a standing building's fall: dust bursts from it as it gives; its ruin shows later, through the dust.</summary>
+        bool StartFalling(Structure item)
+        {
+            if (falling.Exists(fall => fall.Item == item)) return true;
+            var random = new System.Random(seed + (int)item.Kind * 53);
+            var count = item.Pieces.Count;
+            var started = new Falling { Item = item, Position = new Vector3[count], Rotation = new Quaternion[count], Lean = new Vector3[count] };
+            for (var i = 0; i < count; i++)
+            {
+                started.Position[i] = item.Pieces[i].Root.localPosition;
+                started.Rotation[i] = item.Pieces[i].Root.localRotation;
+                var angle = (float)random.NextDouble() * Mathf.PI * 2f;
+                started.Lean[i] = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            }
+            if (item.Ruin != null) item.Ruin.SetActive(false);
+            falling.Add(started);
+            Dust(item, 0.8f, random);
+            return true;
+        }
+
+        /// <summary>
+        /// The walls give at their foot and sink into their own rubble, leaning as they go; the roof falls in first and
+        /// faster. When it strikes, the ruin shows through a second cloud of dust and the roof's tiles fly.
+        /// </summary>
+        void Fall(float delta)
+        {
+            for (var k = falling.Count - 1; k >= 0; k--)
+            {
+                var fall = falling[k];
+                fall.Time += delta;
+                var p = Mathf.Clamp01(fall.Time / CollapseSeconds);
+                for (var i = 0; i < fall.Item.Pieces.Count; i++)
+                {
+                    var piece = fall.Item.Pieces[i];
+                    piece.Root.localPosition = fall.Position[i] + Vector3.down * (p * p * piece.H * 0.9f);
+                    piece.Root.localRotation = Quaternion.AngleAxis(p * 12f, fall.Lean[i]) * fall.Rotation[i];
+                    if (piece.Roof == null) continue;
+                    var q = Mathf.Clamp01(p * 1.7f);
+                    piece.Roof.localPosition = Vector3.down * (q * q * piece.H * 0.55f);
+                    piece.Roof.localRotation = Quaternion.AngleAxis(q * 18f, fall.Lean[i]);
+                }
+                if (!fall.Struck && p >= 0.45f)
+                {
+                    fall.Struck = true;
+                    if (fall.Item.Ruin != null) fall.Item.Ruin.SetActive(true);
+                    var random = new System.Random(seed + (int)fall.Item.Kind * 59);
+                    Dust(fall.Item, 1.2f, random);
+                    Tiles(fall.Item, random);
+                }
+                if (p < 1f) continue;
+                Restore(fall);
+                fall.Item.Root.SetActive(false);
+                falling.RemoveAt(k);
+            }
+        }
+
+        /// <summary>Puts the pieces back where they stood, hidden, for the day the building is raised again.</summary>
+        static void Restore(Falling fall)
+        {
+            for (var i = 0; i < fall.Item.Pieces.Count; i++)
+            {
+                var piece = fall.Item.Pieces[i];
+                piece.Root.localPosition = fall.Position[i];
+                piece.Root.localRotation = fall.Rotation[i];
+                if (piece.Roof == null) continue;
+                piece.Roof.localPosition = Vector3.zero;
+                piece.Roof.localRotation = Quaternion.identity;
+            }
+        }
+
+        void StopFalling()
+        {
+            foreach (var fall in falling) Restore(fall);
+            falling.Clear();
+        }
+
+        /// <summary>Clouds of limestone and plaster dust rising off a falling building's pieces.</summary>
+        void Dust(Structure item, float strength, System.Random random)
+        {
+            var system = DustSystem();
+            if (system == null) return;
+            foreach (var piece in item.Pieces)
+            {
+                var count = Mathf.Clamp(Mathf.RoundToInt(piece.W * piece.D * 0.5f * strength), 8, 60);
+                for (var i = 0; i < count; i++)
+                {
+                    var local = new Vector3(((float)random.NextDouble() - 0.5f) * piece.W, (float)random.NextDouble() * piece.H * 0.6f, ((float)random.NextDouble() - 0.5f) * piece.D);
+                    var at = piece.Root.TransformPoint(local);
+                    var outward = at - piece.Root.position;
+                    outward.y = 0f;
+                    system.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = at,
+                        velocity = outward.normalized * Mathf.Lerp(0.4f, 1.6f, (float)random.NextDouble()) * strength + Vector3.up * Mathf.Lerp(0.6f, 2.2f, (float)random.NextDouble()),
+                        startSize = Mathf.Lerp(1.6f, 4.2f, (float)random.NextDouble()) * strength,
+                        startLifetime = Mathf.Lerp(2.6f, 4.6f, (float)random.NextDouble()),
+                        rotation = (float)random.NextDouble() * 360f,
+                        applyShapeToPosition = false,
+                    }, 1);
+                }
+            }
+        }
+
+        /// <summary>The roof's tiles thrown off as it strikes: they tumble out and down.</summary>
+        void Tiles(Structure item, System.Random random)
+        {
+            var system = TileSystem();
+            if (system == null) return;
+            foreach (var piece in item.Pieces)
+            {
+                if (piece.Roof == null) continue;
+                var count = Mathf.Clamp(Mathf.RoundToInt(piece.W * piece.D * 0.6f), 6, 40);
+                for (var i = 0; i < count; i++)
+                {
+                    var local = new Vector3(((float)random.NextDouble() - 0.5f) * piece.W, piece.H * 0.7f, ((float)random.NextDouble() - 0.5f) * piece.D);
+                    var at = piece.Root.TransformPoint(local);
+                    var outward = at - piece.Root.position;
+                    outward.y = 0f;
+                    system.Emit(new ParticleSystem.EmitParams
+                    {
+                        position = at,
+                        velocity = outward.normalized * Mathf.Lerp(1f, 3.5f, (float)random.NextDouble()) + Vector3.up * Mathf.Lerp(0.5f, 3f, (float)random.NextDouble()),
+                        rotation3D = new Vector3((float)random.NextDouble() * 360f, (float)random.NextDouble() * 360f, (float)random.NextDouble() * 360f),
+                        angularVelocity3D = new Vector3(300f, 200f, 260f) * ((float)random.NextDouble() - 0.5f),
+                        startSize = 1f,
+                        startLifetime = Mathf.Lerp(0.8f, 1.3f, (float)random.NextDouble()),
+                        applyShapeToPosition = false,
+                    }, 1);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Soft billboards in the colour of limestone dust: a copy of the scene's spray material (the same shader
+        /// variant, its own colour; the water's material itself is untouched). None without it.
+        /// </summary>
+        ParticleSystem DustSystem()
+        {
+            if (dust != null) return dust;
+            var source = materials?.Spray;
+            if (source == null) return null;
+            dust = Particles("Collapse dust", 900, -0.03f);
+            var renderer = dust.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.sharedMaterial = DustMaterial(source);
+            var size = dust.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.45f), new Keyframe(0.35f, 1f), new Keyframe(0.85f, 1.25f), new Keyframe(1f, 0f)));
+            var limit = dust.limitVelocityOverLifetime;
+            limit.enabled = true;
+            limit.limit = 1.2f;
+            limit.dampen = 0.08f;
+            return dust;
+        }
+
+        /// <summary>Roof tiles as small flat terracotta slabs, tumbling under gravity.</summary>
+        ParticleSystem TileSystem()
+        {
+            if (tiles != null) return tiles;
+            var material = MaterialFor(GreekMaterial.Terracotta, materials);
+            if (material == null) return null;
+            tiles = Particles("Falling tiles", 300, 1f);
+            var builder = Builder();
+            builder.Box(GreekMaterial.Terracotta, Vector3.zero, new Vector3(0.22f, 0.02f, 0.16f), Quaternion.identity);
+            tileMesh = builder.Build(GreekMaterial.Terracotta).Mesh;
+            owned.Add(tileMesh);
+            var renderer = tiles.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.mesh = tileMesh;
+            renderer.alignment = ParticleSystemRenderSpace.World;
+            renderer.sharedMaterial = material;
+            var main = tiles.main;
+            main.startRotation3D = true;
+            return tiles;
+        }
+
+        ParticleSystem Particles(string name, int max, float gravity)
+        {
+            var item = new GameObject(name);
+            item.transform.SetParent(root, false);
+            var system = item.AddComponent<ParticleSystem>();
+            system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = system.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.duration = 1f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = gravity;
+            main.maxParticles = max;
+            main.startSpeed = 0f;
+            var emission = system.emission;
+            emission.enabled = false;
+            item.GetComponent<ParticleSystemRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            system.Play();
+            return system;
+        }
+
+        static Material DustMaterial(Material source)
+        {
+            if (tints.TryGetValue((source, "dust"), out var made) && made != null) return made;
+            made = new Material(source) { name = $"{source.name} (collapse dust)" };
+            var colour = new Color(0.74f, 0.68f, 0.58f, 0.42f);
+            foreach (var property in new[] { "_UnlitColor", "_BaseColor", "_Color" })
+                if (made.HasProperty(property)) made.SetColor(property, colour);
+            tints[(source, "dust")] = made;
+            return made;
         }
 
         // ---------- Materials ----------
