@@ -92,11 +92,111 @@
     {
       "id": "R-KYNOS",
       "object": "Kynos (Pyrgos Livanaton), Late Helladic IIIC finds",
-      "sources": [{ "url": "https://en.wikipedia.org/wiki/Cynus", "access": "read-web-last-resort" }],
-      "claims": ["Excavated 1985-1995 by the 14th Ephorate, Lamia; findings known from preliminary reports"],
-      "dating": "Bronze Age and Early Iron Age",
-      "certainty": "ship depictions not stated in the page read; to verify in Dakoronia's reports",
-      "assets": ["ship.*"]
+      "sources": [
+        { "url": "https://en.wikipedia.org/wiki/Cynus", "access": "read-web-last-resort" },
+        { "url": "https://ancmed.ulb.be/Bibliography/Dakoronia%2C%20War-ships%20on%20Sherds%20of%20LH%20IIIC%20Kraters%20from%20Kynos%20%281990%29.pdf", "access": "read-web", "note": "F. Dakoronia 1990, War-ships on Sherds of LH IIIC Kraters from Kynos, Tropis II (full text read by the crews' research, 2026-11-10)" },
+        { "url": "https://ancmed.ulb.be/details.php?row=136", "access": "read-web", "note": "ULB catalogue, entries A91-A95" }
+      ],
+      "claims": [
+        "Excavated 1985-1995 by the 14th Ephorate, Lamia; findings known from preliminary reports",
+        "A91: two oared galleys in combat, mast and yard taken down; rowers drawn as half-figures under a row of half-circles (a screen, or ornament: interpretation)",
+        "A91: the steersman stands in the stern castle, in the warriors' helmet but no corslet, holding the shaft of a single steering oar with both hands",
+        "A91-A92: warriors on deck and on the bow castle with raised shields and javelins; A92 a possible archer at the bow (interpretation)"
+      ],
+      "dating": "LH IIIC Middle",
+      "certainty": "what is painted: established; readings of details marked as interpretation",
+      "assets": ["ship.*", "crew.*"]
+    },
+    {
+      "id": "R-PYLOS-AN",
+      "object": "Pylos rower tablets PY An 1, An 610, An 724 (Linear B)",
+      "sources": [
+        { "url": "https://sites.utexas.edu/scripts/wp-content/uploads/sites/3428/2020/08/1991-TGP-MaritimeMattersInTheLinearBTablets-03.pdf", "access": "read-web", "note": "T. G. Palaima 1991, Maritime Matters in the Linear B Tablets, Aegaeum 7 (full text read by the crews' research, 2026-11-10)" },
+        { "url": "https://ancmed.ulb.be/Bibliography/Wachsmann%2C%20The%20Pylos%20Rower%20Tablets%20Reconsidered%20%281999%29.pdf", "access": "read-web", "note": "S. Wachsmann 1999, The Pylos Rower Tablets Reconsidered, Tropis V (full text read)" },
+        { "url": "https://revistas.usal.es/index.php/0544-3733/article/view/3029", "access": "read-web", "note": "J. T. Killen 1983, PY An 1, Minos 18 (abstract only)" }
+      ],
+      "claims": [
+        "An 1 heads e-re-ta pe-re-u-ro-na-de i-jo-te, 'rowers going to Pleuron', about 30 men from five places (text); one thirty-oared crew is a reading",
+        "An 610 lists about 600 rowers by place (Chadwick's reconstruction; 569 in surviving parts), mostly settlers and newcomers (meanings of the terms are interpretations)",
+        "An 724: 'rowers absent'; obligations to row tied to landholding (Killen, after Palaima); no weapons of rowers in the tablets read"
+      ],
+      "dating": "end of the palatial period, about 1200 BC",
+      "certainty": "text: established; status and ship readings: interpretation",
+      "assets": ["crew.rower"]
+    },
+    {
+      "id": "R-BADEMGEDIGI",
+      "object": "Bademgediği Tepe ship krater (LH IIIB2/IIIC or IIIC Middle, dating disputed)",
+      "sources": [
+        { "url": "https://ancmed.ulb.be/details.php?row=134", "access": "read-web", "note": "ULB Ancient Mediterranean Digital Project catalogue (entries A89-A95, A174)" },
+        { "url": "https://www.aegeussociety.org/wp-content/uploads/2017/10/Aegean-Studies-vol1-2-Emanuel.pdf", "access": "read-web", "note": "J. P. Emanuel 2014, Aegean Studies 1:21-56 (pp. 21-45 read)" }
+      ],
+      "claims": [
+        "Two ships face each other; rows of warriors on the decks with round shields, spears, fringed garments and 'feathered' helmets",
+        "Below them rowers as silhouettes, backs to the bow, leaning back, both hands on the oar; no screen is visible (Wachsmann, after the catalogue)"
+      ],
+      "dating": "LH IIIB2/IIIC or IIIC Middle",
+      "certainty": "what is painted: established; that rowers sat low along the sides: interpretation",
+      "assets": ["crew.rower", "crew.warrior"]
+    },
+    {
+      "id": "R-ACHAEA",
+      "object": "LH IIIC warrior graves of Achaea",
+      "sources": [
+        { "url": "https://www.aegeussociety.org/wp-content/uploads/2022/12/Aegean-Studies-%CE%9D%CE%BF1-5-Giannopoulos.pdf", "access": "read-web", "note": "T. Giannopoulos 2022, Aegean Studies 1:127-195 (excerpts read)" }
+      ],
+      "claims": [
+        "Always a Naue II sword and almost always a spear; sometimes greaves, a round shield with a central boss, a boar's tusk helmet",
+        "Those buried with weapons are a small part of the fighters; sword-bearers may have led groups armed with spears (interpretation)"
+      ],
+      "dating": "LH IIIC",
+      "certainty": "finds: established; links to leadership: interpretation",
+      "assets": ["crew.commander", "crew.warrior"]
+    },
+    {
+      "id": "R-HOMER",
+      "object": "Homer, Iliad and Odyssey (passages on ships and crews)",
+      "sources": [
+        { "url": "https://el.wikisource.org/", "access": "read-web", "note": "Greek text: Il. 1, 15, 19; Od. 2, 3, 4, 12" },
+        { "url": "https://en.wikisource.org/", "access": "read-web", "note": "S. Butler's translation: Il. 2, 15, 16; Od. 12" }
+      ],
+      "claims": [
+        "Philoctetes' ships: fifty oarsmen, all good archers (Il. 2.718-720); 120 young men to a Boeotian ship (Il. 2.509-510)",
+        "Steersmen hold the steering oars (Il. 19.43); a steersman holds the steering oar of a running ship (Od. 3.281)",
+        "Odysseus goes up onto the bow deck with two spears to watch (Od. 12.228-229); rowers sit on the benches (Od. 2.419); oars in leather loops (Od. 4.782); the crew hauls up the sail with twisted ox-hide ropes (Od. 2.426)",
+        "Long jointed pikes for fighting at sea (Il. 15.389)"
+      ],
+      "dating": "epic text, 8th-7th c. BC, about an earlier age",
+      "certainty": "content of the text: established; as a picture of the 12th century: interpretation",
+      "assets": ["crew.*"]
+    },
+    {
+      "id": "R-THUCYDIDES",
+      "object": "Thucydides 1.10.4 and 2.93",
+      "sources": [{ "url": "https://en.wikisource.org/wiki/History_of_the_Peloponnesian_War", "access": "read-web", "note": "R. Crawley's translation" }],
+      "claims": [
+        "From Homer he reasons that the men at the oar were also fighters, and that early ships had no full decks (1.10.4)",
+        "A classical rower carried his oar, cushion and the thong of his rowlock (2.93)"
+      ],
+      "dating": "5th c. BC, reasoning about the heroic age",
+      "certainty": "interpretation for the 12th century",
+      "assets": ["crew.warrior-rower"]
+    },
+    {
+      "id": "R-KOUKLI",
+      "object": "Koukli, Siegmund, Papageorgopoulou 2023, stature in ancient Greece, Archaeological and Anthropological Sciences 15:53",
+      "sources": [{ "url": "https://link.springer.com/journal/12520", "access": "read-web", "note": "abstract and supplementary tables S1-S2 read; no value for the 12th century alone could be read" }],
+      "claims": ["Mean male stature across ten thousand years of ancient Greece ranged 159.7-170.6 cm, female 153.1-160.4 cm; stature rose from the Bronze Age to the classical period"],
+      "dating": "Neolithic to Roman",
+      "certainty": "range: established",
+      "assets": ["crew.body"]
+    },
+    {
+      "id": "B-WINTER",
+      "object": "D. A. Winter, Biomechanics and Motor Control of Human Movement (segment proportions after Drillis and Contini)",
+      "access": "metadata-only",
+      "note": "the standard proportions used for the rig are known from the literature; not read in this session",
+      "assets": ["crew.body"]
     },
     { "id": "B-MORRISON", "object": "J. S. Morrison, J. F. Coates, N. B. Rankov, The Athenian Trireme", "access": "metadata-only", "assets": [] },
     { "id": "B-CASSON", "object": "L. Casson, Ships and Seamanship in the Ancient World", "access": "metadata-only", "assets": [] },

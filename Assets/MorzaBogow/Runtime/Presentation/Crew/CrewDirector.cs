@@ -1,0 +1,412 @@
+using System.Collections.Generic;
+using MorzaBogow.Simulation;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEngine;
+
+namespace MorzaBogow.Presentation
+{
+    /// <summary>
+    /// The crews aboard every ship in sight (docs/art/ZALOGI.md). It only reads the game: after each simulation tick it
+    /// takes that tick's events once each (BattleController.Ticked) and the ships' numbers; each frame, after the hulls
+    /// have their final pose, it decides what every man does from his ship's state, poses all of them in one Burst job and
+    /// draws them instanced. Nothing here deals damage, fires a shot or moves a ship; shots it draws start where the man
+    /// who loosed them stands (BattleEffects.LaunchPoint). Time is the game's: paused, the men stand still while the sea
+    /// keeps moving the hulls they stand on.
+    /// </summary>
+    public sealed class CrewDirector : MonoBehaviour
+    {
+        /// <summary>Pixels per metre at which the men get their full detail, and below which their coarse one (with 10% hysteresis).</summary>
+        public const float FullDetail = 15f, CoarseDetail = 5f;
+        const float LooseSeconds = 0.45f, DrawSeconds = 0.6f, WindupSeconds = 0.5f, JoltSeconds = 0.8f, FallSeconds = 1.1f, BodySeconds = 6f;
+        const int MaxBodies = 4;
+
+        BattleController battle;
+        World world;
+        int watermark;
+        float clock;
+        int lod = 1;
+        readonly Dictionary<int, CrewAboard> crews = new Dictionary<int, CrewAboard>();
+        readonly List<int> order = new List<int>();
+        readonly List<Figure> figures = new List<Figure>();
+        readonly Dictionary<int, (int ship, int slot)> launches = new Dictionary<int, (int, int)>();
+        readonly Dictionary<long, int> figureOf = new Dictionary<long, int>();
+        CrewRenderer renderer;
+        NativeArray<FigureInput> inputs;
+        NativeArray<float4x4> bones;
+        long signature = -1;
+        Bounds drawn;
+
+        /// <summary>Men drawn in the last frame, ships whose crews were drawn, the level of detail; tests and the smoke report.</summary>
+        public int FiguresDrawn { get; private set; }
+        public int ShipsDrawn { get; private set; }
+        public int Lod => lod;
+        public CrewRenderer Renderer => renderer;
+        public double PoseMilliseconds { get; private set; }
+
+        public IReadOnlyDictionary<int, CrewAboard> Crews => crews;
+
+        /// <summary>
+        /// Men at the rails of every grappled boarding the player can see: each side's front as the simulation fights it,
+        /// never more than its fighters (BattleController.DeckFightersShown). Read from the game, so it holds between frames.
+        /// </summary>
+        public int RailFighters
+        {
+            get
+            {
+                if (battle == null || battle.World == null) return 0;
+                var total = 0;
+                foreach (var link in battle.World.Boardings)
+                {
+                    if (!link.Hooked || !battle.Views.TryGetValue(link.AttackerId, out var a) || !battle.Views.TryGetValue(link.TargetId, out var t)) continue;
+                    if (a == null || t == null || !a.gameObject.activeSelf || !t.gameObject.activeSelf) continue;
+                    var attacker = battle.World.FindShip(link.AttackerId);
+                    var target = battle.World.FindShip(link.TargetId);
+                    if (attacker == null || target == null) continue;
+                    total += Front(link.AttackerFront, attacker, World.BoardingFront(attacker, target));
+                    total += Front(link.TargetFront, target, World.BoardingFront(attacker, target));
+                }
+                return total;
+            }
+        }
+
+        readonly Dictionary<int, (Vector3 offset, float weight, float since)> hauls = new Dictionary<int, (Vector3, float, float)>();
+
+        /// <summary>
+        /// How far the picture of a ship is drawn from its place in the game while it is hauled alongside the ship it
+        /// boards (the user's decision, 2026-11-10): over the grapples' 3 s the attacker's hull comes up against the
+        /// target's side where they are nearest, stays there through the fight, and drifts back over 4 s when the boarding
+        /// ends. Only the picture moves; the game's positions, the fog and every rule are untouched.
+        /// </summary>
+        public Vector3 HaulOffset(int shipId) => hauls.TryGetValue(shipId, out var haul) ? haul.offset * haul.weight : Vector3.zero;
+
+        /// <summary>Each boarding's haul for this frame (BattleController places the attacker's hull with HaulOffset).</summary>
+        public void UpdateHauls(float delta)
+        {
+            if (battle == null || battle.World == null) return;
+            var active = new HashSet<int>();
+            foreach (var link in battle.World.Boardings)
+            {
+                var attacker = battle.World.FindShip(link.AttackerId);
+                var target = battle.World.FindShip(link.TargetId);
+                if (attacker == null || target == null) continue;
+                active.Add(link.AttackerId);
+                var wanted = Contact(attacker, target);
+                var pull = link.Hooked ? 1f : Mathf.SmoothStep(0f, 1f, 1f - link.HookTicks / (float)(Rules.BoardHookSeconds * Rules.TickRate));
+                hauls[link.AttackerId] = (wanted, pull, 0f);
+            }
+            // Changes are made after the walk over the table: Mono's dictionary forbids even replacing a value meanwhile.
+            var ended = new List<int>();
+            var easing = new List<(int id, Vector3 offset, float weight, float since)>();
+            foreach (var pair in hauls)
+            {
+                if (active.Contains(pair.Key)) continue;
+                var (offset, weight, since) = pair.Value;
+                since += delta;
+                weight = Mathf.Max(0f, 1f - since / 4f) * Mathf.Min(weight, 1f);
+                if (weight <= 0f || battle.World.FindShip(pair.Key) == null) ended.Add(pair.Key);
+                else easing.Add((pair.Key, offset, weight, since));
+            }
+            foreach (var id in ended) hauls.Remove(id);
+            foreach (var (id, offset, weight, since) in easing) hauls[id] = (offset, weight, since);
+        }
+
+        /// <summary>
+        /// The move that puts the attacker's side against the target's where the two hulls are nearest: both hulls' outlines
+        /// at the gunwale (GreekShips), the attacker's nearest point brought to within a hand's breadth of the target's.
+        /// </summary>
+        static Vector3 Contact(Ship attacker, Ship target)
+        {
+            var a = Outline(attacker);
+            var b = Outline(target);
+            var best = float.MaxValue;
+            var move = Vector3.zero;
+            foreach (var p in a)
+                foreach (var q in b)
+                {
+                    var d = (q - p).sqrMagnitude;
+                    if (d < best) { best = d; move = q - p; }
+                }
+            var distance = Mathf.Sqrt(best);
+            return distance > 0.15f ? move * ((distance - 0.15f) / distance) : Vector3.zero;
+        }
+
+        static List<Vector3> Outline(Ship ship)
+        {
+            var f = GreekShips.Form(ship.Class);
+            var heading = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
+            var centre = new Vector3((float)ship.X, 0f, (float)ship.Y);
+            var points = new List<Vector3>();
+            for (var i = 0; i <= 16; i++)
+            {
+                var s = i / 16f;
+                var z = GreekShips.Z(f, s);
+                var w = GreekShips.HalfWidth(f, s);
+                points.Add(centre + heading * new Vector3(w, 0f, z));
+                points.Add(centre + heading * new Vector3(-w, 0f, z));
+            }
+            return points;
+        }
+
+        /// <summary>A side's front: the last round's, or before the first round the width of the decks; at most its fighters.</summary>
+        public static int Front(int lastRound, Ship own, int width) => Mathf.Min(lastRound > 0 ? lastRound : width, own.Soldiers);
+
+        void Awake()
+        {
+            battle = GetComponent<BattleController>();
+            renderer = new CrewRenderer();
+            // -morzaNoCrew: the same build without the crews drawn, for measuring what they cost (A/B).
+            if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaNoCrew") >= 0) enabled = false;
+        }
+
+        // What the crews cost in a run, written to the log when the battle ends (smoke runs read it from Player.log).
+        double costMs;
+        long costFigures, costDraws;
+        int costFrames;
+
+        void OnApplicationQuit()
+        {
+            if (costFrames == 0) return;
+            Debug.Log($"Crew cost: {costFrames} frames, {costFigures / (double)costFrames:0} men drawn, {costDraws / (double)costFrames:0} draws, " +
+                      $"{costMs / costFrames:0.000} ms a frame to decide, pose, place and submit (main thread)");
+        }
+
+        void OnEnable()
+        {
+            if (battle == null) battle = GetComponent<BattleController>();
+            if (battle != null) battle.Ticked += OnTicked;
+        }
+
+        void OnDisable()
+        {
+            if (battle != null) battle.Ticked -= OnTicked;
+            if (battle != null && battle.Effects != null && battle.Effects.LaunchPoint == (System.Func<Projectile, int, Vector3?>)LaunchPoint) battle.Effects.LaunchPoint = null;
+        }
+
+        void OnDestroy()
+        {
+            renderer?.Dispose();
+            if (inputs.IsCreated) inputs.Dispose();
+            if (bones.IsCreated) bones.Dispose();
+        }
+
+        /// <summary>A new match or a loaded one: nothing of the last is kept; the next events are those after the load.</summary>
+        void Reset(World next)
+        {
+            world = next;
+            watermark = next != null ? next.NextEventId - 1 : 0;
+            crews.Clear();
+            launches.Clear();
+            figureOf.Clear();
+            signature = -1;
+        }
+
+        // Every tick ------------------------------------------------------------------------------------------------
+        /// <summary>Each event once, by its id; the crews' numbers after the tick; which machine each new shot left from.</summary>
+        void OnTicked(World current)
+        {
+            if (current != world) Reset(current);
+            if (battle != null && battle.Effects != null) battle.Effects.LaunchPoint = LaunchPoint;
+            var hitShips = new Dictionary<int, Vector3>();
+            // A ship taken or a boarding beaten off changes its crew by the rules of capture, not by blows: no one falls.
+            var settled = new HashSet<int>();
+            foreach (var item in current.Events)
+            {
+                if (item.EventId <= watermark) continue;
+                watermark = item.EventId;
+                var at = new Vector3((float)item.X, 0f, (float)item.Y);
+                switch (item.Type)
+                {
+                    case "weapon_fired":
+                        if (crews.TryGetValue(item.SubjectId, out var shooter)) shooter.Fired((int)(item.Amount % 100), clock, at, item.Tick);
+                        MapLaunches(current, item.SubjectId, (int)(item.Amount % 100), (WeaponType)(int)(item.Amount / 100), item.Tick);
+                        break;
+                    case "ram_hit":
+                        if (crews.TryGetValue(item.SubjectId, out var rammer)) rammer.Jolt(clock, Mathf.Clamp01((float)item.Amount / 300f + 0.4f), null);
+                        if (crews.TryGetValue(item.OtherId, out var rammed)) rammed.Jolt(clock, Mathf.Clamp01((float)item.Amount / 250f + 0.5f), null);
+                        break;
+                    case "ram_failed":
+                        if (crews.TryGetValue(item.SubjectId, out var missed)) missed.Jolt(clock, 0.35f, null);
+                        break;
+                    case "projectile_hit":
+                        hitShips[item.SubjectId] = at;
+                        if (crews.TryGetValue(item.SubjectId, out var struck)) struck.Jolt(clock, 0.6f, at);
+                        break;
+                    case "ship_surrendered":
+                        if (crews.TryGetValue(item.SubjectId, out var yielding)) yielding.Surrender(clock);
+                        break;
+                    case "ship_captured":
+                    case "boarding_repelled":
+                        settled.Add(item.SubjectId);
+                        settled.Add(item.OtherId);
+                        break;
+                }
+            }
+            // Losses: a man falls only when his trade shrinks in a tick the ship was struck or fought a boarding round.
+            foreach (var ship in current.Ships)
+            {
+                if (!crews.TryGetValue(ship.Id, out var crew)) continue;
+                var fought = false;
+                foreach (var link in current.Boardings)
+                    if (link.Hooked && link.CycleTicks == 0 && (link.AttackerId == ship.Id || link.TargetId == ship.Id)) fought = true;
+                var struckAt = hitShips.TryGetValue(ship.Id, out var point) ? point : (Vector3?)null;
+                crew.Count(ship, clock, (struckAt.HasValue || fought) && !settled.Contains(ship.Id), struckAt);
+            }
+        }
+
+        /// <summary>The shots a weapon loosed this tick, in the order the simulation made them, tied to its post.</summary>
+        void MapLaunches(World current, int shipId, int slot, WeaponType weapon, int tick)
+        {
+            foreach (var shot in current.Projectiles)
+            {
+                if (shot.LaunchTick != tick || shot.ShooterId != shipId || shot.Weapon != weapon || launches.ContainsKey(shot.Id)) continue;
+                launches[shot.Id] = (shipId, slot);
+                break;
+            }
+            if (launches.Count > 4096)
+            {
+                var stale = new List<int>();
+                foreach (var id in launches.Keys) if (current.Projectiles.TrueForAll(p => p.Id != id)) stale.Add(id);
+                foreach (var id in stale) launches.Remove(id);
+            }
+        }
+
+        /// <summary>Where shaft i of a shot leaves its ship: the hand of the man of its post who loosed it, or the machine's muzzle.</summary>
+        Vector3? LaunchPoint(Projectile shot, int shaft)
+        {
+            if (!launches.TryGetValue(shot.Id, out var source) || !crews.TryGetValue(source.ship, out var crew) || crew.View == null) return null;
+            return crew.LaunchPoint(source.slot, shaft, bones, figureOf);
+        }
+
+        // Every frame -----------------------------------------------------------------------------------------------
+        void LateUpdate()
+        {
+            if (battle == null || battle.World == null) return;
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            Present(battle.Paused ? 0f : Time.unscaledDeltaTime * battle.Speed, Camera.main);
+            if (Time.realtimeSinceStartup < 5f) return;
+            costMs += (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            costFigures += FiguresDrawn;
+            costDraws += renderer.Draws;
+            costFrames++;
+        }
+
+        /// <summary>Decides, poses and draws every crew in sight; public so tests can run a frame after RunTicks.</summary>
+        public void Present(float delta, Camera camera)
+        {
+            if (battle.World != world) Reset(battle.World);
+            clock += delta;
+            ChooseLod(camera);
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            figures.Clear();
+            order.Clear();
+            foreach (var pair in battle.Views) order.Add(pair.Key);
+            order.Sort();
+            long sign = lod;
+            drawn = new Bounds();
+            var any = false;
+            foreach (var id in order)
+            {
+                var view = battle.Views[id];
+                var ship = world.FindShip(id);
+                if (view == null || ship == null) continue;
+                if (!crews.TryGetValue(id, out var crew) || crew.View != view || crew.ShipId != view.ShipId)
+                {
+                    crew = new CrewAboard(ship, view, world);
+                    crews[id] = crew;
+                }
+                crew.Update(ship, view, world, clock, delta);
+                if (!view.gameObject.activeInHierarchy) continue;
+                if (camera != null && !Visible(camera, view)) continue;
+                crew.Emit(figures, lod, clock);
+                sign = sign * 31 + id * 7 + crew.Version;
+                var box = new Bounds(view.transform.position, new Vector3(view.Length + 6f, 12f, view.Length + 6f));
+                if (!any) drawn = box; else drawn.Encapsulate(box);
+                any = true;
+            }
+            // A ship gone down: its hull is the effects' now (BattleEffects.Sink); its men go over the side as it settles,
+            // then are gone. Crews of ships that left the game otherwise (scrapped, out of sight for good) go at once.
+            var gone = new List<int>();
+            foreach (var pair in crews)
+            {
+                if (battle.Views.ContainsKey(pair.Key)) continue;
+                var crew = pair.Value;
+                if (crew.View == null || world.FindShip(pair.Key) != null || crew.View.enabled) { gone.Add(pair.Key); continue; }
+                if (!crew.Abandon(clock)) { gone.Add(pair.Key); continue; }
+                if (!crew.View.gameObject.activeInHierarchy) continue;
+                crew.Emit(figures, lod, clock);
+                sign = sign * 31 + pair.Key * 7 + crew.Version;
+            }
+            foreach (var id in gone) crews.Remove(id);
+            FiguresDrawn = figures.Count;
+            ShipsDrawn = 0;
+            foreach (var id in order) if (crews.TryGetValue(id, out var c) && c.DrawnFigures > 0) ShipsDrawn++;
+            if (figures.Count == 0) { PoseMilliseconds = 0; return; }
+
+            if (!inputs.IsCreated || inputs.Length < figures.Count)
+            {
+                if (inputs.IsCreated) inputs.Dispose();
+                if (bones.IsCreated) bones.Dispose();
+                var capacity = Mathf.NextPowerOfTwo(figures.Count + 64);
+                inputs = new NativeArray<FigureInput>(capacity, Allocator.Persistent);
+                bones = new NativeArray<float4x4>(capacity * CrewRenderer.Matrices, Allocator.Persistent);
+                signature = -1;
+            }
+            for (var i = 0; i < figures.Count; i++) inputs[i] = figures[i].Input;
+            new CrewPoseJob { Figures = inputs, Bones = bones }.Schedule(figures.Count, 16).Complete();
+
+            sign = sign * 31 + figures.Count;
+            if (sign != signature)
+            {
+                signature = sign;
+                figureOf.Clear();
+                renderer.BeginList();
+                for (var i = 0; i < figures.Count; i++)
+                {
+                    var figure = figures[i];
+                    figureOf[Key(figure.Ship, figure.Man)] = i;
+                    foreach (var part in figure.Parts) renderer.Add(i, part.Bone, part.Mesh, part.Local);
+                }
+                renderer.EndList();
+            }
+            PoseMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            renderer.Draw(bones, camera, drawn, lod == 0, 0);
+        }
+
+        public static long Key(int ship, int man) => (long)ship << 20 | (uint)man;
+
+        static bool Visible(Camera camera, ShipVisual view)
+        {
+            var planes = GeometryUtility.CalculateFrustumPlanes(camera);
+            return GeometryUtility.TestPlanesAABB(planes, new Bounds(view.transform.position, new Vector3(view.Length + 4f, 14f, view.Length + 4f)));
+        }
+
+        /// <summary>The level of detail by the camera's pixels per metre at 1080 lines; one for the whole frame (orthographic).</summary>
+        void ChooseLod(Camera camera)
+        {
+            if (camera == null) return;
+            var pixels = PixelsPerMetre(camera);
+            var next = lod;
+            if (pixels >= FullDetail * (lod == 0 ? 0.85f : 1.15f)) next = 0;
+            else if (pixels >= CoarseDetail * (lod == 2 ? 1.15f : 0.85f)) next = 1;
+            else next = 2;
+            if (next != lod)
+            {
+                lod = next;
+                foreach (var crew in crews.Values) crew.Dirty();
+            }
+        }
+
+        public static float PixelsPerMetre(Camera camera) =>
+            camera.orthographic ? Screen.height / Mathf.Max(0.01f, 2f * camera.orthographicSize) : Screen.height / Mathf.Max(0.01f, 2f * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad) * 150f);
+    }
+
+    /// <summary>One man to draw this frame: his pose's input and the pieces he is drawn with.</summary>
+    public struct Figure
+    {
+        public int Ship, Man;
+        public FigureInput Input;
+        public List<(int Bone, Mesh Mesh, float4x4 Local)> Parts;
+    }
+}

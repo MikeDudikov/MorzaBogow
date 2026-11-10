@@ -49,6 +49,32 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 | Smoła w kilku odcieniach i połyskach, przetarcia do drewna, dawne naprawy | interpretacja (smołowanie kadłubów jako konserwacja) | — | odcienie `pitch.*`, ślady `repair` i `worn` |
 | Barwa właściciela tylko na żaglu i łatach, bez godeł | decyzja gry: zatwierdzony zestaw to granat gracza i czerwień przeciwnika | — | `ShipPaints.Sail`, `SailPatch` |
 
+## Załogi ([ZALOGI.md](ZALOGI.md), [CrewRoles.json](CrewRoles.json), [ShipCrewCoverage.json](ShipCrewCoverage.json))
+
+Źródła odczytała kwerenda załóg 2026-11-10 (poziom dostępu w rejestrze). Bez numerów stron poza tymi, które były w odczytanym tekście, i bez cytatów z prac współczesnych.
+
+| Ustalenie lub decyzja | Status | Źródło | Dotyczy |
+|---|---|---|---|
+| Wioślarze *e-re-ta* z tabliczek z Pylos: pobór osadników według osad, bez wzmianki o broni | ustalenie (tekst), interpretacja (status) | R-PYLOS-AN | wioślarze bez pancerzy i broni |
+| Wioślarze siedzą nisko przy burtach plecami do dziobu, oburącz przy wiośle; ich torsy widać nad burtą | ustalenie (to, co namalowane: Bademgediği, Kynos), interpretacja (wysokość ławy) | R-BADEMGEDIGI, R-KYNOS | dulki na burcie, siedziska nisko na pokładzie (`GreekShips.RowerSeats`) |
+| Wojownicy stoją nad wioślarzami: wąski pomost wzdłuż środka galery, wioślarze w galeriach przy burtach pod nim; pokład okrętów Ludów Morza biegnie przez całą długość, ale nie przez całą szerokość | interpretacja (Kynos A91–A92, Bademgediği; Medinet Habu według Emanuela 2014, przeczytane strony 21–45) | R-KYNOS, R-BADEMGEDIGI, R-MEDINET | `GreekShips` pomost (`WalkwayRise` 0,35 m nad burtą, galerie wioślarzy 1,25 m przy burtach); polecenie użytkownika 2026-11-10 |
+| Pętla wiosła (dulka) na krawędzi burty | interpretacja (pętle ze skóry u Homera, lniane w Knossos; Kynos A92: wiosła do poziomu pokładu) | R-HOMER, R-PYLOS-AN, R-KYNOS | dulka `Sheer + 0,05 m` na galerach, w wycięciu burty łodzi |
+| Sternik stoi przy trzonie wiosła sterowego, w hełmie, bez pancerza | ustalenie (Kynos A91) | R-KYNOS | sternik przy rumplach; czasem hełm |
+| Dwa wiosła sterowe | interpretacja (jedno typowe w LH IIIC, dwa poświadczone później; generator ma dwa) | R-KYNOS, R-HOMER | jeden sternik między rumplami, dwóch na szerokiej galerze ciężkiej |
+| Ktoś czuwa na dziobie | interpretacja (funkcja: Kynos, Od. 12.228–229; tytuł *prōireus* późniejszy) | R-KYNOS, R-HOMER | obserwator na pomoście dziobowym |
+| Brak mistrza wioślarzy (*keleustes*) | jego funkcja na okręcie to praktyka klasyczna; dla XII w. brak dowodu | — | rytm podaje sternik; jeden rytm wioseł bez dodatkowej roli |
+| Wojownicy na pokładzie z hełmami (jeżowe, pierzaste, rogate), tarczami okrągłymi lub klepsydrowymi, włóczniami i oszczepami | ustalenie (to, co namalowane) | R-KYNOS, R-BADEMGEDIGI, R-WARRIORVASE | stroje i broń wojowników |
+| Pełny rynsztunek (napierśnik, nagolenniki, miecz Naue II) tylko dla przywódcy | interpretacja (groby wojowników LH IIIC to mała część walczących) | R-ACHAEA, R-WARRIORVASE | jeden dowódca w zbroi na okręt |
+| Wioślarze-wojownicy: wolni wojownicy wiosłują w rejsie | interpretacja (Homer, Tukidydes 1.10.4); decyzja użytkownika 2026-11-10 | R-HOMER, R-THUCYDIDES | `CrewRole.WarriorRower` |
+| Łucznicy na okrętach egejskich | spekulacja/interpretacja (Kynos A92, wioślarze-łucznicy u Homera); stanowiska łuczników to dana gry | R-KYNOS, R-HOMER | `CrewRole.BankArcher` |
+| Strój wioślarzy (przepaska, krótka tunika, nagi tors) | spekulacja: źródła pokazują sylwetki | — | `CrewLooks`, rola wioślarza |
+| Barwa strony na tunikach wojowników | konwencja gry (czytelność stron, ArtDirectionAegean #3), nie mundur | — | `CrewLooks.SideCloth` |
+| Haki abordażowe | ustalenie dla floty egipskiej (Medinet Habu), spekulacja dla Egejczyków; haki to dana gry | R-MEDINET | rzut haków, liny, bez corvusa |
+| Przyciągnięcie okrętów linami przy abordażu | decyzja użytkownika 2026-11-10: przesunięcie tylko obrazu | — | abordaż |
+| Wzrost 1,60–1,72 m wokół 1,66 m | ustalenie zakresu dla starożytnej Grecji (159,7–170,6 cm średnio u mężczyzn) | R-KOUKLI | `CrewLooks` (wzrost) |
+| Proporcje segmentów ciała | znane z literatury (Drillis i Contini, za Winterem), nieodczytane w tej sesji | B-WINTER | `CrewBody` |
+| Tempo wiosłowania: około 20–30 w przelocie, około 40 w sprincie | rekonstrukcja (triera Olympias), analogia z późniejszego i większego okrętu | R-OLYMPIAS | `RowingStroke` |
+
 ## Uzbrojenie i ubiór
 
 | Ustalenie lub decyzja | Status | Źródło | Dotyczy |

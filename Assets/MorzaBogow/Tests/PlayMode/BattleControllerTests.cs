@@ -803,8 +803,8 @@ namespace MorzaBogow.Tests
             clean.RunTicks(120);
             Assert.That(clean.World.CanSee(0, 900, 900), Is.False);
             Assert.That(clean.Effects.ActiveCount, Is.EqualTo(0));
-            Object.DestroyImmediate(clean.gameObject);
             Assert.That(clean.Effects.MissilesShown, Is.EqualTo(0), "No arrow of a hidden volley is drawn.");
+            Object.DestroyImmediate(clean.gameObject);
         }
 
         [UnityTest]

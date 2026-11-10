@@ -1,7 +1,11 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using MorzaBogow.Presentation;
 using MorzaBogow.Simulation;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace MorzaBogow.Tests
 {
@@ -75,6 +79,311 @@ namespace MorzaBogow.Tests
             {
                 Object.DestroyImmediate(view.gameObject);
             }
+        }
+
+        // The battle's crews -------------------------------------------------------------------------------------------
+        static (GameObject host, BattleController battle, CrewDirector crews) Battle()
+        {
+            var host = new GameObject("Battle with crews");
+            var battle = host.AddComponent<BattleController>();
+            battle.Paused = true;
+            return (host, battle, host.GetComponent<CrewDirector>());
+        }
+
+        static void Clean(GameObject host)
+        {
+            Object.DestroyImmediate(host);
+            foreach (var item in Object.FindObjectsByType<ShipVisual>(FindObjectsInactive.Include, FindObjectsSortMode.None)) Object.DestroyImmediate(item.gameObject);
+        }
+
+        static Ship Spawn(BattleController battle, int owner, ShipClass shipClass, double dx, double dy)
+        {
+            var home = battle.World.SettlementOf(0);
+            return battle.World.SpawnShip(owner, shipClass, home.X + dx, home.Y + dy);
+        }
+
+        static void Steps(BattleController battle, CrewDirector crews, int ticks)
+        {
+            for (var i = 0; i < ticks; i++) Tick(battle, crews);
+        }
+
+        /// <summary>
+        /// One tick and its frame. The battle is paused so its own frames run no ticks between the test's, and a paused
+        /// frame gives the views no game time; here each view gets the tick's game time, as a running game's frame gives it
+        /// (BattleController.PresentFrame), so oars come out and the stroke runs.
+        /// </summary>
+        static void Tick(BattleController battle, CrewDirector crews)
+        {
+            battle.RunTicks(1);
+            foreach (var ship in battle.World.Ships)
+                if (battle.Views.TryGetValue(ship.Id, out var view) && view != null)
+                    view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, (float)Rules.Dt);
+            crews.Present((float)Rules.Dt, null);
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_A_EveryClassCarriesItsCrewRowingAndSteeringAtSea()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var ships = new List<Ship>();
+                var classes = (ShipClass[])System.Enum.GetValues(typeof(ShipClass));
+                for (var i = 0; i < classes.Length; i++)
+                {
+                    var ship = Spawn(battle, 0, classes[i], 260 + i * 70, 420);
+                    battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X, Y = ship.Y + 600 });
+                    ships.Add(ship);
+                }
+                Steps(battle, crews, 150);
+                foreach (var ship in ships)
+                {
+                    Assert.That(crews.Crews.ContainsKey(ship.Id), $"{ship.Class}: a crew aboard");
+                    var crew = crews.Crews[ship.Id];
+                    var view = battle.Views[ship.Id];
+                    Assert.That(crew.DrawnFigures, Is.GreaterThanOrEqualTo((int)(ship.Crew * 0.85f)), $"{ship.Class}: most of its {ship.Crew} men are drawn");
+                    Assert.That(crew.Men.Any(m => m.Role == CrewRole.Helmsman && (m.Action == CrewAction.Steer || m.Action == CrewAction.SteerSeated)), $"{ship.Class}: the helmsman steers");
+                    var rowing = crew.Men.Where(m => m.Action == CrewAction.Row || m.Action == CrewAction.RowStanding).ToList();
+                    Assert.That(rowing.Count, Is.GreaterThan(0), $"{ship.Class}: men at the oars under way (order {ship.Order}, speed {ship.Speed:0.0} of {ship.Definition.Speed}, rowers {crew.Men.Count(m => m.Role == CrewRole.Rower)}, stowed {view.OarStowed(0):0.00}/{view.OarStowed(view.OarCount - 1):0.00}, actions {string.Join(",", crew.Men.Select(m => m.Action).Distinct())})");
+                    foreach (var man in rowing) Assert.That(man.Phase, Is.EqualTo(view.StrokePhase), $"{ship.Class}: every rower keeps the oars' one stroke");
+                    if (ship.Definition.IsEconomic)
+                        Assert.That(crew.Men.Any(m => CrewRoles.Fights(m.Role)), Is.False, $"{ship.Class}: no fighting role on a working ship");
+                }
+                Assert.That(crews.FiguresDrawn, Is.GreaterThan(0));
+                Assert.That(crews.Renderer.Instances, Is.GreaterThan(crews.FiguresDrawn * 8), "Each man drawn as his pieces.");
+            }
+            finally { Clean(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_B_MenStayAboardThroughAHardTurn()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var ship = Spawn(battle, 0, ShipClass.Ram, 300, 420);
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X, Y = ship.Y + 500 });
+                Steps(battle, crews, 120);
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X + 400, Y = ship.Y - 50 });
+                var view = battle.Views[ship.Id];
+                var f = view.Parts.Form;
+                for (var t = 0; t < 120; t++)
+                {
+                    Steps(battle, crews, 1);
+                    foreach (var man in crews.Crews[ship.Id].Men)
+                    {
+                        if (man.Station < 0) continue; // a man without room is not drawn
+                        var local = view.Model.InverseTransformPoint(crews.Crews[ship.Id].WorldPosition(man));
+                        var s = Mathf.InverseLerp(GreekShips.Z(f, 0f), GreekShips.Z(f, 1f), local.z);
+                        Assert.That(s, Is.InRange(0f, 1f), $"{man.Role} {man.Man}: within the hull's length");
+                        Assert.That(Mathf.Abs(local.x), Is.LessThanOrEqualTo(GreekShips.HalfWidth(f, s) + 0.05f), $"{man.Role} {man.Man}: within its beam");
+                        Assert.That(local.y, Is.GreaterThan(GreekShips.DeckAt(f, s) - 0.25f), $"{man.Role} {man.Man}: on the deck, not in the hull");
+                    }
+                }
+            }
+            finally { Clean(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_CDE_ArchersLooseOnTheTickTheBankFiresTowardTheShotAndRowersRowOn()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var shooter = Spawn(battle, 0, ShipClass.CrewDestroyer, 300, 420);
+                // The mark first out of reach, so the crews are aboard before the loaded banks see it.
+                var target = Spawn(battle, 1, ShipClass.Cutter, 300, 900);
+                target.Hull = 100000;
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { shooter.Id }, X = shooter.X + 300, Y = shooter.Y });
+                Steps(battle, crews, 60);
+                target.X = shooter.X;
+                target.Y = shooter.Y + 70;
+                var loosed = false;
+                for (var t = 0; t < 240 && !loosed; t++)
+                {
+                    Tick(battle, crews);
+                    var crew = crews.Crews[shooter.Id];
+                    var shots = battle.World.Projectiles.Where(p => p.ShooterId == shooter.Id && p.LaunchTick == battle.World.Tick - 1 || p.ShooterId == shooter.Id && p.LaunchTick == battle.World.Tick).ToList();
+                    if (shots.Count == 0) continue;
+                    loosed = true;
+                    var archers = crew.Men.Where(m => m.Role == CrewRole.BankArcher).ToList();
+                    Assert.That(archers.Count, Is.EqualTo(16), "Four banks of four archers, as World.Manned mans them.");
+                    Assert.That(archers.Any(m => m.Action == CrewAction.BowLoose), "Archers loose on the tick the bank fires.");
+                    var shot = shots[0];
+                    var direction = new Vector3((float)(shot.ToX - shot.FromX), 0f, (float)(shot.ToY - shot.FromY)).normalized;
+                    foreach (var man in archers.Where(m => m.Action == CrewAction.BowLoose))
+                    {
+                        var view = battle.Views[shooter.Id];
+                        var aim = view.Model.TransformDirection(Quaternion.Euler(0f, crew.Profile.Stations[man.Station].Facing, 0f) * man.Aim);
+                        aim.y = 0f;
+                        Assert.That(Vector3.Angle(aim, direction), Is.LessThan(15f), "The archer faces where his arrows go.");
+                    }
+                    Assert.That(crew.Men.Any(m => m.Action == CrewAction.Row), "The rowers keep rowing while the archers shoot.");
+                    var start = battle.Effects.LaunchPoint?.Invoke(shot, 0);
+                    Assert.That(start.HasValue, "The shot leaves from an archer's hand.");
+                    Assert.That(start.Value.y, Is.GreaterThan(1.5f), "From a hand on deck, not the middle of the hull at the water.");
+                }
+                Assert.That(loosed, "The bank fired within eight seconds.");
+            }
+            finally { Clean(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_F_TheFrontFightsAtTheRailFacingTheOtherDeck()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var boarder = Spawn(battle, 0, ShipClass.Boarder, 300, 420);
+                var target = Spawn(battle, 1, ShipClass.Ram, 300, 452);
+                target.Speed = 0;
+                battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                var hooked = false;
+                for (var t = 0; t < 900 && !hooked; t++)
+                {
+                    Steps(battle, crews, 1);
+                    hooked = battle.World.Boardings.Any(link => link.Hooked && link.AttackerId == boarder.Id);
+                }
+                Assert.That(hooked, "The boarder grappled the ram.");
+                Steps(battle, crews, 45);
+                crews.UpdateHauls((float)Rules.Dt);
+                var haul = crews.HaulOffset(boarder.Id);
+                Assert.That(haul.magnitude, Is.GreaterThan(0.3f), "The grapples haul the boarder's hull alongside (the picture only).");
+                Assert.That(haul.magnitude, Is.LessThan(25f), "No farther than the hulls lay apart when the grapples were thrown.");
+                foreach (var ship in new[] { boarder, target })
+                {
+                    if (battle.World.FindShip(ship.Id) == null) continue;
+                    var crew = crews.Crews[ship.Id];
+                    var front = crew.Men.Where(m => m.RailStation >= 0).ToList();
+                    Assert.That(front.Count, Is.GreaterThan(0), $"{ship.Class}: men at the rail");
+                    var link = battle.World.Boardings.FirstOrDefault(l => l.AttackerId == boarder.Id);
+                    if (link != null)
+                    {
+                        var limit = ship == boarder ? link.AttackerFront : link.TargetFront;
+                        if (limit > 0) Assert.That(front.Count, Is.LessThanOrEqualTo(limit), $"{ship.Class}: no more men at the rail than the front holds");
+                    }
+                    var other = ship == boarder ? target : boarder;
+                    var side = battle.Views[ship.Id].transform.InverseTransformPoint(new Vector3((float)other.X, 0f, (float)other.Y)).x >= 0f ? 1 : -1;
+                    Assert.That(front.All(m => crew.Profile.Stations[m.RailStation].Side == side), $"{ship.Class}: at the rail facing the other ship");
+                }
+            }
+            finally { Clean(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_G_TheCrewsChangeNothingInTheGame()
+        {
+            var (hostA, battleA, crewsA) = Battle();
+            var (hostB, battleB, crewsB) = Battle();
+            yield return null;
+            try
+            {
+                Object.DestroyImmediate(crewsB);
+                foreach (var battle in new[] { battleA, battleB })
+                {
+                    var ram = Spawn(battle, 0, ShipClass.Ram, 300, 420);
+                    var enemy = Spawn(battle, 1, ShipClass.CrewDestroyer, 300, 520);
+                    battle.World.Issue(new Command { Faction = 0, Kind = CommandKind.Ram, ShipIds = new[] { ram.Id }, TargetId = enemy.Id });
+                }
+                for (var t = 0; t < 600; t++)
+                {
+                    battleA.RunTicks(1);
+                    crewsA.Present((float)Rules.Dt, null);
+                    battleB.RunTicks(1);
+                }
+                Assert.That(SaveGame.Hash(SaveGame.Serialize(battleA.World)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(battleB.World))), "The same game with and without the crews drawn.");
+            }
+            finally { Clean(hostA); Clean(hostB); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_H_ALoadedGameLoosesNoVolleyAndKeepsItsCrews()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            var path = System.IO.Path.Combine(Application.temporaryCachePath, "crew-load-test.mbsave");
+            try
+            {
+                var shooter = Spawn(battle, 0, ShipClass.CrewDestroyer, 300, 420);
+                var target = Spawn(battle, 1, ShipClass.Cutter, 300, 490);
+                target.Hull = 100000;
+                Steps(battle, crews, 75);
+                battle.QuickSave(path);
+                Assert.That(battle.QuickLoad(path), "Loaded.");
+                crews.Present(0f, null);
+                var loaded = battle.World.Ships.First(s => s.Class == ShipClass.CrewDestroyer && s.Owner == 0);
+                Assert.That(crews.Crews.ContainsKey(loaded.Id), "The loaded ship has its crew at once.");
+                var crew = crews.Crews[loaded.Id];
+                Assert.That(crew.Men.Any(m => m.Action == CrewAction.BowLoose), Is.False, "No volley replayed from before the load.");
+                Assert.That(crew.DrawnFigures, Is.GreaterThanOrEqualTo((int)(loaded.Crew * 0.85f)), "The crew by the loaded numbers.");
+                Assert.That(battle.Effects.MissilesShown + battle.Effects.ActiveCount, Is.Zero, "No shots or effects carried over from before the load.");
+            }
+            finally
+            {
+                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+                Clean(host);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_I_EveryLevelOfDetailDrawsTheWholeCrew()
+        {
+            var (host, battle, crews) = Battle();
+            var cameraObject = new GameObject("Crew test camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.orthographic = true;
+            yield return null;
+            try
+            {
+                var ship = Spawn(battle, 0, ShipClass.Boarder, 300, 420);
+                battle.RunTicks(2);
+                var view = battle.Views[ship.Id];
+                camera.transform.SetPositionAndRotation(view.transform.position + new Vector3(0f, 100f, -100f), Quaternion.Euler(45f, 0f, 0f));
+                var drawn = new List<int>();
+                foreach (var size in new[] { 12f, 78f, 240f })
+                {
+                    camera.orthographicSize = size;
+                    for (var i = 0; i < 3; i++) crews.Present((float)Rules.Dt, camera);
+                    drawn.Add(crews.FiguresDrawn);
+                    Assert.That(crews.Renderer.Instances, Is.GreaterThan(0), $"LOD {crews.Lod}: drawn");
+                }
+                Assert.That(drawn.Distinct().Count(), Is.EqualTo(1), "The same men at every level of detail; none left out to save time.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
+                Clean(host);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_J_FleetsOf100And200ShipsAreMeasured()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try
+            {
+                var classes = new[] { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.ShipKiller, ShipClass.Bomber, ShipClass.Merchant, ShipClass.Cutter };
+                var report = new System.Text.StringBuilder();
+                for (var total = 0; total < 200;)
+                {
+                    for (var i = 0; i < 100; i++, total++)
+                        Spawn(battle, total % 2, classes[total % classes.Length], 200 + total % 20 * 45, 300 + total / 20 * 60);
+                    battle.RunTicks(2);
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    const int frames = 30;
+                    for (var f = 0; f < frames; f++) crews.Present((float)Rules.Dt, null);
+                    var ms = watch.Elapsed.TotalMilliseconds / frames;
+                    report.AppendLine($"{total} ships: {crews.FiguresDrawn} men, {crews.Renderer.Instances} pieces, {crews.Renderer.Draws} draws, {ms:0.00} ms a frame in the editor (decide, pose, place, submit)");
+                }
+                Debug.Log("Crew fleet benchmark (editor, informational):\n" + report);
+                Assert.That(crews.FiguresDrawn, Is.GreaterThan(0));
+            }
+            finally { Clean(host); }
         }
 
         [Test]

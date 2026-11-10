@@ -1,0 +1,206 @@
+{
+    "opis": "Manifest ról załóg: rola prezentacji, zawody gry, które ją pełnią, funkcja historyczna, pewność i źródła (docs/art/ReferenceRegister.json). Generowany z CrewRoles (CrewExport).",
+    "role": [
+        {
+            "rola": "Helmsman",
+            "nazwa": "sternik",
+            "funkcjaHistoryczna": "steruje dwoma wiosłami sterowymi za rumple; podaje rytm wioślarzom (bez osobnego keleustesa)",
+            "pewnosc": "ustalenie (sternik przy wiośle sterowym, Kynos A91); interpretacja (dwa wiosła, podawanie rytmu)",
+            "wyposazenie": "krótka tunika lub przepaska, czasem hełm; bez pancerza",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-KYNOS",
+                "R-MEDINET"
+            ]
+        },
+        {
+            "rola": "Rower",
+            "nazwa": "wioślarz",
+            "funkcjaHistoryczna": "e-re-ta z tabliczek z Pylos: siedzi nisko przy burcie twarzą ku rufie i ciągnie jedno wiosło",
+            "pewnosc": "ustalenie (wioślarze w tabliczkach i na wazach); spekulacja (strój)",
+            "wyposazenie": "przepaska lub krótka tunika z niebarwionego lnu albo wełny, nagi tors; bez broni",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-PYLOS-AN",
+                "R-BADEMGEDIGI",
+                "R-MEDINET"
+            ]
+        },
+        {
+            "rola": "WarriorRower",
+            "nazwa": "wojownik przy wiośle",
+            "funkcjaHistoryczna": "wojownik bez stanowiska siada w rejsie do wolnego wiosła i odchodzi na stanowisko w gotowości bojowej",
+            "pewnosc": "interpretacja (Homer, Il. 2.718–720; Tukidydes 1.10.4)",
+            "wyposazenie": "jak wojownik, broń i tarcza odłożone przy ławie",
+            "zawodyWGrze": [
+                "Swordsman",
+                "Javelin",
+                "Archer"
+            ],
+            "zrodla": [
+                "R-HOMER",
+                "R-THUCYDIDES"
+            ]
+        },
+        {
+            "rola": "Lookout",
+            "nazwa": "obserwator",
+            "funkcjaHistoryczna": "ktoś czuwa na dziobie: funkcja tak, osobny tytuł nie",
+            "pewnosc": "interpretacja (Kynos A91–A92; Od. 12.228–229); tytuł prōireus jest późniejszy",
+            "wyposazenie": "wojownik z oszczepami na galerze; marynarz na statku i łodzi",
+            "zawodyWGrze": [
+                "Javelin",
+                "Archer",
+                "Swordsman",
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-KYNOS",
+                "R-HOMER"
+            ]
+        },
+        {
+            "rola": "Commander",
+            "nazwa": "dowódca",
+            "funkcjaHistoryczna": "przywódca na pomoście rufowym; jedyny w pełnym rynsztunku",
+            "pewnosc": "interpretacja (Waza Wojowników; groby wojowników LH IIIC w Achai; tytuł na okręcie nieznany)",
+            "wyposazenie": "napierśnik, nagolenniki, hełm, tarcza, włócznia i miecz typu Naue II",
+            "zawodyWGrze": [
+                "Swordsman",
+                "Javelin",
+                "Archer"
+            ],
+            "zrodla": [
+                "R-WARRIORVASE",
+                "R-ACHAEA"
+            ]
+        },
+        {
+            "rola": "Skipper",
+            "nazwa": "szyper",
+            "funkcjaHistoryczna": "właściciel lub prowadzący statek kupiecki przy sterniku",
+            "pewnosc": "spekulacja (funkcja konieczna na statku handlowym, bez źródła dla XII w.)",
+            "wyposazenie": "dłuższa tunika, płaszcz; bez broni",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-ULUBURUN"
+            ]
+        },
+        {
+            "rola": "SailHand",
+            "nazwa": "marynarz przy żaglu",
+            "funkcjaHistoryczna": "ciągnie gejtawy przy zwijaniu i stawianiu żagla; cała załoga stawia maszt i żagiel",
+            "pewnosc": "ustalenie (żagiel z gejtawami, Medinet Habu, Kynos); interpretacja (osobni ludzie przy żaglu)",
+            "wyposazenie": "jak wioślarz",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-MEDINET",
+                "R-KYNOS",
+                "R-HOMER"
+            ]
+        },
+        {
+            "rola": "LineHand",
+            "nazwa": "marynarz przy linach i ładunku",
+            "funkcjaHistoryczna": "pilnuje lin i ładunku, wylewa wodę",
+            "pewnosc": "interpretacja",
+            "wyposazenie": "jak wioślarz, czasem czerpak lub lina",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": [
+                "R-ULUBURUN"
+            ]
+        },
+        {
+            "rola": "BowHand",
+            "nazwa": "dziobowy łodzi",
+            "funkcjaHistoryczna": "na dziobie łodzi z bosakiem, wypatruje mielizn i podaje liny przy brzegu",
+            "pewnosc": "interpretacja",
+            "wyposazenie": "jak wioślarz, z bosakiem",
+            "zawodyWGrze": [
+                "Sailor"
+            ],
+            "zrodla": []
+        },
+        {
+            "rola": "BankArcher",
+            "nazwa": "łucznik stanowiska",
+            "funkcjaHistoryczna": "czterech łuczników na stanowisku za plecionym przedpiersiem strzela salwami w cyklu broni",
+            "pewnosc": "spekulacja/interpretacja (łucznicy na okrętach egejskich rzadcy: Kynos A92; wioślarze-łucznicy u Homera); stanowisko to dana gry",
+            "wyposazenie": "krótka tunika, łuk, kołczan, czasem hełm",
+            "zawodyWGrze": [
+                "Archer"
+            ],
+            "zrodla": [
+                "R-KYNOS",
+                "R-HOMER",
+                "R-MEDINET"
+            ]
+        },
+        {
+            "rola": "BankJavelin",
+            "nazwa": "oszczepnik stanowiska",
+            "funkcjaHistoryczna": "czterech oszczepników na stanowisku rzuca w cyklu broni",
+            "pewnosc": "ustalenie (wojownicy z oszczepami na okrętach, Kynos); stanowisko to dana gry",
+            "wyposazenie": "tunika, hełm, mała tarcza, pęk oszczepów",
+            "zawodyWGrze": [
+                "Javelin"
+            ],
+            "zrodla": [
+                "R-KYNOS",
+                "R-BADEMGEDIGI"
+            ]
+        },
+        {
+            "rola": "MachineCrew",
+            "nazwa": "obsługa machiny",
+            "funkcjaHistoryczna": "napina, ładuje, celuje i wyzwala machinę stanowiska",
+            "pewnosc": "anachronizm gry (machiny miotające nie istniały w XII w. p.n.e.)",
+            "wyposazenie": "tunika i hełm; tarcza i broń odłożone przy stanowisku",
+            "zawodyWGrze": [
+                "Swordsman",
+                "Javelin",
+                "Archer"
+            ],
+            "zrodla": []
+        },
+        {
+            "rola": "Marine",
+            "nazwa": "wojownik pokładowy",
+            "funkcjaHistoryczna": "wojownicy na pokładzie i pomostach: walka wręcz przy abordażu; zapasowi łucznicy i oszczepnicy wspierają zza frontu",
+            "pewnosc": "ustalenie (wojownicy na pokładach, Kynos, Bademgediği, Medinet Habu)",
+            "wyposazenie": "tunika w barwie strony (konwencja gry), hełm jeżowy, pierzasty lub rogaty, tarcza okrągła lub klepsydrowa, włócznia lub oszczepy albo łuk",
+            "zawodyWGrze": [
+                "Swordsman",
+                "Javelin",
+                "Archer"
+            ],
+            "zrodla": [
+                "R-KYNOS",
+                "R-BADEMGEDIGI",
+                "R-MEDINET",
+                "R-WARRIORVASE"
+            ]
+        },
+        {
+            "rola": "Wounded",
+            "nazwa": "ranny",
+            "funkcjaHistoryczna": "ranni z liczby Wounded siedzą lub leżą przy maszcie do leczenia w porcie",
+            "pewnosc": "dana gry",
+            "wyposazenie": "bez broni, bandaż z lnu",
+            "zawodyWGrze": [
+                "Wounded"
+            ],
+            "zrodla": []
+        }
+    ]
+}

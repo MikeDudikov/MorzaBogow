@@ -722,25 +722,6 @@ namespace MorzaBogow.Presentation
         float oarReach;
         float roomPort = float.MaxValue, roomStarboard = float.MaxValue;
         readonly float[] shipped = { 1f, 1f };
-
-        public float OarReach => oarReach;
-
-        /// <summary>0 rowing, 1 drawn in along the side. Side -1 is port (left), +1 starboard.</summary>
-        public float OarsShipped(int side) => shipped[side < 0 ? 0 : 1];
-
-        /// <summary>Free water beside each side, up to the nearest other hull, from the simulation's positions.</summary>
-        public void SetOarRoom(float port, float starboard)
-        {
-            roomPort = port;
-            roomStarboard = starboard;
-        }
-
-        /// <summary>A hull meeting the sea at speed: a burst of spray along its length and foam around it.</summary>
-        public void Splash(float strength)
-        {
-            if (spray == null) return;
-            var count = Mathf.RoundToInt(40f * strength);
-            var random = new System.Random(ShipId * 7919 + marks++);
         /// <summary>Whether a rower sits at each oar (in the order of the oars), and how far each is drawn in on its own.</summary>
         readonly List<bool> oarCrewed = new List<bool>();
         readonly List<float> oarStowed = new List<float>();
@@ -748,12 +729,12 @@ namespace MorzaBogow.Presentation
         readonly Transform[] steering = new Transform[2];
         float steeringAngle, lastYaw;
         bool hasYaw;
-            for (var i = 0; i < count; i++)
-            {
-                var along = ((float)random.NextDouble() - 0.5f) * size;
-                var flank = random.NextDouble() < 0.5 ? -1f : 1f;
-                var at = transform.position + transform.forward * along + transform.right * flank * beam * Mathf.Lerp(0.4f, 0.8f, (float)random.NextDouble());
-                spray.Emit(new ParticleSystem.EmitParams
+
+        public float OarReach => oarReach;
+
+        /// <summary>0 rowing, 1 drawn in along the side. Side -1 is port (left), +1 starboard.</summary>
+        public float OarsShipped(int side) => shipped[side < 0 ? 0 : 1];
+
         /// <summary>The pivot (thole pin) of oar i: port oars first, then starboard, each in the order of Parts.OarPins.</summary>
         public Transform OarPivot(int index) => oars[index].pivot;
 
@@ -785,6 +766,25 @@ namespace MorzaBogow.Presentation
         public Vector3 TillerGrip(int index) =>
             steering[index] != null ? steering[index].TransformPoint(parts.TillerGrips[index] - parts.SteeringPivots[index]) : model.TransformPoint(parts.TillerGrips[index]);
 
+        /// <summary>Free water beside each side, up to the nearest other hull, from the simulation's positions.</summary>
+        public void SetOarRoom(float port, float starboard)
+        {
+            roomPort = port;
+            roomStarboard = starboard;
+        }
+
+        /// <summary>A hull meeting the sea at speed: a burst of spray along its length and foam around it.</summary>
+        public void Splash(float strength)
+        {
+            if (spray == null) return;
+            var count = Mathf.RoundToInt(40f * strength);
+            var random = new System.Random(ShipId * 7919 + marks++);
+            for (var i = 0; i < count; i++)
+            {
+                var along = ((float)random.NextDouble() - 0.5f) * size;
+                var flank = random.NextDouble() < 0.5 ? -1f : 1f;
+                var at = transform.position + transform.forward * along + transform.right * flank * beam * Mathf.Lerp(0.4f, 0.8f, (float)random.NextDouble());
+                spray.Emit(new ParticleSystem.EmitParams
                 {
                     position = at,
                     velocity = Vector3.up * Mathf.Lerp(3f, 8f, (float)random.NextDouble()) * strength + transform.right * flank * Mathf.Lerp(1f, 4f, (float)random.NextDouble()),
@@ -1041,6 +1041,10 @@ namespace MorzaBogow.Presentation
                 var turning = Mathf.DeltaAngle(lastYaw, yaw) / delta;
                 steeringAngle = Mathf.MoveTowards(steeringAngle, Mathf.Clamp(turning * 0.8f, -22f, 22f), delta * 30f);
             }
+            lastYaw = yaw;
+            hasYaw = true;
+            for (var i = 0; i < 2; i++)
+                if (steering[i] != null) steering[i].localRotation = Quaternion.AngleAxis(steeringAngle, parts.SteeringAxes[i]);
 
             // Loading and unloading change the draft over seconds, not in one jump.
             smoothedLoad = Mathf.MoveTowards(smoothedLoad, load, delta * 0.25f);
@@ -1060,10 +1064,6 @@ namespace MorzaBogow.Presentation
                 model.localRotation = Quaternion.Euler(smoothed.Pitch - fraction * 1.5f, 0f, smoothed.Roll - list);
             }
             else immersion = 0f;
-            lastYaw = yaw;
-            hasYaw = true;
-            for (var i = 0; i < 2; i++)
-                if (steering[i] != null) steering[i].localRotation = Quaternion.AngleAxis(steeringAngle, parts.SteeringAxes[i]);
 
             // Water breaks where the stem meets it: harder under way, and in bursts when the bow digs into a crest.
             var breaking = BreakingFor(fraction, immersion, motion.HeaveVelocity);

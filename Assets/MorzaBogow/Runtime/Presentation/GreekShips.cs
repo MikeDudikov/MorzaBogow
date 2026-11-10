@@ -575,6 +575,32 @@ namespace MorzaBogow.Presentation
                     else Rail(b, f, s0, s1, height + 0.55f, 3);
                 }
             }
+            if (HasWalkway(f))
+            {
+                // The walkway over the rowers: planked along the middle on posts, so the rowers sit below it at the sides.
+                var (w0, w1) = WalkwaySpan(f);
+                var pieces = Mathf.Max(2, Mathf.RoundToInt((w1 - w0) * stations));
+                for (var i = 0; i < pieces; i++)
+                {
+                    var sa = Mathf.Lerp(w0, w1, i / (float)pieces);
+                    var sb = Mathf.Lerp(w0, w1, (i + 1f) / pieces);
+                    var sm = (sa + sb) * 0.5f;
+                    var half = WalkwayHalfWidth(f, sm);
+                    var za = Z(f, sa);
+                    var zb = Z(f, sb);
+                    var top = WalkwayTop(f, sm);
+                    b.Box(GreekMaterial.Wood, new Vector3(0f, top - 0.05f, (za + zb) * 0.5f), new Vector3(half, 0.05f, (zb - za) * 0.5f + 0.005f), Quaternion.identity);
+                }
+                var spacing = 2f / Span(f);
+                for (var s = w0 + spacing * 0.25f; s <= w1; s += spacing)
+                {
+                    var half = WalkwayHalfWidth(f, s);
+                    var floor = DeckAt(f, s);
+                    var top = WalkwayTop(f, s) - 0.1f;
+                    foreach (var side in new[] { -1f, 1f })
+                        b.Box(GreekMaterial.Wood, new Vector3(side * (half - 0.06f), (floor + top) * 0.5f, Z(f, s)), new Vector3(0.05f, (top - floor) * 0.5f, 0.05f), Quaternion.identity);
+                }
+            }
             if (f.Lattice > 0f) Rail(b, f, 0.18f, 0.82f, f.Lattice, detail == 0 ? 18 : 9);
             if (f.Fence > 0f) Fence(b, f, detail);
             if (f.Cargo && detail < 2)
@@ -708,6 +734,45 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Metres along the hull for one unit of s (stern 0 to bow 1).</summary>
         static float Span(GreekShipForm f) => BowEnd(f) + f.Length * 0.5f;
+
+        /// <summary>
+        /// A galley's walkway: a narrow raised deck along the middle, over the rowers who sit at the sides below it, where
+        /// the warriors stand, as the LH IIIC ship paintings put them above the rowers (Kynos, Bademgediği) and as the
+        /// Sea Peoples' ships at Medinet Habu have a deck along their whole length but not their whole width (an
+        /// interpretation; docs/art/HistoricalConstraints.md). Its top stands this far above the gunwale; the rowers keep
+        /// this much of the beam at each side.
+        /// </summary>
+        public const float WalkwayRise = 0.35f, RowersRoom = 1.25f;
+
+        public static bool HasWalkway(GreekShipForm f) => f.Platforms > 0f;
+
+        /// <summary>Where the walkway runs (s): over the rowers' benches, from just aft of the first oar to just forward of the last.</summary>
+        public static (float from, float to) WalkwaySpan(GreekShipForm f) =>
+            (OarStation(f, 0, f.OarsPerBank) - 0.02f, OarStation(f, f.OarsPerBank - 1, f.OarsPerBank) + 0.02f);
+
+        public static float WalkwayHalfWidth(GreekShipForm f, float s) => Mathf.Max(0.45f, HalfWidth(f, s) * 0.97f - RowersRoom);
+
+        public static float WalkwayTop(GreekShipForm f, float s) => Sheer(f, s) + WalkwayRise;
+
+        /// <summary>
+        /// The floor under a point of the ship (s along, x across): a raised platform's top, the walkway's, or the deck
+        /// (an open boat's bottom boards). Crews stand on it; gear and weapon posts stand on it.
+        /// </summary>
+        public static float FloorAt(GreekShipForm f, float s, float x)
+        {
+            if (f.Platforms > 0f && (s >= 0.05f && s <= 0.18f || s >= 0.82f && s <= 0.95f))
+            {
+                var stern = s < 0.5f;
+                if (Mathf.Abs(x) <= HalfWidth(f, stern ? 0.115f : 0.885f) * 0.9f)
+                    return Sheer(f, stern ? 0.115f : 0.885f) + f.Platforms * (stern && !f.Castles ? 0.85f : 1f);
+            }
+            if (HasWalkway(f))
+            {
+                var (from, to) = WalkwaySpan(f);
+                if (s >= from && s <= to && Mathf.Abs(x) <= WalkwayHalfWidth(f, s)) return WalkwayTop(f, s);
+            }
+            return DeckAt(f, s);
+        }
 
         /// <summary>The station (s) of thole pin i of n on one side.</summary>
         static float OarStation(GreekShipForm f, int i, int n) =>
@@ -926,7 +991,9 @@ namespace MorzaBogow.Presentation
                 {
                     var along = slots == 1 ? 0f : Mathf.Lerp(-0.3f, 0.3f, i / (slots - 1f));
                     s = (along * f.Length + f.Length * 0.5f) / Mathf.Max(0.1f, BowEnd(f) + f.Length * 0.5f);
-                    y = DeckAt(f, s) + 0.05f;
+                    // On the floor it stands over: a raised platform or the walkway rather than inside them, else the deck.
+                    var floor = FloorAt(f, s, 0f);
+                    y = floor > DeckAt(f, s) + 0.01f ? floor + 0.02f : DeckAt(f, s) + 0.05f;
                 }
                 mounts[i] = new Vector3(0f, y, Z(f, s));
             }

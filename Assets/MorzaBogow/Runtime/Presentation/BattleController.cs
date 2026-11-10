@@ -180,6 +180,9 @@ namespace MorzaBogow.Presentation
 
         void Awake()
         {
+            // The crews on deck read this battle after every tick and draw after the hulls (docs/art/ZALOGI.md).
+            crewDirector = GetComponent<CrewDirector>();
+            if (crewDirector == null) crewDirector = gameObject.AddComponent<CrewDirector>();
             groupFormation = Enum.TryParse(PlayerPrefs.GetString(FormationKey, nameof(FormationKind.Line)), out FormationKind savedFormation)
                 && Enum.IsDefined(typeof(FormationKind), savedFormation) ? savedFormation : FormationKind.Line;
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
@@ -908,8 +911,13 @@ namespace MorzaBogow.Presentation
 
         readonly Dictionary<int, DeckFight> deckFights = new Dictionary<int, DeckFight>();
 
-        /// <summary>Figures now fighting on the rails of every boarding the player can see; zero when none.</summary>
-        public int DeckFightersShown => deckFights.Values.Sum(fight => fight.Shown);
+        /// <summary>
+        /// Figures now fighting on the rails of every boarding the player can see; zero when none. With the crews aboard
+        /// (CrewDirector) these are the real crews' fronts, so no second set of men is drawn.
+        /// </summary>
+        public int DeckFightersShown => crewDirector != null ? crewDirector.RailFighters : deckFights.Values.Sum(fight => fight.Shown);
+
+        CrewDirector crewDirector;
 
         readonly Dictionary<int, GrappleLines> grapples = new Dictionary<int, GrappleLines>();
 
@@ -932,7 +940,8 @@ namespace MorzaBogow.Presentation
                 // The lines stand from the throw until the link ends, slack while the hooks are fought over.
                 if (!grapples.TryGetValue(link.AttackerId, out var lines)) grapples[link.AttackerId] = lines = new GrappleLines(crewRoot, materials);
                 lines.Update(attackerView, targetView, GrappleLines.Standing(link.Hooked, link.CutProgress), link.Hooked, delta, visible);
-                if (!link.Hooked) continue;
+                // The crews aboard fight at their own rails (CrewDirector); the stand-in figures are only for a battle without them.
+                if (!link.Hooked || crewDirector != null) continue;
                 if (!deckFights.TryGetValue(link.AttackerId, out var fight))
                 {
                     fight = new DeckFight(crewRoot, materials, attacker.Owner, target.Owner);
@@ -1543,10 +1552,14 @@ namespace MorzaBogow.Presentation
         /// <summary>A machine's shot strikes a ship: a breach where it hit and splinters; a heavy shot may break the ship if it sinks.</summary>
         void ShotStruck(int shipId, Vector3 at, WeaponType weapon, int shooterId = -1)
         {
+            // A hull drawn hauled alongside in a boarding takes its blows where it is drawn.
+            if (crewDirector != null) at += crewDirector.HaulOffset(shipId);
             var size = MissileSize(weapon);
             effects.Splinters(at, size, shipId * 53 + (int)weapon);
             if (!views.TryGetValue(shipId, out var view)) return;
             view.Hit(at, size, false);
+            // A volley's arrows stay in the hull they struck, pointing back the way they came.
+            if (weapon == WeaponType.ArcherBank && lastPositions.TryGetValue(shooterId, out var from)) view.StickArrows(from, WeaponCatalog.Get(weapon).Crew);
             if (WeaponCatalog.Get(weapon).Hull >= 100) heavyBlows.Add(shipId);
             else heavyBlows.Remove(shipId);
         }
@@ -1657,8 +1670,6 @@ namespace MorzaBogow.Presentation
             {
                 if (ship.Owner != PlayerFaction) continue;
                 if (ship.Order == OrderKind.AttackShip || ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board)
-            // A volley's arrows stay in the hull they struck, pointing back the way they came.
-            if (weapon == WeaponType.ArcherBank && lastPositions.TryGetValue(shooterId, out var from)) view.StickArrows(from, WeaponCatalog.Get(weapon).Crew);
                 {
                     var target = World.FindShip(ship.TargetId);
                     if (target != null && target.Owner != PlayerFaction && World.CanSee(PlayerFaction, target)) targetedShips.Add(target.Id);
@@ -1708,6 +1719,7 @@ namespace MorzaBogow.Presentation
             });
             UpdateWaterPoses();
             UpdateCrews(paused ? 0f : delta * Speed);
+            if (crewDirector != null) crewDirector.UpdateHauls(paused ? 0f : delta * Speed);
 
             // Surf rises and falls as sets of waves reach each shore, never all shores at once.
             var now = Time.unscaledTime;
@@ -1745,6 +1757,8 @@ namespace MorzaBogow.Presentation
                 var current = ToWorld(ship);
                 var gamePosition = previous.TryGetValue(ship.Id, out var last) ? Vector3.Lerp(last, current, blend) : current;
                 var gameRotation = Quaternion.Euler(0f, 90f - (float)(ship.Heading * Mathf.Rad2Deg), 0f);
+                // A boarder is drawn hauled alongside its target by the grapples (the picture only, CrewDirector.HaulOffset).
+                if (crewDirector != null) gamePosition += crewDirector.HaulOffset(ship.Id);
                 if (!PlaceLaunch(ship, view, gamePosition, gameRotation, paused ? 0f : delta * Speed)) view.transform.SetPositionAndRotation(gamePosition, gameRotation);
                 UpdateOarRoom(ship, view);
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));

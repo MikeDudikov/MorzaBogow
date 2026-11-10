@@ -1,0 +1,1200 @@
+{
+    "opis": "Macierz klas okrętów i ich załóg, z danych gry (ShipCatalog, WeaponCatalog, World.Manned, GreekShips). Generowana przez CrewCoverage; test pilnuje zgodności.",
+    "datowanie": "Kotwica XII w. p.n.e. (LH IIIC), rama XII–V w. tylko tam, gdzie XII w. nic nie wyznacza (docs/art/HistoricalConstraints.md).",
+    "zrodlo": "Assets/MorzaBogow/Runtime/Presentation/Crew/CrewCoverage.cs",
+    "klasy": [
+        {
+            "klasa": "Cutter",
+            "typ": "łódź",
+            "naped": {
+                "wiosla": 8,
+                "wioslaNaBurte": 4,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 2,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [],
+            "taran": false,
+            "abordazAtak": false,
+            "abordazObrona": true,
+            "zbiorNaLadzie": true,
+            "transport": false,
+            "zaloga": {
+                "preset": "Seamen",
+                "marynarze": 8,
+                "szermierze": 0,
+                "oszczepnicy": 0,
+                "lucznicy": 0
+            },
+            "role": [
+                {
+                    "nazwa": "BowHand",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 6
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "BowHand",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 6
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "Bow",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                }
+            ],
+            "postacieRejs": 8,
+            "postacieGotowosc": 8,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik siedzi na tylnej ławie z rumplami w rękach",
+                "dziobowy z bosakiem wypatruje mielizn; partia schodzi na brzeg przy zbiorze (ekipy brzegowe)",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "brak ataku w danych: obserwator wskazuje zagrożenie, załoga kuli się przy trafieniu, bez fikcyjnej broni"
+            ],
+            "abordaz": [
+                "łódź nie może abordażować (dane); zaatakowana nie ma wojowników, więc broni się tylko w danych poddania"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "bez stanowisk broni",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "Ram",
+            "typ": "triakontoros",
+            "naped": {
+                "wiosla": 14,
+                "wioslaNaBurte": 7,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 9,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [
+                {
+                    "stanowisko": 0,
+                    "rozmiar": "Light",
+                    "domyslna": "ArcherBank",
+                    "mozliwe": [
+                        "ArcherBank"
+                    ]
+                },
+                {
+                    "stanowisko": 1,
+                    "rozmiar": "Medium",
+                    "domyslna": "None",
+                    "mozliwe": [
+                        "Scorpion",
+                        "Gastraphetes",
+                        "DeckBallista",
+                        "StoneCatapult"
+                    ]
+                }
+            ],
+            "taran": true,
+            "abordazAtak": true,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": false,
+            "zaloga": {
+                "preset": "Balanced",
+                "marynarze": 9,
+                "szermierze": 11,
+                "oszczepnicy": 7,
+                "lucznicy": 9
+            },
+            "role": [
+                {
+                    "nazwa": "BankArcher",
+                    "liczba": 4
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 11
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "WarriorRower",
+                    "liczba": 6
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "BankArcher",
+                    "liczba": 4
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 11
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "WarriorRower",
+                    "liczba": 6
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Line",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Post",
+                    "liczba": 10
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 11
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 10
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 4
+                }
+            ],
+            "postacieRejs": 31,
+            "postacieGotowosc": 31,
+            "bezMiejsca": 5,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "dowódca na pomoście rufowym, obserwator na dziobie, dwóch marynarzy przy gejtawach (jeśli są wolni)",
+                "wojownicy bez stanowiska siedzą przy wolnych wiosłach i w osi pokładu; obsługa stanowisk przy broni",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "taran (mnożnik 1,5): podejście ze sprintem wioseł, zapowiedź (zaparcie się wojowników), uderzenie w ticku ram_hit, wiosłowanie wstecz przy odbiciu",
+                "łucznicy stanowiska: sięgnięcie do kołczanu, nałożenie, naciąg na 0,6 s przed strzałem, zwolnienie w ticku weapon_fired, strzały z ich rąk",
+                "machiny (z danych stanowiska, także po wymianie w porcie): napinanie lub ściąganie ramienia w czasie przeładowania, ładowanie, obrót w łuku broni, wyzwolenie w ticku weapon_fired, pocisk z wylotu",
+                "wioślarze wiosłują dalej niezależnie od salwy",
+                "przy rozkazie taranu okręt nie strzela (symulacja), więc obsługa stanowisk się zapiera"
+            ],
+            "abordaz": [
+                "atak: rzut haków (hooks_thrown), przyciąganie kadłuba atakującego (tylko obraz), przejście przez relingi z kontaktem dłoni i stóp, walka frontu (AttackerFront), wsparcie oszczepników i łuczników zza frontu",
+                "obrona: szermierze tną liny (CutProgress), front obrońców (TargetFront) przy relingu, poddanie (ship_surrendered) i zdobycie (ship_captured)",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "złamane stanowisko (ModuleHp ≤ 0): obsługa przy naprawie, bo symulacja ją tam trzyma",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "CrewDestroyer",
+            "typ": "galera łuczników",
+            "naped": {
+                "wiosla": 14,
+                "wioslaNaBurte": 7,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 13,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [
+                {
+                    "stanowisko": 0,
+                    "rozmiar": "Light",
+                    "domyslna": "ArcherBank",
+                    "mozliwe": [
+                        "ArcherBank"
+                    ]
+                },
+                {
+                    "stanowisko": 1,
+                    "rozmiar": "Light",
+                    "domyslna": "ArcherBank",
+                    "mozliwe": [
+                        "ArcherBank"
+                    ]
+                },
+                {
+                    "stanowisko": 2,
+                    "rozmiar": "Light",
+                    "domyslna": "ArcherBank",
+                    "mozliwe": [
+                        "ArcherBank"
+                    ]
+                },
+                {
+                    "stanowisko": 3,
+                    "rozmiar": "Light",
+                    "domyslna": "ArcherBank",
+                    "mozliwe": [
+                        "ArcherBank"
+                    ]
+                }
+            ],
+            "taran": true,
+            "abordazAtak": true,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": false,
+            "zaloga": {
+                "preset": "Volley",
+                "marynarze": 13,
+                "szermierze": 6,
+                "oszczepnicy": 8,
+                "lucznicy": 25
+            },
+            "role": [
+                {
+                    "nazwa": "BankArcher",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 19
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 12
+                },
+                {
+                    "nazwa": "WarriorRower",
+                    "liczba": 2
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "BankArcher",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 21
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 12
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Post",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 11
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 26
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 1
+                }
+            ],
+            "postacieRejs": 52,
+            "postacieGotowosc": 52,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "dowódca na pomoście rufowym, obserwator na dziobie, dwóch marynarzy przy gejtawach (jeśli są wolni)",
+                "wojownicy bez stanowiska siedzą przy wolnych wiosłach i w osi pokładu; obsługa stanowisk przy broni",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "taran (mnożnik 0,6): podejście ze sprintem wioseł, zapowiedź (zaparcie się wojowników), uderzenie w ticku ram_hit, wiosłowanie wstecz przy odbiciu",
+                "łucznicy stanowiska: sięgnięcie do kołczanu, nałożenie, naciąg na 0,6 s przed strzałem, zwolnienie w ticku weapon_fired, strzały z ich rąk",
+                "wioślarze wiosłują dalej niezależnie od salwy",
+                "przy rozkazie taranu okręt nie strzela (symulacja), więc obsługa stanowisk się zapiera"
+            ],
+            "abordaz": [
+                "atak: rzut haków (hooks_thrown), przyciąganie kadłuba atakującego (tylko obraz), przejście przez relingi z kontaktem dłoni i stóp, walka frontu (AttackerFront), wsparcie oszczepników i łuczników zza frontu",
+                "obrona: szermierze tną liny (CutProgress), front obrońców (TargetFront) przy relingu, poddanie (ship_surrendered) i zdobycie (ship_captured)",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "złamane stanowisko (ModuleHp ≤ 0): obsługa przy naprawie, bo symulacja ją tam trzyma",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "Boarder",
+            "typ": "pentekontoros",
+            "naped": {
+                "wiosla": 18,
+                "wioslaNaBurte": 9,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 23,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [
+                {
+                    "stanowisko": 0,
+                    "rozmiar": "Light",
+                    "domyslna": "JavelinBank",
+                    "mozliwe": [
+                        "JavelinBank"
+                    ]
+                },
+                {
+                    "stanowisko": 1,
+                    "rozmiar": "Light",
+                    "domyslna": "JavelinBank",
+                    "mozliwe": [
+                        "JavelinBank"
+                    ]
+                },
+                {
+                    "stanowisko": 2,
+                    "rozmiar": "Medium",
+                    "domyslna": "None",
+                    "mozliwe": [
+                        "Scorpion",
+                        "Gastraphetes",
+                        "DeckBallista",
+                        "StoneCatapult"
+                    ]
+                }
+            ],
+            "taran": true,
+            "abordazAtak": true,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": false,
+            "zaloga": {
+                "preset": "Boarding",
+                "marynarze": 23,
+                "szermierze": 40,
+                "oszczepnicy": 20,
+                "lucznicy": 7
+            },
+            "role": [
+                {
+                    "nazwa": "BankJavelin",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "LineHand",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 57
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 18
+                },
+                {
+                    "nazwa": "SailHand",
+                    "liczba": 2
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "BankJavelin",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "LineHand",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 57
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 18
+                },
+                {
+                    "nazwa": "SailHand",
+                    "liczba": 2
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 18
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Line",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Post",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 42
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 123
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 179
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 2
+                }
+            ],
+            "postacieRejs": 90,
+            "postacieGotowosc": 90,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "dowódca na pomoście rufowym, obserwator na dziobie, dwóch marynarzy przy gejtawach (jeśli są wolni)",
+                "wojownicy bez stanowiska siedzą przy wolnych wiosłach i w osi pokładu; obsługa stanowisk przy broni",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "taran (mnożnik 0,7): podejście ze sprintem wioseł, zapowiedź (zaparcie się wojowników), uderzenie w ticku ram_hit, wiosłowanie wstecz przy odbiciu",
+                "oszczepnicy stanowiska: oszczep ze stojaka, zamach, rzut w ticku weapon_fired, odzyskanie równowagi",
+                "machiny (z danych stanowiska, także po wymianie w porcie): napinanie lub ściąganie ramienia w czasie przeładowania, ładowanie, obrót w łuku broni, wyzwolenie w ticku weapon_fired, pocisk z wylotu",
+                "wioślarze wiosłują dalej niezależnie od salwy",
+                "przy rozkazie taranu okręt nie strzela (symulacja), więc obsługa stanowisk się zapiera"
+            ],
+            "abordaz": [
+                "atak: rzut haków (hooks_thrown), przyciąganie kadłuba atakującego (tylko obraz), przejście przez relingi z kontaktem dłoni i stóp, walka frontu (AttackerFront), wsparcie oszczepników i łuczników zza frontu",
+                "obrona: szermierze tną liny (CutProgress), front obrońców (TargetFront) przy relingu, poddanie (ship_surrendered) i zdobycie (ship_captured)",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "złamane stanowisko (ModuleHp ≤ 0): obsługa przy naprawie, bo symulacja ją tam trzyma",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "Merchant",
+            "typ": "statek kupiecki",
+            "naped": {
+                "wiosla": 4,
+                "wioslaNaBurte": 2,
+                "rzedy": 1,
+                "wioslarzeStoja": true,
+                "marynarzeDoPelnejPredkosci": 3,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [],
+            "taran": false,
+            "abordazAtak": false,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": true,
+            "zaloga": {
+                "preset": "Seamen",
+                "marynarze": 12,
+                "szermierze": 0,
+                "oszczepnicy": 0,
+                "lucznicy": 0
+            },
+            "role": [
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "LineHand",
+                    "liczba": 3
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 4
+                },
+                {
+                    "nazwa": "SailHand",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Skipper",
+                    "liczba": 1
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "LineHand",
+                    "liczba": 3
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 4
+                },
+                {
+                    "nazwa": "SailHand",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Skipper",
+                    "liczba": 1
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 4
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Line",
+                    "liczba": 3
+                },
+                {
+                    "nazwa": "Lookout",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 50
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 124
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 146
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 3
+                }
+            ],
+            "postacieRejs": 12,
+            "postacieGotowosc": 12,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze na stojąco przy dwóch parach wioseł dziobowej połowy, jeden rytm",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "obserwator na dziobie, dwóch przy gejtawach, szyper przy sterniku, ludzie przy linach i ładunku",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "brak ataku w danych: obserwator wskazuje zagrożenie, załoga kuli się przy trafieniu, bez fikcyjnej broni"
+            ],
+            "abordaz": [
+                "obrona: marynarze nie walczą na pokładzie (dane); załoga pryzowa obsadza statek po zdobyciu",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "bez stanowisk broni",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "ShipKiller",
+            "typ": "galera wielkich łuków",
+            "naped": {
+                "wiosla": 14,
+                "wioslaNaBurte": 7,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 9,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe z rumplami, jeden sternik"
+            },
+            "uzbrojenie": [
+                {
+                    "stanowisko": 0,
+                    "rozmiar": "Medium",
+                    "domyslna": "DeckBallista",
+                    "mozliwe": [
+                        "Scorpion",
+                        "Gastraphetes",
+                        "DeckBallista",
+                        "StoneCatapult"
+                    ]
+                },
+                {
+                    "stanowisko": 1,
+                    "rozmiar": "Medium",
+                    "domyslna": "DeckBallista",
+                    "mozliwe": [
+                        "Scorpion",
+                        "Gastraphetes",
+                        "DeckBallista",
+                        "StoneCatapult"
+                    ]
+                }
+            ],
+            "taran": true,
+            "abordazAtak": true,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": false,
+            "zaloga": {
+                "preset": "Balanced",
+                "marynarze": 9,
+                "szermierze": 11,
+                "oszczepnicy": 7,
+                "lucznicy": 9
+            },
+            "role": [
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "MachineCrew",
+                    "liczba": 12
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 8
+                },
+                {
+                    "nazwa": "WarriorRower",
+                    "liczba": 6
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "MachineCrew",
+                    "liczba": 12
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 8
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 14
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Line",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Post",
+                    "liczba": 12
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 13
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 4
+                }
+            ],
+            "postacieRejs": 36,
+            "postacieGotowosc": 36,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "dowódca na pomoście rufowym, obserwator na dziobie, dwóch marynarzy przy gejtawach (jeśli są wolni)",
+                "wojownicy bez stanowiska siedzą przy wolnych wiosłach i w osi pokładu; obsługa stanowisk przy broni",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "taran (mnożnik 0,8): podejście ze sprintem wioseł, zapowiedź (zaparcie się wojowników), uderzenie w ticku ram_hit, wiosłowanie wstecz przy odbiciu",
+                "machiny (z danych stanowiska, także po wymianie w porcie): napinanie lub ściąganie ramienia w czasie przeładowania, ładowanie, obrót w łuku broni, wyzwolenie w ticku weapon_fired, pocisk z wylotu",
+                "wioślarze wiosłują dalej niezależnie od salwy",
+                "przy rozkazie taranu okręt nie strzela (symulacja), więc obsługa stanowisk się zapiera"
+            ],
+            "abordaz": [
+                "atak: rzut haków (hooks_thrown), przyciąganie kadłuba atakującego (tylko obraz), przejście przez relingi z kontaktem dłoni i stóp, walka frontu (AttackerFront), wsparcie oszczepników i łuczników zza frontu",
+                "obrona: szermierze tną liny (CutProgress), front obrońców (TargetFront) przy relingu, poddanie (ship_surrendered) i zdobycie (ship_captured)",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "złamane stanowisko (ModuleHp ≤ 0): obsługa przy naprawie, bo symulacja ją tam trzyma",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        },
+        {
+            "klasa": "Bomber",
+            "typ": "galera z kasztelami",
+            "naped": {
+                "wiosla": 16,
+                "wioslaNaBurte": 8,
+                "rzedy": 1,
+                "wioslarzeStoja": false,
+                "marynarzeDoPelnejPredkosci": 12,
+                "zagiel": "żagiel czworokątny na rei, zwijany gejtawami; siła żagla według sesji wiatru (World.Marine), obraz bez wpływu na ruch",
+                "ster": "dwa wiosła sterowe, sternik przy każdym"
+            },
+            "uzbrojenie": [
+                {
+                    "stanowisko": 0,
+                    "rozmiar": "Heavy",
+                    "domyslna": "HeavyCatapult",
+                    "mozliwe": [
+                        "LeadBallista",
+                        "HeavyCatapult",
+                        "Onager"
+                    ]
+                },
+                {
+                    "stanowisko": 1,
+                    "rozmiar": "Heavy",
+                    "domyslna": "HeavyCatapult",
+                    "mozliwe": [
+                        "LeadBallista",
+                        "HeavyCatapult",
+                        "Onager"
+                    ]
+                }
+            ],
+            "taran": true,
+            "abordazAtak": true,
+            "abordazObrona": true,
+            "zbiorNaLadzie": false,
+            "transport": false,
+            "zaloga": {
+                "preset": "Balanced",
+                "marynarze": 12,
+                "szermierze": 13,
+                "oszczepnicy": 8,
+                "lucznicy": 12
+            },
+            "role": [
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "MachineCrew",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 10
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 10
+                },
+                {
+                    "nazwa": "WarriorRower",
+                    "liczba": 6
+                }
+            ],
+            "roleWGotowosci": [
+                {
+                    "nazwa": "Commander",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helmsman",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "MachineCrew",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Marine",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Rower",
+                    "liczba": 10
+                }
+            ],
+            "stanowiska": [
+                {
+                    "nazwa": "Bench",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Command",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Helm",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Line",
+                    "liczba": 1
+                },
+                {
+                    "nazwa": "Post",
+                    "liczba": 16
+                },
+                {
+                    "nazwa": "Rail",
+                    "liczba": 46
+                },
+                {
+                    "nazwa": "Sail",
+                    "liczba": 2
+                },
+                {
+                    "nazwa": "Seat",
+                    "liczba": 121
+                },
+                {
+                    "nazwa": "Stand",
+                    "liczba": 145
+                },
+                {
+                    "nazwa": "Wounded",
+                    "liczba": 4
+                }
+            ],
+            "postacieRejs": 45,
+            "postacieGotowosc": 45,
+            "bezMiejsca": 0,
+            "rejs": [
+                "wioślarze siedzą twarzą ku rufie, jeden rytm wszystkich wioseł (zaczep, napęd, wyjście, powrót), tempo z prędkości",
+                "sternik stoi przy rumplach; ster wychyla się ze skrętem",
+                "dowódca na pomoście rufowym, obserwator na dziobie, dwóch marynarzy przy gejtawach (jeśli są wolni)",
+                "wojownicy bez stanowiska siedzą przy wolnych wiosłach i w osi pokładu; obsługa stanowisk przy broni",
+                "postój: wiosła wciągnięte, wioślarze siedzą; bezczynność bez przypadkowych gestów"
+            ],
+            "manewr": [
+                "ostry skręt: tempo spada, sternik przenosi ciężar ciała, stojący chwytają reling i poszerzają rozstaw stóp",
+                "przechył i kiwanie przenosi kadłub (przestrzeń modelu), bez dodatkowego kołysania postaci",
+                "burta z innym kadłubem w zasięgu wioseł wciąga wiosła, jej wioślarze trzymają rękojeść"
+            ],
+            "atak": [
+                "taran (mnożnik 0,5): podejście ze sprintem wioseł, zapowiedź (zaparcie się wojowników), uderzenie w ticku ram_hit, wiosłowanie wstecz przy odbiciu",
+                "machiny (z danych stanowiska, także po wymianie w porcie): napinanie lub ściąganie ramienia w czasie przeładowania, ładowanie, obrót w łuku broni, wyzwolenie w ticku weapon_fired, pocisk z wylotu",
+                "wioślarze wiosłują dalej niezależnie od salwy",
+                "przy rozkazie taranu okręt nie strzela (symulacja), więc obsługa stanowisk się zapiera"
+            ],
+            "abordaz": [
+                "atak: rzut haków (hooks_thrown), przyciąganie kadłuba atakującego (tylko obraz), przejście przez relingi z kontaktem dłoni i stóp, walka frontu (AttackerFront), wsparcie oszczepników i łuczników zza frontu",
+                "obrona: szermierze tną liny (CutProgress), front obrońców (TargetFront) przy relingu, poddanie (ship_surrendered) i zdobycie (ship_captured)",
+                "bez corvusa: tylko haki, liny i przejście przez relingi"
+            ],
+            "uszkodzenia": [
+                "trafienie (projectile_hit): ludzie blisko punktu kulą się",
+                "upadek tylko przy spadku liczebności w ticku trafienia lub rundy abordażu; ranni (Wounded) w miejscu rannych",
+                "złamane stanowisko (ModuleHp ≤ 0): obsługa przy naprawie, bo symulacja ją tam trzyma",
+                "ciężkie uszkodzenie (kadłub < 35%): wolni ludzie wylewają wodę",
+                "zatonięcie (ship_sunk): ludzie skaczą za burtę przy tonącym kadłubie",
+                "naprawa w doku: załoga odpoczywa; zmiana właściciela: nowa obsada i barwy bez fałszywych upadków"
+            ],
+            "lod": [
+                "LOD0 (≥ 15 px/m): 17 kości, twarz, fryzura, zarost, broń w detalu, cienie",
+                "LOD1 (5–15 px/m, domyślna kamera 6,9 px/m): 11 kości, broń i tarcza, bez cieni",
+                "LOD2 (< 5 px/m): jedna wypieczona bryła na postać, sylwetka, barwa strony i rytm wioseł; obsada nie znika"
+            ]
+        }
+    ]
+}
