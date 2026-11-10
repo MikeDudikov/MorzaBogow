@@ -31,4 +31,7 @@ artifacts-log/
 ArtWorkspace/jobs/
 ArtWorkspace/logs/
 ArtWorkspace/pipeline.db*
+# Meshy MCP downloads (default folder and ours)
+meshy_output/
+ArtWorkspace/meshy/
 Tools/**/__pycache__/

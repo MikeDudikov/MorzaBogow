@@ -7,6 +7,11 @@
       "env": {
         "WSLENV": "MESHY_API_KEY/u:COMFYUI_URL/u:BLENDER_PATH/p:UNITY_PATH/p"
       }
+    },
+    "meshy": {
+      "type": "stdio",
+      "command": "pwsh",
+      "args": ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "$env:MESHY_API_KEY = [Environment]::GetEnvironmentVariable('MESHY_API_KEY', 'User'); npx -y @meshy-ai/meshy-mcp-server@0.6.10"]
     }
   }
 }
