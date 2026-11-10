@@ -55,6 +55,32 @@ namespace MorzaBogow.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator Map_RocksStayBareAndPortIsletsGrowOnlyLowTrees()
+        {
+            yield return null;
+            // A stand-in rocky coast model with level ground for trees, so a coast would carry a wood if it were large.
+            var coast = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var path = Path.Combine(Application.temporaryCachePath, "battle-rocks.mbsave");
+            try
+            {
+                battle.Configure(coast, new PlaceholderMaterials { CoastTreeSpots = new[] { new Vector3(0f, 0.5f, 0f), new Vector3(0.3f, 0.5f, 0.2f) } }, null);
+                // The views are built again from the save with that model.
+                battle.QuickSave(path);
+                Assert.That(battle.QuickLoad(path), Is.True);
+                yield return null;
+                Assert.That(battle.World.Islands.Count(item => item.Kind == IslandKind.Coast), Is.EqualTo(5), "Five small rocks.");
+                Assert.That(battle.CoastTreesPlanted, Is.Zero, "No tree on a small rock to hide a passing hull.");
+                Assert.That(battle.MostShoreTrees, Is.InRange(1, 6), "A few trees on the islet of a port or a free shore.");
+                Assert.That(battle.ShorePinesPlanted, Is.Zero, "Low olives and cypresses only beside the berths.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(coast);
+                File.Delete(path);
+            }
+        }
+
         [Test]
         public void Shipyard_ShowsEachBuildStageInTurn()
         {

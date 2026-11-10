@@ -32,7 +32,8 @@ namespace MorzaBogow.Editor
                 // Pale limestone in tiles of 9 m, a bright sandy floor in 11 m, dry grass over rock in 14 m.
                 Limestone = Surface("Shore_Limestone", "marble_cliff_03", new Color(0.86f, 0.85f, 0.82f), 9f),
                 Seabed = Surface("Shore_Seabed", "coast_sand_rocks_02", new Color(1f, 0.98f, 0.92f), 11f),
-                Meadow = Surface("Shore_Meadow", "aerial_grass_rock", new Color(0.7f, 0.8f, 0.52f), 14f),
+                // The grass of a Greek summer: the green source parched to straw, its rock left as it is.
+                Meadow = Surface("Shore_Meadow", "aerial_grass_rock", new Color(0.96f, 0.93f, 0.86f), 14f, Parched),
             };
             // Pale grey stones only; the red namaqualand boulder does not belong on Aegean limestone.
             result.Boulders = new[] { "rock_07", "boulder_01" }.Select(Boulder).Where(prefab => prefab != null).ToArray();
@@ -40,7 +41,7 @@ namespace MorzaBogow.Editor
             return result;
         }
 
-        static Material Surface(string name, string id, Color tint, float tile)
+        static Material Surface(string name, string id, Color tint, float tile, System.Func<string, string, string> recolour = null)
         {
             var diffuse = $"{Source}/Textures/{id}_diff_2k.jpg";
             var normal = $"{Source}/Textures/{id}_nor_gl_2k.jpg";
@@ -49,9 +50,10 @@ namespace MorzaBogow.Editor
             Texture(diffuse, TextureImporterType.Default, true, false);
             Texture(normal, TextureImporterType.NormalMap, false, false);
             var mask = Mask(rough, $"{Output}/{id}_mask.png");
+            var colour = recolour != null ? recolour(diffuse, $"{Output}/{id}_parched_diff.jpg") : diffuse;
 
             var material = MaterialAt($"{Output}/{name}.mat");
-            material.SetTexture("_BaseColorMap", AssetDatabase.LoadAssetAtPath<Texture2D>(diffuse));
+            material.SetTexture("_BaseColorMap", AssetDatabase.LoadAssetAtPath<Texture2D>(colour));
             material.SetTexture("_NormalMap", AssetDatabase.LoadAssetAtPath<Texture2D>(normal));
             material.SetTexture("_MaskMap", mask);
             material.SetColor("_BaseColor", tint);
@@ -240,6 +242,40 @@ namespace MorzaBogow.Editor
             importer.anisoLevel = 4;
             importer.textureCompression = readable ? TextureImporterCompression.Uncompressed : TextureImporterCompression.CompressedHQ;
             importer.SaveAndReimport();
+        }
+
+        /// <summary>
+        /// A copy of a grassy colour map parched to summer straw, made once and kept as an asset (the CC0 source is
+        /// left as it is). Each texel turns gold in proportion to how much it is growing green (green well over blue,
+        /// and strongly coloured), keeping a little of its own colour for the scrub; grey rock stays as it was.
+        /// </summary>
+        static string Parched(string sourcePath, string parchedPath)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(parchedPath) != null) return parchedPath;
+            Texture(sourcePath, TextureImporterType.Default, true, true);
+            var source = AssetDatabase.LoadAssetAtPath<Texture2D>(sourcePath);
+            var pixels = source.GetPixels32();
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                Color texel = pixels[i];
+                var chroma = Mathf.Max(texel.r, Mathf.Max(texel.g, texel.b)) - Mathf.Min(texel.r, Mathf.Min(texel.g, texel.b));
+                var growing = Mathf.Clamp01((texel.g - texel.b) * 3f) * Mathf.Clamp01(chroma * 4f);
+                var light = texel.r * 0.3f + texel.g * 0.59f + texel.b * 0.11f;
+                var straw = new Color(Mathf.Clamp01(light * 1.3f), Mathf.Clamp01(light * 1.05f), Mathf.Clamp01(light * 0.55f));
+                var dry = Color.Lerp(texel, straw, growing * 0.85f);
+                dry.a = 1f;
+                pixels[i] = dry;
+            }
+            var texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false, false);
+            texture.SetPixels32(pixels);
+            texture.Apply(false);
+            File.WriteAllBytes(parchedPath, texture.EncodeToJPG(92));
+            Object.DestroyImmediate(texture);
+            Texture(sourcePath, TextureImporterType.Default, true, false);
+            AssetDatabase.ImportAsset(parchedPath);
+            Texture(parchedPath, TextureImporterType.Default, true, false);
+            Debug.Log($"[Shore] parched {sourcePath} into {parchedPath}");
+            return parchedPath;
         }
 
         /// <summary>A mask map from a roughness map, made once and kept as an asset.</summary>

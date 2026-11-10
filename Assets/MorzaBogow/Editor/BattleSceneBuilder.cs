@@ -44,6 +44,8 @@ namespace MorzaBogow.Editor
                 Timber = Material("Placeholder_Timber", new Color(0.42f, 0.27f, 0.13f), 0f, 0.25f),
                 // Dark resinous green of stone pines and cypresses under strong sun.
                 Foliage = Material("Placeholder_Foliage", new Color(0.06f, 0.14f, 0.05f), 0f, 0.12f),
+                // Olive leaves: grey-green and dusty, silvered underneath, paler than the pines.
+                OliveLeaves = Material("Placeholder_OliveLeaves", new Color(0.2f, 0.25f, 0.15f), 0f, 0.18f),
                 Rock = Material("Placeholder_Rock", new Color(0.2f, 0.19f, 0.2f), 0f, 0.15f),
                 SilverOre = Material("Placeholder_SilverOre", new Color(0.85f, 0.87f, 0.92f), 1f, 0.85f),
                 MineDark = Material("Placeholder_MineDark", new Color(0.02f, 0.02f, 0.02f), 0f, 0.05f),

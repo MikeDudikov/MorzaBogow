@@ -27,8 +27,8 @@ Użytkownik: „złoża miały nie decydować o końcu rozgrywki”. Od tej zmia
 - **Koniec rozgrywki wyznaczają cele:** zniszczenie portu macierzystego albo utrata całej floty bez możliwości odbudowy. Wyczerpanie złóż nie kończy gry.
 - **Profile Krótka/Standardowa/Długa** ustalają teraz wielkość mapy, zasoby punktów, tempo wydobycia, mury i tempo AI. Zakładana długość 30/60/90 min wynika z tempa, nie z wyczerpania złóż.
 - **Cel „30–55 okrętów, zanim złoża się wyczerpią”** jest nieaktualny. Liczbę okrętów ogranicza tempo gospodarki, linie produkcji i limit floty (100).
-- **Pomiar bez walki z odnawianiem** (ziarno 9): do 130 min powstaje na stronę 59–71 okrętów (Krótka), 33–43 (Standardowa) i 58–67 (Długa). Srebro chwilowo spada (Krótka: poniżej 10% w 46. min), potem odrasta.
-- **Mecze AI kontra AI** kończą się zniszczeniem portu po 35–76 min.
+- **Pomiar bez walki z odnawianiem** (ziarno 9, jeszcze na mapie z wyspami zaplecza): do 130 min powstaje na stronę 59–71 okrętów (Krótka), 33–43 (Standardowa) i 58–67 (Długa). Srebro chwilowo spada (Krótka: poniżej 10% w 46. min), potem odrasta. Pomiar na mapie z ograniczonym lądem: sekcja „Skala lądu i drzew”.
+- **Mecze AI kontra AI** (ta sama mapa) kończą się zniszczeniem portu po 35–76 min.
 - **Etap 5** doda pozostałe odnawialne źródła: ławice ryb, wraki po sztormach i konwoje.
 
 ## Etap 1 — wdrożony
@@ -56,9 +56,54 @@ Użytkownik: „złoża miały nie decydować o końcu rozgrywki”. Od tej zmia
 
 ### Skala lądu i drzew
 
-- **Wyspy zaplecza** (`IslandKind.Hinterland`, `MapFactory.AddHinterlands`). Za wysepką portu i za wysepką każdego złoża wyrasta duża wyspa (promień do ok. 134 m), połączona z nią w jeden brzeg. Ma klify wapienne od otwartego morza i las pinii z cyprysami. Rozmiar jest największy, przy którym każda przystań, złoże i wolny brzeg zachowuje 34 m podejścia, a między lądami zostaje 30 m kanału albo pełne połączenie (bez wąskich cieśnin). Na mapie jest ich 11–14. Pochylnie stoczni nadal wychodzą na wodę (test).
-- **Drzewa w realnej skali**: `TreeModels.LifeSize = 2,2`. Pinia ma 11–18 m, cyprys 14–22 m, obok kadłubów o długości 12–26 m. Rozstaw drzew w gajach to 6–9 m. Duża wyspa ma od 10 do 32 drzew (budżet wydajności).
-- Wyspy zaplecza zasłaniają strzały, jak skaliste wybrzeże. Na minimapie mają kolor lądu.
+**Decyzja użytkownika z 2026-11-10** (zastępuje wyspy zaplecza z etapu 1): w wersji testowej zdecydowanie ograniczyć ląd, który nie jest złożem srebra ani drzewami do wycinki; śródziemnomorski klimat antycznej Grecji z naciskiem na charakterystyczne ukształtowanie terenu; statki muszą być widoczne. Wybrane warianty: „kilka małych skał” oraz „ląd nie zasłania statków” (bez znaczników z oddali).
+
+- **Bez wysp zaplecza.** `MapFactory` nie tworzy już `IslandKind.Hinterland` (wcześniej 11–14 dużych wysp z lasem, promień do ok. 134 m). Rodzaj i jego widok zostają tylko dla starszych zapisów gry.
+- **Pięć małych skał wapiennych** (`MapFactory.AddRocks`) w miejsce pięciu dużych skał wybrzeża:
+  - położenie: środek mapy, para w poprzek torów między parami centralnymi a ekspansjami, para za portami macierzystymi; pary są symetryczne punktowo;
+  - rozmiar stały, niezależny od rozstawu: środek promień 22 m, pozostałe 16 m (najdalszy punkt linii wody);
+  - kształt to linia wody modelu skalistego wybrzeża.
+- **Warunki położenia skały** (`MapFactory.KeepsApproaches`):
+  - 34 m podejścia do każdej przystani, złoża i wolnego brzegu;
+  - wolne pochylnie stoczni;
+  - między lądami pełny kanał 30 m albo połączenie.
+  - Skała, która się nie mieści, odsuwa się od środka mapy co 5 m.
+  - Przy okazji zniknęły dawne cieśniny 13–28 m między skałami za portami macierzystymi a wysepkami portów.
+- **Zostają bez zmian:** wysepki portów i wolnych brzegów (budynki, przyczółki) oraz wysepki złóż (las do wycinki, kopalnia).
+- **Zasłanianie strzałów.** Skały zasłaniają strzały jak dawniej wybrzeże (`Island.BlocksShots`). Na minimapie mają kolor lądu.
+
+Powierzchnia lądu (ziarno 1, wielokąt linii wody):
+
+| Profil | Ląd przed | Ląd po | Zmiana | Poza złożami przed / po |
+|---|---:|---:|---:|---:|
+| Krótka | 289 tys. m² | 31,9 tys. m² | −89% | 94% / 48% |
+| Standardowa | 382 tys. m² | 31,8 tys. m² | −92% | 96% / 48% |
+| Długa | 462 tys. m² | 32,3 tys. m² | −93% | 96% / 48% |
+
+Wysepki złóż zajmują ok. 16,5 tys. m², wysepki portów i wolnych brzegów ok. 13,2 tys. m², a skały razem ok. 2,1 tys. m². Test `Map_LandIsMostlyWorkPointsAndEveryBerthStaysOpen` wymaga:
+- braku wysp zaplecza;
+- skał łącznie ≤ 25% lądu złóż;
+- lądu poza złożami ≤ 1,5 × ląd złóż;
+- podejść, kanałów i symetrii przy każdej skale.
+
+**Drzewa.**
+- **Las do wycinki** bez zmian: pinie i cyprysy w realnej skali (`TreeModels.LifeSize = 2,2`; pinia 11–18 m, cyprys 14–22 m), za stanowiskami pracy, z dala od przystani.
+- **Skały** są bez drzew. Drzewa w realnej skali przerastałyby skałkę i zasłaniały przepływające kadłuby.
+- **Wysepki portów i wolnych brzegów:** najwyżej 6 drzew, czyli niskie oliwki (`TreeKind.Olive`, ok. 6 m) i najwyżej 2 cyprysy, tylko po stronie odległej od przystani i pochylni.
+- **Kopalnia:** oliwki i krzewy makii zamiast pinii.
+
+**Pomiar balansu na nowej mapie** (narzędzie simprof, 130 min, ziarna 9 i 23):
+
+| Profil | Okręty wojenne bez walki (strona), przed → po | Mecze AI kontra AI, zwycięstwo po, przed → po |
+|---|---|---|
+| Krótka | 70–72 → 48–74 | 25–65 min → 30–38 min |
+| Standardowa | 29–37 → 68–72 | 25–35 min → 42–84 min |
+| Długa | 58–67 → 55–62 | 76–125 min → 91–107 min |
+
+- **Długość meczów AI** wypada teraz bliżej celów 30/60/90 min niż przed zmianą, więc parametrów profili nie zmieniano.
+- **Wzrost w profilu Standardowym bez walki** wynika z gospodarki, nie z błędu. Na starej mapie kutry strony 0 prawie nie dowoziły drewna: do 120. min zostawało 74% złóż drewna, a w magazynie było 100–240 D przy ponad 4000 S. Wyspy zaplecza utrudniały dopływ do złóż. Teraz oba surowce schodzą równo, a srebro chwilowo spada poniżej 10% (76. min) i odrasta.
+- **Walka w trybie bez ataków** (Krótka, do 2,8 min) to samoobrona przy przypadkowym spotkaniu okrętów.
+- To pomiar AI kontra AI, nie playtest.
 
 ### Pomiary (narzędzie: symulacja AI kontra AI w .NET, bez Unity)
 

@@ -1548,25 +1548,42 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
-        public void Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen()
+        public void Map_LandIsMostlyWorkPointsAndEveryBerthStaysOpen()
         {
+            // Area inside a waterline given as radii at evenly spaced angles.
+            double Area(Island island)
+            {
+                if (island.Outline == null) return Math.PI * island.Radius * island.Radius;
+                var step = 2 * Math.PI / island.Outline.Length;
+                var sum = 0.0;
+                for (var i = 0; i < island.Outline.Length; i++) sum += 0.5 * island.Outline[i] * island.Outline[(i + 1) % island.Outline.Length] * Math.Sin(step);
+                return sum;
+            }
+
             foreach (var length in new[] { MatchLength.Short, MatchLength.Standard, MatchLength.Long })
             {
                 var world = MapFactory.CreateSkirmish(1, length);
-                var hinterlands = world.Islands.Where(item => item.Kind == IslandKind.Hinterland).ToList();
-                Assert.That(hinterlands.Count, Is.GreaterThanOrEqualTo(6), $"{length}: large islands behind ports and work points.");
-                foreach (var land in hinterlands)
+                Assert.That(world.Islands.Any(item => item.Kind == IslandKind.Hinterland), Is.False, $"{length}: no land that is only scenery.");
+                var rocks = world.Islands.Where(item => item.Kind == IslandKind.Coast).ToList();
+                Assert.That(rocks.Count, Is.EqualTo(5), $"{length}: five small rocks.");
+
+                // Most land is forests to fell and silver to mine; the rocks are a small share of it.
+                var workLand = world.Islands.Where(item => item.Kind == IslandKind.ResourceSite).Sum(Area);
+                var otherLand = world.Islands.Where(item => item.Kind != IslandKind.ResourceSite).Sum(Area);
+                Assert.That(rocks.Sum(Area), Is.LessThanOrEqualTo(workLand * 0.25), $"{length}: rocks against work points.");
+                Assert.That(otherLand, Is.LessThanOrEqualTo(workLand * 1.5), $"{length}: ports, free shores and rocks against work points.");
+
+                foreach (var rock in rocks)
                 {
-                    Assert.That(land.Radius, Is.GreaterThan(Rules.SettlementLandRadius * 1.5), "Larger than the islet it backs.");
-                    var islet = world.Islands.Where(item => item.Kind == IslandKind.Settlement || item.Kind == IslandKind.ResourceSite)
-                        .OrderBy(item => World.Distance(item.X, item.Y, land.X, land.Y)).First();
-                    Assert.That(LandShape.SignedDistance(land, islet.X, islet.Y), Is.LessThan(islet.Radius), "Joined to its islet, not a separate rock.");
+                    Assert.That(rock.Radius, Is.LessThanOrEqualTo(24), "A small rock.");
+                    Assert.That(MapFactory.KeepsApproaches(world, rock), Is.True, $"{length}: the rock at {rock.X:0},{rock.Y:0} leaves every approach and a full channel or a firm join.");
+                    Assert.That(rocks.Any(other => Math.Abs(other.X + rock.X) < 1e-6 && Math.Abs(other.Y + rock.Y) < 1e-6), Is.True, "Point-symmetric for both players.");
                     foreach (var settlement in world.Settlements)
-                        Assert.That(LandShape.SignedDistance(land, settlement.X, settlement.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                        Assert.That(LandShape.SignedDistance(rock, settlement.X, settlement.Y), Is.GreaterThanOrEqualTo(MapFactory.BerthClearance - 1e-9));
                     foreach (var site in world.Sites)
-                        Assert.That(LandShape.SignedDistance(land, site.X, site.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                        Assert.That(LandShape.SignedDistance(rock, site.X, site.Y), Is.GreaterThanOrEqualTo(MapFactory.BerthClearance - 1e-9));
                     foreach (var node in world.Nodes)
-                        Assert.That(LandShape.SignedDistance(land, node.X, node.Y), Is.GreaterThanOrEqualTo(MapFactory.HinterlandBerthClearance - 1e-9));
+                        Assert.That(LandShape.SignedDistance(rock, node.X, node.Y), Is.GreaterThanOrEqualTo(MapFactory.BerthClearance - 1e-9));
                 }
 
                 // The slipways still run from the port's islet into open water.

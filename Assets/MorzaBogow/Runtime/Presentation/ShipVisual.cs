@@ -26,6 +26,8 @@ namespace MorzaBogow.Presentation
         public Material Fog;
         public Material Timber;
         public Material Foliage;
+        /// <summary>The dusty grey-green of olive leaves, paler than the pines' dark resinous green.</summary>
+        public Material OliveLeaves;
         public Material Rock;
         public Material SilverOre;
         public Material MineDark;
@@ -58,6 +60,7 @@ namespace MorzaBogow.Presentation
         public Material ShoreRock => Limestone != null ? Limestone : Sand;
         public Material Floor => Seabed != null ? Seabed : Sand;
         public Material Ground(Material fallback) => Meadow != null ? Meadow : fallback;
+        public Material OliveFoliage => OliveLeaves != null ? OliveLeaves : Foliage;
     }
 
     /// <summary>

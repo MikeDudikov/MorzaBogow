@@ -299,6 +299,15 @@ namespace MorzaBogow.Presentation
             return new Vector3(0f, 0f, -400f * spread);
         }
 
+        /// <summary>The camera at its default angle over the work point of this kind nearest a port: berth and islet.</summary>
+        void FrameWorkPoint(Settlement port, ResourceType type)
+        {
+            var node = World.Nodes.Where(item => item.Type == type).OrderBy(item => World.Distance(item.X, item.Y, port.X, port.Y)).FirstOrDefault();
+            if (node == null) return;
+            pivot = new Vector3((float)node.X, 0f, (float)(node.Y + Rules.SiteLandOffset * 0.45));
+            height = 55f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+        }
+
         ShowcaseStep[] BuildShowcase()
         {
             var home = World.SettlementOf(PlayerFaction);
@@ -314,6 +323,17 @@ namespace MorzaBogow.Presentation
                 {
                     var landX = (float)Rules.SettlementLandX(home);
                     pivot = new Vector3((landX + (float)home.X) * 0.5f, 0f, (float)home.Y); height = 75f; yaw = -35f; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                // The home forest and silver mine from the default camera, with the cutters at their jetties.
+                new ShowcaseStep { Shot = "las-i-kuter", Ticks = 30, Setup = () => FrameWorkPoint(home, ResourceType.Wood) },
+                new ShowcaseStep { Shot = "kopalnia", Ticks = 30, Setup = () => FrameWorkPoint(home, ResourceType.Silver) },
+                // A ram sails past the far side of the middle rock: the rock must not hide it.
+                new ShowcaseStep { Shot = "skala-i-okret", Ticks = 4 * Rules.TickRate, Setup = () =>
+                {
+                    var passing = World.SpawnShip(PlayerFaction, ShipClass.Ram, -45, 38);
+                    passing.Heading = 0;
+                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { passing.Id }, X = 80, Y = 38 });
+                    pivot = new Vector3(0f, 0f, 12f); height = 70f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
                 } },
                 // A boarder lies alongside an enemy ram, side by side; the hooks hold after 3 s and the decks fight.
                 new ShowcaseStep { Shot = "abordaz", Ticks = 6 * Rules.TickRate, Follow = () => showcaseBoarder, Setup = () =>
@@ -1024,9 +1044,13 @@ namespace MorzaBogow.Presentation
             var shape = ShoreOf(portX, portY);
             islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(shape.outline, shape.lift);
             islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
-            PlantGrove(root.transform, shape.outline, shape.lift, portX * 3.1 + portY * 1.7, Mathf.Atan2(0f, (float)portX - landX), 115f, 0.24f, 0.82f, (x, z) =>
+            var (planted, pines) = PlantGrove(root.transform, shape.outline, shape.lift, portX * 3.1 + portY * 1.7, Mathf.Atan2(0f, (float)portX - landX), 115f, 0.24f, 0.82f, (x, z) =>
                 // Keep clear of where a settlement's buildings stand on the plateau.
-                Mathf.Abs(z) < 9.5f && x * Mathf.Sign((float)portX - landX) < 1f && x * Mathf.Sign((float)portX - landX) > -14.5f);
+                Mathf.Abs(z) < 9.5f && x * Mathf.Sign((float)portX - landX) < 1f && x * Mathf.Sign((float)portX - landX) > -14.5f,
+                // A few low olives and a cypress or two: a port's islet is not a forest, and nothing tall stands by the berth.
+                6, 5f, true);
+            MostShoreTrees = Mathf.Max(MostShoreTrees, planted);
+            ShorePinesPlanted += pines;
 
             // The jetty runs from the beach toward the port, ending beside a moored hull.
             var towardPort = Mathf.Sign((float)portX - landX);
@@ -1148,16 +1172,28 @@ namespace MorzaBogow.Presentation
 
         public int TreesPlanted { get; private set; }
 
+        /// <summary>Trees planted on rocky coasts. The small rocks of the map carry none, so no tree hides a hull.</summary>
+        public int CoastTreesPlanted { get; private set; }
+
+        /// <summary>Most trees on any one port or free-shore islet, and stone pines among them (only olives and cypresses).</summary>
+        public int MostShoreTrees { get; private set; }
+        public int ShorePinesPlanted { get; private set; }
+
         /// <summary>
-        /// A grove of stone pines with a few cypresses on an islet's plateau, on the open side away from the port,
-        /// clear of whatever stands there. Seeded, so the same land always gets the same grove.
+        /// A grove on an islet's plateau, on the open side away from the port, clear of whatever stands there: stone
+        /// pines with a few cypresses, or, on the islets of ports and free shores, low olives with at most two
+        /// cypresses, so the trees stay below the masts moored beside them. Seeded, so the same land always gets the
+        /// same grove. Returns how many trees it planted and how many of them are stone pines.
         /// </summary>
-        void PlantGrove(Transform parent, float[] outline, float[] lift, double seed, float shelteredAngle, float minAway, float nearFraction, float farFraction, Func<float, float, bool> blocked, int maxTrees = 14, float spacing = 6f)
+        (int trees, int pines) PlantGrove(Transform parent, float[] outline, float[] lift, double seed, float shelteredAngle, float minAway, float nearFraction, float farFraction, Func<float, float, bool> blocked, int maxTrees = 14, float spacing = 6f, bool olives = false)
         {
             var random = new System.Random((int)(seed * 100.0) ^ 0x2F6A1D3);
             float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
-            var grove = new TreeModels.Grove();
+            var dark = new TreeModels.Grove();
+            var olive = new TreeModels.Grove();
             var planted = new List<Vector2>();
+            var cypresses = 0;
+            var pines = 0;
             for (var attempt = 0; attempt < maxTrees * 6 && planted.Count < maxTrees; attempt++)
             {
                 var angle = Next(0f, Mathf.PI * 2f);
@@ -1167,14 +1203,21 @@ namespace MorzaBogow.Presentation
                 if (blocked != null && blocked(spot.x, spot.y)) continue;
                 if (planted.Exists(other => (other - spot).sqrMagnitude < spacing * spacing)) continue;
                 planted.Add(spot);
-                var kind = random.NextDouble() < 0.3 ? TreeKind.Cypress : TreeKind.StonePine;
+                var kind = olives
+                    ? cypresses < 2 && random.NextDouble() < 0.2 ? TreeKind.Cypress : TreeKind.Olive
+                    : random.NextDouble() < 0.3 ? TreeKind.Cypress : TreeKind.StonePine;
+                if (kind == TreeKind.Cypress) cypresses++;
+                if (kind == TreeKind.StonePine) pines++;
                 var ground = ShoreShape.GroundAt(outline, lift, spot.x, spot.y) - 0.15f;
-                grove.Add(kind, random.Next(4), new Vector3(spot.x, ground, spot.y), Next(0f, 360f), kind == TreeKind.StonePine ? Next(0.5f, 0.75f) : Next(0.55f, 0.8f));
+                var scale = kind == TreeKind.StonePine ? Next(0.5f, 0.75f) : kind == TreeKind.Olive ? Next(0.5f, 0.65f) : olives ? Next(0.5f, 0.62f) : Next(0.55f, 0.8f);
+                (kind == TreeKind.Olive ? olive : dark).Add(kind, random.Next(4), new Vector3(spot.x, ground, spot.y), Next(0f, 360f), scale);
             }
-            AddGrove(parent, grove);
+            AddGrove(parent, dark, materials?.Foliage);
+            AddGrove(parent, olive, materials?.OliveFoliage);
+            return (planted.Count, pines);
         }
 
-        void AddGrove(Transform parent, TreeModels.Grove grove)
+        void AddGrove(Transform parent, TreeModels.Grove grove, Material leaves)
         {
             var mesh = grove.Build("Grove");
             if (mesh == null) return;
@@ -1182,7 +1225,7 @@ namespace MorzaBogow.Presentation
             var trees = new GameObject("Grove");
             trees.transform.SetParent(parent, false);
             trees.AddComponent<MeshFilter>().sharedMesh = mesh;
-            trees.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
+            trees.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, leaves };
             TreesPlanted += grove.Count;
         }
 
@@ -1258,12 +1301,19 @@ namespace MorzaBogow.Presentation
 
             foreach (var blocker in coast.GetComponentsInChildren<Collider>()) blocker.enabled = false;
 
+            // A small rock wears the pale limestone of the islets' cliffs (world-mapped, so the model needs no UVs):
+            // all the rock of the map reads as one Aegean stone.
+            if (island.Radius < WoodedCoastRadius && materials?.Limestone != null)
+                foreach (var renderer in coast.GetComponentsInChildren<MeshRenderer>())
+                    renderer.sharedMaterials = Enumerable.Repeat(materials.Limestone, renderer.sharedMaterials.Length).ToArray();
+
             // Coasts on the second side are turned half a turn, like their waterline in the simulation.
             root.transform.rotation = Quaternion.Euler(0f, (float)island.Yaw, 0f);
 
-            // Stone pines and cypresses over the high level ground of the rock, as on the wooded Aegean headlands.
+            // Stone pines and cypresses over the high level ground of a large rocky coast, as on the wooded Aegean
+            // headlands. A small rock stays bare: trees at their real size would tower over it and over passing hulls.
             var spots = materials?.CoastTreeSpots;
-            if (spots != null && spots.Length > 0)
+            if (spots != null && spots.Length > 0 && island.Radius >= WoodedCoastRadius)
             {
                 var grove = new TreeModels.Grove();
                 var random = new System.Random((int)(island.X * 13 + island.Y * 7));
@@ -1274,10 +1324,14 @@ namespace MorzaBogow.Presentation
                     grove.Add(cypress ? TreeKind.Cypress : TreeKind.StonePine, random.Next(4), local - new Vector3(0f, 0.25f, 0f), (float)random.NextDouble() * 360f,
                         cypress ? 0.6f + (float)random.NextDouble() * 0.3f : 0.65f + (float)random.NextDouble() * 0.35f);
                 }
-                AddGrove(root.transform, grove);
+                AddGrove(root.transform, grove, materials?.Foliage);
+                CoastTreesPlanted += grove.Count;
             }
             return root;
         }
+
+        /// <summary>The smallest rocky coast that carries a wood (metres from its centre to its farthest shore).</summary>
+        public const double WoodedCoastRadius = 40;
 
         static Bounds WorldBounds(GameObject item)
         {

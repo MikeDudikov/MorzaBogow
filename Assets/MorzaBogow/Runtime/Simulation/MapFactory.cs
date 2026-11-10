@@ -6,8 +6,9 @@ namespace MorzaBogow.Simulation
     /// <summary>
     /// The 1v1 skirmish map in three scales (MatchProfile, docs/BALANS_I_SKALA.md): the same point-symmetric pattern of
     /// a home base, four expansion pairs and two contested central pairs, spread wider and stocked richer for a longer
-    /// game. Ports and work points stand on small islets joined to large hinterland islands, so a town or a forest has
-    /// land in proportion to the ships beside it.
+    /// game. The sea dominates: land is the islets of ports, free shores and work points (the forests to fell, the
+    /// silver to mine) and a few small limestone rocks, as among the Aegean islands; no land stands only for scenery
+    /// (the user's decision of 2026-11-10).
     /// </summary>
     public static class MapFactory
     {
@@ -45,14 +46,59 @@ namespace MorzaBogow.Simulation
                 AddSite(world, 70 * s, y);
             }
 
-            AddCoast(world, 0, 0, 60 * s, false);
-            AddCoast(world, -150 * s, 130 * s, 35 * s, false);
-            AddCoast(world, 150 * s, -130 * s, 35 * s, true);
-
-            // Last, so each hinterland keeps clear of every port, work point and channel already laid out.
-            AddHinterlands(world);
+            // Last, so each rock keeps clear of every port, work point and channel already laid out.
+            AddRocks(world);
             world.RefreshExplored();
             return world;
+        }
+
+        // Small limestone rocks: the largest point of the waterline from the rock's centre, the same at every scale.
+        public const double CentreRockRadius = 22, RockRadius = 16;
+
+        // Every berth, work point and free shore keeps this much water toward a rock; between the rock's shore and any
+        // other either a full channel or land joined to land. A rock that does not fit moves out from the middle.
+        public const double BerthClearance = 34, Channel = 30, RockStep = 5;
+        public const int RockSteps = 12;
+
+        /// <summary>
+        /// Five small rocks in the open sea: one in the middle, a pair across the lanes between the central pairs and the
+        /// expansions, and a pair behind the home ports. Each pair is point-symmetric, the second turned half a turn.
+        /// They are cover from shots and the lie of the land, not scenery to fill the map.
+        /// </summary>
+        static void AddRocks(World world)
+        {
+            var s = world.Profile.Spread;
+            var home = world.SettlementOf(0);
+            AddRock(world, 0, 0, CentreRockRadius, false);
+            AddRock(world, -150 * s, 130 * s, RockRadius, true);
+            AddRock(world, home.X - 75 * s, home.Y, RockRadius, true);
+        }
+
+        /// <summary>
+        /// Places a rock at its spot, or as near to it as it fits further out from the middle of the map; with its twin
+        /// on the second side when the pattern has one. Where no spot fits, the map goes without the rock.
+        /// </summary>
+        static void AddRock(World world, double x, double y, double radius, bool twin)
+        {
+            var length = Math.Sqrt(x * x + y * y);
+            var dx = length > 1e-9 ? x / length : 0;
+            var dy = length > 1e-9 ? y / length : 0;
+            for (var step = 0; step <= RockSteps; step++)
+            {
+                var rock = Rock(x + dx * step * RockStep, y + dy * step * RockStep, radius, false);
+                var mirror = twin ? Rock(-rock.X, -rock.Y, radius, true) : null;
+                if (!KeepsApproaches(world, rock) || (mirror != null && !KeepsApproaches(world, mirror))) continue;
+                world.Islands.Add(rock);
+                if (mirror != null) world.Islands.Add(mirror);
+                return;
+            }
+        }
+
+        /// <summary>A rock on the rocky coast model's own waterline, scaled so its farthest shore lies at the radius.</summary>
+        static Island Rock(double x, double y, double radius, bool halfTurn)
+        {
+            var outline = LandShape.Place(CoastOutline, radius / LandShape.MaxRadius(CoastOutline), halfTurn);
+            return new Island { X = x, Y = y, Radius = LandShape.MaxRadius(outline), Outline = outline, Yaw = halfTurn ? 180 : 0, Kind = IslandKind.Coast };
         }
 
         /// <summary>
@@ -67,12 +113,6 @@ namespace MorzaBogow.Simulation
             0.7269, 0.7946, 0.8591, 0.9183, 0.9713, 1.0380, 1.1429, 1.2473, 1.3155, 1.3120, 1.2503, 1.1909, 1.1314, 1.0665, 1.0275, 1.0110,
             1.0044, 1.0101, 1.0267, 1.0551, 1.0984, 1.1547, 1.2014, 1.2199, 1.2244, 1.2081, 1.1516, 1.0511, 0.8786, 0.6697, 0.4858, 0.3421,
         };
-
-        static void AddCoast(World world, double x, double y, double scale, bool halfTurn)
-        {
-            var outline = LandShape.Place(CoastOutline, scale, halfTurn);
-            world.Islands.Add(new Island { X = x, Y = y, Radius = LandShape.MaxRadius(outline), Outline = outline, Yaw = halfTurn ? 180 : 0, Kind = IslandKind.Coast });
-        }
 
         static void AddSite(World world, double x, double y)
         {
@@ -119,81 +159,36 @@ namespace MorzaBogow.Simulation
 
         static uint Seed(double x, double y) => (uint)((int)Math.Round(x * 7.0) * 73856093 ^ (int)Math.Round(y * 7.0) * 19349663);
 
-        // Hinterland sizes: the largest that keeps every berth and channel open, never below the smallest.
-        public const double HinterlandLargest = 110, HinterlandSmallest = 35, HinterlandBerthClearance = 34, HinterlandChannel = 30;
-
         /// <summary>
-        /// Behind each port's islet (away from the berth) and each work point's islet (beyond the trees or the mine)
-        /// rises a larger island joined to it. Its size is the largest that leaves every port, work point and free
-        /// shore its approach, and every other land either a channel or a firm join (no narrow strait a hull could
-        /// stick in); where there is no room, the islet stands alone.
+        /// Whether new land leaves every port, work point and free shore its approach, both slipways of every port
+        /// their water, and every other land either a full channel or a firm join (no narrow strait a hull could stick in).
         /// </summary>
-        static void AddHinterlands(World world)
+        public static bool KeepsApproaches(World world, Island land)
         {
-            var anchors = world.Islands.Where(item => item.Kind == IslandKind.Settlement || item.Kind == IslandKind.ResourceSite).ToList();
-            foreach (var anchor in anchors)
-            {
-                // Settlement land lies away from its port along x; a work point's islet lies beyond it along +y.
-                var port = world.Settlements.Concat<object>(world.Sites).FirstOrDefault(item => Math.Abs(Rules.LandX(PortX(item)) - anchor.X) < 0.5 && Math.Abs(PortY(item) - anchor.Y) < 0.5);
-                double awayX, awayY;
-                if (anchor.Kind == IslandKind.Settlement) { awayX = port != null && Rules.LandX(PortX(port)) < PortX(port) ? -1 : 1; awayY = 0; }
-                else { awayX = 0; awayY = 1; }
-
-                Island best = null;
-                foreach (var turn in new[] { 0.0, 0.5, -0.5, 1.0, -1.0 })
-                {
-                    var dx = awayX * Math.Cos(turn) - awayY * Math.Sin(turn);
-                    var dy = awayX * Math.Sin(turn) + awayY * Math.Cos(turn);
-                    for (var radius = HinterlandLargest; radius >= HinterlandSmallest; radius -= 5)
-                    {
-                        if (best != null && radius <= best.Radius / 1.25) break;
-                        var candidate = Hinterland(anchor, dx, dy, radius);
-                        if (!Fits(world, anchor, candidate)) continue;
-                        if (best == null || candidate.Radius > best.Radius) best = candidate;
-                        break;
-                    }
-                }
-                if (best != null) world.Islands.Add(best);
-            }
-        }
-
-        static double PortX(object item) => item is Settlement settlement ? settlement.X : ((BuildSite)item).X;
-        static double PortY(object item) => item is Settlement settlement ? settlement.Y : ((BuildSite)item).Y;
-
-        static Island Hinterland(Island anchor, double dx, double dy, double radius)
-        {
-            // Its near shore runs across the islet's far half, 14 m behind the islet's centre at the most: the two read
-            // as one shore while the berth on the islet's other side keeps its approach. Away from the islet, capes and bays.
-            var reach = 14 + radius * 0.9;
-            var x = anchor.X + dx * reach;
-            var y = anchor.Y + dy * reach;
-            var toward = Math.Atan2(-dy, -dx);
-            var circle = new double[LandShape.Samples];
-            for (var i = 0; i < circle.Length; i++) circle[i] = radius;
-            var outline = LandShape.Irregular(circle, Seed(x * 1.7, y * 1.3), angle =>
-                LandShape.Blend((0.85, 0.95), (0.82, 1.22), LandShape.AngleBetween(angle, toward), Math.PI * 0.25, Math.PI * 0.45));
-            return new Island { X = x, Y = y, Radius = LandShape.MaxRadius(outline), Outline = outline, Kind = IslandKind.Hinterland };
-        }
-
-        static bool Fits(World world, Island anchor, Island land)
-        {
-            bool Clear(double x, double y) => LandShape.SignedDistance(land, x, y) >= HinterlandBerthClearance;
+            bool Clear(double x, double y) => LandShape.SignedDistance(land, x, y) >= BerthClearance;
             if (world.Settlements.Any(item => !Clear(item.X, item.Y))) return false;
             if (world.Sites.Any(item => !Clear(item.X, item.Y))) return false;
             if (world.Nodes.Any(item => !Clear(item.X, item.Y))) return false;
+            foreach (var settlement in world.Settlements)
+            {
+                var landX = Rules.SettlementLandX(settlement);
+                var toward = Math.Sign(settlement.X - landX);
+                foreach (var side in new[] { -1, 1 })
+                    if (LandShape.SignedDistance(land, landX + toward * Rules.SlipAlong, settlement.Y + side * 30) <= 0) return false;
+            }
             // Between the real shores either a full channel or land joined to land, measured from points along the new
             // waterline: a gap narrower than the channel would be a strait a hull could stick in.
             foreach (var other in world.Islands)
             {
-                if (other == anchor) continue;
-                if (World.Distance(other.X, other.Y, land.X, land.Y) > other.Radius + land.Radius + HinterlandChannel) continue;
+                if (other == land) continue;
+                if (World.Distance(other.X, other.Y, land.X, land.Y) > other.Radius + land.Radius + Channel) continue;
                 for (var i = 0; i < LandShape.Samples; i++)
                 {
                     var angle = LandShape.Angle(i);
                     var x = land.X + Math.Cos(angle) * land.Outline[i];
                     var y = land.Y + Math.Sin(angle) * land.Outline[i];
                     var gap = LandShape.SignedDistance(other, x, y);
-                    if (gap > 0 && gap < HinterlandChannel) return false;
+                    if (gap > 0 && gap < Channel) return false;
                 }
             }
             return true;
@@ -210,7 +205,6 @@ namespace MorzaBogow.Simulation
             };
             settlement.Hull = settlement.MaxHull;
             world.Settlements.Add(settlement);
-            AddCoast(world, x - direction * 75 * s, 0, 50 * s, direction < 0);
             world.Islands.Add(SettlementLand(settlement.X, settlement.Y));
 
             var mask = 1 << owner;

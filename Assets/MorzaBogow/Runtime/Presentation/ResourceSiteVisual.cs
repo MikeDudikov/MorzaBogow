@@ -162,7 +162,8 @@ namespace MorzaBogow.Presentation
 
         void BuildMiningQuay(Transform model, PlaceholderMaterials materials, System.Random random)
         {
-            BuildIslet(model, materials?.Rock);
+            // Bare pale limestone, as on the Aegean mining islets; the dark ore-bearing blocks stand out on it.
+            BuildIslet(model, materials?.ShoreRock ?? materials?.Rock);
             for (var i = 0; i < 14; i++)
             {
                 var size = 3.5f + (float)random.NextDouble() * 5f;
@@ -199,7 +200,7 @@ namespace MorzaBogow.Presentation
                 Part(model, PrimitiveType.Cube, materials?.SilverOre, position, Vector3.one * size, rotation);
             }
 
-            // Stone pines cling to the flanks of the rock, clear of the mine and the quay.
+            // Low olives and scrub cling to the flanks of the rock, clear of the mine and the quay: dry hillside, not wood.
             var grove = new TreeModels.Grove();
             for (var i = 0; i < 7; i++)
             {
@@ -207,15 +208,17 @@ namespace MorzaBogow.Presentation
                 var x = side * (12.5f + (float)random.NextDouble() * 4.5f);
                 var z = -2f + (float)random.NextDouble() * 9f;
                 if (ShoreShape.GroundAt(outline, lift, x, z - IsletZ) < 0.4f) continue;
-                grove.Add(i % 3 == 0 ? TreeKind.Cypress : TreeKind.StonePine, i, new Vector3(x, Ground(x, z) - 0.15f, z), (float)random.NextDouble() * 360f, 0.5f + (float)random.NextDouble() * 0.2f);
+                // Every other one a bush of the maquis, the rest olives.
+                var scale = i % 2 == 0 ? 0.25f + (float)random.NextDouble() * 0.1f : 0.45f + (float)random.NextDouble() * 0.15f;
+                grove.Add(TreeKind.Olive, i, new Vector3(x, Ground(x, z) - 0.15f, z), (float)random.NextDouble() * 360f, scale);
             }
-            var pines = grove.Build("Grove");
-            if (pines != null)
+            var olives = grove.Build("Grove");
+            if (olives != null)
             {
                 var holder = new GameObject("Grove");
                 holder.transform.SetParent(model, false);
-                holder.AddComponent<MeshFilter>().sharedMesh = pines;
-                holder.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.Foliage };
+                holder.AddComponent<MeshFilter>().sharedMesh = olives;
+                holder.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.Timber, materials?.OliveFoliage };
             }
 
             // Sealed chests on the quay: these shrink with the stock.

@@ -14,7 +14,7 @@
         "MorzaBogow.Tests.SimulationTests.Scale_LongerScenariosSpreadWiderAndHoldMoreAndYieldSlower",
         "MorzaBogow.Tests.SimulationTests.Scale_YieldSlowsWorkAndTheNodeCapAlike",
         "MorzaBogow.Tests.SimulationTests.Deposits_RenewWhenLeftAloneSoTheyNeverEndTheGame",
-        "MorzaBogow.Tests.SimulationTests.Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen",
+        "MorzaBogow.Tests.SimulationTests.Map_LandIsMostlyWorkPointsAndEveryBerthStaysOpen",
         "MorzaBogow.Tests.SimulationTests.Land_EveryIsletHasAnIrregularNaturalShoreThatKeepsItsQuays",
         "MorzaBogow.Tests.SimulationTests.Crew_EveryPlanFillsTheHullAndTheDefaultKeepsThePrice",
         "MorzaBogow.Tests.SimulationTests.Weapons_FourArcherBanksHurtCrewsAsTheCrewDestroyerDidBefore",
@@ -61,6 +61,7 @@
         "MorzaBogow.Tests.BattleControllerTests.Hud_WeaponChoiceStaysNarrowAndOpensAboveTheBand",
         "MorzaBogow.Tests.BattleControllerTests.Hud_AlarmsOfOneWatersJoinOneEntryHoweverLate",
         "MorzaBogow.Tests.BattleControllerTests.Hud_BoardingMarkerShowsTheHooksThenTheFronts",
+        "MorzaBogow.Tests.BattleControllerTests.Map_RocksStayBareAndPortIsletsGrowOnlyLowTrees",
         "MorzaBogow.Tests.M0ProfileTests.OnlyUltraEnablesRayTracing"
       ]
     }
