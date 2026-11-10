@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "prop_amphora_rhodian",
+  "name": "Amfora rodyjska (koniec IV w. p.n.e.)",
+  "category": "ship_equipment",
+  "description": "A Rhodian transport amphora of the late 4th century BC: pale orange-buff clay, tall neck, two handles with stamped seals, pointed toe; cargo of merchantmen and wrecks.",
+  "dimensions": { "height": 0.85 },
+  "generation": { "provider": "source", "model": "../meshy/prop_amphora_rhodian/prop_amphora_rhodian.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/prop_amphora_rhodian/prop_amphora_rhodian_textures/base_color.png",
+    "normal": "../meshy/prop_amphora_rhodian/prop_amphora_rhodian_textures/normal.png",
+    "metallic": "../meshy/prop_amphora_rhodian/prop_amphora_rhodian_textures/metallic.png",
+    "roughness": "../meshy/prop_amphora_rhodian/prop_amphora_rhodian_textures/roughness.png" } },
+  "lods": 3
+}

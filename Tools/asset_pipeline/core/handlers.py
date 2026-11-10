@@ -149,6 +149,21 @@ def preparing_geometry(ctx):
 
 
 # texturing ------------------------------------------------------------------------------------
+def fit_maps(ctx, maps: dict) -> str:
+    """Shrinks the job's copies of maps larger than the budget's texture size (Blender); the repository keeps no 2K
+    sources an asset will never use. Without Blender the maps stay as they are and Unity's import size still caps them."""
+    from .images import oversized
+    size = int(ctx.brief["budget"]["textureSize"])
+    large = oversized({role: absolute(ctx, path) for role, path in maps.items()}, size)
+    if not large:
+        return ""
+    blender = ctx.providers.get("blender")
+    if blender is None or not blender.available():
+        return f"; {len(large)} map większych niż {size} px (bez Blendera zostają)"
+    blender.resize_maps(ctx, large, size)
+    return f"; {len(large)} map zmniejszonych do {size} px"
+
+
 def texturing(ctx):
     tex = ctx.brief["texturing"]
     provider = tex["provider"]
@@ -164,13 +179,15 @@ def texturing(ctx):
         maps = model.get("maps") or {}
         if not maps.get("base_color"):
             raise NeedsReview("Model z Meshy nie ma mapy koloru; wybierz texturing.provider=meshy_retexture albo provided.")
+        note = fit_maps(ctx, maps)
         ctx.artifacts["textures"] = {"provider": "generation", "maps": maps, "complete": True}
-        return f"Mapy z generowania: {', '.join(sorted(maps))}"
+        return f"Mapy z generowania: {', '.join(sorted(maps))}{note}"
     if provider == "provided":
         out.mkdir(parents=True, exist_ok=True)
         maps = {role: rel(ctx, shutil.copy2(path, out / pathlib.Path(path).name)) for role, path in tex["maps"].items()}
+        note = fit_maps(ctx, maps)
         ctx.artifacts["textures"] = {"provider": "provided", "maps": maps, "complete": True}
-        return f"Mapy z briefu: {', '.join(sorted(maps))}"
+        return f"Mapy z briefu: {', '.join(sorted(maps))}{note}"
     if provider == "meshy_retexture":
         meshy = ctx.providers["meshy"]
         meshy.require()
@@ -182,6 +199,7 @@ def texturing(ctx):
         task = ctx.remote(meshy, "retexture", meshy.retexture_payload(absolute(ctx, source), style, original_uv),
                           {"text_style_prompt": style, "type": "retexture"}, meshy.cost("retexture"))
         files = meshy.download(ctx, task, out, textures_only=original_uv)
+        fit_maps(ctx, files["maps"])
         ctx.artifacts["textures"] = {"provider": "meshy_retexture", "maps": files["maps"], "remote_task": task["remote_id"], "complete": True}
         if original_uv:
             return f"Retekstura Meshy: {', '.join(sorted(files['maps']))}"

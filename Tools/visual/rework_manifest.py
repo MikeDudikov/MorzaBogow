@@ -196,6 +196,17 @@ entry("water.system", "the sea: HDRP water, deformation, foam, wakes, spray, mar
       ["water_guard check passes (docs/art/WaterProtection.md)"], links=["Tools/visual/water_guard.py"], status="protected")
 
 
+# Progress of single entries (assetId -> status), kept apart from their definitions above.
+STATUS = {
+    "ship.Ram": "in progress: 4th c. features in the generator (ram, eyes, volute, aphlaston; commit 10c5c70)",
+    "character.warrior": "in progress: 4th c. kit (pilos, Corinthian and Boeotian helmets, linothorax, aspis; commit 9ed303b)",
+    "character.peltast": "in progress: pelte and caps (commit 9ed303b)",
+    "prop.amphora": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
+    "rock.attica-set": "first variant ready: rock_attica_limestone_a (Meshy MCP -> Blender -> Unity)",
+}
+for _entry in ENTRIES:
+    _entry["status"] = STATUS.get(_entry["assetId"], _entry["status"])
+
 def ledger():
     with open(LEDGER, encoding="utf-8") as handle:
         return json.load(handle)

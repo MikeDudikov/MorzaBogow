@@ -1,7 +1,7 @@
 """Blender adapter: runs blender/prepare.py headless (blender -b --factory-startup -P script --python-exit-code 3 -- params.json).
 
-The command line follows the Blender 5.2 manual (checked 2026-11-10). Blender was not installed
-when this was written, so the script itself has not run yet: the capability matrix says so.
+The command line follows the Blender 5.2 manual. Blender 5.2.3 LTS has run it since 2026-11-10 (docs/ASSET_PIPELINE.md),
+and resize_maps.py shrinks texture maps to the budget's size before Unity imports them.
 """
 import json
 import pathlib
@@ -46,6 +46,29 @@ class Blender:
 
     def _native(self, exe: pathlib.Path, path) -> str:
         return to_windows(path) if (str(exe).lower().endswith(".exe") and not on_windows()) else str(path)
+
+    def resize_maps(self, ctx, maps: dict, size: int) -> dict:
+        """Shrinks the given maps (role -> absolute path, copies in the job) in place to `size` texels; returns their sizes."""
+        exe = self.path()
+        if exe is None or not maps:
+            return {}
+        params = {"maps": {role: self._native(exe, pathlib.Path(path)) for role, path in maps.items()}, "size": int(size),
+                  "report": self._native(exe, ctx.dir / "resize_report.json")}
+        params_path = ctx.dir / "resize_params.json"
+        params_path.write_text(json.dumps(params, indent=2), encoding="utf-8")
+        script = self.config.root / "Tools/asset_pipeline/blender/resize_maps.py"
+        log = ctx.dir / "blender_resize.log"
+        args = [str(exe), "-b", "--factory-startup", "-P", self._native(exe, script), "--python-exit-code", "3", "--", self._native(exe, params_path)]
+        ctx.keep_alive()
+        with open(log, "w", encoding="utf-8") as output:
+            try:
+                code = subprocess.run(args, stdout=output, stderr=subprocess.STDOUT, timeout=600).returncode
+            except subprocess.TimeoutExpired:
+                raise Fatal(f"Blender (mapy) przekroczył 10 min; log {project_relative(log, self.config.root)}") from None
+        report = ctx.dir / "resize_report.json"
+        if code != 0 or not report.exists():
+            raise Fatal(f"Blender (mapy) zakończył się kodem {code}; log {project_relative(log, self.config.root)}")
+        return json.loads(report.read_text(encoding="utf-8"))
 
     def prepare(self, ctx, source: pathlib.Path, repair) -> dict:
         exe = self.path()

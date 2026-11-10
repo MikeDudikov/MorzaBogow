@@ -22,11 +22,29 @@
    "animation",
    "destruction"
   ],
-  "spentCredits": 20,
+  "spentCredits": 70,
   "tasksByAsset": {
    "ship_ram_retexture": [
     "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
     "01a1c5f1-03d6-7181-96c2-5d19e41a74eb"
+   ],
+   "building.module.doric-column": [
+    "01a1c63b-1781-77c0-9446-033a498101a8",
+    "01a1c63d-9a06-7786-a511-4c4fbb18d014"
+   ],
+   "building.module.tiled-roof": [
+    "01a1c63b-7f01-75c6-b144-6837d0fbd0d1"
+   ],
+   "building.module.house-wall": [
+    "01a1c63b-9366-705c-b652-adfaacfed11e"
+   ],
+   "rock.attica-set": [
+    "01a1c63b-a506-744a-9a40-c811e5251861",
+    "01a1c63d-87d2-77e2-8d9e-171f3a7033d2"
+   ],
+   "prop.amphora": [
+    "01a1c63b-ba69-70a6-bd14-7af18f5f69ac",
+    "01a1c63d-75cd-72b7-836a-173fa2f83ca4"
    ]
   }
  },
@@ -130,7 +148,7 @@
    "covers": [
     "Ram"
    ],
-   "status": "planned"
+   "status": "in progress: 4th c. features in the generator (ram, eyes, volute, aphlaston; commit 10c5c70)"
   },
   {
    "assetId": "ship.CrewDestroyer",
@@ -478,7 +496,7 @@
     "WarriorRower",
     "Commander"
    ],
-   "status": "planned"
+   "status": "in progress: 4th c. kit (pilos, Corinthian and Boeotian helmets, linothorax, aspis; commit 9ed303b)"
   },
   {
    "assetId": "character.archer",
@@ -550,7 +568,7 @@
    "covers": [
     "BankJavelin"
    ],
-   "status": "planned"
+   "status": "in progress: pelte and caps (commit 9ed303b)"
   },
   {
    "assetId": "character.rower",
@@ -1252,7 +1270,7 @@
     "4-6 Meshy variants with LOD; strata, cracks, erosion"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "first variant ready: rock_attica_limestone_a (Meshy MCP -> Blender -> Unity)"
   },
   {
    "assetId": "veg.olive.cultivated",
@@ -1925,7 +1943,7 @@
     "shared materials; no unique large texture per object"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)"
   },
   {
    "assetId": "prop.pithos",

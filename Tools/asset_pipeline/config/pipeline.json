@@ -24,7 +24,7 @@
     "ship_equipment": { "triangles": 1500, "textureSize": 512, "materials": 2, "renderers": 6, "texelDensity": 64 },
     "building": { "triangles": 6000, "textureSize": 1024, "materials": 4, "renderers": 20, "texelDensity": 48 },
     "ruin": { "triangles": 4000, "textureSize": 1024, "materials": 3, "renderers": 12, "texelDensity": 48 },
-    "rock": { "triangles": 2000, "textureSize": 1024, "materials": 1, "renderers": 2, "texelDensity": 32 },
+    "rock": { "triangles": 2000, "textureSize": 1024, "materials": 1, "renderers": 3, "texelDensity": 32 },
     "vegetation": { "triangles": 2500, "textureSize": 512, "materials": 2, "renderers": 4, "texelDensity": 48 },
     "character": { "triangles": 6000, "textureSize": 1024, "materials": 3, "renderers": 4, "texelDensity": 256 },
     "creature": { "triangles": 12000, "textureSize": 2048, "materials": 3, "renderers": 6, "texelDensity": 64 },

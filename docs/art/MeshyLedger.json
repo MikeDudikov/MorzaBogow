@@ -1,10 +1,101 @@
 {
  "schema": "morza-bogow/meshy-ledger@1",
  "approvedCredits": 1000,
- "extraWithoutAsking": ["animation", "destruction"],
+ "extraWithoutAsking": [
+  "animation",
+  "destruction"
+ ],
  "note": "User decisions 2026-11-10: up to 1000 credits for the visual refresh; more for convincing animation and destruction of buildings and ships without asking. One row per paid Meshy task, appended when it is created.",
  "tasks": [
-  {"date": "2026-11-10", "asset": "ship_ram_retexture", "kind": "retexture", "meshyTask": "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58", "via": "ap.py (REST)", "credits": 10, "result": "rejected: uniform wood, the generator's metric UVs overlap"},
-  {"date": "2026-11-10", "asset": "ship_ram_retexture", "kind": "retexture", "meshyTask": "01a1c5f1-03d6-7181-96c2-5d19e41a74eb", "via": "ap.py (REST)", "credits": 10, "result": "kept: originalUv=false, Assets/MorzaBogow/Art/Generated/ship_ram_retexture"}
+  {
+   "date": "2026-11-10",
+   "asset": "ship_ram_retexture",
+   "kind": "retexture",
+   "meshyTask": "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
+   "via": "ap.py (REST)",
+   "credits": 10,
+   "result": "rejected: uniform wood, the generator's metric UVs overlap"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "ship_ram_retexture",
+   "kind": "retexture",
+   "meshyTask": "01a1c5f1-03d6-7181-96c2-5d19e41a74eb",
+   "via": "ap.py (REST)",
+   "credits": 10,
+   "result": "kept: originalUv=false, Assets/MorzaBogow/Art/Generated/ship_ram_retexture"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "building.module.doric-column",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63b-1781-77c0-9446-033a498101a8",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a Roman/Tuscan base and dentils; a Doric column has no base"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "building.module.tiled-roof",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63b-7f01-75c6-b144-6837d0fbd0d1",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: reads as corrugated sheet, not pan and cover tiles; roof built procedurally"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "building.module.house-wall",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63b-9366-705c-b652-adfaacfed11e",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a featureless slab; walls built procedurally"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock.attica-set",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63b-a506-744a-9a40-c811e5251861",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: strata and karst pits; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop.amphora",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63b-ba69-70a6-bd14-7af18f5f69ac",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: tall neck, handles, toe; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop.amphora",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c63d-75cd-72b7-836a-173fa2f83ca4",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/prop_amphora_rhodian (job prop_amphora_rhodian-20261110-162132-777d, LOD 1470/514/176)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock.attica-set",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c63d-87d2-77e2-8d9e-171f3a7033d2",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/rock_attica_limestone_a (job rock_attica_limestone_a-20261110-162132-f240, LOD 1959/684/234)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "building.module.doric-column",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c63d-9a06-7786-a511-4c4fbb18d014",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: came out Ionic with volutes and a base; Doric column built procedurally"
+  }
  ]
 }

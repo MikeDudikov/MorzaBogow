@@ -342,6 +342,17 @@ Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `A
   - **Drugie zadanie** `ship_ram_retexture-20261110-145054-4d03` (10 kr.): ready. Ciemny kadłub, ochra wzdłuż burty, lniany żagiel, spiż na taranie; LOD 2976/1040/357; stępka −1,20 m; długość 20 m.
   - **Ostrzeżenia:** jeden materiał, więc żagiel nie przyjmie barwy strony; 32 px/m przy celu 64. Biały zygzak nieczytelny.
   - Prefab: `Assets/MorzaBogow/Art/Generated/ship_ram_retexture`. Gra go nie używa.
+- **Modele z Meshy MCP przez potok** (2026-11-10):
+  - `text_to_3d` w trybie smart-topology `meshy-t2.5`: 5 kr. za podgląd;
+  - `text_to_3d_refine` z PBR: 10 kr.;
+  - `meshy_download_model` do `ArtWorkspace/meshy/<asset>/`;
+  - potem brief z `generation.provider=source` i `texturing.provider=provided`.
+
+  Przykłady: `prop_amphora_rhodian` (LOD 1470/514/176) i `rock_attica_limestone_a` (1959/684/234), oba ready, 0 ostrzeżeń.
+  - **Ocena podglądów:** Meshy dobrze robi formy organiczne (skały, ceramika). Architekturę o kanonicznych proporcjach daje błędnie: kolumnę dorycką wydał raz z bazą i ząbkami, raz jako jońską. Takie elementy powstają proceduralnie.
+  - **Mapy większe niż budżet** (Meshy daje 2048 px) Blender zmniejsza w kopii zadania do `textureSize` budżetu (`blender/resize_maps.py`, `core/images.py`). Repozytorium nie trzyma map, których asset nigdy nie użyje: amfora i skała razem 5 MB zamiast 25 MB.
+  - **Budżet skały:** 3 renderery, bo każdy z 3 poziomów LOD to osobny renderer.
+  - **Wydatki:** `docs/art/MeshyLedger.json`.
 - **ComfyUI** nie zostało uruchomione na żywo: brak serwera. Text-, Image-to-3D, szkielet i animacje Meshy też bez próby na żywo. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
 - **Kierunek dziobu** modelu z Meshy jest nieznany, gdy brief ma `forward: auto`. Unity bierze dłuższą oś poziomą z dodatnim zwrotem, a raport ostrzega o konieczności sprawdzenia podglądu.
 - **Bez Blendera** model z Meshy idzie jako jeden poziom LOD z mesh LOD importera Unity. Naprawa przekroczonej geometrii wymaga Blendera.
