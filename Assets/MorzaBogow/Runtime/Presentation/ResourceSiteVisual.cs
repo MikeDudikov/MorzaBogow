@@ -191,16 +191,23 @@ namespace MorzaBogow.Presentation
                 workSpots.Add(new Vector3(x, Ground(x, 5.6f), 5.6f));
             }
 
-            // Silver ore glints on the rock.
-            for (var i = 0; i < 12; i++)
+            // The ore-bearing outcrop either side of the mine: marble under schist, galena and its white crust in the
+            // rusty contact between them, worked in shallow pits (Laurion type, 12th century BC; Presentation.Landscape).
+            var rock = CurrentMaterials?.ShoreRock;
+            var outcropSeed = (uint)Mathf.RoundToInt(model.position.x * 17f + model.position.z * 5f) ^ 0x0AEu;
+            // Two stretches either side of the mine mouth, just behind where the miners stand (z 5.6), in front of the rock.
+            foreach (var centre in new[] { -9.3f, 9.3f })
             {
-                var x = -14f + i * 2.5f;
-                var z = 8.5f + (float)random.NextDouble() * 2f;
-                var position = new Vector3(x, Ground(x, z) + 2f + (float)random.NextDouble() * 4f, z);
-                var rotation = new Vector3((float)random.NextDouble() * 90f, (float)random.NextDouble() * 90f, 0f);
-                var size = 0.7f + (float)random.NextDouble() * 0.9f;
-                Part(model, PrimitiveType.Cube, materials?.SilverOre, position, Vector3.one * size, rotation);
+                var outcrop = new GameObject("Outcrop").transform;
+                outcrop.SetParent(model, false);
+                outcrop.localPosition = new Vector3(centre, 0f, 0f);
+                var shift = centre;
+                Landscape.OreOutcrop.Build(outcrop, outcropSeed + (uint)(centre > 0f ? 1 : 0), 11.5f, 6.4f, (x, z) => Ground(x + shift, z), rock, Landscape.LandscapeArt.Limonite(rock),
+                    Landscape.LandscapeArt.Schist(rock), Landscape.LandscapeArt.Galena(rock), Landscape.LandscapeArt.Cerussite(rock), materials?.MineDark);
             }
+            // The ore broken and sorted by hand into a heap by the mine: it shrinks with the deposit's stock.
+            sortedOre = Landscape.OreOutcrop.Attach(model, Landscape.OreOutcrop.SortedHeap(outcropSeed, 60), Landscape.LandscapeArt.Limonite(rock));
+            if (sortedOre != null) sortedOre.localPosition = new Vector3(3.2f, Ground(3.2f, 3.6f) - 0.05f, 3.6f);
 
             // Wild olives of the maquis cling to the flanks of the rock, clear of the mine and the quay: dry hillside,
             // not wood. Each is a tree of its own whose bones the match's wind bends (Presentation.Landscape).
@@ -279,9 +286,15 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>Shows a share of the pile matching the remaining stock. An empty point shows none.</summary>
+        Transform sortedOre;
+
+        /// <summary>Size of the hand-sorted ore heap by the mine (0.35 nearly worked out to 1 full); 0 where there is none.</summary>
+        public float SortedOreScale => sortedOre != null ? sortedOre.localScale.x : 0f;
+
         public void UpdateStock(long stock)
         {
             var fraction = startStock > 0 ? (double)stock / startStock : 0.0;
+            if (sortedOre != null) sortedOre.localScale = Vector3.one * (stock <= 0 ? 0.35f : Mathf.Lerp(0.35f, 1f, (float)System.Math.Min(1.0, fraction)));
             var shown = stock <= 0 ? 0 : System.Math.Max(1, (int)System.Math.Ceiling(fraction * pile.Count));
             if (shown == VisiblePileParts && shown != 0) return;
             VisiblePileParts = shown;

@@ -39,3 +39,37 @@ Granice są umowne (±25–50 lat), a na Krecie fazy mają inne nazwy.
 - **Cyprys kolumnowy** tylko przy sanktuariach i w ogrodach. Dziki rośnie rozłożyście (JRC, s. 88–89).
 - **Notch pływowy** w wapieniu leży na poziomie morza gry, bo morze gry jest morzem starożytnym (3.x).
 - **Drzewa nie zasłaniają kadłubów.** Oliwki gaju mają 4,5–7 m, mniej niż maszty przy nabrzeżu (decyzja gry).
+
+## Zestaw próbny w grze (stan 2026-11-10)
+
+Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.json), w pozycjach ze statusem `Trial`.
+
+- **Oliwka uprawna i dzika** (`TreeGenerator`, `TreeDynamics`, `TreeGrove`):
+  - 3 poziomy LOD na wspólnych kościach; wiatr meczu tylko do odczytu;
+  - gaj poza kadrem kamery nic nie liczy;
+  - z daleka ruszają się tylko pień i konary.
+- **Wybrzeże** (`CoastFeatures`): warga notchu w sektorach klifów, mokry pas oraz płyty beachrocku na łagodnych brzegach.
+- **Ruda srebra, typ Laurion, E1** (`OreOutcrop`):
+  - po bokach wejścia do kopalni marmur pod łupkiem, z rdzawym kontaktem między nimi;
+  - w kontakcie ziarna galenitu (jedyny metal) i biały cerusyt;
+  - płytkie wyrobiska oraz hałda sortowanej rudy, która maleje ze stanem złoża.
+- **Stocznia plażowa E1** (`ShipyardProps`): obok istniejących pochylni bale i deski, szałas z dachem z trzciny, stojak z narzędziami z brązu, kocioł smoły i kamienne podpórki.
+
+**Uruchomienie pokazu:**
+
+```
+Builds/M1/MorzaBogow.exe -force-device-index 0 -morzaLandscapeShowcase <prefiks>
+```
+
+**Pomiar A/B:** `-morzaSmokeReport <plik> 60` z `-morzaPlainOlives` i bez tej flagi.
+
+**Wynik pomiaru** (RTX 3050 Ti Laptop, 1920×1080, jeden przebieg 60 s na wariant):
+- wiatr i kości 21 drzew: 0,51–0,53 ms głównego wątku na klatkę;
+- GPU: Ultra 30,6 ms z nowymi oliwkami, 33,7 ms ze starymi; Low 13,5 i 14,3 ms. To różnica w granicach szumu.
+- Pełnej klatki nie rozstrzygnięto: czas symulacji wahał się między przebiegami od 3 do 12 ms.
+
+**Jeszcze nie zrobione:**
+- plaża żwirowa i frygana;
+- sosny, cyprysy, makia;
+- przodek E5 i płuczka;
+- animacje: pył i odłamki przy rudzie, praca szkutników.

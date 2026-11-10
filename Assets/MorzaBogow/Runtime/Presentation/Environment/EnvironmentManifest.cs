@@ -80,6 +80,17 @@ namespace MorzaBogow.Presentation.Landscape
             };
         }
 
+        static ManifestEntry Done(string id, string category, string name, Region[] regions, Era[] eras, string dimensions, string materials, string integration, string[] tests, Confidence confidence, params string[] sources)
+        {
+            var entry = Planned(id, category, name, regions, eras, dimensions, integration, confidence, sources);
+            entry.Status = AssetStatus.Trial;
+            entry.Materials = new[] { materials };
+            entry.Physics = "bez colliderów; tylko prezentacja";
+            entry.Lods = new[] { "jedna siatka (proste bryły), bez LOD" };
+            entry.Tests = tests;
+            return entry;
+        }
+
         static ManifestEntry Planned(string id, string category, string name, Region[] regions, Era[] eras, string dimensions, string integration, Confidence confidence, params string[] sources) =>
             new ManifestEntry
             {
@@ -115,19 +126,30 @@ namespace MorzaBogow.Presentation.Landscape
                 Planned("veg.pistacia.lentiscus", "vegetation", "Lentyszek (Pistacia lentiscus)", all, eras, "krzew 1–3 m (do potwierdzenia)", "makia przy brzegu", Confidence.Established, "2.x: EUNIS F7.31"),
                 Planned("veg.phrygana", "vegetation", "Poduszki frygany (Sarcopoterium spinosum, Thymbra capitata, Cistus)", all, eras, "poduszki 0,3–0,8 m", "suche wierzchowiny wysepek", Confidence.Established, "2.x: EUNIS F7.31"),
                 Planned("veg.halophytes", "vegetation", "Halofity klifów (Crithmum maritimum, Limonium)", all, eras, "kępy 0,2–0,5 m", "szczeliny klifów nad wodą", Confidence.Interpretation, "2.x"),
-                Planned("coast.limestone.notch", "coast", "Klif wapienny z notchem pływowym", new[] { Region.SouthMainland, Region.Crete, Region.Cyclades }, eras, "notch na poziomie morza gry", "klify wysepek (ShoreShape)", Confidence.Established, "3.x: Evelpidou i in. 2014"),
+                Done("coast.limestone.notch", "coast", "Klif wapienny z notchem pływowym i mokrym pasem", new[] { Region.SouthMainland, Region.Crete, Region.Cyclades }, eras, "warga 0,55–1,7 m nad morzem gry, wysunięta 0,5–1,1 m",
+                    "skała brzegu sceny (Shore_Limestone, CC0 marble_cliff_03) i jej mokra kopia", "CoastFeatures na wysepkach portów, zaplecza i złóż",
+                    new[] { "CoastTests.Coast_TheNotchCutsOnlyTheCliffsAtTheGamesSeaLevel", "CoastTests.Coast_TheWetBandHugsTheWaterline", "CoastTests.Coast_SameSeedSameShore" }, Confidence.Established, "3.x: Evelpidou i in. 2014"),
                 Planned("coast.marble-schist", "coast", "Odsłonięcie marmuru i łupka", new[] { Region.Cyclades, Region.SouthMainland }, eras, "do ustalenia", "klify Cyklad i Laurionu", Confidence.Established, "3.x: Desruelles i in. 2009; 4.x"),
-                Planned("coast.beachrock", "coast", "Płyty beachrocku w strefie pływów", all, eras, "płyty 1,5–3 m, upad ku morzu", "łagodne brzegi", Confidence.Established, "3.2: Desruelles i in. 2009"),
+                Done("coast.beachrock", "coast", "Płyty beachrocku w strefie pływów", all, eras, "płyty 1,2–2,2 × 1,0–1,4 × 0,22–0,32 m, 1–3 rzędy, upad 5–9° ku morzu",
+                    "kopia dna brzegu sceny (Shore_Seabed, CC0 coast_sand_rocks_02)", "CoastFeatures: łagodne brzegi wysepek",
+                    new[] { "CoastTests.Coast_BeachrockLiesAwashOnTheGentleShoreAndDipsSeaward" }, Confidence.Established, "3.2: Desruelles i in. 2009"),
                 Planned("coast.pebble-beach", "coast", "Plaża żwirowa z pasem wilgoci", all, eras, "pas 3–5 m", "łagodne brzegi wysepek", Confidence.Interpretation, "3.x"),
                 Planned("coast.sand-cove", "coast", "Piasek w zatokach", all, eras, "do ustalenia", "tylko osłonięte zatoki", Confidence.Interpretation, "3.x"),
                 Planned("coast.terra-rossa", "coast", "Sucha ziemia (terra rossa) z fryganą", new[] { Region.SouthMainland, Region.Crete }, eras, "do ustalenia", "wierzchowiny wysepek", Confidence.Interpretation, "3.x"),
-                Planned("ore.laurion.outcrop", "ore", "Odsłonięcie rudy na kontakcie marmuru i łupka (galenit, cerusyt, tlenki Fe)", new[] { Region.SouthMainland }, eras, "do ustalenia", "ResourceSiteVisual: wysepka srebra", Confidence.Established, "4.1: Kepper 2004 s. 75"),
-                Planned("ore.face.E1", "ore", "Przodek E1: drobna, nieregularna praca, ślady tłuków", new[] { Region.SouthMainland }, new[] { Era.PostPalatial, Era.EarlyIron }, "do ustalenia", "wysepka srebra", Confidence.Interpretation, "4.13: Wood i in. 2021"),
+                Done("ore.laurion.outcrop", "ore", "Odsłonięcie rudy na kontakcie marmuru i łupka (galenit, cerusyt, tlenki Fe)", new[] { Region.SouthMainland }, eras, "dwie ściany po 11,5 × 4,2 m po bokach wejścia do kopalni, kontakt ok. 1,2–2,1 m nad stopą",
+                    "marmur (Shore_Limestone), kopie: łupek, limonit, galenit (metal), cerusyt", "ResourceSiteVisual.BuildMiningQuay: wysepka srebra",
+                    new[] { "SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween", "SiteTests.Ore_OnlyTheGalenaIsMetal" }, Confidence.Established, "4.1: Kepper 2004 s. 75"),
+                Done("ore.face.E1", "ore", "Przodek E1: płytkie, nieregularne wyrobiska wzdłuż kontaktu, urobek pod nimi", new[] { Region.SouthMainland }, new[] { Era.PostPalatial, Era.EarlyIron }, "wyrobiska 0,8–1,5 m, jedno na ok. 5 m ściany",
+                    "MineDark sceny, kopia limonitu", "OreOutcrop na wysepce srebra", new[] { "SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween" }, Confidence.Interpretation, "4.13: Wood i in. 2021"),
                 Planned("ore.face.E5", "ore", "Przodek E5: regularny chodnik, ślady szpicaka", new[] { Region.SouthMainland }, new[] { Era.Archaic, Era.Classical }, "do ustalenia", "wysepka srebra w profilu E5", Confidence.Established, "4.x: Kepper 2004; Rehren 2002"),
-                Planned("ore.heap", "ore", "Hałda rudy sortowanej ręcznie", new[] { Region.SouthMainland }, eras, "do ustalenia", "stan z node.Stock (bez zmiany zasobu)", Confidence.Interpretation, "4.x"),
+                Done("ore.heap", "ore", "Hałda rudy sortowanej ręcznie", new[] { Region.SouthMainland }, eras, "stożek ok. 2,6 m średnicy, 60 brył; skala 0,35–1 ze stanu złoża", "kopia limonitu",
+                    "ResourceSiteVisual.UpdateStock (tylko odczyt node.Stock)", new[] { "LandscapeTests.Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt" }, Confidence.Interpretation, "4.x"),
                 Planned("ore.washery.E5", "ore", "Płuczka rudy (tylko E5)", new[] { Region.SouthMainland }, new[] { Era.Classical }, "do ustalenia", "tylko profil E5", Confidence.Established, "4.9–4.10: Kepper 2004 s. 75–77; Rehren 2002 s. 27"),
-                Planned("yard.slipway.E1", "shipyard", "Pochylnia plażowa E1: płozy poprzeczne, podpory, kamienne podpórki", all, new[] { Era.PostPalatial, Era.EarlyIron, Era.Geometric }, "do ustalenia", "ShipyardVisual", Confidence.Interpretation, "5.x: Uluburun; Kommos"),
-                Planned("yard.tools", "shipyard", "Narzędzia szkutnicze: brąz (E1), żelazo (od E2)", all, eras, "topór, ciosło, dłuto, piła, świder łukowy", "stojak w stoczni", Confidence.Interpretation, "5.x: Homer Od. 5; Uluburun"),
+                Done("yard.slipway.E1", "shipyard", "Wyposażenie stoczni plażowej E1: skład bali i desek, szałas z trzciny, kocioł smoły, kamienne podpórki", all, new[] { Era.PostPalatial, Era.EarlyIron, Era.Geometric },
+                    "szałas 2,8 × 2 m, okap 2,0 m; bale 4,2 m", "Timber, Meadow (strzecha), Shore_Limestone, Pitch sceny", "ShipyardProps obok pochylni ShipyardVisual (rampa bez zmian)",
+                    new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury" }, Confidence.Interpretation, "5.x: Uluburun; Kommos"),
+                Done("yard.tools", "shipyard", "Narzędzia szkutnicze na stojaku: brąz (E1), żelazo (od E2)", all, eras, "topór, ciosło, dłuta na żerdzi 1,5 m", "kopia skały w barwie brązu lub żelaza (metal)",
+                    "ShipyardProps: stojak z narzędziami", new[] { "SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury" }, Confidence.Interpretation, "5.x: Homer Od. 5; Uluburun"),
                 Planned("yard.shed.zea2", "shipyard", "Hangar Zea, faza 2 (tylko profil E5)", new[] { Region.SouthMainland }, new[] { Era.Classical }, "światło 5,81 m: nie mieści okrętów gry (do 10,9 m)", "tylko jako pozycja profilu", Confidence.Established, "5.10: Lovén 2011"),
             };
         }

@@ -27,6 +27,9 @@
         "MorzaBogow.Tests.CoastTests.Coast_BeachrockLiesAwashOnTheGentleShoreAndDipsSeaward",
         "MorzaBogow.Tests.CoastTests.Coast_TheWetBandHugsTheWaterline",
         "MorzaBogow.Tests.CoastTests.Coast_SameSeedSameShore",
+        "MorzaBogow.Tests.SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween",
+        "MorzaBogow.Tests.SiteTests.Ore_OnlyTheGalenaIsMetal",
+        "MorzaBogow.Tests.SiteTests.Yard_GearStandsOnDryLandClearOfTheRampsAndIsBronzeInTheTwelfthCentury",
         "MorzaBogow.Tests.CrewGeometryTests.Oars_EveryRowerReachesHisHandleFromHisSeatInsideTheHull",
         "MorzaBogow.Tests.CrewGeometryTests.Steering_HelmsmanHoldsTheTillersAndTheBladesReachTheWater",
         "MorzaBogow.Tests.CrewGeometryTests.Stroke_TheBladeDrivesAftInTheWaterAndReturnsAboveIt",
@@ -185,6 +188,7 @@
       "expectedTests": [
         "MorzaBogow.Tests.LandscapeTests.Landscape_OlivesOfTheBattleAreTreesTheMatchWindBends",
         "MorzaBogow.Tests.LandscapeTests.Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas",
+        "MorzaBogow.Tests.LandscapeTests.Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AllPullTogetherAndDriveAftInTheWater",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AnOarWithoutARowerIsDrawnInOnItsOwn",
         "MorzaBogow.Tests.CrewPresentationTests.Helm_SteeringOarsTurnWithTheHullAndCarryTheTillers",

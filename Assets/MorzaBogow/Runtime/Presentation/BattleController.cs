@@ -1382,6 +1382,12 @@ namespace MorzaBogow.Presentation
             }
             AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(centreX, foot + tall * 0.5f - 0.3f, 0f), new Vector3(width, tall, depth));
             yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);
+            // A beach shipyard's gear of the 12th century BC beside the ramps, clear of them, the jetty and the buildings.
+            var slipX = toward * (float)Rules.SlipAlong;
+            Landscape.ShipyardProps.Build(root.transform, (uint)Mathf.RoundToInt((float)(settlement.X * 7 + settlement.Y * 3)), toward,
+                (x, z) => ShoreShape.GroundAt(shape.outline, shape.lift, x, z),
+                (x, z) => Mathf.Abs(x - slipX) > 3.5f && Mathf.Abs(z) > 2.5f && !(Mathf.Abs(x - centreX) < width * 0.5f + 1.5f && Mathf.Abs(z) < depth * 0.5f + 1.5f),
+                Landscape.EnvironmentProfile.Default.IronTools, materials?.Timber, materials?.Ground(materials.Foliage), materials?.ShoreRock, materials?.Pitch != null ? materials.Pitch : materials?.Timber);
             return root;
         }
 

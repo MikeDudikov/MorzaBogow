@@ -73,6 +73,8 @@ namespace MorzaBogow.Presentation
             Add("brzeg-beachrock", 3, gentle, 24f, Facing(Quaternion.Euler(0f, 35f, 0f) * portSide), 32f);
             var silver = World.Nodes.Where(item => item.Type == ResourceType.Silver).OrderBy(item => World.Distance(item.X, item.Y, home.X, home.Y)).FirstOrDefault();
             if (silver != null) Add("srebro-zbocza", 3, new Vector3((float)silver.X, 0f, (float)(silver.Y + Rules.SiteLandOffset * 0.6)), 34f, ObliqueCamera.DefaultYaw, 38f);
+            // The home port's slipways and the shipyard's gear beside them.
+            Add("stocznia", 3, new Vector3((float)(home.X + Rules.SettlementLandX(home)) * 0.5f, 0f, (float)home.Y + 6f), 34f, ObliqueCamera.DefaultYaw, 40f);
             Add("archipelag", 3, centre, 300f, ObliqueCamera.DefaultYaw, ObliqueCamera.DefaultTilt);
             steps.Add(new ShowcaseStep { Ticks = 1, Setup = () => { if (last != null) LogTrees(last); last = null; } });
             return steps.ToArray();

@@ -64,6 +64,30 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt()
+        {
+            yield return null;
+            var node = new ResourceNode { Id = 3, Type = ResourceType.Silver, X = 100, Y = -40, Stock = 1000, Capacity = 1000 };
+            var site = ResourceSiteVisual.Create(node, null);
+            try
+            {
+                var full = site.SortedOreScale;
+                site.UpdateStock(400);
+                var less = site.SortedOreScale;
+                site.UpdateStock(0);
+                Assert.That(full, Is.EqualTo(1f).Within(1e-4f), "A full deposit, a full heap.");
+                Assert.That(less, Is.LessThan(full).And.GreaterThan(0.35f));
+                Assert.That(site.SortedOreScale, Is.EqualTo(0.35f).Within(1e-4f));
+                Assert.That(node.Stock, Is.EqualTo(1000), "The picture never changes the stock.");
+                Assert.That(site.GetComponentsInChildren<MeshRenderer>().Any(item => item.name == "Galena"), Is.True, "The outcrop stands on the silver islet.");
+            }
+            finally
+            {
+                Object.Destroy(site.gameObject);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas()
         {
             yield return null;
