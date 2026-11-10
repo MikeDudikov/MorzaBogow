@@ -40,7 +40,7 @@ namespace MorzaBogow.Presentation
                 Notice = "Przywrócono poprzednią rozdzielczość.";
             }
 
-            if (Input.GetKeyDown(KeyCode.F10)) panelVisible = !panelVisible;
+            if (GameInput.GetKeyDown(KeyCode.F10)) panelVisible = !panelVisible;
         }
 
         public void RefreshAvailable()

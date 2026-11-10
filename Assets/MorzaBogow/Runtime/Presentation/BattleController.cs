@@ -171,6 +171,8 @@ namespace MorzaBogow.Presentation
 
         void Awake()
         {
+            groupFormation = Enum.TryParse(PlayerPrefs.GetString(FormationKey, nameof(FormationKind.Line)), out FormationKind savedFormation)
+                && Enum.IsDefined(typeof(FormationKind), savedFormation) ? savedFormation : FormationKind.Line;
             var surface = FindAnyObjectByType<UnityEngine.Rendering.HighDefinition.WaterSurface>();
             if (surface != null)
             {
@@ -227,6 +229,8 @@ namespace MorzaBogow.Presentation
         int showcaseStep, showcasePhase, showcaseSince;
         float showcaseClock, showcaseMark;
         Ship showcaseBoarder, showcaseCatapult;
+        Ship[] showcaseGroup = Array.Empty<Ship>();
+        Vector3 showcaseSpot;
 
         /// <summary>One staged picture: set the scene, let game time and the camera settle, then the shot (if any).</summary>
         sealed class ShowcaseStep
@@ -402,7 +406,45 @@ namespace MorzaBogow.Presentation
                     weather?.SetWeather(0f, 6f);
                 } },
                 new ShowcaseStep { Ticks = 1, Setup = () => LogWeather("calm again") },
+                // A group of rams sent to one point takes its own places: first a line abreast, then a wedge further on.
+                new ShowcaseStep { Shot = "szyk-linia", Ticks = 14 * Rules.TickRate, Setup = () =>
+                {
+                    showcaseSpot = FormationWater(spread);
+                    showcaseGroup = Enumerable.Range(0, 5)
+                        .Select(i => World.SpawnShip(PlayerFaction, ShipClass.Ram, showcaseSpot.x - 70f, showcaseSpot.z + (i - 2) * 28f)).ToArray();
+                    foreach (var ship in showcaseGroup) ship.Heading = 0;
+                    selected.Clear();
+                    foreach (var ship in showcaseGroup) selected.Add(ship.Id);
+                    SetGroupFormation(FormationKind.Line, false);
+                    SendMove(showcaseGroup.Select(ship => ship.Id).ToArray(), showcaseSpot);
+                    pivot = showcaseSpot + new Vector3(-15f, 0f, 0f); height = 85f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                new ShowcaseStep { Shot = "szyk-klin", Ticks = 14 * Rules.TickRate, Setup = () =>
+                {
+                    SetGroupFormation(FormationKind.Wedge, false);
+                    var ahead = showcaseSpot + new Vector3(60f, 0f, 0f);
+                    var group = showcaseGroup.Where(ship => World.FindShip(ship.Id) != null).Select(ship => ship.Id).ToArray();
+                    SendMove(group, ahead);
+                    pivot = ahead + new Vector3(-25f, 0f, 0f);
+                    Debug.Log($"[Showcase] formation: {group.Length} rams, line then wedge");
+                } },
             };
+        }
+
+        /// <summary>Open water away from every ship where a group and its formation fit: a box of 260 by 180 m, all sea.</summary>
+        Vector3 FormationWater(float spread)
+        {
+            for (var z = -380f * spread; z <= 380f * spread; z += 20f)
+            for (var x = -480f * spread; x <= 480f * spread; x += 20f)
+            {
+                if (World.Ships.Any(ship => World.Distance(ship.X, ship.Y, x, z) < 160)) continue;
+                var open = true;
+                for (var dz = -90f; dz <= 90f && open; dz += 15f)
+                for (var dx = -160f; dx <= 100f && open; dx += 15f)
+                    open = !World.OnLand(x + dx, z + dz);
+                if (open) return new Vector3(x, 0f, z);
+            }
+            return ShowcaseWater(spread);
         }
 
         void LogWeather(string moment)
@@ -1796,10 +1838,10 @@ namespace MorzaBogow.Presentation
             var delta = Time.unscaledDeltaTime;
             var move = Vector3.zero;
             // Edge scrolling needs a focused game and a cursor inside the screen; the automatic test never scrolls.
-            var mouse = Input.mousePosition;
+            var mouse = GameInput.MousePosition;
             // A dialog holds the input: the view stays put, the world keeps running.
             var free = !InputHeldByInterface;
-            var edgeScroll = free && Application.isFocused && autoPlayer == null && showcasePrefix == null
+            var edgeScroll = free && Application.isFocused && autoPlayer == null && showcasePrefix == null && GameInput.PointerKnown
                              && mouse.x >= 0f && mouse.y >= 0f && mouse.x <= Screen.width && mouse.y <= Screen.height;
             if (free && KeyBindings.Held(GameAction.CameraUp) || (edgeScroll && mouse.y >= Screen.height - 4)) move += Vector3.forward;
             if (free && KeyBindings.Held(GameAction.CameraDown) || (edgeScroll && mouse.y <= 4)) move += Vector3.back;
@@ -1809,10 +1851,11 @@ namespace MorzaBogow.Presentation
             if (free && KeyBindings.Held(GameAction.RotateRight)) yaw += 70f * delta;
             if (free && KeyBindings.Held(GameAction.TiltUp)) tilt += 40f * delta;
             if (free && KeyBindings.Held(GameAction.TiltDown)) tilt -= 40f * delta;
-            if (free && Input.GetMouseButton(2))
+            if (free && GameInput.GetMouseButton(2))
             {
-                yaw += Input.GetAxisRaw("Mouse X") * 3f;
-                tilt -= Input.GetAxisRaw("Mouse Y") * 2f;
+                var turn = GameInput.MouseAxes;
+                yaw += turn.x * 3f;
+                tilt -= turn.y * 2f;
             }
             if (free && KeyBindings.Down(GameAction.CameraReset))
             {
@@ -1822,7 +1865,7 @@ namespace MorzaBogow.Presentation
             tilt = ObliqueCamera.ClampTilt(tilt);
             // A larger scenario's map is spread wider; the camera may rise and roam in proportion.
             var spread = (float)World.Profile.Spread;
-            if (free && !PointerOverHud()) height = Mathf.Clamp(height - Input.mouseScrollDelta.y * height * 0.1f, 20f, 300f * Mathf.Max(1f, spread * 0.85f));
+            if (free && !PointerOverHud()) height = Mathf.Clamp(height - GameInput.MouseScrollDelta.y * height * 0.1f, 20f, 300f * Mathf.Max(1f, spread * 0.85f));
 
             var rotation = Quaternion.Euler(0f, yaw, 0f);
             var scroll = move.normalized;
@@ -1850,8 +1893,8 @@ namespace MorzaBogow.Presentation
             if (hud != null) hud.HandleKeys();
             if (InputHeldByInterface || KeyBindings.Capturing) { dragging = false; return; }
             if (KeyBindings.Down(GameAction.Pause)) paused = !paused;
-            if (KeyBindings.Down(GameAction.Faster) || Input.GetKeyDown(KeyCode.KeypadPlus)) SpeedUp();
-            if (KeyBindings.Down(GameAction.Slower) || Input.GetKeyDown(KeyCode.KeypadMinus)) SpeedDown();
+            if (KeyBindings.Down(GameAction.Faster) || GameInput.GetKeyDown(KeyCode.KeypadPlus)) SpeedUp();
+            if (KeyBindings.Down(GameAction.Slower) || GameInput.GetKeyDown(KeyCode.KeypadMinus)) SpeedDown();
             if (KeyBindings.Down(GameAction.Save)) QuickSave(DefaultSavePath);
             if (KeyBindings.Down(GameAction.Load)) QuickLoad(DefaultSavePath);
             HandleGroups();
@@ -1859,40 +1902,40 @@ namespace MorzaBogow.Presentation
             // A targeted order waits for its target: left click places it, right click or Escape cancels it.
             if (PendingOrder != HudOrder.None)
             {
-                if (selected.Count == 0 || KeyBindings.Down(GameAction.Cancel) || (Input.GetMouseButtonDown(1) && !PointerOverHud())) { PendingOrder = HudOrder.None; return; }
-                if (Input.GetMouseButtonDown(0) && !PointerOverHud() && TryGround(Input.mousePosition, out var target))
+                if (selected.Count == 0 || KeyBindings.Down(GameAction.Cancel) || (GameInput.GetMouseButtonDown(1) && !PointerOverHud())) { PendingOrder = HudOrder.None; return; }
+                if (GameInput.GetMouseButtonDown(0) && !PointerOverHud() && TryGround(GameInput.MousePosition, out var target))
                 {
                     var order = PendingOrder;
-                    var keep = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                    var keep = GameInput.GetKey(KeyCode.LeftShift) || GameInput.GetKey(KeyCode.RightShift);
                     if (ExecuteOrder(order, target) && !keep) PendingOrder = HudOrder.None;
                 }
                 return;
             }
             if (KeyBindings.Down(GameAction.Cancel) && !(hud != null && hud.ConsumedCancel)) ClearSelection();
 
-            if (PointerOverHud()) { if (Input.GetMouseButtonUp(0)) dragging = false; return; }
-            if (Input.GetMouseButtonDown(0)) { dragging = true; dragStart = Input.mousePosition; }
-            if (Input.GetMouseButtonUp(0) && dragging) { dragging = false; FinishSelection(Input.mousePosition); }
-            if (Input.GetMouseButtonDown(1) && TryGround(Input.mousePosition, out var point)) OrderAt(point);
+            if (PointerOverHud()) { if (GameInput.GetMouseButtonUp(0)) dragging = false; return; }
+            if (GameInput.GetMouseButtonDown(0)) { dragging = true; dragStart = GameInput.MousePosition; }
+            if (GameInput.GetMouseButtonUp(0) && dragging) { dragging = false; FinishSelection(GameInput.MousePosition); }
+            if (GameInput.GetMouseButtonDown(1) && TryGround(GameInput.MousePosition, out var point)) OrderAt(point);
         }
 
         void HandleGroups()
         {
             for (var key = 1; key <= 9; key++)
             {
-                if (!Input.GetKeyDown(KeyCode.Alpha0 + key)) continue;
-                if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) { groups[key] = selected.ToArray(); continue; }
+                if (!GameInput.GetKeyDown(KeyCode.Alpha0 + key)) continue;
+                if (GameInput.GetKey(KeyCode.LeftControl) || GameInput.GetKey(KeyCode.RightControl)) { groups[key] = selected.ToArray(); continue; }
                 if (!groups.TryGetValue(key, out var ids)) continue;
                 selected.Clear();
                 foreach (var id in ids) { var ship = World.FindShip(id); if (ship != null && ship.Owner == PlayerFaction) selected.Add(id); }
             }
         }
 
-        bool PointerOverHud() => hud != null && hud.IsPointerOverInterface(Input.mousePosition);
+        bool PointerOverHud() => hud != null && hud.IsPointerOverInterface(GameInput.MousePosition);
 
         void FinishSelection(Vector2 end)
         {
-            var additive = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            var additive = GameInput.GetKey(KeyCode.LeftShift) || GameInput.GetKey(KeyCode.RightShift);
             if (!additive) ClearSelection();
             if (strategicCamera == null) return;
 
@@ -2078,7 +2121,7 @@ namespace MorzaBogow.Presentation
                 if (shore != null)
                 {
                     Send(CommandKind.FoundOutpost, merchants.Take(1).ToArray(), target: shore.Id);
-                    Send(CommandKind.Move, ids.Except(merchants.Take(1)).ToArray(), point);
+                    SendMove(ids.Except(merchants.Take(1)).ToArray(), point);
                     return;
                 }
 
@@ -2086,7 +2129,7 @@ namespace MorzaBogow.Presentation
                 if (ownPort != null)
                 {
                     Send(CommandKind.Transfer, merchants, target: ownPort.Id);
-                    Send(CommandKind.Move, ids.Except(merchants).ToArray(), point);
+                    SendMove(ids.Except(merchants).ToArray(), point);
                     return;
                 }
             }
@@ -2106,11 +2149,11 @@ namespace MorzaBogow.Presentation
                 if (cutters.Length > 0)
                 {
                     Send(CommandKind.Harvest, cutters, target: node.Id);
-                    Send(CommandKind.Move, ids.Except(cutters).ToArray(), point);
+                    SendMove(ids.Except(cutters).ToArray(), point);
                     return;
                 }
             }
-            Send(CommandKind.Move, ids, point);
+            SendMove(ids, point);
         }
 
         void OrderAttack(int[] ids, Ship enemy)
@@ -2120,7 +2163,7 @@ namespace MorzaBogow.Presentation
                 var ship = World.FindShip(id);
                 if (ship == null) continue;
                 var kind = ship.Class == ShipClass.Ram ? CommandKind.Ram
-                    : ship.Class == ShipClass.Boarder && Input.GetKey(KeyCode.LeftAlt) == false ? CommandKind.Board
+                    : ship.Class == ShipClass.Boarder && GameInput.GetKey(KeyCode.LeftAlt) == false ? CommandKind.Board
                     : World.HasWeapons(ship) ? CommandKind.AttackShip
                     : CommandKind.Move;
                 if (kind == CommandKind.Move) Send(kind, new[] { id }, ToWorld(enemy));
@@ -2132,6 +2175,19 @@ namespace MorzaBogow.Presentation
         {
             if (ids.Length == 0) return;
             World.Issue(new Command { Faction = PlayerFaction, Kind = kind, ShipIds = ids, X = point.x, Y = point.z, TargetId = target });
+        }
+
+        /// <summary>
+        /// A move order: one ship goes to the point; a group takes its own places there in the chosen formation
+        /// (Formation), each ship with an ordinary move command of its own, so the ships no longer crowd onto one point.
+        /// </summary>
+        void SendMove(int[] ids, Vector3 point)
+        {
+            if (ids.Length <= 1) { Send(CommandKind.Move, ids, point); return; }
+            var ships = ids.Select(World.FindShip).Where(ship => ship != null).ToArray();
+            var places = Formation.Targets(World, ships, point.x, point.z, groupFormation);
+            for (var i = 0; i < ships.Length; i++)
+                World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { ships[i].Id }, X = places[i].X, Y = places[i].Y });
         }
 
         public void SelectForTest(int id) => selected.Add(id);
@@ -2212,14 +2268,31 @@ namespace MorzaBogow.Presentation
         /// <summary>A targeted order chosen on the order panel, waiting for a left click on the map.</summary>
         public HudOrder PendingOrder { get; set; }
 
-        public bool IsDragging => dragging && (Input.mousePosition - (Vector3)dragStart).magnitude >= 6f;
+        const string FormationKey = "orders.formation";
+        FormationKind groupFormation;
+
+        /// <summary>The formation a group takes when it is sent to one point; the player's choice, kept between games.</summary>
+        public FormationKind GroupFormation => groupFormation;
+
+        /// <summary>Sets the group formation; <paramref name="remember"/> keeps it for the next game.</summary>
+        public void SetGroupFormation(FormationKind kind, bool remember = true)
+        {
+            groupFormation = kind;
+            if (!remember) return;
+            PlayerPrefs.SetString(FormationKey, kind.ToString());
+            PlayerPrefs.Save();
+        }
+
+        public void ToggleGroupFormation() => SetGroupFormation(groupFormation == FormationKind.Line ? FormationKind.Wedge : FormationKind.Line);
+
+        public bool IsDragging => dragging && (GameInput.MousePosition - (Vector3)dragStart).magnitude >= 6f;
 
         /// <summary>The selection box in screen pixels, origin at the bottom left.</summary>
         public Rect DragScreenRect
         {
             get
             {
-                var end = (Vector2)Input.mousePosition;
+                var end = (Vector2)GameInput.MousePosition;
                 return Rect.MinMaxRect(Mathf.Min(dragStart.x, end.x), Mathf.Min(dragStart.y, end.y), Mathf.Max(dragStart.x, end.x), Mathf.Max(dragStart.y, end.y));
             }
         }
@@ -2379,7 +2452,7 @@ namespace MorzaBogow.Presentation
             switch (order)
             {
                 case HudOrder.Move:
-                    Send(CommandKind.Move, Ids(_ => true), point);
+                    SendMove(Ids(_ => true), point);
                     done = true;
                     break;
                 case HudOrder.Attack:

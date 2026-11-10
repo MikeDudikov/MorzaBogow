@@ -39,7 +39,7 @@ namespace MorzaBogow.Presentation
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F9)) panelVisible = !panelVisible;
+            if (GameInput.GetKeyDown(KeyCode.F9)) panelVisible = !panelVisible;
         }
 
         public void Select(GraphicsProfile profile) => Apply(profile, true);

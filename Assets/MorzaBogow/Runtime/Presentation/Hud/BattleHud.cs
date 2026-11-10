@@ -80,6 +80,7 @@ namespace MorzaBogow.Presentation
         QueueRow warRow, portRow;
         readonly List<CommandButton> commands = new List<CommandButton>();
         Label commandsEmpty;
+        Button formationButton;
         VisualElement worldLayer, selectBox, popoverLayer, modalLayer, tooltip;
         Label tipTitle, tipBody, tipCost, tipKey;
         readonly List<(VisualElement root, MeterBar hull, MeterBar crew)> bars = new List<(VisualElement, MeterBar, MeterBar)>();
@@ -100,7 +101,6 @@ namespace MorzaBogow.Presentation
         DisplaySettingsController display;
         string lastProfileNotice = string.Empty, lastDisplayNotice = string.Empty;
         GameAction? capturing;
-        static KeyCode[] allKeys;
         string settingsTab = "Obraz";
 
         sealed class Herald
@@ -234,6 +234,12 @@ namespace MorzaBogow.Presentation
             CloseModal();
             ClosePopover();
             lastWood = lastSilver = long.MinValue;
+            // A key shared by two actions fires both; the player hears of it at the start, not only in the settings
+            // (a key bound earlier may now share G with the group formation).
+            var clashes = KeyBindings.AllConflicts();
+            if (clashes.Count > 0)
+                OnHerald(new HeraldMessage("Jeden klawisz ma kilka czynności: " + string.Join("; ", clashes.Select(pair => $"{KeyBindings.Label(KeyBindings.Key(pair.Item1))} – {KeyBindings.Name(pair.Item1)} i {KeyBindings.Name(pair.Item2)}"))
+                    + ". Zmień w Ustawieniach → Sterowanie.", HeraldLevel.Important, null, HeraldTopic.General));
             Refresh();
         }
 
@@ -386,6 +392,11 @@ namespace MorzaBogow.Presentation
             var ordersHeading = Element("section-heading", orders);
             Text("Rozkazy", "section-title", ordersHeading);
             Element("spacer", ordersHeading).pickingMode = PickingMode.Ignore;
+            // The formation switch shows only for a group: a single ship always goes to the point itself.
+            formationButton = new Button(() => { battle.ToggleGroupFormation(); Refresh(); }) { focusable = true };
+            formationButton.AddToClassList("card-button");
+            ordersHeading.Add(formationButton);
+            Tip(formationButton, FormationTip);
             SmallButton(ordersHeading, "help", null, HelpTip);
             var grid = Element("command-grid", orders);
             foreach (var definition in CommandDefinitions()) commands.Add(MakeCommand(grid, definition));
@@ -980,8 +991,8 @@ namespace MorzaBogow.Presentation
             if (capturing.HasValue) { CaptureKey(); return; }
             if (modal != null)
             {
-                if (Input.GetKeyDown(KeyCode.Escape)) { CloseModal(); ConsumedCancel = true; }
-                else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) ConfirmModal();
+                if (GameInput.GetKeyDown(KeyCode.Escape)) { CloseModal(); ConsumedCancel = true; }
+                else if (GameInput.GetKeyDown(KeyCode.Return) || GameInput.GetKeyDown(KeyCode.KeypadEnter)) ConfirmModal();
                 return;
             }
             if (popover != null && KeyBindings.Down(GameAction.Cancel)) { ClosePopover(); ConsumedCancel = true; return; }
@@ -989,7 +1000,9 @@ namespace MorzaBogow.Presentation
             if (KeyBindings.Down(GameAction.FocusAlert)) FocusAlarm();
             if (KeyBindings.Down(GameAction.CancelOrder) && FocusedQueueItem(out var war, out var index)) RequestCancel(war, index);
             if (KeyBindings.Down(GameAction.Cancel) && battle.PendingOrder == HudOrder.None && battle.Selected.Count == 0 && battle.InspectedSettlementId < 0) { OpenMenu(); ConsumedCancel = true; }
-            if (OwnSelected().Count == 0) return;
+            var own = OwnSelected().Count;
+            if (own == 0) return;
+            if (own > 1 && KeyBindings.Down(GameAction.Formation)) { battle.ToggleGroupFormation(); Refresh(); }
             foreach (var command in commands)
             {
                 if (KeyBindings.Down(command.Action)) Run(command);
@@ -1684,7 +1697,25 @@ namespace MorzaBogow.Presentation
                 SetText(command.Hotkey, KeyBindings.Label(KeyBindings.Key(command.Action)));
             }
             Show(commandsEmpty, ships.Count == 0);
+            var group = ships.Count > 1;
+            Show(formationButton, group);
+            if (group) formationButton.text = FormationLabel(battle.GroupFormation);
         }
+
+        /// <summary>The formation switch's text, which names the formation a group move takes now.</summary>
+        public static string FormationLabel(FormationKind kind) => kind == FormationKind.Wedge ? "Szyk: klin" : "Szyk: linia";
+
+        /// <summary>The formation switch as the interface shows it: hidden for one ship, its text for a group.</summary>
+        public string FormationSwitchForTest => formationButton != null && formationButton.style.display != DisplayStyle.None ? formationButton.text : null;
+
+        TipInfo FormationTip() => new TipInfo
+        {
+            Title = "Szyk grupy",
+            Body = battle.GroupFormation == FormationKind.Wedge
+                ? "Klin: prowadzący płynie do wskazanego punktu, reszta w dwóch skrzydłach za nim. Kliknięcie zmienia szyk na linię."
+                : "Linia: statki stają burta przy burcie w poprzek kursu, z miejscem na wiosła. Kliknięcie zmienia szyk na klin.",
+            Key = $"Skrót: {KeyBindings.Label(KeyBindings.Key(GameAction.Formation))} · dotyczy rozkazu ruchu dla grupy",
+        };
 
         TipInfo CommandTip(CommandButton command)
         {
@@ -1711,10 +1742,10 @@ namespace MorzaBogow.Presentation
         void UpdateCursor()
         {
             string name = null;
-            if (!HoldsInput && !IsPointerOverInterface(Input.mousePosition))
+            if (!HoldsInput && !IsPointerOverInterface(GameInput.MousePosition))
             {
                 var order = battle.PendingOrder;
-                name = order != HudOrder.None ? CursorFor(order) : battle.ContextCursor(Input.mousePosition);
+                name = order != HudOrder.None ? CursorFor(order) : battle.ContextCursor(GameInput.MousePosition);
             }
             if (name == lastCursor) return;
             lastCursor = name;
@@ -2296,20 +2327,16 @@ namespace MorzaBogow.Presentation
 
         void CaptureKey()
         {
-            if (!Input.anyKeyDown) return;
-            if (Input.GetKeyDown(KeyCode.Escape)) { capturing = null; KeyBindings.Capturing = false; OpenSettings("Sterowanie"); return; }
-            if (allKeys == null) allKeys = ((KeyCode[])Enum.GetValues(typeof(KeyCode))).Where(key => key < KeyCode.Mouse0).ToArray();
-            foreach (var key in allKeys)
-            {
-                if (key == KeyCode.None || !Input.GetKeyDown(key)) continue;
-                var action = capturing.Value;
-                capturing = null;
-                KeyBindings.Capturing = false;
-                var conflicts = KeyBindings.Bind(action, key);
-                OpenSettings("Sterowanie");
-                if (conflicts.Count > 0) OnHerald(new HeraldMessage($"Klawisz {KeyBindings.Label(key)} jest też przypisany: {string.Join(", ", conflicts.Select(KeyBindings.Name))}.", HeraldLevel.Important, null, HeraldTopic.General));
-                return;
-            }
+            if (!GameInput.AnyKeyDown) return;
+            if (GameInput.GetKeyDown(KeyCode.Escape)) { capturing = null; KeyBindings.Capturing = false; OpenSettings("Sterowanie"); return; }
+            // Keyboard keys only, as before: a mouse button cannot be bound.
+            if (!GameInput.TryCapture(out var key)) return;
+            var action = capturing.Value;
+            capturing = null;
+            KeyBindings.Capturing = false;
+            var conflicts = KeyBindings.Bind(action, key);
+            OpenSettings("Sterowanie");
+            if (conflicts.Count > 0) OnHerald(new HeraldMessage($"Klawisz {KeyBindings.Label(key)} jest też przypisany: {string.Join(", ", conflicts.Select(KeyBindings.Name))}.", HeraldLevel.Important, null, HeraldTopic.General));
         }
 
         void RefreshOverlays()

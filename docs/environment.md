@@ -90,7 +90,7 @@ Uproszczenia względem specyfikacji, do wdrożenia w kolejnym etapie:
 - Wdrożono z drugiego etapu E00: handlowca z ładownią na oba zasoby, osiem wolnych brzegów, wyprawę na przyczółek (300 D/100 S, 35 s na miejscu), lokalne magazyny i kolejki portu, stocznię na przyczółku (200 D/100 S, 40 s), dostawy na rozkaz między portami, eskortę i rozbudowę SI. SI dowozi na przyczółek tylko brakujący koszt stoczni, a po jej budowie nie uzupełnia go dalej. Dostawa to jeden kurs, a eskorta strzela tylko łucznikami.
 - Nie ma automatycznych konwojów z E03: obszaru pracy, portu priorytetowego, poziomu ryzyka, trybów stoczni, grup do trzech handlowców i minimalnego zapasu źródła. Dostawa automatyczna zostawia jedynie rezerwę 60 D/20 S. Nie ma anulowania budowy stoczni ani kolejnej stoczni w osadzie głównej.
 - Nie ma pozostałych inwestycji z E05, ostrzeżeń o nasyceniu ani rezerwy gracza; rezerwy 60 D/20 S przy zamówieniach wojskowych przestrzega tylko SI. Stracony przyczółek nie zostawia łupu, a jego niewydane zapasy są niedostępne.
-- Ląd w logice to wielokąt linii wody (64 promienie; wybrzeże zmierzone z modelu, wysepki jako elipsy, obrót o pół obrotu po stronie x>0). Statek trzyma od niego odstęp: połowa długości plus szerokość płycizny, której jego zanurzenie nie przejdzie (`Seabed`, zanurzenie rośnie o 65% przy pełnej ładowni). Trasy: graf widoczności wokół wielokątów, osobny dla każdego odstępu (co 0,5 m), szukanie A* z kopcem i leniwym sprawdzeniem odcinków od statku. Mecz 30 min SI liczy się w ok. 6 s w .NET (przedtem 76 s). Tylko wybrzeże blokuje strzały. Cel ruchu na lądzie przesuwa się na najbliższą wodę. Zapis zawiera kształt i obrót lądu (od v7). Nie ma grafu akwenów, rezerwacji przejść ani formacji. Odległości mapy to linie proste, nie zmierzone trasy.
+- Ląd w logice to wielokąt linii wody (64 promienie; wybrzeże zmierzone z modelu, wysepki jako elipsy, obrót o pół obrotu po stronie x>0). Statek trzyma od niego odstęp: połowa długości plus szerokość płycizny, której jego zanurzenie nie przejdzie (`Seabed`, zanurzenie rośnie o 65% przy pełnej ładowni). Trasy: graf widoczności wokół wielokątów, osobny dla każdego odstępu (co 0,5 m), szukanie A* z kopcem i leniwym sprawdzeniem odcinków od statku. Mecz 30 min SI liczy się w ok. 6 s w .NET (przedtem 76 s). Tylko wybrzeże blokuje strzały. Cel ruchu na lądzie przesuwa się na najbliższą wodę. Zapis zawiera kształt i obrót lądu (od v7). Nie ma grafu akwenów ani rezerwacji przejść. Szyk grupy (linia, klin) działa od 2026-11-10, opis w docs/INTERFEJS.md. Odległości mapy to linie proste, nie zmierzone trasy.
 - Kadłuby to kapsuły o długości i szerokości z definicji. Trzymają 2 m wody między burtami (poza parą sczepioną abordażem), by w ukośnym rzucie kamery bliższy kadłub nie zasłaniał dalszego; nachodzenie rozpychają ważone masą, a statek z kadłubem na kursie skręca, by minąć go burtą. Eskorta płynie przy burcie transportu, nie przed jego dziobem.
 - Wiosła: zasięg z reguł (`Rules.OarReach`); mijające się statki zostawiają na nie miejsce, a w prezentacji wiosła składają się wzdłuż burty po stronie, gdzie inny kadłub leży w ich zasięgu, i obie strony przy postoju.
 - Stocznia: dwie pochylnie przy osadzie (linia wojenna i portowa, po bokach pomostu). Kadłub na pochylni pokazuje etap według postępu zamówienia: stępka, wręgi, poszycie, pokład, maszt (i taran), wiosła i żagiel; cieśle pracują do zdjęcia rusztowań. Gotowy statek zjeżdża po rampie do morza (rozbryzg) i dopływa do miejsca z symulacji, które leży u wylotu pochylni, dziobem w morze, w pierwszym wolnym miejscu bez nachodzenia.
@@ -159,6 +159,36 @@ Pomiar testem dymnym, RTX 3050 Ti Laptop, profil Ultra, 1920×1080, 90 s rozgryw
 
 Prezentacja zajmuje po zmianie około 0,3 ms mniej na klatkę. Całą klatkę ogranicza GPU, więc liczba klatek na sekundę się nie zmienia. Odczyty nieudane (8 przed, 40 po) to w obu wersjach jedna klatka startowa bez danych morza: dawny kod liczył pierwszy nieudany punkt każdego okrętu, nowy wszystkie punkty partii. Build „po” zawiera też etap 3c, część 1 (`c9dd827`, nowe klasy i budowy SI). W pierwszych 90 s liczba okrętów była jednak taka sama. Przebiegi 2026-11-10 uruchomiono z `-force-device-index 0`, a log pokazał RTX 3050 Ti.
 
+## Szyk grupy i wejście na Input System (2026-11-10)
+
+Partia C planu „Brakujące elementy z polecenia Senior Unity HDRP RTS”.
+
+- **Szyk** (`Simulation/Formation.cs`, czysta arytmetyka).
+  - Rozkaz ruchu dla grupy daje każdemu statkowi osobny rozkaz ruchu na jego miejsce. Są dwa szyki: linia burta przy burcie w poprzek kursu (najwyżej 8 w szeregu, kolejne szeregi o długość kadłuba z tyłu) albo klin z prowadzącym w punkcie.
+  - Odstęp w poprzek kursu to najszerszy kadłub z wiosłami po obu stronach plus `World.HullSpacing`; wzdłuż kursu najdłuższy kadłub plus `World.HullSpacing`.
+  - Punkt przy lądzie odsuwa się wzdłuż normalnej brzegu, tak jak w `World.MoveTargetToWater`, na zapas najgłębszego kadłuba grupy (`World.LandClearance` + 1 m). Miejsce bez tego zapasu albo kolidujące z innym przechodzi na najbliższe wolne, szukane w pierścieniach co pół odstępu.
+  - Przydział: najpierw według położenia na boki, potem zamiany par, dopóki skracają łączną drogę. Dzięki temu kursy się nie krzyżują.
+  - Kliknięcie bliżej niż odstęp od środka grupy bierze kurs prowadzącego (najniższe Id).
+  - Wszystko w kolejności Id, więc wynik nie zależy od kolejności zaznaczenia.
+  - Zapis i powtórka mają tylko zwykłe rozkazy ruchu.
+  - Przełącznik w panelu rozkazów i klawisz G (`GameAction.Formation`, wstawiona po rozkazach, przypisania zapisane po nazwie). Wybór jest zapamiętany w PlayerPrefs (`orders.formation`). Opis w docs/INTERFEJS.md.
+- **Wejście** (`Presentation/Hud/GameInput.cs`).
+  - `activeInputHandler: 1` (tylko pakiet Input System). Wszystkie odczyty klawiatury i myszy idą przez jeden adapter na `Keyboard.current` i `Mouse.current`; przy braku urządzeń nic nie jest wciśnięte.
+  - KeyCode odpowiada klawiszowi Input System w tym samym miejscu klawiatury, więc zapisane przypisania i etykiety się nie zmieniają.
+  - Oś obrotu myszą: piksele × 0,1, jak dawne „Mouse X/Y” o czułości 0,1.
+  - Kółko: domyślne `UniformAcrossAllPlatforms`, ±1 na ząbek.
+  - Przy zmianie przypisania przechwytywane są tylko klawisze klawiatury, jak wcześniej, także gdy inny klawisz jest wciśnięty.
+  - Zapisany klawisz, którego Input System nie obsługuje, wraca do domyślnego z ostrzeżeniem w logu. Konflikt przypisań herold zgłasza na początku bitwy.
+  - Panele UI Toolkit dostają wejście od dostawcy Input System z wbudowanymi akcjami UI (projekt nie ma własnego zestawu akcji ani assetu ustawień).
+  - Wpis Input System do `testables` dołączyłby setki testów pakietu, a pominięte testy blokują bramkę. Testy używają więc własnych wirtualnych urządzeń (`InputSystem.AddDevice`) i na czas testu zmieniają dwa ustawienia: fokus i tryb gry w edytorze.
+
+| Kontrola | Wynik | Zakres |
+|---|---|---|
+| Testy EditMode szyku (6), osobny przebieg | PASS 6/6 | linia i odstępy, klin z dwoma skrzydłami, szeregi po 8 bez krzyżowania kursów (także układ, w którym przydział po samym położeniu bocznym krzyżował kursy), kurs prowadzącego przy kliknięciu obok grupy, niezależność od kolejności zaznaczenia, punkt na wyspie: wszystkie miejsca na wodzie z zapasem i bez stłoczenia |
+| Testy PlayMode (5), osobny przebieg | PASS 5/5 | ruch grupy w linii i klinie, pojedynczy statek w punkt, przełącznik tylko dla grupy, mapa KeyCode ↔ Key, klawisze, przyciski, kółko i pozycja z wirtualnych urządzeń, klawisz szyku przez interfejs |
+| Build Windows64 Mono | Success, 331723828 B, 0 błędów, 0 ostrzeżeń | z niezatwierdzoną pracą innych sesji w drzewie (modele okrętów, efekty pocisków) |
+| Showcase, zrzuty `szyk-linia` i `szyk-klin` | 5 taranowców w linii, potem w klinie; przełącznik pokazuje szyk; log gracza bez błędów, Input System zainicjowany | zrzuty z profilu Ultra; wejście z prawdziwej myszy i klawiatury nie było używane |
+
 ## Znane ograniczenia
 
 - Unity zapisuje `asserts="0"` w wynikach NUnit także dla testów z asercjami. Bramka wymaga wtedy asercji w kodzie właściwej metody testu, więc asercja wyłącznie w metodzie pomocniczej blokuje wynik. Zmiana przeszła niezależny przegląd, po którym usunięto wykryte obejścia; poprawek nie przeglądano ponownie. Analiza kodu nie dowodzi, że asercja faktycznie się wykonała.
@@ -179,5 +209,13 @@ Prezentacja zajmuje po zmianie około 0,3 ms mniej na klatkę. Całą klatkę og
 - Próbkowanie fal przy dużej flocie: NOT_RUN. Zmierzono najwyżej 8 widocznych kadłubów.
 - Sztorm w ruchu (fale zmieniane 4 razy na sekundę, mgła, światło) oraz na profilach innych niż Ultra, oceniany przez człowieka: NOT_RUN. Są tylko dwa zrzuty z Ultra.
 - Pula efektów z efektem VFX Graph: NOT_RUN. Projekt nie ma jeszcze żadnego efektu VFX, więc restart VFX nie ma testu.
+- Ręczny przegląd wejścia w buildzie po przejściu na Input System: NOT_RUN, do wykonania przez człowieka. Testy automatyczne podają wejście z wirtualnych urządzeń, nie z prawdziwej myszy i klawiatury. Do sprawdzenia:
+  - kamera i przewijanie krawędzią, także gdy kursor wychodzi poza okno na drugim monitorze (do pierwszego ruchu myszy przewijanie krawędzią jest wyłączone);
+  - ramka zaznaczenia, PPM i środkowy przycisk, w tym skala obrotu względem dawnej osi „Mouse X”;
+  - kółko (±1 na ząbek);
+  - klawisz Pause;
+  - zmiana przypisania klawisza;
+  - kliknięcia w panelach;
+  - położenie kursora w trybie FullScreenWindow przy rozdzielczości niższej niż pulpit.
 - Integracja hooków w działającym Claude Code: NOT_RUN.
 - Zewnętrzne CI: NOT_RUN.

@@ -8,6 +8,8 @@ namespace MorzaBogow.Presentation
     {
         // Orders (fixed order on the command grid)
         Move, Stop, Attack, Ram, Board, Volley, Harvest, Deliver, Outpost, Escort, Repair, Scrap,
+        // The formation a group takes when it moves (a switch beside the orders)
+        Formation,
         // Game and interface
         Pause, FocusAlert, CollapseHud, Cancel, Save, Load, CancelOrder, Faster, Slower,
         // Camera
@@ -15,10 +17,11 @@ namespace MorzaBogow.Presentation
     }
 
     /// <summary>
-    /// The one place keys are bound. Defaults follow the interface contract (orders M S A R B V H D F E P X, Pause,
-    /// Space to the alarm, Tab to fold the panels); the camera moves on the arrows so no letter is bound twice.
-    /// The player may rebind any action; conflicts are reported, never silently resolved. Saved in PlayerPrefs.
-    /// While a key is being captured, no action fires.
+    /// The one place keys are bound. Defaults follow the interface contract (orders M S A R B V H D F E P X, G for a
+    /// group's formation, Pause, Space to the alarm, Tab to fold the panels); the camera moves on the arrows so no letter
+    /// is bound twice. The player may rebind any action; conflicts are reported, never silently resolved. Saved in
+    /// PlayerPrefs by name, as KeyCode, and read through GameInput on the Input System. While a key is being captured,
+    /// no action fires.
     /// </summary>
     public static class KeyBindings
     {
@@ -30,6 +33,7 @@ namespace MorzaBogow.Presentation
             { GameAction.Ram, KeyCode.R }, { GameAction.Board, KeyCode.B }, { GameAction.Volley, KeyCode.V },
             { GameAction.Harvest, KeyCode.H }, { GameAction.Deliver, KeyCode.D }, { GameAction.Outpost, KeyCode.F },
             { GameAction.Escort, KeyCode.E }, { GameAction.Repair, KeyCode.P }, { GameAction.Scrap, KeyCode.X },
+            { GameAction.Formation, KeyCode.G },
             { GameAction.Pause, KeyCode.Pause }, { GameAction.FocusAlert, KeyCode.Space }, { GameAction.CollapseHud, KeyCode.Tab },
             { GameAction.Cancel, KeyCode.Escape }, { GameAction.Save, KeyCode.F5 }, { GameAction.Load, KeyCode.F8 },
             { GameAction.CancelOrder, KeyCode.Delete }, { GameAction.Faster, KeyCode.Equals }, { GameAction.Slower, KeyCode.Minus },
@@ -53,7 +57,10 @@ namespace MorzaBogow.Presentation
                 foreach (var pair in defaults)
                 {
                     var saved = PlayerPrefs.GetString(Prefix + pair.Key, string.Empty);
-                    if (saved.Length > 0 && Enum.TryParse(saved, out KeyCode key)) current[pair.Key] = key;
+                    if (saved.Length == 0 || !Enum.TryParse(saved, out KeyCode key)) continue;
+                    // A key the Input System cannot read would silently stop the action: the default comes back instead.
+                    if (GameInput.TryMap(key, out _)) current[pair.Key] = key;
+                    else Debug.LogWarning($"[Klawisze] {Name(pair.Key)}: zapisany klawisz {saved} jest nieobsługiwany; przywrócono {Label(pair.Value)}.");
                 }
                 return current;
             }
@@ -62,8 +69,8 @@ namespace MorzaBogow.Presentation
         public static KeyCode Key(GameAction action) => Current[action];
         public static KeyCode Default(GameAction action) => defaults[action];
 
-        public static bool Down(GameAction action) => !Capturing && Input.GetKeyDown(Current[action]);
-        public static bool Held(GameAction action) => !Capturing && Input.GetKey(Current[action]);
+        public static bool Down(GameAction action) => !Capturing && GameInput.GetKeyDown(Current[action]);
+        public static bool Held(GameAction action) => !Capturing && GameInput.GetKey(Current[action]);
 
         /// <summary>Binds a key; returns the other actions that now share it, for the settings to show.</summary>
         public static List<GameAction> Bind(GameAction action, KeyCode key)
@@ -145,6 +152,7 @@ namespace MorzaBogow.Presentation
                 case GameAction.Escort: return "Eskorta";
                 case GameAction.Repair: return "Remont";
                 case GameAction.Scrap: return "Złomowanie";
+                case GameAction.Formation: return "Szyk grupy";
                 case GameAction.Pause: return "Pauza";
                 case GameAction.FocusAlert: return "Do alarmu";
                 case GameAction.CollapseHud: return "Zwiń panele";

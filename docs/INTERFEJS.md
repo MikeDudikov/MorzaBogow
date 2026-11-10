@@ -10,6 +10,7 @@ Interfejs potyczki wdrożony według pakietu „Morza_Bogow_Interfejs” (INTERF
 - Siatka 1920×1080, `ScaleWithScreenSize`, dopasowanie do wysokości; skala gracza 90/100/110/125% (`PanelSettings.scale`). Powyżej 105% etykiety zasobów i rozkazów ustępują ikonom (klasa `compact`).
 - Interfejs tylko czyta stan (`World`, `BattleController`) i wysyła komendy; nie zmienia salda, życia, cargo, kolejek ani widoczności. Teksty odświeża co 0,125 s i zmienia tylko przy zmianie wartości; minimapę co 0,25 s; paski kadłuba co klatkę. Medaliony, karty, pozycje kolejek i wiadomości pochodzą z pul o stałym limicie.
 - Tick symulacji: 30 Hz (`Rules.TickRate`), odczytany z kodu.
+- Wejście (od 2026-11-10): pakiet Input System. Klawiatura i mysz są czytane w jednym miejscu (`Hud/GameInput.cs`); przypisania zostają zapisane jako KeyCode po nazwie, więc dawne ustawienia gracza działają dalej. Kliknięcia w panelach UI Toolkit obsługuje dostawca Input System z wbudowanymi akcjami UI.
 
 ## Układ
 
@@ -38,7 +39,19 @@ Menu linii wojennej ma przełącznik „Domyślne uzbrojenie: tak/nie”, zapami
 
 ## Rozkazy i skróty
 
-Stała kolejność: Ruch M, Stop S, Atak A, Taran R, Abordaż B, Ostrzał V, Zbiór H, Dostawa D, Buduj (przyczółek) F, Eskorta E, Remont P, Złomuj X. Niedostępne dla zaznaczenia znikają; podpowiedź mieszanej grupy mówi, ilu statków dotyczy. Rozkaz celowany włącza tryb wskazania (podpis nad mapą, kursor); LPM wskazuje cel, Shift zostawia tryb, PPM/Esc anuluje bez utraty zaznaczenia. Złomowanie wymaga potwierdzenia. PPM na mapie wybiera czynność według klasy, celu, własności i widoczności; kursor kontekstowy to tylko podgląd, a symulacja ponownie sprawdza cel.
+Stała kolejność: Ruch M, Stop S, Atak A, Taran R, Abordaż B, Ostrzał V, Zbiór H, Dostawa D, Buduj (przyczółek) F, Eskorta E, Remont P, Złomuj X; obok nich szyk grupy G. Niedostępne dla zaznaczenia znikają; podpowiedź mieszanej grupy mówi, ilu statków dotyczy. Rozkaz celowany włącza tryb wskazania (podpis nad mapą, kursor); LPM wskazuje cel, Shift zostawia tryb, PPM/Esc anuluje bez utraty zaznaczenia. Złomowanie wymaga potwierdzenia. PPM na mapie wybiera czynność według klasy, celu, własności i widoczności; kursor kontekstowy to tylko podgląd, a symulacja ponownie sprawdza cel.
+
+Szyk grupy, G. Rozkaz ruchu dla co najmniej dwóch statków (PPM na morzu albo Ruch) daje każdemu własne miejsce w wybranym szyku:
+- **linia:** statki stają burta przy burcie w poprzek kursu, w odstępie najszerszego kadłuba z wiosłami po obu stronach i 2 m wolnej wody; najwyżej 8 w szeregu, kolejne szeregi o długość kadłuba za nim;
+- **klin:** prowadzący płynie w sam punkt, reszta w dwóch skrzydłach za nim.
+
+Pozostałe zasady:
+- **Kurs** biegnie od środka grupy do punktu. Przy kliknięciu tuż obok grupy szyk ustawia się według kursu prowadzącego.
+- **Ląd:** punkt przy lądzie odsuwa się na wodę z zapasem, jakiego potrzebuje najgłębszy kadłub grupy. Miejsce na lądzie, na płyciźnie albo za blisko innego przechodzi na najbliższe wolne.
+- **Kursy:** statki dostają miejsca tak, żeby łączna droga była możliwie krótka, więc ich kursy się nie krzyżują.
+- **Pojedynczy statek** płynie w sam punkt.
+
+Przełącznik „Szyk: linia/klin” w nagłówku rozkazów widać tylko przy grupie; wybór jest zapamiętany. Szyk to zwykłe rozkazy ruchu dla każdego statku, więc zapis i powtórka go odtwarzają (`Simulation/Formation.cs`). Gdy ten sam klawisz ma kilka czynności, herold mówi o tym na początku bitwy.
 
 Pozostałe: Pause – pauza; Spacja – do ostatniego niepotwierdzonego alarmu; Tab – zwiń panele; Esc – anuluj / menu; F5/F8 – zapis/wczytanie; +/− – tempo; Delete – anuluj zamówienie z fokusem. Kamera: strzałki, kółko, przecinek/kropka (obrót), PgUp/PgDn (pochylenie), Home, środkowy przycisk. Wszystkie przypisania można zmienić w Ustawieniach → Sterowanie; konflikty są pokazywane, a podczas przechwytywania klawisza gra nie reaguje na klawisze.
 
