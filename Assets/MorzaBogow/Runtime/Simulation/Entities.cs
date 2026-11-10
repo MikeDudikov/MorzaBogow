@@ -85,6 +85,9 @@ namespace MorzaBogow.Simulation
         /// <summary>A workshop order makes this weapon; a ship order may follow a fleet blueprint.</summary>
         public WeaponType Weapon;
         public int BlueprintId = -1;
+
+        /// <summary>A hull ordered without its default weapons: cheaper by their worth, launched with empty posts (docs/UZBROJENIE.md).</summary>
+        public bool Unarmed;
     }
 
     /// <summary>
@@ -316,6 +319,9 @@ namespace MorzaBogow.Simulation
         /// <summary>QueueShip after a blueprint; SaveBlueprint: its name.</summary>
         public int BlueprintId = -1;
         public string Name;
+
+        /// <summary>QueueShip without the class's default weapons (ignored with a blueprint).</summary>
+        public bool Unarmed;
     }
 
     public enum OutcomeKind { InProgress, Won, Draw }

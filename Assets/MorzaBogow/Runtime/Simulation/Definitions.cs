@@ -2,7 +2,8 @@ using System;
 
 namespace MorzaBogow.Simulation
 {
-    public enum ShipClass { Cutter, Ram, CrewDestroyer, Boarder, Merchant }
+    /// <summary>Hull classes (docs/UZBROJENIE.md). Saved by number: new classes go last.</summary>
+    public enum ShipClass { Cutter, Ram, CrewDestroyer, Boarder, Merchant, ShipKiller, Bomber }
     public enum ResourceType { Wood, Silver }
 
     /// <summary>Banks of archers and javelin men are manned posts; the machines are built in the workshop (docs/UZBROJENIE.md).</summary>
@@ -174,6 +175,12 @@ namespace MorzaBogow.Simulation
             new ShipDefinition { Class = ShipClass.Boarder, Hull = 780, Speed = 5.2, MaxCrew = 90, CostWood = 200, CostSilver = 180, BuildSeconds = 40, Radius = 13, Mass = 780, TurnRadiansPerSecond = 0.35, Vision = 200, Beam = 10.9, Draft = 2.2,
                 Slots = new[] { SlotSize.Light, SlotSize.Light, SlotSize.Medium }, DefaultLoadout = new[] { WeaponType.JavelinBank, WeaponType.JavelinBank, WeaponType.None }, ProjectileArmor = 0.15, RamMultiplier = 0.7 },
             new ShipDefinition { Class = ShipClass.Merchant, Hull = 420, Speed = 7, MaxCrew = 12, CostWood = 140, CostSilver = 60, BuildSeconds = 28, Capacity = 480, Radius = 12, Mass = 420, TurnRadiansPerSecond = 0.4, Vision = 200, Beam = 10.1, Draft = 2.0, ProjectileArmor = 0.05 },
+            // Stage 3c (docs/UZBROJENIE.md): a small hull for two bolt-throwers that breaks hulls and buildings from range,
+            // and the heaviest, slowest artillery ship, two lead-shot catapults; it needs a workshop and the heavy-arms research.
+            new ShipDefinition { Class = ShipClass.ShipKiller, Hull = 620, Speed = 6.5, MaxCrew = 36, CostWood = 220, CostSilver = 140, BuildSeconds = 38, Radius = 10, Mass = 620, TurnRadiansPerSecond = 0.5, Vision = 200, Beam = 6.0, Draft = 1.7,
+                Slots = new[] { SlotSize.Medium, SlotSize.Medium }, DefaultLoadout = new[] { WeaponType.DeckBallista, WeaponType.DeckBallista }, ProjectileArmor = 0.15, RamMultiplier = 0.8 },
+            new ShipDefinition { Class = ShipClass.Bomber, Hull = 960, Speed = 4.3, MaxCrew = 45, CostWood = 400, CostSilver = 260, BuildSeconds = 60, Radius = 14, Mass = 960, TurnRadiansPerSecond = 0.3, Vision = 200, Beam = 9.4, Draft = 2.8,
+                Slots = new[] { SlotSize.Heavy, SlotSize.Heavy }, DefaultLoadout = new[] { WeaponType.HeavyCatapult, WeaponType.HeavyCatapult }, ProjectileArmor = 0.20, RamMultiplier = 0.5 },
         };
 
         public static ShipDefinition Get(ShipClass shipClass) => Definitions[(int)shipClass];

@@ -1542,19 +1542,42 @@ namespace MorzaBogow.Presentation
             if (port == null) return;
             var panel = OpenPopover(anchor, $"Zamów – {battle.PortName(port)}");
             var fleet = battle.World.Ships.Count(ship => ship.Owner == BattleController.PlayerFaction);
-            foreach (var shipClass in new[] { ShipClass.Cutter, ShipClass.Merchant, ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder })
+            productionClasses = 0;
+            if (!war.HasValue || war.Value)
+            {
+                // Warships with their class's weapons, or bare hulls fitted later from the plan and the workshop (docs/UZBROJENIE.md).
+                var armed = battle.DefaultArming;
+                var arming = MenuItem(panel, armed ? "check" : "close", "Domyślne uzbrojenie", armed ? "tak" : "nie", () =>
+                {
+                    battle.DefaultArming = !battle.DefaultArming;
+                    OpenProduction(war, anchor);
+                });
+                arming.AddToClassList("compact");
+                Tip(arming, () => new TipInfo
+                {
+                    Title = "Domyślne uzbrojenie",
+                    Body = "Tak: okręt wodowany z bronią swojej klasy, w cenie kompletnego szablonu. Nie: kadłub tańszy dokładnie o wartość tej broni, z pustymi gniazdami i pustym planem uzbrojenia; broń dokłada potem plan uzbrojenia i Warsztat portu. Taran zostaje.",
+                    Key = "Klik: przełącz",
+                });
+            }
+            foreach (var shipClass in new[] { ShipClass.Cutter, ShipClass.Merchant, ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.ShipKiller, ShipClass.Bomber })
             {
                 var definition = ShipCatalog.Get(shipClass);
                 if (war.HasValue && war.Value == definition.IsEconomic) continue;
                 var chosen = shipClass;
-                var item = MenuItem(panel, ClassIcon(shipClass), BattleController.ClassName(shipClass), $"{definition.CostWood} D · {definition.CostSilver} S · {definition.BuildSeconds:0} s", () => Order(chosen));
+                var bare = Bare(definition);
+                var (wood, silver) = World.OrderPrice(definition, bare);
+                var item = MenuItem(panel, ClassIcon(shipClass), BattleController.ClassName(shipClass), $"{wood / Rules.Centi} D · {silver / Rules.Centi} S · {definition.BuildSeconds:0} s", () => Order(chosen));
                 var problem = OrderProblem(port, definition, fleet);
                 item.EnableInClassList("disabled", problem != null);
+                productionClasses++;
                 Tip(item, () => new TipInfo
                 {
                     Title = BattleController.ClassName(chosen),
                     Body = $"Kadłub {definition.Hull}, prędkość {definition.Speed:0.#}, załoga do {definition.MaxCrew}" + (definition.Capacity > 0 ? $", ładownia {definition.Capacity}." : ".") + (problem != null ? "\n" + problem : string.Empty),
-                    Cost = $"Cena kompletnego szablonu (z obsadą i uzbrojeniem): {definition.CostWood} D · {definition.CostSilver} S · {definition.BuildSeconds:0} s",
+                    Cost = bare
+                        ? $"Kadłub bez domyślnej broni: {wood / Rules.Centi} D · {silver / Rules.Centi} S · {definition.BuildSeconds:0} s (kompletny szablon: {definition.CostWood} D · {definition.CostSilver} S)"
+                        : $"Cena kompletnego szablonu (z obsadą i uzbrojeniem): {definition.CostWood} D · {definition.CostSilver} S · {definition.BuildSeconds:0} s",
                     Key = definition.IsEconomic ? "Linia portowa" : "Linia wojenna",
                 });
             }
@@ -1597,12 +1620,30 @@ namespace MorzaBogow.Presentation
             Text("Brak stoczni nie daje darmowej linii wojennej. Zapas chroniony 60 D / 20 S jest częścią dostępnych środków.", "popover-note", panel);
         }
 
+        /// <summary>A warship ordered as a bare hull, when the player turned the default weapons off.</summary>
+        bool Bare(ShipDefinition definition) => !battle.DefaultArming && !definition.IsEconomic && definition.Slots.Length > 0;
+
+        int productionClasses;
+
+        /// <summary>Opens the order menu (war line, port line or both) and returns how many classes it lists (tests).</summary>
+        public int OpenProductionForTest(bool? war)
+        {
+            OpenProduction(war, portBuildButton);
+            return productionClasses;
+        }
+
+        /// <summary>The values (prices, states) of the items the open popover lists, in order (tests).</summary>
+        public IReadOnlyList<string> PopoverValuesForTest =>
+            popover == null ? (IReadOnlyList<string>)Array.Empty<string>() : popover.Query<Label>(className: "menu-item-value").ToList().Select(label => label.text).ToList();
+
         string OrderProblem(Settlement port, ShipDefinition definition, int fleet)
         {
-            if (!definition.IsEconomic && !port.HasShipyard) return "Ten port nie ma stoczni.";
+            var requirement = battle.World.ShipProblem(port, definition.Class);
+            if (requirement != null) return requirement;
             if (fleet >= Rules.FleetLimit) return $"Flota osiągnęła limit {Rules.FleetLimit}.";
-            var wood = definition.CostWood * Rules.Centi - port.Available(ResourceType.Wood);
-            var silver = definition.CostSilver * Rules.Centi - port.Available(ResourceType.Silver);
+            var (priceWood, priceSilver) = World.OrderPrice(definition, Bare(definition));
+            var wood = priceWood - port.Available(ResourceType.Wood);
+            var silver = priceSilver - port.Available(ResourceType.Silver);
             if (wood > 0 || silver > 0) return $"Brakuje: {Math.Max(0, wood) / Rules.Centi} D · {Math.Max(0, silver) / Rules.Centi} S.";
             return null;
         }
@@ -1614,16 +1655,18 @@ namespace MorzaBogow.Presentation
             var definition = ShipCatalog.Get(shipClass);
             var problem = OrderProblem(port, definition, battle.World.Ships.Count(ship => ship.Owner == BattleController.PlayerFaction));
             if (problem != null) { OnHerald(new HeraldMessage($"Nie można zamówić: {BattleController.ClassName(shipClass)}. {problem}", HeraldLevel.Info, null, HeraldTopic.General)); return; }
-            var leftWood = port.Available(ResourceType.Wood) - definition.CostWood * Rules.Centi;
-            var leftSilver = port.Available(ResourceType.Silver) - definition.CostSilver * Rules.Centi;
+            var bare = Bare(definition);
+            var (priceWood, priceSilver) = World.OrderPrice(definition, bare);
+            var leftWood = port.Available(ResourceType.Wood) - priceWood;
+            var leftSilver = port.Available(ResourceType.Silver) - priceSilver;
             ClosePopover();
             if (leftWood < Rules.ReserveWood || leftSilver < Rules.ReserveSilver)
             {
                 OpenConfirm("Naruszenie zapasu chronionego", $"Po zamówieniu ({BattleController.ClassName(shipClass)}) w porcie zostanie {leftWood / Rules.Centi} D · {leftSilver / Rules.Centi} S, mniej niż zapas chroniony {Rules.ReserveWood / Rules.Centi} D · {Rules.ReserveSilver / Rules.Centi} S.",
-                    null, "Zamów mimo to", () => battle.QueueShip(shipClass), false);
+                    null, "Zamów mimo to", () => battle.QueueShip(shipClass, bare), false);
                 return;
             }
-            battle.QueueShip(shipClass);
+            battle.QueueShip(shipClass, bare);
             Refresh();
         }
 
@@ -2416,6 +2459,9 @@ namespace MorzaBogow.Presentation
                 case ShipClass.Ram: return "trireme";
                 case ShipClass.CrewDestroyer: return "archer-ship";
                 case ShipClass.Merchant: return "merchant";
+                // Stand-in glyphs until the class icons of the 3c presentation part.
+                case ShipClass.ShipKiller: return "target";
+                case ShipClass.Bomber: return "volley";
                 default: return "boarding-ship";
             }
         }
@@ -2428,6 +2474,8 @@ namespace MorzaBogow.Presentation
                 case ShipClass.Ram: return "Taran.";
                 case ShipClass.CrewDestroyer: return "Niszcz.";
                 case ShipClass.Merchant: return "Handl.";
+                case ShipClass.ShipKiller: return "N. okr.";
+                case ShipClass.Bomber: return "Bomb.";
                 default: return "Abord.";
             }
         }

@@ -46,8 +46,41 @@ namespace MorzaBogow.Simulation
 
         // ---------- Production: complete templates, reserved in full, consumed with progress ----------
 
+        /// <summary>
+        /// Why a port cannot take an order for this class now, apart from funds and the fleet limit (docs/UZBROJENIE.md):
+        /// warships need a shipyard; the bomber also a workshop in that port and its side's heavy-arms research.
+        /// </summary>
+        public string ShipProblem(Settlement port, ShipClass shipClass)
+        {
+            var definition = ShipCatalog.Get(shipClass);
+            if (!definition.IsEconomic && !port.HasShipyard) return "Ten port nie ma stoczni.";
+            if (shipClass == ShipClass.Bomber)
+            {
+                if (!port.HasWorkshop) return "Bombowiec wymaga Warsztatu w tym porcie.";
+                if (!HasHeavyArms(port.Owner)) return "Bombowiec wymaga badania broni ciężkiej (Szkoła Mędrców).";
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// What an order for a class costs: the complete template, or without its default weapons, cheaper by exactly their
+        /// worth in the template (ShipDefinition.ItemValues); the ram is part of the hull and stays. Amounts in 0.01 units.
+        /// </summary>
+        public static (long wood, long silver) OrderPrice(ShipDefinition definition, bool unarmed)
+        {
+            long wood = definition.CostWood * Rules.Centi, silver = definition.CostSilver * Rules.Centi;
+            if (!unarmed) return (wood, silver);
+            var values = definition.ItemValues();
+            for (var i = 0; i < definition.Slots.Length; i++)
+            {
+                wood -= values[i].wood;
+                silver -= values[i].silver;
+            }
+            return (wood, silver);
+        }
+
         /// <summary>Orders pay from the local store of the chosen port; without a target the main settlement builds.</summary>
-        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1)
+        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1, bool unarmed = false)
         {
             // A blueprint fixes the class; the hull is ordered at the class price, its other weapons from the workshop.
             var blueprint = blueprintId >= 0 ? Blueprints.FirstOrDefault(item => item.Id == blueprintId && item.Owner == faction) : null;
@@ -59,16 +92,25 @@ namespace MorzaBogow.Simulation
             if (Ships.Count(ship => ship.Owner == faction) + queued >= Rules.FleetLimit) return;
 
             var definition = ShipCatalog.Get(shipClass);
-            if (!definition.IsEconomic && !settlement.HasShipyard) return;
-            var wood = definition.CostWood * Rules.Centi;
-            var silver = definition.CostSilver * Rules.Centi;
+            if (ShipProblem(settlement, shipClass) != null) return;
+            var bare = unarmed && blueprint == null && definition.Slots.Length > 0;
+            var (wood, silver) = OrderPrice(definition, bare);
             if (settlement.Available(ResourceType.Wood) < wood || settlement.Available(ResourceType.Silver) < silver) return;
 
             settlement.ReservedWood += wood;
             settlement.ReservedSilver += silver;
             var queue = definition.IsEconomic ? settlement.PortQueue : settlement.WarQueue;
-            queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate), BlueprintId = blueprint?.Id ?? -1 });
+            queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate), BlueprintId = blueprint?.Id ?? -1, Unarmed = bare });
             if (blueprint != null) OrderBlueprintWeapons(settlement, blueprint);
+        }
+
+        /// <summary>A hull launched without its default weapons: empty posts and plan, no worth in them; the ram keeps its own.</summary>
+        static void Unarm(Ship ship)
+        {
+            var values = ship.Definition.ItemValues();
+            var kept = new (long wood, long silver)[values.Length];
+            kept[values.Length - 1] = values[values.Length - 1];
+            Fit(ship, Array.Empty<WeaponType>(), kept);
         }
 
         void CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
@@ -141,6 +183,7 @@ namespace MorzaBogow.Simulation
             var (x, y, heading) = LaunchSpot(settlement, ShipCatalog.Get(order.Class), war);
             var ship = SpawnShip(settlement.Owner, order.Class, x, y);
             ship.Heading = heading;
+            if (order.Unarmed) Unarm(ship);
             if (order.BlueprintId >= 0) ApplyBlueprint(ship, order.BlueprintId);
             Emit("ship_built", ship.Id, settlement.Id, ship.X, ship.Y, war ? 1 : 0);
         }

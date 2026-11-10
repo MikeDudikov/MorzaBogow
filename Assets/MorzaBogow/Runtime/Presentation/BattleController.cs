@@ -2145,11 +2145,21 @@ namespace MorzaBogow.Presentation
             if (settlement != null && settlement.Owner == PlayerFaction && !settlement.Destroyed) inspectedSettlementId = settlementId;
         }
 
-        public void QueueShip(ShipClass shipClass)
+        public void QueueShip(ShipClass shipClass, bool unarmed = false)
         {
             var port = ActivePort;
             if (port == null) return;
-            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass, TargetId = port.Id });
+            World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.QueueShip, Class = shipClass, TargetId = port.Id, Unarmed = unarmed });
+        }
+
+        /// <summary>
+        /// Whether new warships are ordered with their class's default weapons (docs/UZBROJENIE.md); without them a hull
+        /// is cheaper and gets its weapons later from the plan and the workshop. Remembered between games.
+        /// </summary>
+        public bool DefaultArming
+        {
+            get => PlayerPrefs.GetInt("MorzaBogow.DefaultArming", 1) != 0;
+            set => PlayerPrefs.SetInt("MorzaBogow.DefaultArming", value ? 1 : 0);
         }
 
         public void CancelQueue(bool warLine, int index)
@@ -2423,6 +2433,8 @@ namespace MorzaBogow.Presentation
                 case ShipClass.Merchant: return "Handlowiec";
                 case ShipClass.Ram: return "Taranowiec";
                 case ShipClass.CrewDestroyer: return "Niszczyciel załóg";
+                case ShipClass.ShipKiller: return "Niszczyciel okrętów";
+                case ShipClass.Bomber: return "Bombowiec";
                 default: return "Abordażowiec";
             }
         }

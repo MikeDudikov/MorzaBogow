@@ -503,6 +503,8 @@ namespace MorzaBogow.Tests
 
         [TestCase(ShipClass.Ram)]
         [TestCase(ShipClass.Boarder)]
+        [TestCase(ShipClass.ShipKiller)]
+        [TestCase(ShipClass.Bomber)]
         public void Map_ADamagedWarshipReachesAYardBesideItsLand(ShipClass shipClass)
         {
             var world = MapFactory.CreateSkirmish(1);

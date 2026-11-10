@@ -52,11 +52,11 @@ Statusy:
 | 6 | Forty małe/średnie/duże, uzbrajanie, limit siły osady | Etap 6, z własnymi cenami i limitem. Martwa strefa machin zrobiona (3a) i obejmie forty. |
 | 7.1 | Dwie cywilizacje, wiatr, zanurzenie | Druga cywilizacja: etapy 4 i 7. Wiatr: etap 8. Zanurzenie i płycizny zrobione (`Shelf`, `Draft`). |
 | 7.2 | Okręty gospodarcze, nie atakują abordażem; ich wojownicy bronią | Zrobione. Bezbronność bez wojowników: uzgodnienie paczki. |
-| 7.3–7.4 | Klasy okrętów i ich role | Taranowiec, łowca załóg i abordażowiec zrobione. Niszczyciel okrętów i bombowiec: 3c. Okręt królewski, podpalacz i okręt z wapnem: etap 4. Ceny własne (szablony z uzbrojeniem). |
+| 7.3–7.4 | Klasy okrętów i ich role | Taranowiec, łowca załóg i abordażowiec zrobione. Niszczyciel okrętów i bombowiec zrobione w symulacji (3c, [UZBROJENIE.md](UZBROJENIE.md)); modele w 3c część 2. Okręt królewski, podpalacz i okręt z wapnem: etap 4. Ceny własne (szablony z uzbrojeniem). |
 | 7.5–7.6 | Okręty unikalne cywilizacji | Etap 4, z własnymi nazwami. Okręt odporny na abordaż i wrażliwy na taran jako pomysł na rolę. |
 | 8 | Tarany i pancerze w trzech stopniach | Etap 6 (Kuźnia). Pancerz przeciwpociskowy i mnożniki taranu klas zrobione (3a). |
 | 9 | Łucznicy, oszczepnicy, szermierze; doświadczenie; nieudany abordaż | Trzy rodzaje wojowników i walka na burtach zrobione (etap 2, 3a). Nieudany abordaż: decyzja użytkownika. Doświadczenie (weterani): etapy 7–8. Abordaż okrętu barbarzyńców go topi: etap 7. |
-| 10 | Bronie średnie, ciężkie, specjalne; martwa strefa; domyślne uzbrojenie | Bronie średnie i ciężkie, martwa strefa i plan uzbrojenia zrobione (3a, 3b). Ogień grecki i wapno: etap 4. Budowa bez domyślnego uzbrojenia: 3c. |
+| 10 | Bronie średnie, ciężkie, specjalne; martwa strefa; domyślne uzbrojenie | Bronie średnie i ciężkie, martwa strefa i plan uzbrojenia zrobione (3a, 3b). Ogień grecki i wapno: etap 4. Budowa bez domyślnego uzbrojenia zrobiona (3c). |
 | 11–13 | Świątynie, zaklęcia morza i wojny | Etap 9, z własnym doborem zaklęć, kosztami w D/S i zasięgiem od świątyni. |
 | 14, 19 | Bohaterowie i skarby, które ich przyciągają | Etap 7. Bohaterowie z mitologii, zdolności i liczby własne; tabela z paczki jako materiał, nie lista. |
 | 15–16 | Potwory, stwory morskie, czarownicy | Etap 5 (zagrożenia, siedziby, chaty czarowników). |

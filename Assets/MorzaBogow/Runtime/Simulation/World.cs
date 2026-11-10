@@ -138,7 +138,7 @@ namespace MorzaBogow.Simulation
         {
             switch (command.Kind)
             {
-                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId, command.BlueprintId); return;
+                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId, command.BlueprintId, command.Unarmed); return;
                 case CommandKind.BuildProject: BeginProject(command.Faction, command.TargetId, command.Project); return;
                 case CommandKind.CancelProject: CancelProject(command.Faction, command.TargetId); return;
                 case CommandKind.QueueWeapon: QueueWeapon(command.Faction, command.TargetId, command.Weapon); return;

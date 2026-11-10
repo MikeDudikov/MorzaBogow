@@ -1,8 +1,8 @@
-# Morza Bogów — załoga, abordaż i przegrupowanie w porcie (etap 2)
+# Morza Bogów — załoga, abordaż i przegrupowanie w porcie (etap 2, oszczepnicy od 3a)
 
 Data: 2026-11-10. Gałąź: `balans-skala`. Decyzje użytkownika:
 - ludzie istnieją wyłącznie jako obsada okrętów;
-- trzy klasy ludzi: żeglarze, szermierze i łucznicy;
+- trzy klasy ludzi: żeglarze, szermierze i łucznicy, a od etapu 3a czwarta: oszczepnicy (decyzja z 2026-11-10);
 - skład załogi wybiera się w porcie presetem, a szablony floty z etapu 3 będą go zapisywać;
 - liczebność w dotychczasowej skali, 36–90 ludzi;
 - ceny okrętów bez zmian.
@@ -12,47 +12,49 @@ Data: 2026-11-10. Gałąź: `balans-skala`. Decyzje użytkownika:
 | Klasa | Rola |
 |---|---|
 | Żeglarze | Sterują, wiosłują i zbierają surowce. Prędkość zależy wyłącznie od nich: mniej niż ¼ załogi spowalnia okręt proporcjonalnie, a 40% (skład Żegluga) daje +8% prędkości. Nie walczą na pokładzie (od uzgodnienia paczki 2026-11-10). |
-| Szermierze | Walka wręcz: niosą abordaż, odpierają go i przecinają liny abordażowe wroga. |
-| Łucznicy | Ostrzał załóg okrętów w zasięgu 15–100 m, gdzie strzela każdy łucznik; w abordażu wsparcie z dystansu i obrona własnego pokładu. |
+| Szermierze | Walka wręcz: niosą abordaż, odpierają go i przecinają liny abordażowe wroga. Jako pierwsi obsadzają machiny. |
+| Oszczepnicy | Obsadzają stanowiska oszczepników (po czterech, rzut na 5–45 m). Na pokładzie walczą za szermierzami, a spoza frontu wspierają jak łucznicy. |
+| Łucznicy | Obsadzają stanowiska łuczników (po czterech, 15–100 m); w abordażu wsparcie z dystansu i obrona własnego pokładu. |
 | Ranni | Dwóch na pięciu poległych. Nie walczą i nie wiosłują, zostają na pokładzie do przegrupowania w porcie. |
 
 Bohaterowie mitologiczni wchodzą w etapie 7.
 
 ## Składy (`CrewPreset`, `ShipDefinition.PlanFor`)
 
-| Skład | Żeglarze | Szermierze w części bojowej | Łucznicy w części bojowej |
-|---|---|---|---|
-| Wyważony | 25% | 55% | 45% |
-| Abordaż | 25% | 80% | 20% |
-| Ostrzał | 25% | 25% | 75% |
-| Żegluga | 40% | 55% | 45% |
-
-Domyślne składy klas:
-
-| Klasa | Skład | Żeglarze / szermierze / łucznicy |
+| Skład | Żeglarze | Szermierze / oszczepnicy / łucznicy w części bojowej |
 |---|---|---|
-| Taran | Wyważony | 9 / 15 / 12 |
-| Niszczyciel załóg | Ostrzał | 13 / 10 / 29 |
-| Abordażowiec | Abordaż | 23 / 54 / 13 |
+| Wyważony | 25% | 40% / 25% / 35% |
+| Abordaż | 25% | 60% / 30% / 10% |
+| Ostrzał | 25% | 15% / 20% / 65% |
+| Żegluga | 40% | 40% / 25% / 35% |
+
+Domyślne składy klas (od 3a z oszczepnikami):
+
+| Klasa | Skład | Żeglarze / szermierze / oszczepnicy / łucznicy |
+|---|---|---|
+| Taranowiec | Wyważony | 9 / 11 / 7 / 9 |
+| Niszczyciel załóg | Ostrzał | 13 / 6 / 8 / 25 |
+| Abordażowiec | Abordaż | 23 / 40 / 20 / 7 |
+| Niszczyciel okrętów (3c) | Wyważony | 9 / 11 / 7 / 9 |
+| Bombowiec (3c) | Wyważony | 12 / 13 / 8 / 12 |
 | Kuter, handlowiec | — | sami żeglarze |
 
 Każdy domyślny skład ma tylu żeglarzy i wojowników, ilu zakłada cena E04, więc ceny szablonów się nie zmieniły (test).
 
 ## Ostrzał
 
-- Każdy łucznik strzela co 2 s z celnością 0,75, z karą za ruch jak dawniej.
-- Trafienie zadaje 0,55 obrażeń załodze i 0,28 kadłubowi.
-- 29 łuczników niszczyciela załóg zadaje tyle co dawne 4 stanowiska (test).
-- Na salwę wypada jedno losowanie z ziarna.
-- Okręt bez łuczników nie strzela. Okręty sczepione w abordażu nie prowadzą zwykłego ostrzału.
-- Strzały trafiają najpierw ludzi na pokładzie, liczniejszą z dwóch grup bojowych. Żeglarze przy wiosłach padają na końcu.
+Od etapu 3a strzelają stanowiska broni ([UZBROJENIE.md](UZBROJENIE.md)):
+- **Stanowisko łuczników.** Obsadza je czterech łuczników. Strzela co 2 s na 15–100 m, a trafienie zadaje kadłubowi 2 i załodze 3,5 (10 punktów to jeden człowiek). Cztery stanowiska niszczyciela załóg ranią załogi tak jak dawniej jego 29 łuczników (test).
+- **Pocisk.** Każdy pocisk leci naprawdę. Punkt upadku losuje się raz z ziarna przy wystrzale.
+- **Kiedy nie strzela.** Stanowisko bez pełnej obsługi nie strzela. Okręty sczepione w abordażu nie prowadzą zwykłego ostrzału.
+- **Kto pada.** Pociski trafiają najpierw ludzi na pokładzie, z najliczniejszej grupy bojowej. Żeglarze przy wiosłach padają na końcu.
 
 ## Abordaż
 
-1. **Haki (3 s).** Liny zrywa odpłynięcie celu albo różnica prędkości, jak dawniej. Szermierze obrońcy tną liny w tempie 0,008 na sekundę za każdego szermierza ponad połowę szermierzy atakującego. Abordażowiec przecina tak haki taranu w około 2,7 s. Między równymi okrętami liny trzymają.
+1. **Haki (3 s).** Liny zrywa odpłynięcie celu albo różnica prędkości, jak dawniej. Szermierze obrońcy tną liny w tempie 0,012 na sekundę za każdego szermierza ponad połowę szermierzy atakującego. Abordażowiec przecina tak haki taranowca w około 2,4 s. Między równymi okrętami liny trzymają.
 2. **Walka na burtach, runda co 1 s:**
    - Front: walczy 4 + ⌊szerokość węższego pokładu w m⌋ ludzi na stronę. Najpierw stają szermierze, potem oszczepnicy, potem łucznicy. Żeglarze nie walczą na pokładzie (uzgodnienie paczki, 2026-11-10): okręt bez wojowników nie stawia oporu.
-   - Siła: atak lub obrona ludzi we froncie (tabela poniżej), plus wsparcie łuczników spoza frontu (0,3 w ataku, 0,4 w obronie), razy (0,5 + morale/100).
+   - Siła: atak lub obrona ludzi we froncie (tabela poniżej), plus wsparcie oszczepników i łuczników spoza frontu (0,3 w ataku, 0,4 w obronie), razy (0,5 + morale/100).
    - Straty: każda strona traci w ludziach 0,15 × siła przeciwnika. Ułamki przechodzą na następną rundę. Padają ludzie z frontu, najpierw z liczniejszej grupy.
    - Morale: spada o 120 × poległe/pełna załoga.
 
@@ -73,16 +75,18 @@ Każdy domyślny skład ma tylu żeglarzy i wojowników, ilu zakłada cena E04, 
    - Żeglarze wiosłują dla nowego właściciela, ranni wroga przepadają.
    - Na pokład przechodzi załoga pryzowa: min(wojownicy atakującego, ¼ załogi okrętu), najpierw szermierze. Gdy zdobyczy brakuje żeglarzy, część pryzowych siada do wioseł.
 
-Pojedynki zmierzone w symulacji (pełne załogi):
+Pojedynki zmierzone w symulacji: pełne załogi z oszczepnikami (pomiar 3c), czas od zarzucenia haków. Abordażowiec ma 67 wojowników. Po zdobyciu część z nich przechodzi na zdobycz jako załoga pryzowa.
 
 | Atak → cel | Wynik |
 |---|---|
-| Abordażowiec → taran | Zdobyty po ok. 14 s haków i walki; abordażowiec traci ok. 25 szermierzy. |
-| Abordażowiec → niszczyciel załóg | Poddaje się po ok. 17 s; abordażowiec traci ok. 44 szermierzy. |
-| Abordażowiec → abordażowiec | Zdobyty po ok. 20 s; atakujący prawie bez wojska. |
-| Taran → niszczyciel załóg | Odparty po 10 s. |
-| Taran → abordażowiec | Liny przecięte po 2,7 s. |
+| Abordażowiec → taranowiec | Zdobyty po ok. 12 s. Abordażowiec traci 12 wojowników (4 z nich ranni), a 9 przechodzi na zdobycz. |
+| Abordażowiec → niszczyciel załóg | Poddaje się po ok. 14 s. Abordażowiec traci 25 wojowników (10 z nich ranni), a 13 przechodzi na zdobycz. |
+| Abordażowiec → abordażowiec | Zdobyty po ok. 20 s. Atakującemu nie zostaje żaden wojownik, a 22 jest rannych. |
+| Taranowiec → niszczyciel załóg | Odparty po 10 s. Taranowiec traci całą załogę bojową. |
+| Taranowiec → abordażowiec | Liny przecięte po 2,4 s. |
 | Abordażowiec → handlowiec | Zdobyty po 6 s. |
+
+Pojedynki wszystkich klas wojennych z ostrzałem i taranem: [UZBROJENIE.md](UZBROJENIE.md#pojedynki-i-oblężenie-pomiar-3c-symulacja-net-bez-unity).
 
 AI wchodzi w abordaż, gdy `World.BoardingOdds` przekracza 1,2. Wskaźnik to siła pierwszej rundy razy liczba wojowników, którymi strona może zasilać front.
 

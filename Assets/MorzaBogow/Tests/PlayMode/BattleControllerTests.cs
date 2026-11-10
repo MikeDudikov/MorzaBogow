@@ -331,6 +331,36 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Hud_OrderMenuListsTheNewClassesAndTheBareHullPrice()
+        {
+            yield return WaitForInterface();
+            var hud = battle.Hud;
+            var armedBefore = battle.DefaultArming;
+            try
+            {
+                battle.DefaultArming = true;
+                Assert.That(hud.OpenProductionForTest(true), Is.EqualTo(5), "Ram, crew destroyer, boarder, ship killer and bomber.");
+                var items = hud.PopoverItemsForTest.ToList();
+                var killerName = BattleController.ClassName(ShipClass.ShipKiller);
+                Assert.That(items, Does.Contain(killerName));
+                Assert.That(items, Does.Contain(BattleController.ClassName(ShipClass.Bomber)));
+                var killer = ShipCatalog.Get(ShipClass.ShipKiller);
+                var index = items.IndexOf(killerName);
+                Assert.That(hud.PopoverValuesForTest[index], Does.StartWith($"{killer.CostWood} D · {killer.CostSilver} S"), "The complete template with its weapons.");
+
+                battle.DefaultArming = false;
+                hud.OpenProductionForTest(true);
+                var (wood, silver) = World.OrderPrice(killer, true);
+                Assert.That(hud.PopoverValuesForTest[index], Does.StartWith($"{wood / Rules.Centi} D · {silver / Rules.Centi} S"), "A bare hull, cheaper by its weapons.");
+                hud.ClosePopoverForTest();
+            }
+            finally
+            {
+                battle.DefaultArming = armedBefore;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Hud_BuildMenuOffersTheDockAfterTheTown()
         {
             yield return WaitForInterface();

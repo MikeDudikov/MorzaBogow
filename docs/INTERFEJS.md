@@ -34,6 +34,8 @@ Rozwinięcie magazynu pokazuje osobno: dostępne do wydania, zarezerwowane na za
 
 Linia wojenna i portowa są niezależne. Pozycja: ikona klasy, etap (ikona: stępka, wręgi, poszycie, pokład, maszt, wiosła i żagiel – te same progi co model na pochylni), pasek postępu i pozostały czas z zegara symulacji. PPM lub Delete na pozycji anuluje; powyżej 50% okno pokazuje zwolnioną rezerwację, zwrot i stratę wyliczone przez `World.QuoteCancel` (ta sama funkcja wykonuje anulowanie). Przycisk „+” otwiera szablony z ceną kompletną i czasem. Przyczółek bez stoczni nie ma linii wojennej; zamiast niej pokazuje budowę stoczni.
 
+Menu linii wojennej ma przełącznik „Domyślne uzbrojenie: tak/nie”, zapamiętany w ustawieniach. Przy „nie” ceny klas spadają o wartość ich broni, a okręt schodzi na wodę z pustymi gniazdami ([UZBROJENIE.md](UZBROJENIE.md#budowa-bez-domyślnego-uzbrojenia-3c)). Bombowiec bez Warsztatu w porcie albo bez badania broni ciężkiej jest niedostępny, a podpowiedź podaje powód.
+
 ## Rozkazy i skróty
 
 Stała kolejność: Ruch M, Stop S, Atak A, Taran R, Abordaż B, Ostrzał V, Zbiór H, Dostawa D, Buduj (przyczółek) F, Eskorta E, Remont P, Złomuj X. Niedostępne dla zaznaczenia znikają; podpowiedź mieszanej grupy mówi, ilu statków dotyczy. Rozkaz celowany włącza tryb wskazania (podpis nad mapą, kursor); LPM wskazuje cel, Shift zostawia tryb, PPM/Esc anuluje bez utraty zaznaczenia. Złomowanie wymaga potwierdzenia. PPM na mapie wybiera czynność według klasy, celu, własności i widoczności; kursor kontekstowy to tylko podgląd, a symulacja ponownie sprawdza cel.

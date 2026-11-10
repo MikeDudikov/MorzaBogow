@@ -182,7 +182,7 @@ namespace MorzaBogow.Tests
         [Test]
         public void Weapons_FittedItemsAndTheRamShareTheEquipmentPriceExactly()
         {
-            foreach (var shipClass in new[] { ShipClass.Cutter, ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.Merchant })
+            foreach (ShipClass shipClass in System.Enum.GetValues(typeof(ShipClass)))
             {
                 var definition = ShipCatalog.Get(shipClass);
                 var values = definition.ItemValues();

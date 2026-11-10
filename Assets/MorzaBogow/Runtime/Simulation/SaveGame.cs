@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 15;
+        public const int Version = 16;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -60,7 +60,7 @@ namespace MorzaBogow.Simulation
                 writer.Write((int)order.Class); writer.Write(order.PaidWood); writer.Write(order.PaidSilver);
                 writer.Write(order.UsedWood); writer.Write(order.UsedSilver);
                 writer.Write(order.TotalTicks); writer.Write(order.DoneTicks); writer.Write(order.Started);
-                writer.Write((int)order.Weapon); writer.Write(order.BlueprintId);
+                writer.Write((int)order.Weapon); writer.Write(order.BlueprintId); writer.Write(order.Unarmed);
             }
         }
 
@@ -74,7 +74,7 @@ namespace MorzaBogow.Simulation
                     Class = (ShipClass)reader.ReadInt32(), PaidWood = reader.ReadInt64(), PaidSilver = reader.ReadInt64(),
                     UsedWood = reader.ReadInt64(), UsedSilver = reader.ReadInt64(),
                     TotalTicks = reader.ReadInt32(), DoneTicks = reader.ReadInt32(), Started = reader.ReadBoolean(),
-                    Weapon = (WeaponType)reader.ReadInt32(), BlueprintId = reader.ReadInt32(),
+                    Weapon = (WeaponType)reader.ReadInt32(), BlueprintId = reader.ReadInt32(), Unarmed = reader.ReadBoolean(),
                 });
             }
         }

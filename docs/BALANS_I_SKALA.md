@@ -1,6 +1,10 @@
 # Morza Bogów — balans, skala i tempo rozgrywki
 
-Data: 2026-11-10. Gałąź: `balans-skala`. Status: etapy 1 (profile długości, złoża, skala lądu i drzew) i 2 (załoga i abordaż) wdrożone; etapy 3–8 zaplanowane.
+Data: 2026-11-10. Gałąź: `balans-skala`. Status:
+- etap 1 (profile długości, złoża, skala lądu i drzew) wdrożony;
+- etap 2 (załoga i abordaż) wdrożony;
+- z etapu 3 wdrożone 3a, 3b i symulacja 3c ([UZBROJENIE.md](UZBROJENIE.md)); prezentacja 3c czeka;
+- etapy 4–9 zaplanowane.
 
 ## Decyzja użytkownika (nadrzędna wobec dokumentów)
 
@@ -46,7 +50,7 @@ Decyzja użytkownika z uzgodnienia paczki specyfikacji ([UZGODNIENIE_SPECYFIKACJ
 - **Naprawa modułów broni** tylko w doku: 25% wartości przedmiotu (drewno i srebro razem) razy brakująca część, w srebrze.
 - **Zostaje bez doku:** przegrupowanie załogi (leczenie, zaciąg, przeszkolenie) i wymiana broni według planu działają w każdym porcie ze stocznią.
 - **Rozkaz Remont.** Uszkodzony okręt płynie do najbliższego doku swojej strony, także obok bliższej stoczni (`World.RepairYard`). Rozkaz dla samego kadłuba lub modułu bez doku po swojej stronie jest odrzucany. Okręt bez rozkazu sam wchodzi do portu z powodu kadłuba tylko wtedy, gdy port ma dok.
-- **AI** od 8. minuty buduje w porcie macierzystym kolejno Warsztat, Miasto i Dok (cena plus 150 S zapasu).
+- **AI** od 8. minuty buduje w porcie macierzystym kolejno Warsztat, Miasto i Dok (cena plus 150 S zapasu), a od 3c dalej Szkołę Mędrców i badanie broni ciężkiej.
   - W tym czasie linia okrętów odkłada cenę następnej budowy (`Opponent.BuildingSaving`), chyba że wróg jest przy porcie. Bez tego zamówienia okrętów rezerwowały całe srebro i AI nie stawiało nawet Warsztatu.
   - Kadłub naprawia dopiero wtedy, gdy ma dok. Okręty z przetrzebioną załogą wracają na przegrupowanie jak dawniej.
 - **Zapis gry** ma wersję 15 (`HasDock`; bez `RepairWoodRemainder`).
@@ -178,7 +182,7 @@ Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z eta
 | Etap | Zakres | Stan |
 |---|---|---|
 | 2 | Cztery klasy załogi (z oszczepnikami od 3a), składy wybierane w porcie, walka na burtach, ranni, przejęcie w całości, automatyczne przegrupowanie w porcie ([ZALOGA_I_ABORDAZ.md](ZALOGA_I_ABORDAZ.md)); porażka abordażu i bezbronność bez wojowników według uzgodnienia paczki | wdrożony |
-| 3 | **3a:** stanowiska broni z obsługą, pociski z lotem i rozrzutem, moduły, pancerz, taran z zapowiedzią. **3b:** Warsztat (arsenał), Miasto, Szkoła Mędrców, badanie broni ciężkiej, wymiana broni w porcie, szablony floty. **3c:** niszczyciel okrętów i bombowiec, broń widoczna w 3D, pociski i stożki ostrzału, budynki na wyspie portu, budowa bez domyślnego uzbrojenia | 3a, 3b wdrożone; 3c plan |
+| 3 | **3a:** stanowiska broni z obsługą, pociski z lotem i rozrzutem, moduły, pancerz, taran z zapowiedzią. **3b:** Warsztat (arsenał), Miasto, Szkoła Mędrców, badanie broni ciężkiej, wymiana broni w porcie, szablony floty. **3c:** niszczyciel okrętów i bombowiec, broń widoczna w 3D, pociski i stożki ostrzału, budynki na wyspie portu, budowa bez domyślnego uzbrojenia ([UZBROJENIE.md](UZBROJENIE.md)) | 3a, 3b wdrożone; 3c: symulacja wdrożona (klasy, budowa bez broni, AI), prezentacja po partiach A–C |
 | 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy; unikalne okręty drugiej cywilizacji i warianty barbarzyńskie (własne nazwy) | plan |
 | 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan |
 | 6 | Osady: forty przybrzeżne z limitem siły na osadę, Kuźnia (pancerze i tarany: zwykłe, srebrne, złote), badania pancerza, taranu i prędkości, transport sprzętu handlowcem, sprzedaż obiektów, rozbudowa portu (dok wdrożony przy uzgodnieniu paczki) | plan |

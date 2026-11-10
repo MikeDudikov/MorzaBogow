@@ -15,7 +15,10 @@ namespace MorzaBogow.Simulation
 
         const int CuttersPerOutpost = 2;
         const int MaxOutposts = 2;
-        static readonly ShipClass[] BuildCycle = { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder };
+        static readonly ShipClass[] BuildCycle = { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.ShipKiller };
+
+        /// <summary>Every this many warships one is a bomber, once the port may build it (docs/UZBROJENIE.md).</summary>
+        const int BomberEvery = 5;
 
         readonly int faction;
         readonly int? fixedAttackGroup;
@@ -95,10 +98,10 @@ namespace MorzaBogow.Simulation
         }
 
         /// <summary>
-        /// From about the eighth minute, one building at a time at the home port: the workshop, the town and its dock
-        /// (without a dock no hull is mended, docs/UZGODNIENIE_SPECYFIKACJI.md). Paid like the player's, with 150 S left
-        /// in store; the warship line saves its price meanwhile (BuildingSaving). The school and research follow with
-        /// the new classes (3c).
+        /// From about the eighth minute, one building at a time at the home port (NextBuilding): the workshop, the town and
+        /// its dock (without a dock no hull is mended, docs/UZGODNIENIE_SPECYFIKACJI.md), the Sages' School and the heavy-arms
+        /// research for the bomber (docs/UZBROJENIE.md). Paid like the player's, with 150 S left in store; the warship line
+        /// saves its price meanwhile (BuildingSaving).
         /// </summary>
         void ManageBuildings(World world)
         {
@@ -113,12 +116,22 @@ namespace MorzaBogow.Simulation
 
         const int BuildingsFromTick = 8 * 60 * Rules.TickRate;
 
-        /// <summary>The building due next at home: the workshop, the town, then the dock; none before the eighth minute or while one rises.</summary>
+        /// <summary>
+        /// The building due next at home: the workshop, the town, the dock, the Sages' School, then the heavy-arms research
+        /// that opens the bomber; none before the eighth minute or while one rises.
+        /// </summary>
         ProjectKind NextBuilding(World world, Settlement home)
         {
             if (home == null || home.Destroyed || home.Project != null || world.Tick < BuildingsFromTick) return ProjectKind.None;
-            return !home.HasWorkshop ? ProjectKind.Workshop : !home.IsTown ? ProjectKind.Town : !home.HasDock ? ProjectKind.Dock : ProjectKind.None;
+            return !home.HasWorkshop ? ProjectKind.Workshop : !home.IsTown ? ProjectKind.Town : !home.HasDock ? ProjectKind.Dock
+                : !home.HasSageSchool ? ProjectKind.SageSchool : !world.HasHeavyArms(faction) ? ProjectKind.HeavyArmsResearch : ProjectKind.None;
         }
+
+        /// <summary>The next warship of the cycle; every BomberEvery-th a bomber where the port may build one.</summary>
+        ShipClass NextWarship(World world, Settlement port) =>
+            buildIndex % BomberEvery == BomberEvery - 1 && world.ShipProblem(port, ShipClass.Bomber) == null
+                ? ShipClass.Bomber
+                : BuildCycle[buildIndex % BuildCycle.Length];
 
         /// <summary>
         /// The price of the building due at home, kept from the warship line so the line does not reserve every silver
@@ -150,7 +163,7 @@ namespace MorzaBogow.Simulation
 
             foreach (var port in world.PortsOf(faction).Where(item => item.HasShipyard && item.WarQueue.Count == 0).OrderBy(item => item.Id).ToList())
             {
-                var next = ShipCatalog.Get(BuildCycle[buildIndex % BuildCycle.Length]);
+                var next = ShipCatalog.Get(NextWarship(world, port));
 
                 // A waiting merchant's cargo is paid for first, and so is the building due at home; otherwise warships
                 // would spend every saving.
