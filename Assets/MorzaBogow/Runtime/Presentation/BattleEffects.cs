@@ -610,7 +610,8 @@ namespace MorzaBogow.Presentation
                 model.localPosition = new Vector3(0f, -depth, 0f);
                 model.localRotation = Quaternion.Euler(pitch, 0f, roll);
 
-                if (mastDown && view.Rig != null)
+                // A mast already down before she sank (ShipVisual.Mast) goes under with her where it lies.
+                if (mastDown && view.Rig != null && !view.MastBroken)
                 {
                     // The mast falls over the listing side, pivoting on its foot, the yard and sail with it.
                     var fall = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((age - MastFallsAt) / 1.6f));

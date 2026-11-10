@@ -115,6 +115,61 @@ namespace MorzaBogow.Editor
         }
 
         /// <summary>
+        /// Ships at the stages of their damage (docs/art/DESTRUCTION.md), side by side under the same light: whole, holed
+        /// and listing, the mast caught falling, the mast down over the side; a ram and a catapult ship.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.PreviewShipDamage
+        /// </summary>
+        public static void PreviewShipDamage()
+        {
+            var folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "artifacts-log", "destruction");
+            var failed = 0;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var materials = AIAssets.AIAssetBatch.ShipMaterials();
+                foreach (var shipClass in new[] { ShipClass.Ram, ShipClass.Bomber })
+                {
+                    GameObject Row()
+                    {
+                        var row = new GameObject($"{shipClass} damage");
+                        var world = new World(1);
+                        var stages = new[] { (1f, -1f), (0.65f, -1f), (0.3f, 0.6f), (0.3f, 9f) };
+                        for (var i = 0; i < stages.Length; i++)
+                        {
+                            var (hull, fall) = stages[i];
+                            var ship = world.SpawnShip(i % 2, shipClass, 0, 0);
+                            var view = ShipVisual.Create(ship, materials, ShipLookComposer.Compose(ship.Id, ship.Class, ship.Owner));
+                            foreach (var decal in view.GetComponentsInChildren<UnityEngine.Rendering.HighDefinition.WaterDecal>(true)) decal.gameObject.SetActive(false);
+                            view.SetCondition(1f, ship.ModuleHp);
+                            if (hull < 1f)
+                            {
+                                // Shot through low on the port side, as from a ship on that beam.
+                                for (var k = 0; k < 3; k++) view.Hit(view.Model.TransformPoint(new Vector3(-3f, 0.5f + k * 0.4f, -3f + k * 3f)), 1.4f, k == 0);
+                                view.StickArrows(view.Model.TransformPoint(new Vector3(-20f, 4f, 0f)), 9);
+                            }
+                            view.SetCondition(hull, ship.ModuleHp);
+                            var t = 0f;
+                            for (var k = 0; k < 60 && (fall < 0f ? k < 2 : t < fall); k++, t += 0.1f) view.Animate(0.2f, t, 0.1f);
+                            view.transform.SetParent(row.transform, false);
+                            view.transform.localPosition = new Vector3(i * view.Length * 1.15f, 0f, 0f);
+                            view.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+                        }
+                        return row;
+                    }
+                    failed += Shot(Row(), Path.Combine(folder, $"ship-{shipClass.ToString().ToLowerInvariant()}-stages.png"), 24f, -150f, false) ? 0 : 1;
+                    failed += Shot(Row(), Path.Combine(folder, $"ship-{shipClass.ToString().ToLowerInvariant()}-stages-strategic.png"), 50f, -150f, true) ? 0 : 1;
+                }
+                Debug.Log($"[Buildings] ship damage previews in {folder}: {(failed == 0 ? "all written" : failed + " failed")}");
+            }
+            catch (System.Exception error)
+            {
+                Debug.LogError($"[Buildings] {error}");
+                failed++;
+            }
+            if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
+        }
+
+        /// <summary>
         /// A port shelled at its School from the harbour down to a share of its hull, every fall over; then, ruinAt not
         /// negative, fallen and caught that many game seconds into its fall. Only the School, its damage and the dust stay.
         /// </summary>

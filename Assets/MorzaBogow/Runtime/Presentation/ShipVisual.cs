@@ -84,7 +84,7 @@ namespace MorzaBogow.Presentation
     /// wear, which the ship paint reads), then the state of the fight (events and SetCondition), then the owner's colours
     /// (SetOwner, the sail's materials only). Nothing of the look is computed per frame.
     /// </summary>
-    public sealed class ShipVisual : MonoBehaviour
+    public sealed partial class ShipVisual : MonoBehaviour
     {
         public const int MaxBreaches = 8, MaxStuckArrows = 12, MaxFreshRepairs = 3;
 
@@ -531,6 +531,7 @@ namespace MorzaBogow.Presentation
                 ram.localRotation = Quaternion.identity;
                 ram.localPosition = Vector3.zero;
             }
+            if (fallenRig != null) RestoreMast();
             hullFraction = 1f;
             listSide = 1f;
             marks = 0;
@@ -599,6 +600,7 @@ namespace MorzaBogow.Presentation
 
         void OnDestroy()
         {
+            OnMastDestroy();
             DiscardMesh(repairsMesh);
             DiscardMesh(wearMesh);
             DiscardMesh(patchesMesh);
@@ -957,6 +959,8 @@ namespace MorzaBogow.Presentation
             hullFraction = fraction;
             UpdateSailHoles();
             UpdateGear();
+            // Far gone, the mast is down; mended in dock, it stands again (ShipVisual.Mast).
+            UpdateMast(fraction);
             if (moduleHp == null) return;
             for (var slot = 0; slot < weapons.Length && slot < moduleHp.Length; slot++)
             {
@@ -1152,6 +1156,12 @@ namespace MorzaBogow.Presentation
 
         void AnimateSail(float fraction, float time, float delta)
         {
+            // With the mast down the sail lies with its yard (ShipVisual.Mast), neither hoisted nor filling.
+            if (fallenRig != null)
+            {
+                AnimateMast(delta);
+                return;
+            }
             if (sail == null) return;
             // A captured ship lowers its sail, bends on the new colours and hoists it again.
             if (sailLowering)

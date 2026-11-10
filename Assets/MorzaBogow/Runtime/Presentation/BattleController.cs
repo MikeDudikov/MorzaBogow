@@ -1902,6 +1902,13 @@ namespace MorzaBogow.Presentation
 
         static float MissileSize(WeaponType weapon) => 0.6f + (float)WeaponCatalog.Get(weapon).Hull / 80f;
 
+        /// <summary>A mast giving way (ShipVisual.Mast): splinters where it snapped, and water thrown up where its head goes in.</summary>
+        void MastEffects(ShipVisual view, int shipId)
+        {
+            if (view.TakeMastBreak(out var snapped)) effects.Splinters(snapped, 1.4f, shipId * 7 + 1);
+            if (view.TakeMastSplash(out var head)) effects.WaterColumn(head, 1.8f, shipId * 7 + 2);
+        }
+
         /// <summary>A ram strikes: a breach at the waterline where the bow met the side, splinters and a burst of water.</summary>
         void RamBlow(int attackerId, int targetId, Vector3 at, double damage)
         {
@@ -2142,6 +2149,7 @@ namespace MorzaBogow.Presentation
                 var capacity = ship.Definition.Capacity * Rules.Centi;
                 view.SetLoad(capacity > 0 ? (float)(ship.Cargo + ship.HoldWood + ship.HoldSilver) / capacity : 0f);
                 view.SetCondition((float)(ship.Hull / ship.Definition.Hull), ship.ModuleHp);
+                MastEffects(view, ship.Id);
                 view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, paused ? 0f : delta * Speed, delta);
             }
 
