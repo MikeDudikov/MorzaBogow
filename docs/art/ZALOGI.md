@@ -24,6 +24,21 @@ Data: 2026-11-10. Stan: wdrożenie etapami (plan w sesji „Załogi okrętów”
 - **Zatonięcie.** Ludzie skaczą za burtę po swojej stronie w ciągu 0,6 s i znikają w wodzie po 1,2 s, zanim kadłub się rozpadnie.
 - **Bez broni** (Merchant, Cutter): żadnej roli bojowej; reakcje na trafienie i zagrożenie.
 - **Pomiar A/B.** Flaga `-morzaNoCrew` uruchamia ten sam build bez załóg. Koszt załóg trafia do `Player.log` przy wyjściu.
+- **Zrzuty załóg.** Flaga `-morzaCrewShowcase <prefiks>` (`BattleController.CrewShowcase.cs`) daje zrzuty, a log zapisuje liczbę postaci, LOD i wywołań rysowania przy każdym zrzucie:
+  - każda klasa z bliska w rejsie;
+  - taran, salwa łuczników, oszczepy, machiny i abordaż;
+  - flota z kamery strategicznej.
+
+  Zwykły `-morzaShowcase` innych sesji zostaje bez zmian.
+- **Z daleka** (LOD1 i LOD2, 3–15 px na człowieka) odcienie się scalają (`CrewAboard.Coarse`):
+  - 2 odcienie skóry;
+  - 2 odcienie włosów;
+  - 3 tkaniny niebarwione;
+  - barwy stron bez zużytych wersji.
+
+  Hełmy, tarcze, budowa i barwy stron zostają. Z bliska (LOD0) widać pełną różnorodność.
+- **Tylko załogi w kadrze** decydują, co robi każdy człowiek. Pozostałe załogi utrzymują tylko stanowiska i wiosła swojego okrętu.
+- **Cele stanowisk** obsługa szuka raz na tick symulacji. Test mgły (`World.CanSee`) przegląda wszystkie okręty i porty, więc pada dopiero dla celu w zasięgu i sektorze. Machiny obracają się w każdej klatce.
 
 ## Architektura
 
@@ -64,6 +79,7 @@ BattleEffects.SyncMissiles ──► CrewDirector.LaunchPoint (dłoń strzelca /
 | `Runtime/Presentation/Crew/CrewDirector.cs` | zdarzenia z ticków, LOD, klatka |
 | `Runtime/Presentation/Crew/CrewAboard.cs` | załoga jednego okrętu: obsada, czynności, upadki, abordaż |
 | `Runtime/Presentation/Crew/RowingStroke.cs` | jeden rytm wioseł i wioślarzy |
+| `Runtime/Presentation/BattleController.CrewShowcase.cs` | zrzuty załóg (`-morzaCrewShowcase`) |
 | `Editor/CrewAssetBuilder.cs` | materiał `Resources/Crew/CrewBody.mat` (instancing), atlas, prefaby podglądu ról |
 | `Editor/CrewExport.cs` | zapis macierzy i manifestu ról |
 
@@ -104,8 +120,13 @@ Wyniki testów i pomiarów dopisuję tutaj po każdym etapie (sprzęt pomiarowy:
 |---|---|---|---|---|
 | 100 okrętów | 3951 | 54 171 | 335 | 19,75 ms |
 | 200 okrętów | 7913 | 108 521 | 419 | 61,02 ms |
+| 100 okrętów, odcienie scalone z daleka | 3951 | 54 171 | 177 | 19,58 ms |
+| 200 okrętów, odcienie scalone z daleka | 7913 | 108 521 | 289 | 70,05 ms |
 
-Wiarygodny jest dopiero pomiar w buildzie z kamerą gry (odrzucanie i LOD).
+- **Wywołania rysowania.** Scalenie odcieni z daleka zmniejszyło ich liczbę o 47% (100 okrętów) i o 31% (200 okrętów).
+- **CPU w edytorze** się nie zmienił, więc ten czas idzie gdzie indziej niż na liczbę siatek. Różnica 61 → 70 ms przy 200 okrętach to szum: obok działały edytory innych sesji.
+- **Wiarygodny pomiar** daje dopiero build z kamerą gry (odrzucanie i LOD).
+- **Pełny pomiar** z `-morzaBenchmark`. Bez tej flagi bramka rysuje tylko 20 okrętów raz.
 
 ## Ograniczenia
 
@@ -113,3 +134,6 @@ Wiarygodny jest dopiero pomiar w buildzie z kamerą gry (odrzucanie i LOD).
 - **Tożsamość po wczytaniu.** Zapis gry nie ma numerów ludzi, więc po wczytaniu numeracja w każdym zawodzie liczy się od zera. Wygląd jest stały dla danego zapisu, ale może różnić się od wyglądu sprzed zapisu.
 - **Postacie poza okrętami.** Partie na brzegu i robotnicy stoczni (`CrewFigure`) mają jeszcze dawne postacie z prymitywów.
 - **Front abordażu.** Na wąskim pomoście Ram front stoi w osi, czyli dalej od burty niż na szerokich galerach. Liczba miejsc na burtę ogranicza front obrazu, nie symulacji.
+- **Bez przejścia na drugi pokład.** Fronty walczą przez relingi ze swoich pokładów. Przejścia przez dwa relingi z kontaktem dłoni i stóp (IK) nie zrobiłem. Symulacja i tak nie przenosi ludzi między okrętami przed zdobyciem.
+- **Przejścia między stanowiskami** idą po prostej z interpolacją wysokości, nie po grafie pokładu. Przy krótkich przejściach (na reling, z ławy na pomost) przenikanie nie jest widoczne z kamery gry. Z bliska może być.
+- **LOD2** to te same części co LOD1 z mniejszą liczbą ścian, nie wypieczona bryła całej postaci.

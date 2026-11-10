@@ -173,6 +173,8 @@
         "MorzaBogow.Tests.CrewPresentationTests.Crew_A_EveryClassCarriesItsCrewRowingAndSteeringAtSea",
         "MorzaBogow.Tests.CrewPresentationTests.Crew_B_MenStayAboardThroughAHardTurn",
         "MorzaBogow.Tests.CrewPresentationTests.Crew_CDE_ArchersLooseOnTheTickTheBankFiresTowardTheShotAndRowersRowOn",
+        "MorzaBogow.Tests.CrewPresentationTests.Crew_E_BallistaCrewsWorkTheReloadAndTheMachineFacesItsShot",
+        "MorzaBogow.Tests.CrewPresentationTests.Crew_E_CatapultCrewsWorkTheReloadAndTheMachineFacesItsShot",
         "MorzaBogow.Tests.CrewPresentationTests.Crew_F_TheFrontFightsAtTheRailFacingTheOtherDeck",
         "MorzaBogow.Tests.CrewPresentationTests.Crew_G_TheCrewsChangeNothingInTheGame",
         "MorzaBogow.Tests.CrewPresentationTests.Crew_H_ALoadedGameLoosesNoVolleyAndKeepsItsCrews",

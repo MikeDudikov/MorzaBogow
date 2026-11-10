@@ -12,7 +12,7 @@ namespace MorzaBogow.Presentation
     /// Adapter between the pure simulation and Unity: fixed-step driver, interpolated views, camera,
     /// orders and a working M1 HUD. It only reads world state and sends commands.
     /// </summary>
-    public sealed class BattleController : MonoBehaviour
+    public sealed partial class BattleController : MonoBehaviour
     {
         public const int PlayerFaction = 0;
         const int MaxStepsPerFrame = 8;
@@ -488,7 +488,7 @@ namespace MorzaBogow.Presentation
         void UpdateShowcase()
         {
             showcaseClock += Time.unscaledDeltaTime;
-            if (showcaseSteps == null) showcaseSteps = BuildShowcase();
+            if (showcaseSteps == null) showcaseSteps = crewShowcase ? BuildCrewShowcase() : BuildShowcase();
             if (showcaseStep >= showcaseSteps.Length)
             {
                 if (showcaseClock - showcaseMark > 1.5f) Application.Quit(0);
@@ -691,6 +691,7 @@ namespace MorzaBogow.Presentation
             var arguments = Environment.GetCommandLineArgs();
             var showcase = Array.IndexOf(arguments, "-morzaShowcase");
             if (showcase >= 0 && showcase + 1 < arguments.Length) showcasePrefix = arguments[showcase + 1];
+            ReadCrewShowcase(arguments);
             var index = Array.IndexOf(arguments, "-morzaSmokeReport");
             if (index < 0 || index + 2 >= arguments.Length) return;
             smokeReport = arguments[index + 1];

@@ -306,6 +306,8 @@ namespace MorzaBogow.Presentation
             long sign = lod;
             drawn = new Bounds();
             var any = false;
+            if (camera != null) GeometryUtility.CalculateFrustumPlanes(camera, frustum);
+            long deciding = 0, building = 0;
             foreach (var id in order)
             {
                 var view = battle.Views[id];
@@ -316,10 +318,15 @@ namespace MorzaBogow.Presentation
                     crew = new CrewAboard(ship, view, world);
                     crews[id] = crew;
                 }
-                crew.Update(ship, view, world, clock, delta);
-                if (!view.gameObject.activeInHierarchy) continue;
-                if (camera != null && !Visible(camera, view)) continue;
+                // Every crew keeps its stations and its ship's oars; only the crews in sight decide each man's doing.
+                var shown = view.gameObject.activeInHierarchy && (camera == null || Visible(frustum, view));
+                var before = System.Diagnostics.Stopwatch.GetTimestamp();
+                crew.Update(ship, view, world, clock, delta, shown);
+                var decided = System.Diagnostics.Stopwatch.GetTimestamp();
+                deciding += decided - before;
+                if (!shown) continue;
                 crew.Emit(figures, lod, clock);
+                building += System.Diagnostics.Stopwatch.GetTimestamp() - decided;
                 sign = sign * 31 + id * 7 + crew.Version;
                 var box = new Bounds(view.transform.position, new Vector3(view.Length + 6f, 12f, view.Length + 6f));
                 if (!any) drawn = box; else drawn.Encapsulate(box);
@@ -327,7 +334,7 @@ namespace MorzaBogow.Presentation
             }
             // A ship gone down: its hull is the effects' now (BattleEffects.Sink); its men go over the side as it settles,
             // then are gone. Crews of ships that left the game otherwise (scrapped, out of sight for good) go at once.
-            var gone = new List<int>();
+            gone.Clear();
             foreach (var pair in crews)
             {
                 if (battle.Views.ContainsKey(pair.Key)) continue;
@@ -353,8 +360,10 @@ namespace MorzaBogow.Presentation
                 bones = new NativeArray<float4x4>(capacity * CrewRenderer.Matrices, Allocator.Persistent);
                 signature = -1;
             }
+            var posing = System.Diagnostics.Stopwatch.GetTimestamp();
             for (var i = 0; i < figures.Count; i++) inputs[i] = figures[i].Input;
             new CrewPoseJob { Figures = inputs, Bones = bones }.Schedule(figures.Count, 16).Complete();
+            var listing = System.Diagnostics.Stopwatch.GetTimestamp();
 
             sign = sign * 31 + figures.Count;
             if (sign != signature)
@@ -370,17 +379,27 @@ namespace MorzaBogow.Presentation
                 }
                 renderer.EndList();
             }
-            PoseMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            var drawing = System.Diagnostics.Stopwatch.GetTimestamp();
+            PoseMilliseconds = (drawing - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             renderer.Draw(bones, camera, drawn, lod == 0, 0);
+            Timings = (Ms(deciding), Ms(building), Ms(listing - posing), Ms(drawing - listing), Ms(System.Diagnostics.Stopwatch.GetTimestamp() - drawing));
         }
+
+        /// <summary>
+        /// Where the last frame's time went (ms): deciding each man's doing (every crew's upkeep included), building the
+        /// figures, the pose job, laying out the pieces when they changed, placing and submitting the draws.
+        /// </summary>
+        public (double Decide, double Build, double Pose, double List, double Draw) Timings { get; private set; }
+
+        static double Ms(long ticks) => ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 
         public static long Key(int ship, int man) => (long)ship << 20 | (uint)man;
 
-        static bool Visible(Camera camera, ShipVisual view)
-        {
-            var planes = GeometryUtility.CalculateFrustumPlanes(camera);
-            return GeometryUtility.TestPlanesAABB(planes, new Bounds(view.transform.position, new Vector3(view.Length + 4f, 14f, view.Length + 4f)));
-        }
+        readonly Plane[] frustum = new Plane[6];
+        readonly List<int> gone = new List<int>();
+
+        static bool Visible(Plane[] planes, ShipVisual view) =>
+            GeometryUtility.TestPlanesAABB(planes, new Bounds(view.transform.position, new Vector3(view.Length + 4f, 14f, view.Length + 4f)));
 
         /// <summary>The level of detail by the camera's pixels per metre at 1080 lines; one for the whole frame (orthographic).</summary>
         void ChooseLod(Camera camera)

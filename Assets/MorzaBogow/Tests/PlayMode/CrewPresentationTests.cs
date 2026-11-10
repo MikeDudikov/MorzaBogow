@@ -232,6 +232,83 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Crew_E_BallistaCrewsWorkTheReloadAndTheMachineFacesItsShot()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try { Assert.That(MachinePostsWork(battle, crews, ShipClass.ShipKiller, new Vector2(87f, 50f)), Is.GreaterThan(0), "A ballista fired twice at its mark."); }
+            finally { Clean(host); }
+        }
+
+        [UnityTest]
+        public IEnumerator Crew_E_CatapultCrewsWorkTheReloadAndTheMachineFacesItsShot()
+        {
+            var (host, battle, crews) = Battle();
+            yield return null;
+            try { Assert.That(MachinePostsWork(battle, crews, ShipClass.Bomber, new Vector2(130f, 40f)), Is.GreaterThan(0), "A catapult fired twice at its mark."); }
+            finally { Clean(host); }
+        }
+
+        /// <summary>
+        /// A machine ship against a mark off its bow, inside every machine's arc and reach. At a machine's second shot (the
+        /// first may leave before it has turned to a mark it just saw): its whole crew is at the post, the winch men have
+        /// heaved and the loader has set the shot during the reload, the machine faces where the shot goes, and the shot
+        /// leaves from the machine above the deck.
+        /// </summary>
+        static int MachinePostsWork(BattleController battle, CrewDirector crews, ShipClass shipClass, Vector2 off)
+        {
+            var shooter = Spawn(battle, 0, shipClass, 300, 420);
+            shooter.Heading = 0;
+            // The mark first out of reach, so the crews are aboard and the machines loaded before they see it.
+            var target = Spawn(battle, 1, ShipClass.Cutter, 300, 1000);
+            target.Hull = 100000;
+            Steps(battle, crews, 60);
+            var seen = new HashSet<int>();
+            var shotsBy = new Dictionary<int, int>();
+            var cranked = new HashSet<int>();
+            var loaded = new HashSet<int>();
+            var checkedPosts = 0;
+            for (var t = 0; t < 30 * 30 && checkedPosts == 0; t++)
+            {
+                target.X = shooter.X + off.x;
+                target.Y = shooter.Y + off.y;
+                target.Speed = 0;
+                Tick(battle, crews);
+                var crew = crews.Crews[shooter.Id];
+                foreach (var man in crew.Men.Where(m => m.Role == CrewRole.MachineCrew))
+                {
+                    if (man.Action == CrewAction.Crank) cranked.Add(man.Slot);
+                    if (man.Action == CrewAction.Load) loaded.Add(man.Slot);
+                }
+                var view = battle.Views[shooter.Id];
+                foreach (var shot in battle.World.Projectiles.Where(p => p.ShooterId == shooter.Id && p.LaunchTick >= battle.World.Tick - 1).ToList())
+                {
+                    if (!seen.Add(shot.Id)) continue;
+                    var start = battle.Effects.LaunchPoint?.Invoke(shot, 0);
+                    Assert.That(start.HasValue, $"{shipClass}: the shot leaves from a machine");
+                    // The machine that loosed it: the post nearest to where the shot left.
+                    var slot = Enumerable.Range(0, shooter.Mounts.Length).Where(s => WeaponCatalog.Get(shooter.Mounts[s]).IsMachine)
+                        .OrderBy(s => Vector3.Distance(view.Model.Find($"Mount {s}").position, start.Value)).First();
+                    var mount = view.Model.Find($"Mount {slot}");
+                    Assert.That(Vector3.Distance(start.Value, mount.position), Is.LessThan(4f), $"{shipClass} post {slot}: from the machine's own place");
+                    Assert.That(start.Value.y, Is.GreaterThan(1f), $"{shipClass} post {slot}: above the deck, not from the waterline");
+                    shotsBy[slot] = shotsBy.TryGetValue(slot, out var count) ? count + 1 : 1;
+                    if (shotsBy[slot] < 2) continue;
+                    var weapon = WeaponCatalog.Get(shooter.Mounts[slot]);
+                    Assert.That(crew.Men.Count(m => m.Role == CrewRole.MachineCrew && m.Slot == slot), Is.EqualTo(weapon.Crew), $"{shipClass} post {slot}: its whole crew, as World.Manned mans it");
+                    Assert.That(cranked.Contains(slot), $"{shipClass} post {slot}: the winch men heave through the reload");
+                    Assert.That(loaded.Contains(slot), $"{shipClass} post {slot}: the loader sets the next shot");
+                    var facing = mount.forward;
+                    facing.y = 0f;
+                    var direction = new Vector3((float)(shot.ToX - shot.FromX), 0f, (float)(shot.ToY - shot.FromY));
+                    Assert.That(Vector3.Angle(facing, direction), Is.LessThan(15f), $"{shipClass} post {slot}: the machine faces where its shot goes");
+                    checkedPosts++;
+                }
+            }
+            return checkedPosts;
+        }
+
+        [UnityTest]
         public IEnumerator Crew_F_TheFrontFightsAtTheRailFacingTheOtherDeck()
         {
             var (host, battle, crews) = Battle();
@@ -367,18 +444,28 @@ namespace MorzaBogow.Tests
             yield return null;
             try
             {
+                // The full measurement (100 and 200 ships) only with -morzaBenchmark on Unity's command line; the gate draws 20 once.
+                var full = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaBenchmark") >= 0;
+                var batch = full ? 100 : 20;
+                var frames = full ? 30 : 3;
                 var classes = new[] { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.ShipKiller, ShipClass.Bomber, ShipClass.Merchant, ShipClass.Cutter };
                 var report = new System.Text.StringBuilder();
-                for (var total = 0; total < 200;)
+                for (var total = 0; total < batch * (full ? 2 : 1);)
                 {
-                    for (var i = 0; i < 100; i++, total++)
+                    for (var i = 0; i < batch; i++, total++)
                         Spawn(battle, total % 2, classes[total % classes.Length], 200 + total % 20 * 45, 300 + total / 20 * 60);
                     battle.RunTicks(2);
                     var watch = System.Diagnostics.Stopwatch.StartNew();
-                    const int frames = 30;
-                    for (var f = 0; f < frames; f++) crews.Present((float)Rules.Dt, null);
+                    double decide = 0, build = 0, pose = 0, list = 0, draw = 0;
+                    for (var f = 0; f < frames; f++)
+                    {
+                        crews.Present((float)Rules.Dt, null);
+                        var t = crews.Timings;
+                        decide += t.Decide; build += t.Build; pose += t.Pose; list += t.List; draw += t.Draw;
+                    }
                     var ms = watch.Elapsed.TotalMilliseconds / frames;
-                    report.AppendLine($"{total} ships: {crews.FiguresDrawn} men, {crews.Renderer.Instances} pieces, {crews.Renderer.Draws} draws, {ms:0.00} ms a frame in the editor (decide, pose, place, submit)");
+                    report.AppendLine($"{total} ships: {crews.FiguresDrawn} men, {crews.Renderer.Instances} pieces, {crews.Renderer.Draws} draws, {ms:0.00} ms a frame in the editor " +
+                                      $"(decide {decide / frames:0.00}, build {build / frames:0.00}, pose {pose / frames:0.00}, list {list / frames:0.00}, place and submit {draw / frames:0.00})");
                 }
                 Debug.Log("Crew fleet benchmark (editor, informational):\n" + report);
                 Assert.That(crews.FiguresDrawn, Is.GreaterThan(0));

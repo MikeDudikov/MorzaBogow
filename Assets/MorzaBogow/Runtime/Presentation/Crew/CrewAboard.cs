@@ -58,6 +58,7 @@ namespace MorzaBogow.Presentation
         Vector3[] firedToward = System.Array.Empty<Vector3>();
         bool[] hasTarget = System.Array.Empty<bool>();
         Vector3[] targetAt = System.Array.Empty<Vector3>();
+        int marksTick = -1;
         float[] postYaw = System.Array.Empty<float>();
         Transform[] mountTransforms = System.Array.Empty<Transform>();
         float surrenderUntil = -1f;
@@ -209,19 +210,27 @@ namespace MorzaBogow.Presentation
         }
 
         // Each frame ---------------------------------------------------------------------------------------------------
-        public void Update(Ship ship, ShipVisual view, World world, float clock, float delta)
+        /// <param name="shown">Drawn this frame: only then each man decides his doing and the posts turn to their marks.</param>
+        public void Update(Ship ship, ShipVisual view, World world, float clock, float delta, bool shown = true)
         {
             // Once a tick: a weapon changed in port, or a post lost or gained its men, mans the posts anew; readiness every
             // half second, each ship on its own beat.
             if (world.Tick != checkedTick)
             {
                 checkedTick = world.Tick;
-                var nowManned = World.Manned(ship);
-                if (!SameMounts(ship.Mounts, nowManned))
+                // World.Manned reads only the weapons and the three fighting trades: asked again only when one changes.
+                if (ship.Archers != seenArchers || ship.Javelins != seenJavelins || ship.Swordsmen != seenSwordsmen || !SameWeapons(ship.Mounts))
                 {
-                    mounts = (WeaponType[])ship.Mounts.Clone();
-                    manned = nowManned;
-                    reman = true;
+                    seenArchers = ship.Archers;
+                    seenJavelins = ship.Javelins;
+                    seenSwordsmen = ship.Swordsmen;
+                    var nowManned = World.Manned(ship);
+                    if (!SameMounts(ship.Mounts, nowManned))
+                    {
+                        mounts = (WeaponType[])ship.Mounts.Clone();
+                        manned = nowManned;
+                        reman = true;
+                    }
                 }
                 if (world.Tick >= readinessTick || world.Tick < readinessTick - 30)
                 {
@@ -255,8 +264,11 @@ namespace MorzaBogow.Presentation
                     view.SetOarCrewed(Profile.Stations[man.Station].Oar, true);
 
             if (ship.LastRamTick != lastRamTick) lastRamTick = ship.LastRamTick;
-            AimPosts(ship, view, world, delta);
-            foreach (var man in Men) Decide(man, ship, view, clock);
+            if (shown)
+            {
+                AimPosts(ship, view, world, delta);
+                foreach (var man in Men) Decide(man, ship, view, clock);
+            }
             for (var i = bodies.Count - 1; i >= 0; i--)
                 if (clock - bodies[i].FellAt > (bodies[i].Wounding ? 1.2f : 6f)) bodies.RemoveAt(i);
         }
@@ -273,6 +285,15 @@ namespace MorzaBogow.Presentation
             if (ship.Order == OrderKind.Harvest && (ship.Harvest == HarvestPhase.Working || ship.Harvest == HarvestPhase.Landing || ship.Harvest == HarvestPhase.Embarking)) return size;
             if ((ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition) && (ship.Transport == TransportPhase.Loading || ship.Transport == TransportPhase.Unloading)) return size;
             return 0;
+        }
+
+        int seenArchers = -1, seenJavelins = -1, seenSwordsmen = -1;
+
+        bool SameWeapons(WeaponType[] current)
+        {
+            if (current.Length != mounts.Length) return false;
+            for (var i = 0; i < current.Length; i++) if (current[i] != mounts[i]) return false;
+            return true;
         }
 
         bool SameMounts(WeaponType[] current, bool[] nowManned)
@@ -300,10 +321,11 @@ namespace MorzaBogow.Presentation
             var near = false;
             foreach (var other in world.Ships)
             {
-                if (other.Owner == ship.Owner || !world.CanSee(ship.Owner, other)) continue;
+                if (other.Owner == ship.Owner) continue;
                 var dx = other.X - ship.X;
                 var dy = other.Y - ship.Y;
-                if (dx * dx + dy * dy < (reach + 40) * (reach + 40)) { near = true; break; }
+                // The distance first: the fog's test runs over every ship and port.
+                if (dx * dx + dy * dy < (reach + 40) * (reach + 40) && world.CanSee(ship.Owner, other)) { near = true; break; }
             }
             foreach (var link in world.Boardings) if (link.AttackerId == ship.Id || link.TargetId == ship.Id) near = true;
             return near;
@@ -315,31 +337,38 @@ namespace MorzaBogow.Presentation
         /// </summary>
         void AimPosts(Ship ship, ShipVisual view, World world, float delta)
         {
+            // The marks move with the game's positions, so they are sought once a tick; the machines turn every frame.
+            var seek = world.Tick != marksTick;
+            marksTick = world.Tick;
             for (var slot = 0; slot < ship.Mounts.Length && slot < hasTarget.Length; slot++)
             {
-                hasTarget[slot] = false;
+                if (seek) hasTarget[slot] = false;
                 if (ship.Mounts[slot] == WeaponType.None) continue;
                 var weapon = WeaponCatalog.Get(ship.Mounts[slot]);
-                Ship best = null;
-                var bestDistance = double.MaxValue;
-                if (ship.Order == OrderKind.AttackShip)
+                if (seek)
                 {
-                    var ordered = world.FindShip(ship.TargetId);
-                    if (ordered != null && World.InReach(ship, weapon, ordered.X, ordered.Y)) best = ordered;
-                }
-                if (best == null && ship.Order != OrderKind.Ram)
-                    foreach (var other in world.Ships)
+                    Ship best = null;
+                    var bestDistance = double.MaxValue;
+                    if (ship.Order == OrderKind.AttackShip)
                     {
-                        if (other.Owner == ship.Owner || !world.CanSee(ship.Owner, other) || !World.InReach(ship, weapon, other.X, other.Y)) continue;
-                        var dx = other.X - ship.X;
-                        var dy = other.Y - ship.Y;
-                        var d = dx * dx + dy * dy;
-                        if (d < bestDistance) { bestDistance = d; best = other; }
+                        var ordered = world.FindShip(ship.TargetId);
+                        if (ordered != null && World.InReach(ship, weapon, ordered.X, ordered.Y)) best = ordered;
                     }
-                if (best != null)
-                {
-                    hasTarget[slot] = true;
-                    targetAt[slot] = new Vector3((float)best.X, 1.5f, (float)best.Y);
+                    if (best == null && ship.Order != OrderKind.Ram)
+                        foreach (var other in world.Ships)
+                        {
+                            // Reach and arc first: the fog's test runs over every ship and port, so only for a mark in reach.
+                            if (other.Owner == ship.Owner || !World.InReach(ship, weapon, other.X, other.Y) || !world.CanSee(ship.Owner, other)) continue;
+                            var dx = other.X - ship.X;
+                            var dy = other.Y - ship.Y;
+                            var d = dx * dx + dy * dy;
+                            if (d < bestDistance) { bestDistance = d; best = other; }
+                        }
+                    if (best != null)
+                    {
+                        hasTarget[slot] = true;
+                        targetAt[slot] = new Vector3((float)best.X, 1.5f, (float)best.Y);
+                    }
                 }
                 if (!weapon.IsMachine || mountTransforms[slot] == null) continue;
                 var aim = hasTarget[slot] ? targetAt[slot] : view.transform.position + view.transform.forward * 50f;
@@ -712,9 +741,11 @@ namespace MorzaBogow.Presentation
             }
             else
             {
-                var (at, rotation) = Frame(station);
+                // The station's place and heading straight, without a rotation taken apart again every frame.
+                var yaw = station.Slot >= 0 ? PostYaw(station.Slot) : 0f;
+                var at = station.Slot >= 0 ? Profile.PostPoint(station, yaw) : station.Position;
                 position = at;
-                facing = rotation.eulerAngles.y;
+                facing = station.Facing + yaw;
                 seated = station.Posture == CrewPosture.Sit;
                 if (man.WalkTime > 0f)
                 {
@@ -753,14 +784,14 @@ namespace MorzaBogow.Presentation
             // Hands that hold: a rower's on his oar's handle, the helmsman's on the tillers (reaching, CrewPose).
             if (!man.Fallen && station != null)
             {
-                var inverse = math.fastinverse(frame);
                 if ((man.Action == CrewAction.Row || man.Action == CrewAction.RowStanding) && station.Oar >= 0)
                 {
-                    var pivot = View.OarPivot(station.Oar);
+                    var inverse = math.fastinverse(frame);
+                    var pivot = View.OarPivot(station.Oar).localToWorldMatrix;
                     var side = View.OarSide(station.Oar);
                     var inboard = Profile.Parts.OarInboard[0];
-                    var end = pivot.TransformPoint(new Vector3(-side * inboard, 0f, 0f));
-                    var outer = pivot.TransformPoint(new Vector3(-side * (inboard - 0.18f), 0f, 0f));
+                    var end = pivot.MultiplyPoint3x4(new Vector3(-side * inboard, 0f, 0f));
+                    var outer = pivot.MultiplyPoint3x4(new Vector3(-side * (inboard - 0.18f), 0f, 0f));
                     var left = side > 0 ? outer : end;
                     var right = side > 0 ? end : outer;
                     input.Hands = 3;
@@ -769,6 +800,7 @@ namespace MorzaBogow.Presentation
                 }
                 else if (man.Action == CrewAction.Steer || man.Action == CrewAction.SteerSeated)
                 {
+                    var inverse = math.fastinverse(frame);
                     var two = Profile.Parts.HelmStands.Length == 2;
                     var index = station.Side < 0 ? 0 : 1;
                     var l = two ? View.TillerGrip(index) + View.Model.TransformDirection(Vector3.left) * 0.08f : View.TillerGrip(0);
@@ -823,6 +855,14 @@ namespace MorzaBogow.Presentation
         public static List<(int Bone, Mesh Mesh, float4x4 Local)> Pieces(CrewLook look, CrewRole role, CrewTrade trade, int lod)
         {
             var list = new List<(int, Mesh, float4x4)>();
+            // From afar (3 to 15 pixels a man) shades that close up tell one man from another merge into a few, so the men
+            // share fewer meshes and draws; the sides' colours, helmets, shields and builds stay.
+            if (lod > 0)
+            {
+                look.Skin = Coarse(look.Skin);
+                look.Hair = Coarse(look.Hair);
+                look.Cloth = Coarse(look.Cloth);
+            }
             var h = look.Height / CrewBody.ReferenceHeight;
             var body = float4x4.Scale(new float3(h * look.Girth, h, h * look.Girth));
             var head = float4x4.Scale(new float3(h));
@@ -891,6 +931,22 @@ namespace MorzaBogow.Presentation
                 list.Add((CrewRenderer.Extra, CrewMeshes.Get(CrewMeshes.Piece.Quiver, detail, 0, 0, CrewPalette.Cell.Leather, CrewPalette.Cell.Leather), one));
             return list;
         }
+
+        /// <summary>
+        /// The shade a colour merges into from afar: two skins (lighter and darker), two hairs, three undyed cloths (linen,
+        /// wool, brown), each side's dye without its worn shade.
+        /// </summary>
+        public static CrewPalette.Cell Coarse(CrewPalette.Cell cell) => cell switch
+        {
+            CrewPalette.Cell.Skin0 or CrewPalette.Cell.Skin1 => CrewPalette.Cell.Skin1,
+            CrewPalette.Cell.Skin2 or CrewPalette.Cell.Skin3 => CrewPalette.Cell.Skin2,
+            CrewPalette.Cell.Hair0 or CrewPalette.Cell.Hair1 => CrewPalette.Cell.Hair1,
+            CrewPalette.Cell.Linen or CrewPalette.Cell.Bleached or CrewPalette.Cell.LinenWorn or CrewPalette.Cell.Bandage => CrewPalette.Cell.Linen,
+            CrewPalette.Cell.Wool or CrewPalette.Cell.WoolWorn or CrewPalette.Cell.Ochre => CrewPalette.Cell.Wool,
+            CrewPalette.Cell.NavyWorn => CrewPalette.Cell.Navy,
+            CrewPalette.Cell.MadderWorn => CrewPalette.Cell.Madder,
+            _ => cell,
+        };
 
         /// <summary>A man of a role at rest (a rower seated) as one mesh in his colours, for previews in the editor.</summary>
         public static Mesh PreviewMesh(CrewRole role)
