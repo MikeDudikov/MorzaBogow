@@ -528,12 +528,29 @@ namespace MorzaBogow.Presentation
                         if (World.FindSettlement(item.SubjectId)?.Owner == PlayerFaction) Announce("Stocznia na przyczółku gotowa.", HeraldLevel.Important, at);
                         break;
                     case "volley":
-                        if (seen && lastPositions.TryGetValue(item.SubjectId, out var shooter)) effects.Arrows(shooter, at, (int)item.Amount);
+                        if (seen && lastPositions.TryGetValue(item.SubjectId, out var shooter))
+                        {
+                            effects.Arrows(shooter, at, (int)item.Amount);
+                            if (views.TryGetValue(item.OtherId, out var struck)) struck.StickArrows(shooter, (int)item.Amount);
+                        }
                         WarnIfOwnUnderAttack(item.OtherId, at);
                         break;
                     case "ram_hit":
-                        if (seen) effects.Flash(at, 22f);
+                        if (seen) { effects.Flash(at, 12f); RamBlow(item.SubjectId, item.OtherId, at, item.Amount); }
                         WarnIfOwnUnderAttack(item.OtherId, at);
+                        break;
+                    case "weapon_fired":
+                        if (seen && views.TryGetValue(item.SubjectId, out var firing)) firing.Recoil((int)(item.Amount % 100));
+                        break;
+                    case "projectile_hit":
+                        if (seen) ShotStruck(item.SubjectId, at, (WeaponType)(int)item.Amount);
+                        break;
+                    case "projectile_miss":
+                        if (seen) effects.WaterColumn(at, MissileSize((WeaponType)(int)item.Amount), item.SubjectId);
+                        break;
+                    case "projectile_land":
+                    case "projectile_hit_settlement":
+                        if (seen) effects.Splinters(at, MissileSize((WeaponType)(int)item.Amount) * 0.6f, item.SubjectId);
                         break;
                     case "ram_failed":
                         if (seen) effects.Flash(at, 8f);
@@ -633,6 +650,7 @@ namespace MorzaBogow.Presentation
             settlementTargetMarker = null;
             lastPositions.Clear();
             sinkingShips.Clear();
+            heavyBlows.Clear();
             inspectedEnemies.Clear();
             inspectedSettlementId = -1;
             foreach (var crew in crews.Values) crew.Destroy();
@@ -866,6 +884,8 @@ namespace MorzaBogow.Presentation
                 if (!deckFights.TryGetValue(link.AttackerId, out var fight))
                 {
                     fight = new DeckFight(crewRoot, materials, attacker.Owner, target.Owner);
+                    var seed = link.AttackerId * 7 + link.TargetId;
+                    fight.Splash = at => effects.WaterColumn(at, 0.8f, seed++);
                     deckFights[link.AttackerId] = fight;
                 }
                 fight.Update(attackerView, targetView, link.AttackerFront, link.TargetFront, delta, visible);
@@ -1413,7 +1433,7 @@ namespace MorzaBogow.Presentation
 
             foreach (var id in views.Keys.Where(id => World.FindShip(id) == null).ToList())
             {
-                if (sinkingShips.Remove(id)) effects.Sink(views[id].transform);
+                if (sinkingShips.Remove(id)) effects.Sink(views[id], BreaksUp(id, views[id]));
                 else Destroy(views[id].gameObject);
                 views.Remove(id);
                 lastPositions.Remove(id);
@@ -1429,11 +1449,8 @@ namespace MorzaBogow.Presentation
             foreach (var wreck in World.Wrecks)
             {
                 if (wreckViews.ContainsKey(wreck.Id)) continue;
-                var view = Primitive(PrimitiveType.Cube, $"Wreck {wreck.Id} [PLACEHOLDER]", materials?.WreckMarker);
-                view.transform.position = new Vector3((float)wreck.X, 0.4f, (float)wreck.Y);
-                view.transform.localScale = new Vector3(9f, 0.8f, 4f);
-                view.transform.rotation = Quaternion.Euler(0f, wreck.Id * 37f, 8f);
-                wreckViews[wreck.Id] = view;
+                // Floating wreckage over the salvageable cargo: amphorae for silver, crates and timber for wood.
+                wreckViews[wreck.Id] = effects.CreateWreck(new Vector3((float)wreck.X, 0f, (float)wreck.Y), wreck.Id, wreck.Silver > wreck.Wood);
             }
 
             foreach (var id in wreckViews.Keys.Where(id => World.Wrecks.All(wreck => wreck.Id != id)).ToList())
@@ -1449,6 +1466,40 @@ namespace MorzaBogow.Presentation
                 if (view.activeSelf != shown) view.SetActive(shown);
             }
         }
+
+        /// <summary>Ships whose last blow was a ram or a heavy shot: if that blow sinks them, they break apart. Presentation only.</summary>
+        readonly HashSet<int> heavyBlows = new HashSet<int>();
+
+        static float MissileSize(WeaponType weapon) => 0.6f + (float)WeaponCatalog.Get(weapon).Hull / 80f;
+
+        /// <summary>A ram strikes: a breach at the waterline where the bow met the side, splinters and a burst of water.</summary>
+        void RamBlow(int attackerId, int targetId, Vector3 at, double damage)
+        {
+            if (!views.TryGetValue(targetId, out var target)) return;
+            var contact = at;
+            if (lastPositions.TryGetValue(attackerId, out var ram))
+            {
+                var toward = Vector3.ProjectOnPlane(ram - at, Vector3.up);
+                if (toward.sqrMagnitude > 1e-4f) contact = at + toward.normalized * target.Beam * 0.5f;
+            }
+            target.Hit(contact, Mathf.Lerp(1.4f, 2.6f, Mathf.Clamp01((float)damage / 300f)), true);
+            effects.Splinters(contact, 2f + (float)damage / 150f, attackerId * 31 + targetId);
+            effects.WaterColumn(contact, 1.6f, attackerId * 37 + targetId);
+            heavyBlows.Add(targetId);
+        }
+
+        /// <summary>A machine's shot strikes a ship: a breach where it hit and splinters; a heavy shot may break the ship if it sinks.</summary>
+        void ShotStruck(int shipId, Vector3 at, WeaponType weapon)
+        {
+            var size = MissileSize(weapon);
+            effects.Splinters(at, size, shipId * 53 + (int)weapon);
+            if (!views.TryGetValue(shipId, out var view)) return;
+            view.Hit(at, size, false);
+            if (WeaponCatalog.Get(weapon).Hull >= 100) heavyBlows.Add(shipId);
+            else heavyBlows.Remove(shipId);
+        }
+
+        bool BreaksUp(int shipId, ShipVisual view) => heavyBlows.Remove(shipId) || (view != null && view.BreachCount >= 5);
 
         /// <summary>Where a ship is heading, for the order line. Hidden enemy targets are never revealed.</summary>
         bool TryGetOrderTarget(Ship ship, out Vector3 target)
@@ -1586,6 +1637,7 @@ namespace MorzaBogow.Presentation
             var blend = (float)(accumulator / Rules.Dt);
             var delta = Time.unscaledDeltaTime;
             effects.Update(paused ? 0f : delta * Speed);
+            effects.SyncMissiles(World, PlayerFaction, blend);
             SyncWrecks();
             UpdateDestinationMarkers();
             UpdateTargetMarkers();
@@ -1644,6 +1696,7 @@ namespace MorzaBogow.Presentation
                 view.Selection.SetActive(selected.Contains(ship.Id) || inspectedEnemies.Contains(ship.Id));
                 var capacity = ship.Definition.Capacity * Rules.Centi;
                 view.SetLoad(capacity > 0 ? (float)(ship.Cargo + ship.HoldWood + ship.HoldSilver) / capacity : 0f);
+                view.SetCondition((float)(ship.Hull / ship.Definition.Hull), ship.ModuleHp);
                 view.Animate((float)(ship.Speed / ship.Definition.Speed), Time.unscaledTime, paused ? 0f : delta * Speed, delta);
             }
 

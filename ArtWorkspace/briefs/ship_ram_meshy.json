@@ -1,0 +1,12 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_ram_meshy",
+  "name": "Taranowiec (Meshy)",
+  "category": "ship",
+  "shipClass": "Ram",
+  "description": "A lean Aegean warship with a low dark hull, a painted eye at the bow, a blue sheer stripe, a single mast with a square linen sail, a bronze ram at the waterline and one bank of oars.",
+  "style": "hand-painted, slightly stylised, readable from a high strategy camera",
+  "generation": { "provider": "meshy", "mode": "text", "forward": "auto" },
+  "texturing": { "provider": "generation" },
+  "lods": 3
+}

@@ -1,0 +1,102 @@
+{
+  "schema": "morza-bogow/reference-register@1",
+  "date": "2026-11-10",
+  "accessLevels": {
+    "read-web": "page read in this session; claims below are what the page states",
+    "read-web-last-resort": "Wikipedia page read; to be checked against the publications it cites",
+    "metadata-only": "only bibliographic metadata known; no page, figure or quotation is claimed"
+  },
+  "references": [
+    {
+      "id": "R-ULUBURUN",
+      "object": "Uluburun shipwreck",
+      "sources": [
+        { "url": "https://nauticalarch.org/projects/uluburun-late-bronze-age-shipwreck-excavation/", "access": "read-web" },
+        { "url": "https://en.wikipedia.org/wiki/Uluburun_shipwreck", "access": "read-web-last-resort" }
+      ],
+      "claims": [
+        "Date of wreck: Late Bronze Age, ca. 1320 +/- 15 B.C. (INA)",
+        "Built of Lebanese cedar with pegged mortise-and-tenon joints; a proto-keel rather than a true keel (INA)",
+        "Bulk cargo of copper and tin ingots in the ratio of about 10:1 (INA); 354 copper ingots, 317 of oxhide shape; about 150 Canaanite jars (Wikipedia)",
+        "Hull estimated about 15 m long and 5 m wide from the cargo layout (Wikipedia)"
+      ],
+      "dating": "ca. 1320 +/- 15 BC",
+      "certainty": "date and construction stated by INA; hull size is an estimate",
+      "assets": ["ship.Merchant", "shipyard.slipway", "wreck.cargo"]
+    },
+    {
+      "id": "R-GELIDONYA",
+      "object": "Cape Gelidonya shipwreck",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/Cape_Gelidonya_shipwreck", "access": "read-web-last-resort" }],
+      "claims": ["Late Bronze Age shipwreck, c. 1200 BC", "Cargo of scrap copper, copper and tin ingots, merchant weights"],
+      "dating": "c. 1200 BC (another page gives late 13th to early 12th c. BC)",
+      "certainty": "dating approximate",
+      "assets": ["ship.Merchant", "wreck.cargo"]
+    },
+    {
+      "id": "R-WARRIORVASE",
+      "object": "Warrior Vase (Warrior Krater), Mycenae; National Archaeological Museum, Athens",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/Warrior_Vase", "access": "read-web-last-resort" }],
+      "claims": [
+        "Warriors in short chitons, breastplates, helmets and greaves, armed with spears and carrying shields",
+        "One side shows helmets with horns, the other 'hedgehog' helmets",
+        "Dated to the 13th or 12th century BC, much discussed; noted as early Late Helladic IIIC"
+      ],
+      "dating": "early LH IIIC (c. 1200 BC), discussed",
+      "certainty": "inventory number inconsistent across sources (NAMA 1426); museum catalogue not read; shield cut-out not stated",
+      "assets": ["character.warrior", "character.archer"]
+    },
+    {
+      "id": "R-MEDINET",
+      "object": "Medinet Habu, naval battle relief of Ramesses III against the Sea Peoples",
+      "sources": [
+        { "url": "https://en.wikipedia.org/wiki/Battle_of_the_Delta", "access": "read-web-last-resort" },
+        { "url": "https://en.wikipedia.org/wiki/Medinet_Habu_(temple)", "access": "read-web-last-resort" }
+      ],
+      "claims": ["Battle of the Delta c. 1175 BC (between 1179 and 1175 BC)"],
+      "dating": "c. 1175 BC",
+      "certainty": "ship features (bird-head posts, crow's nest, brailed loose-footed sail) NOT stated in the pages read; to verify in the Epigraphic Survey publication",
+      "assets": ["ship.*.stem", "ship.*.rig"]
+    },
+    {
+      "id": "R-KYRENIA",
+      "object": "Kyrenia ship",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/The_Kyrenia_Ship", "access": "read-web-last-resort" }],
+      "claims": ["4th-century BC Greek merchant ship that sank c. 294 BC (amphora stamps and coins)"],
+      "dating": "c. 294-291 BC",
+      "certainty": "approximate; outside the project's anchor period, used for comparison only",
+      "assets": []
+    },
+    {
+      "id": "R-OLYMPIAS",
+      "object": "Olympias, full-size reconstruction of an Athenian trireme (1985-1987), Hellenic Navy",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/Olympias_(trireme)", "access": "read-web-last-resort" }],
+      "claims": ["Experimental-archaeology reconstruction to drawings by John Coates with John Morrison", "170 oarsmen in three banks: 62 thranitai, 54 zygitai, 54 thalamitai"],
+      "dating": "reconstruction of a 5th-century BC type",
+      "certainty": "a reconstruction, not a surviving ship; comparison only",
+      "assets": []
+    },
+    {
+      "id": "R-ZEA",
+      "object": "Ship sheds at Zea, Piraeus",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/Trireme", "access": "read-web-last-resort" }, { "url": "https://en.wikipedia.org/wiki/Piraeus", "access": "read-web-last-resort" }],
+      "claims": ["Ship sheds ca. 40 m long and 6 m wide; 372 trireme sheds in the classical naval base"],
+      "dating": "classical (5th-4th c. BC)",
+      "certainty": "Zea Harbour Project publications not read",
+      "assets": []
+    },
+    {
+      "id": "R-KYNOS",
+      "object": "Kynos (Pyrgos Livanaton), Late Helladic IIIC finds",
+      "sources": [{ "url": "https://en.wikipedia.org/wiki/Cynus", "access": "read-web-last-resort" }],
+      "claims": ["Excavated 1985-1995 by the 14th Ephorate, Lamia; findings known from preliminary reports"],
+      "dating": "Bronze Age and Early Iron Age",
+      "certainty": "ship depictions not stated in the page read; to verify in Dakoronia's reports",
+      "assets": ["ship.*"]
+    },
+    { "id": "B-MORRISON", "object": "J. S. Morrison, J. F. Coates, N. B. Rankov, The Athenian Trireme", "access": "metadata-only", "assets": [] },
+    { "id": "B-CASSON", "object": "L. Casson, Ships and Seamanship in the Ancient World", "access": "metadata-only", "assets": [] },
+    { "id": "B-LAWRENCE", "object": "A. W. Lawrence, Greek Architecture", "access": "metadata-only", "assets": [] },
+    { "id": "B-COULTON", "object": "J. J. Coulton, Ancient Greek Architects at Work", "access": "metadata-only", "assets": [] }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_ram_blockout",
+  "name": "Taranowiec (triakontoros, z generatora gry)",
+  "category": "ship",
+  "shipClass": "Ram",
+  "description": "An Aegean thirty-oared galley of the 12th century BC: pitch-black hull with a red ochre wale and a white zigzag, a stem post crowned with a bird's head, a wooden spur at the forefoot, raised platforms fore and aft, a crow's nest and a brailed square sail.",
+  "generation": { "provider": "blockout" },
+  "texturing": { "provider": "flat" },
+  "lods": 3
+}

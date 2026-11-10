@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "morza-bogow-assets": {
+      "type": "stdio",
+      "command": "wsl.exe",
+      "args": ["-e", "python3", "/mnt/c/Users/noirp/MorzaBogow/Tools/asset_pipeline/ap.py", "mcp"],
+      "env": {
+        "WSLENV": "MESHY_API_KEY/u:COMFYUI_URL/u:BLENDER_PATH/p:UNITY_PATH/p"
+      }
+    }
+  }
+}

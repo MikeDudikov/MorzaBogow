@@ -59,7 +59,31 @@
         "MorzaBogow.Tests.SimulationTests.Port_AnIdleShipRegroupsByItselfForTheQuotedSilver",
         "MorzaBogow.Tests.SimulationTests.Port_WithoutSilverTheMusterWaitsAndChargesNothing",
         "MorzaBogow.Tests.SimulationTests.Port_ANewPlanChangesTheCrewOnlyAtPort",
-        "MorzaBogow.Tests.ResolutionCatalogTests.Build_KeepsOnlyModesInRange"
+        "MorzaBogow.Tests.ResolutionCatalogTests.Build_KeepsOnlyModesInRange",
+        "MorzaBogow.Tests.AIAssetsTests.AIAssets_DimensionsFileMatchesTheShipCatalogue",
+        "MorzaBogow.Tests.AIAssetsTests.AIAssets_GenericAssetStandsOnTheGroundAtTheBriefsHeight",
+        "MorzaBogow.Tests.AIAssetsTests.AIAssets_ImportRefusesFoldersOutsideGenerated",
+        "MorzaBogow.Tests.AIAssetsTests.AIAssets_RequestFromThePipelineParses",
+        "MorzaBogow.Tests.AIAssetsTests.AIAssets_ValidatorMeasuresLodsMaterialsBoundsAndFlagsPhysics",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_AnOldMaterialMovesToHdrpLitWithItsSetsMapsAndUndoes",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_MaskMapTakesMetalOcclusionAndInvertedRoughness",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"Hull_BaseColor\",BaseColor,\"hull\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"Hull_Metallic\",Metallic,\"hull\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"Sail_MaskMap\",Mask,\"sail\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"deck_height\",Height,\"deck\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"deck_planks\",None,\"deck_planks\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"hull-AO\",Occlusion,\"hull\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"hull_base_rough\",Roughness,\"hull_base\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"rock_07_diff_2k\",BaseColor,\"rock_07\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"rock_07_nor_dx_2k\",Normal,\"rock_07\",True)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"rock_07_nor_gl_2k\",Normal,\"rock_07\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Materials_TextureNamesGiveTheirRoleAndSet(\"rock_07_rough_2k\",Roughness,\"rock_07\",False)",
+        "MorzaBogow.Tests.AIAssetsTests.Ships_ModelsBecomeAClassPrefabWithLodsPointsAndNoPhysics",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_EveryClassHasItsCatalogueSizeKeelAndPosts",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_EachTypeKeepsItsOwnMarks",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_PiecesOfABrokenHullMakeUpTheWhole",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_HullFacesPointOutward",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_LowerDetailHasFewerTriangles"
       ]
     },
     "PlayMode": {
@@ -87,7 +111,14 @@
         "MorzaBogow.Tests.WeatherControllerTests.Weather_AStormComesSmoothlyAndTheCalmReturnsExactly",
         "MorzaBogow.Tests.WeatherControllerTests.Weather_TheSeaChangesAtMostFourTimesASecondAndEndsExactly",
         "MorzaBogow.Tests.WeatherControllerTests.Weather_TheBattleStaysCalmAndAStormChangesNothingInTheWorld",
-        "MorzaBogow.Tests.WeatherControllerTests.Weather_EachBattleTakesTheScenesVolumeNotAnotherOverlay"
+        "MorzaBogow.Tests.WeatherControllerTests.Weather_EachBattleTakesTheScenesVolumeNotAnotherOverlay",
+        "MorzaBogow.Tests.ShipLookTests.Look_EveryClassIsBuiltFromItsAegeanParts",
+        "MorzaBogow.Tests.ShipLookTests.Look_TheSailTakesTheSideColourAndChangesItWhenTaken",
+        "MorzaBogow.Tests.ShipLookTests.Damage_BlowsLeaveBreachesOnTheStruckSideAndRepairsTakeThemAway",
+        "MorzaBogow.Tests.ShipLookTests.Fate_ABrokenShipPartsSinksAndLeavesWreckageThatGoesInTime",
+        "MorzaBogow.Tests.ShipLookTests.Missiles_FlyOnlyWhereThePlayerCanSee",
+        "MorzaBogow.Tests.ShipLookTests.Wreck_FloatsAsWreckageWithItsCargo",
+        "MorzaBogow.Tests.ShipLookTests.Boarding_LossesFellMenOnDeckOrOverTheSide"
       ]
     }
   }

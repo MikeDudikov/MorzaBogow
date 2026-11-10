@@ -26,3 +26,9 @@ work/
 
 artifacts-log/
 *.slnx
+
+# Asset pipeline: job workspaces, logs and the queue database stay local
+ArtWorkspace/jobs/
+ArtWorkspace/logs/
+ArtWorkspace/pipeline.db*
+Tools/**/__pycache__/

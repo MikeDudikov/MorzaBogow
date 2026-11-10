@@ -87,21 +87,25 @@ namespace MorzaBogow.Tests
             var parent = new GameObject("Yard under test");
             try
             {
+                // Shell first, as Bronze Age hulls were built: the planking rises on the keel before the frames go in.
                 var slip = new Slipway(parent.transform, null, 0, 1f, -1f);
                 slip.Show(ShipClass.Ram, 0.05f, 0.1f);
                 Assert.That(slip.FramesShown, Is.EqualTo(0), "First only the keel.");
+                Assert.That(slip.PlankedFraction, Is.EqualTo(0f));
                 Assert.That(slip.Scaffolded, Is.True);
                 Assert.That(slip.ShipwrightsAtWork, Is.GreaterThan(0));
 
-                slip.Show(ShipClass.Ram, 0.25f, 0.1f);
-                var some = slip.FramesShown;
-                Assert.That(some, Is.GreaterThan(0), "Frames rise.");
-                Assert.That(slip.PlankedFraction, Is.EqualTo(0f));
-
-                slip.Show(ShipClass.Ram, 0.5f, 0.1f);
-                Assert.That(slip.FramesShown, Is.GreaterThan(some), "All frames stand before planking is far along.");
+                slip.Show(ShipClass.Ram, 0.3f, 0.1f);
                 Assert.That(slip.PlankedFraction, Is.InRange(0.1f, 0.9f), "Planking is half way up.");
+                Assert.That(slip.FramesShown, Is.EqualTo(0), "No frames before the shell stands.");
+
+                slip.Show(ShipClass.Ram, 0.62f, 0.1f);
+                Assert.That(slip.PlankedFraction, Is.EqualTo(1f));
+                var some = slip.FramesShown;
+                Assert.That(some, Is.GreaterThan(0), "Frames go in inside the shell.");
                 Assert.That(slip.Decked, Is.False);
+                slip.Show(ShipClass.Ram, 0.69f, 0.1f);
+                Assert.That(slip.FramesShown, Is.GreaterThan(some), "All frames stand before the deck.");
 
                 slip.Show(ShipClass.Ram, 0.8f, 0.1f);
                 Assert.That(slip.PlankedFraction, Is.EqualTo(1f));
@@ -811,7 +815,11 @@ namespace MorzaBogow.Tests
             Assert.That(battle.World.FindShip(ship.Id), Is.Null);
             Assert.That(battle.Views.ContainsKey(ship.Id), Is.False);
             Assert.That(battle.Effects.SinkingCount, Is.EqualTo(1));
+            // The ship settles, its mast falls and wreckage floats off before the hull goes under, about ten seconds.
             battle.Effects.Update(5f);
+            Assert.That(battle.Effects.SinkingCount, Is.EqualTo(1), "Still going down after five seconds.");
+            Assert.That(battle.Effects.DebrisCount, Is.GreaterThan(0), "Planks and oars float off.");
+            battle.Effects.Update(6f);
             Assert.That(battle.Effects.SinkingCount, Is.EqualTo(0));
         }
 

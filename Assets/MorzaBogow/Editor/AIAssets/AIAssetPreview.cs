@@ -1,0 +1,85 @@
+using System;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
+
+namespace MorzaBogow.Editor.AIAssets
+{
+    /// <summary>
+    /// A 512 px PNG of a prefab from a high oblique angle, like the strategy camera, rendered with the editor's preview
+    /// scene through the active render pipeline. Needs a graphics device: batch mode without -nographics.
+    /// </summary>
+    public static class AIAssetPreview
+    {
+        public static bool Render(GameObject prefab, string pngPath, out string why) => Render(prefab, pngPath, false, out why, -140f);
+
+        /// <summary>Renders an object that lives in the open scene (not a prefab asset); it is moved into the preview scene and back.</summary>
+        public static bool RenderObject(GameObject item, string pngPath, float yaw, out string why) => Render(item, pngPath, true, out why, yaw);
+
+        static bool Render(GameObject source, string pngPath, bool existing, out string why, float yaw)
+        {
+            why = string.Empty;
+            if (string.IsNullOrEmpty(pngPath)) { why = "brak ścieżki podglądu"; return false; }
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) { why = "brak urządzenia graficznego (-nographics)"; return false; }
+            PreviewRenderUtility preview = null;
+            Texture2D image = null;
+            try
+            {
+                preview = new PreviewRenderUtility();
+                GameObject instance;
+                if (existing)
+                {
+                    preview.AddSingleGO(source);
+                    instance = source;
+                }
+                else instance = preview.InstantiatePrefabInScene(source);
+                var renderers = instance.GetComponentsInChildren<Renderer>(true);
+                var lodGroup = instance.GetComponentInChildren<LODGroup>(true);
+                if (lodGroup != null) lodGroup.ForceLOD(0);
+                var bounds = renderers.Length > 0 ? renderers[0].bounds : new Bounds(Vector3.zero, Vector3.one);
+                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                var radius = Mathf.Max(bounds.extents.magnitude, 0.5f);
+                var camera = preview.camera;
+                camera.fieldOfView = 30f;
+                var direction = Quaternion.Euler(36f, yaw, 0f) * Vector3.forward;
+                var distance = radius / Mathf.Sin(15f * Mathf.Deg2Rad) * 0.72f;
+                camera.transform.position = bounds.center - direction * distance;
+                camera.transform.LookAt(bounds.center);
+                camera.nearClipPlane = Mathf.Max(0.05f, distance - radius * 2f);
+                camera.farClipPlane = distance + radius * 2f;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = new Color(0.52f, 0.64f, 0.72f, 1f);
+                if (preview.lights.Length > 0)
+                {
+                    // Key light from behind the camera's shoulder, so the faces the camera sees are lit.
+                    preview.lights[0].intensity = 1.3f;
+                    preview.lights[0].transform.rotation = Quaternion.Euler(50f, yaw + 25f, 0f);
+                }
+                if (preview.lights.Length > 1) preview.lights[1].intensity = 0.6f;
+                preview.ambientColor = new Color(0.32f, 0.34f, 0.38f);
+                preview.BeginStaticPreview(new Rect(0, 0, 512, 512));
+                preview.Render(true);
+                image = preview.EndStaticPreview();
+                var pixels = image.GetPixels32();
+                var light = pixels.Average(p => (p.r + p.g + p.b) / 3.0);
+                Directory.CreateDirectory(Path.GetDirectoryName(pngPath) ?? ".");
+                File.WriteAllBytes(pngPath, image.EncodeToPNG());
+                if (light < 2.0) { why = "podgląd jest czarny"; return false; }
+                return true;
+            }
+            catch (Exception error)
+            {
+                why = $"{error.GetType().Name}: {error.Message}";
+                return false;
+            }
+            finally
+            {
+                if (image != null) Object.DestroyImmediate(image);
+                preview?.Cleanup();
+            }
+        }
+    }
+}

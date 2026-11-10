@@ -1,0 +1,12 @@
+{
+  "_comment": "Generated from ShipCatalog (Assets/MorzaBogow/Runtime/Simulation/Definitions.cs) by Morza Bogow > Assety AI > Eksportuj wymiary okretow. length = 2 x Radius; beam and empty draft in metres; weapon posts in order; ram = CanRam. The EditMode test AIAssets_DimensionsFileMatchesTheShipCatalogue keeps it equal to the catalogue.",
+  "ships": {
+    "Cutter": { "length": 12.0, "beam": 3.4, "draft": 0.7, "slots": [], "ram": false },
+    "Ram": { "length": 20.0, "beam": 5.6, "draft": 1.2, "slots": ["Light", "Medium"], "ram": true },
+    "CrewDestroyer": { "length": 22.0, "beam": 6.2, "draft": 1.3, "slots": ["Light", "Light", "Light", "Light"], "ram": true },
+    "Boarder": { "length": 26.0, "beam": 10.9, "draft": 2.2, "slots": ["Light", "Light", "Medium"], "ram": true },
+    "Merchant": { "length": 24.0, "beam": 10.1, "draft": 2.0, "slots": [], "ram": false },
+    "ShipKiller": { "length": 20.0, "beam": 6.0, "draft": 1.7, "slots": ["Medium", "Medium"], "ram": true },
+    "Bomber": { "length": 28.0, "beam": 9.4, "draft": 2.8, "slots": ["Heavy", "Heavy"], "ram": true }
+  }
+}

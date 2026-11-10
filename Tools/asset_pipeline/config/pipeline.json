@@ -1,0 +1,72 @@
+{
+  "_comment": "Morza Bogow asset pipeline settings. Credentials are never stored here: providers read them from the environment variables named below.",
+  "project": {
+    "unitsPerMetre": 1.0,
+    "up": "+Y",
+    "forward": "+Z",
+    "generatedAssetsFolder": "Assets/MorzaBogow/Art/Generated",
+    "workspaceFolder": "ArtWorkspace",
+    "databaseFile": "ArtWorkspace/pipeline.db",
+    "dimensionsFile": "Tools/asset_pipeline/config/project_dimensions.json"
+  },
+  "visualDirection": "Grounded Ancient Greek maritime realism of the Late Bronze Age Aegean, mature and serious, believable construction, realistic proportions, tactile weathered wood, stone, bronze and fabric, readable strategic-game silhouette.",
+  "templates": {
+    "concept": "Grounded Ancient Greek maritime realism, mature and serious art direction, authentic Aegean landscape, clear Mediterranean sunlight, deep blue sea, natural coastal turquoise, warm stone, olive vegetation, tactile materials, believable construction, realistic proportions, readable strategic-game silhouette.",
+    "model": "Game asset of the Late Bronze Age Aegean (12th century BC): believable construction, realistic proportions, convincing thickness and fastening of parts, moving parts separated, real-world scale in metres, clean topology, no base or ground plane.",
+    "texture": "Physically based materials under neutral even lighting, no baked shadows or highlights: wood grain and tool marks, pitch, ochre paint, linen weave, bronze with local patina; wear only at grips, joints, edges and the waterline.",
+    "animation": "Weighted, deliberate motion: anticipation, transfer of weight, clear contact, reaction and recovery; no hops or acrobatics.",
+    "effect": "Material-driven effects sized to the event: wood splinters, heavy water splashes, dust and smoke; short contact flash; no colourful explosions or showers of sparks."
+  },
+  "negativeTerms": ["cute", "chibi", "toy-like", "glossy plastic", "exaggerated cartoon proportions", "candy-colored materials", "excessive neon glow", "permanently gloomy lighting", "inappropriate medieval architecture", "oversized fantasy weapons"],
+  "_negativeTermsNote": "Sent only where the generator supports exclusions: ComfyUI workflows via the {{negative}} placeholder. No verified Meshy parameter takes them, so they are not sent to Meshy.",
+  "budgets": {
+    "ship": { "triangles": 8000, "textureSize": 1024, "materials": 6, "renderers": 60, "texelDensity": 64 },
+    "ship_equipment": { "triangles": 1500, "textureSize": 512, "materials": 2, "renderers": 6, "texelDensity": 64 },
+    "building": { "triangles": 6000, "textureSize": 1024, "materials": 4, "renderers": 20, "texelDensity": 48 },
+    "ruin": { "triangles": 4000, "textureSize": 1024, "materials": 3, "renderers": 12, "texelDensity": 48 },
+    "rock": { "triangles": 2000, "textureSize": 1024, "materials": 1, "renderers": 2, "texelDensity": 32 },
+    "vegetation": { "triangles": 2500, "textureSize": 512, "materials": 2, "renderers": 4, "texelDensity": 48 },
+    "character": { "triangles": 6000, "textureSize": 1024, "materials": 3, "renderers": 4, "texelDensity": 256 },
+    "creature": { "triangles": 12000, "textureSize": 2048, "materials": 3, "renderers": 6, "texelDensity": 64 },
+    "material": { "triangles": 0, "textureSize": 1024, "materials": 1, "renderers": 0, "texelDensity": 64 },
+    "effect": { "triangles": 500, "textureSize": 256, "materials": 1, "renderers": 2, "texelDensity": 64 }
+  },
+  "lodScreenSizes": [0.25, 0.08],
+  "lodCullScreenSize": 0.002,
+  "limits": {
+    "maxVariants": 2,
+    "maxRepairAttempts": 2,
+    "maxAttemptsPerStage": 4,
+    "maxCreditsPerJob": 120,
+    "maxCreditsPerDay": 400,
+    "maxDownloadBytes": 209715200
+  },
+  "polling": {
+    "initialSeconds": 10,
+    "maxSeconds": 120,
+    "requestTimeoutSeconds": 60,
+    "maxRetries": 5
+  },
+  "providers": {
+    "meshy": {
+      "baseUrl": "https://api.meshy.ai",
+      "apiKeyEnv": "MESHY_API_KEY",
+      "aiModel": "latest",
+      "targetFormats": ["glb", "fbx"],
+      "credits": { "text_to_3d_preview": 20, "text_to_3d_refine": 10, "image_to_3d": 30, "retexture": 10, "remesh": 5, "rigging": 5, "animation_per_action": 3 }
+    },
+    "comfyui": {
+      "urlEnv": "COMFYUI_URL",
+      "conceptWorkflow": "ArtWorkspace/workflows/concept_api.json",
+      "textureWorkflow": "ArtWorkspace/workflows/texture_api.json"
+    },
+    "blender": {
+      "pathEnv": "BLENDER_PATH",
+      "script": "Tools/asset_pipeline/blender/prepare.py"
+    },
+    "unity": {
+      "pathEnv": "UNITY_PATH",
+      "defaultPath": "C:\\Program Files\\Unity\\Hub\\Editor\\6000.3.28f1\\Editor\\Unity.exe"
+    }
+  }
+}

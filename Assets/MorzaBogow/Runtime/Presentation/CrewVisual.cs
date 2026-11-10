@@ -5,26 +5,51 @@ using UnityEngine;
 namespace MorzaBogow.Presentation
 {
     /// <summary>
-    /// Men fighting across the rails while two decks are locked in a boarding: as many as the front holds, up to eight a
-    /// side, each in its side's colours, trading blows out of step. Fewer stand as the front thins. It only reads the
-    /// boarding's state; the fight itself is the simulation's.
+    /// Men fighting across the rails while two decks are locked in a boarding, armed as on the Warrior Vase of Mycenae:
+    /// as many as the front holds, up to eight a side, each in its side's colours. They fight in pairs across the gap,
+    /// one thrusting over his shield while the other covers, then the other way; an archer behind each line draws and
+    /// looses. When the simulation's front loses men, a man falls on his deck or goes over the side into the sea.
+    /// It only reads the boarding's state; the fight itself is the simulation's.
     /// </summary>
     public sealed class DeckFight
     {
-        public const int MaxPerSide = 8;
+        public const int MaxPerSide = 8, MaxFallen = 6;
         readonly CrewFigure[] attackers = new CrewFigure[MaxPerSide], defenders = new CrewFigure[MaxPerSide];
+        readonly CrewFigure[] archers = new CrewFigure[2];
+        readonly List<(CrewFigure figure, float age, bool overboard, Vector3 from, Vector3 outward)> fallen = new List<(CrewFigure, float, bool, Vector3, Vector3)>();
+        readonly Transform parent;
+        readonly PlaceholderMaterials materials;
+        readonly int attackerOwner, defenderOwner;
+        int lastOurs = -1, lastTheirs = -1, falls;
         float time;
 
         public int Shown { get; private set; }
+        public int Fallen => fallen.Count;
+        public int Overboard { get; private set; }
+
+        /// <summary>Called where a man falls into the sea, for a splash.</summary>
+        public System.Action<Vector3> Splash;
 
         public DeckFight(Transform parent, PlaceholderMaterials materials, int attackerOwner, int defenderOwner)
         {
+            this.parent = parent;
+            this.materials = materials;
+            this.attackerOwner = attackerOwner;
+            this.defenderOwner = defenderOwner;
             for (var i = 0; i < MaxPerSide; i++)
             {
                 attackers[i] = new CrewFigure(parent, materials, attackerOwner);
                 defenders[i] = new CrewFigure(parent, materials, defenderOwner);
+                attackers[i].SetKit(CrewKit.Warrior);
+                defenders[i].SetKit(CrewKit.Warrior);
                 attackers[i].Show(false);
                 defenders[i].Show(false);
+            }
+            for (var i = 0; i < archers.Length; i++)
+            {
+                archers[i] = new CrewFigure(parent, materials, i == 0 ? attackerOwner : defenderOwner);
+                archers[i].SetKit(CrewKit.Archer);
+                archers[i].Show(false);
             }
         }
 
@@ -40,12 +65,54 @@ namespace MorzaBogow.Presentation
             time += delta;
             var ours = visible ? FiguresFor(attackerFront) : 0;
             var theirs = visible ? FiguresFor(targetFront) : 0;
+            // Men lost at the front fall where they stood; the first step only learns the starting numbers.
+            if (visible && lastOurs >= 0) for (var i = ours; i < lastOurs; i++) Fall(attackers[i], attacker);
+            if (visible && lastTheirs >= 0) for (var i = theirs; i < lastTheirs; i++) Fall(defenders[i], target);
+            lastOurs = ours;
+            lastTheirs = theirs;
             var axis = Flat(attacker.transform.forward);
             var spacing = Mathf.Clamp(Mathf.Min(attacker.Length, target.Length) * 0.7f / Mathf.Max(1, Mathf.Max(ours, theirs)), 0.8f, 1.4f);
             Shown = 0;
             Shown += Place(attackers, ours, attacker, target, axis, spacing, 0f);
-            Shown += Place(defenders, theirs, target, attacker, axis, spacing, 0.45f);
+            Shown += Place(defenders, theirs, target, attacker, axis, spacing, 0.5f);
+            PlaceArcher(archers[0], ours > 0, attacker, target, 0f);
+            PlaceArcher(archers[1], theirs > 0, target, attacker, 0.4f);
+            for (var i = fallen.Count - 1; i >= 0; i--)
+            {
+                var (figure, age, overboard, from, outward) = fallen[i];
+                age += delta;
+                fallen[i] = (figure, age, overboard, from, outward);
+                if (!visible) { figure.Show(false); continue; }
+                figure.Show(true);
+                if (!overboard) { figure.Fall(Mathf.Clamp01(age / 0.6f)); continue; }
+                // Over the side: a step out past the rail, then down into the sea.
+                var t = Mathf.Clamp01(age / 1.2f);
+                figure.Place(from + outward * (1.6f * t) + Vector3.down * (from.y + 1.2f) * t * t);
+                figure.Fall(Mathf.Clamp01(age / 0.5f) * 0.6f);
+                if (age >= 1.2f && age - delta < 1.2f) Splash?.Invoke(from + outward * 1.6f);
+                if (age >= 1.6f) figure.Show(false);
+            }
         }
+
+        /// <summary>A man of the front struck down: a copy of him lies on the deck, or every third one goes overboard.</summary>
+        void Fall(CrewFigure standing, ShipVisual own)
+        {
+            if (!standing.Root.gameObject.activeSelf) return;
+            var body = new CrewFigure(parent, materials, standing == null ? attackerOwner : OwnerOf(standing));
+            body.SetKit(CrewKit.Warrior);
+            body.Place(standing.Position);
+            body.Face(standing.Position + standing.Root.forward);
+            var overboard = ++falls % 3 == 0;
+            if (overboard) Overboard++;
+            fallen.Add((body, 0f, overboard, standing.Position, Flat(standing.Position - own.transform.position)));
+            while (fallen.Count > MaxFallen)
+            {
+                fallen[0].figure.Destroy();
+                fallen.RemoveAt(0);
+            }
+        }
+
+        int OwnerOf(CrewFigure figure) => System.Array.IndexOf(attackers, figure) >= 0 ? attackerOwner : defenderOwner;
 
         int Place(CrewFigure[] figures, int count, ShipVisual own, ShipVisual other, Vector3 axis, float spacing, float offset)
         {
@@ -56,14 +123,31 @@ namespace MorzaBogow.Presentation
                 figures[i].Show(shown);
                 if (!shown) continue;
                 var rail = own.RailNear(across + axis * ((i - (count - 1) * 0.5f) * spacing));
-                // One step in from the gunwale, toward the own deck's middle.
+                // One step in from the gunwale, toward the own deck's middle; a step forward while thrusting.
                 var inward = Flat(own.transform.position - rail);
-                var at = rail + inward * 0.5f;
+                var phase = Mathf.Repeat(time * 0.9f + offset + i * 0.23f, 1f);
+                var attacking = phase < 0.5f;
+                var local = attacking ? phase / 0.5f : (phase - 0.5f) / 0.5f;
+                var step = attacking ? Mathf.Sin(local * Mathf.PI) * 0.3f : 0f;
+                var at = rail + inward * (0.5f - step);
                 figures[i].Place(at);
                 figures[i].Face(at - inward);
-                figures[i].Strike(Mathf.Repeat(time * 1.3f + offset + i * 0.37f, 1f));
+                if (attacking) figures[i].Thrust(local);
+                else figures[i].Block(Mathf.Sin(local * Mathf.PI));
             }
             return count;
+        }
+
+        void PlaceArcher(CrewFigure archer, bool shown, ShipVisual own, ShipVisual other, float offset)
+        {
+            archer.Show(shown);
+            if (!shown) return;
+            var rail = own.RailNear(other.transform.position + Flat(own.transform.forward) * 2.5f);
+            var inward = Flat(own.transform.position - rail);
+            var at = rail + inward * 2.2f;
+            archer.Place(at);
+            archer.Face(other.transform.position);
+            archer.Draw(Mathf.Repeat(time * 0.6f + offset, 1f));
         }
 
         internal static Vector3 Flat(Vector3 vector)
@@ -76,6 +160,9 @@ namespace MorzaBogow.Presentation
         {
             foreach (var figure in attackers) figure.Destroy();
             foreach (var figure in defenders) figure.Destroy();
+            foreach (var figure in archers) figure.Destroy();
+            foreach (var (figure, _, _, _, _) in fallen) figure.Destroy();
+            fallen.Clear();
         }
     }
 
@@ -151,13 +238,25 @@ namespace MorzaBogow.Presentation
     public enum CrewTool { None, Axe, Pick }
     public enum CrewLoad { None, Log, Chest, Crate }
 
-    /// <summary>A small placeholder figure that walks, swings a tool and carries goods. Presentation only.</summary>
+    /// <summary>
+    /// What a figure wears and carries: a worker or sailor in a plain tunic; a warrior as on the Warrior Vase of Mycenae
+    /// (c. 1200 BC) with a horned bronze helmet, a round shield in the side's colour, greaves and a spear; an archer
+    /// with a bow and a quiver.
+    /// </summary>
+    public enum CrewKit { Worker, Warrior, Archer }
+
+    /// <summary>A small figure that walks, swings a tool, carries goods and fights. Presentation only.</summary>
     public sealed class CrewFigure
     {
         public readonly Transform Root;
         readonly Transform legLeft, legRight, arm, axe, pick;
         readonly GameObject log, chest, crate;
+        readonly Transform shieldArm, spear, bow;
+        readonly GameObject[] armour;
+        Quaternion facing = Quaternion.identity;
         float stride;
+
+        public CrewKit Kit { get; private set; }
 
         public Vector3 Position => Root.position;
         public CrewLoad Carrying { get; private set; }
@@ -191,8 +290,92 @@ namespace MorzaBogow.Presentation
             chest = Part(Root, PrimitiveType.Cube, materials?.Timber, new Vector3(0f, 2.15f, 0f), new Vector3(0.7f, 0.42f, 0.5f)).gameObject;
             Part(chest.transform, PrimitiveType.Cube, materials?.SilverOre, Vector3.zero, new Vector3(0.18f, 1.05f, 1.05f));
             crate = Part(Root, PrimitiveType.Cube, materials?.Timber, new Vector3(0f, 2.1f, 0f), new Vector3(0.55f, 0.45f, 0.55f)).gameObject;
+
+            // The warrior's kit: horned helmet with a crest, greaves, a round shield on the left arm, a spear in the right
+            // hand; an archer's bow and quiver. Bronze and the side's colour, as painted on the Warrior Vase.
+            var bronze = materials?.Bronze;
+            var paint = materials?.Paint ?? materials?.Rope;
+
+            var parts = new List<GameObject>();
+            var helmet = Part(Root, PrimitiveType.Sphere, bronze, new Vector3(0f, 1.95f, 0f), new Vector3(0.37f, 0.27f, 0.39f));
+            parts.Add(helmet.gameObject);
+            foreach (var side in new[] { -1f, 1f })
+                parts.Add(Part(Root, PrimitiveType.Cylinder, paint, new Vector3(side * 0.2f, 2.08f, 0.04f), new Vector3(0.05f, 0.13f, 0.05f), new Vector3(0f, 0f, side * -38f)).gameObject);
+            parts.Add(Part(Root, PrimitiveType.Cube, materials?.Ochre ?? tunic, new Vector3(0f, 2.12f, -0.02f), new Vector3(0.06f, 0.14f, 0.36f)).gameObject);
+            foreach (var leg in new[] { legLeft, legRight })
+                parts.Add(Part(leg, PrimitiveType.Cube, bronze, new Vector3(0f, -0.62f, 0.02f), new Vector3(0.2f, 0.36f, 0.22f)).gameObject);
+            shieldArm = Pivot(Root, new Vector3(-0.3f, 1.55f, 0f));
+            Part(shieldArm, PrimitiveType.Cube, skin, new Vector3(0f, -0.28f, 0f), new Vector3(0.12f, 0.56f, 0.12f));
+            var shield = Part(shieldArm, PrimitiveType.Cylinder, tunic, new Vector3(-0.05f, -0.35f, 0.22f), new Vector3(0.82f, 0.025f, 0.82f), new Vector3(90f, 0f, 0f));
+            Part(shield, PrimitiveType.Cylinder, paint, new Vector3(0f, -1.2f, 0f), new Vector3(0.36f, 0.6f, 0.36f));
+            // The notch cut in the shield's lower rim.
+            Part(shield, PrimitiveType.Cube, materials?.Pitch ?? materials?.Timber, new Vector3(0f, -1.1f, -0.42f), new Vector3(0.22f, 0.5f, 0.16f));
+            parts.Add(shieldArm.gameObject);
+            spear = Pivot(arm, new Vector3(0f, -0.58f, 0f));
+            Part(spear, PrimitiveType.Cylinder, materials?.Timber, new Vector3(0f, 0f, 0.4f), new Vector3(0.05f, 1.25f, 0.05f), new Vector3(90f, 0f, 0f));
+            Part(spear, PrimitiveType.Cube, bronze, new Vector3(0f, 0f, 1.72f), new Vector3(0.07f, 0.04f, 0.26f), new Vector3(0f, 0f, 45f));
+            parts.Add(spear.gameObject);
+            bow = Pivot(Root, new Vector3(-0.32f, 1.5f, 0.25f));
+            Part(bow, PrimitiveType.Cube, materials?.Ochre ?? materials?.Timber, new Vector3(0f, 0.32f, -0.08f), new Vector3(0.05f, 0.55f, 0.05f), new Vector3(-18f, 0f, 0f));
+            Part(bow, PrimitiveType.Cube, materials?.Ochre ?? materials?.Timber, new Vector3(0f, -0.32f, -0.08f), new Vector3(0.05f, 0.55f, 0.05f), new Vector3(18f, 0f, 0f));
+            Part(Root, PrimitiveType.Cylinder, materials?.Ochre ?? materials?.Timber, new Vector3(0.15f, 1.4f, -0.22f), new Vector3(0.14f, 0.3f, 0.14f), new Vector3(15f, 0f, 0f)).gameObject.transform.SetParent(bow, true);
+            parts.Add(bow.gameObject);
+            armour = parts.ToArray();
             SetTool(CrewTool.None);
             SetLoad(CrewLoad.None);
+            SetKit(CrewKit.Worker);
+        }
+
+        public void SetKit(CrewKit kit)
+        {
+            Kit = kit;
+            var armed = kit != CrewKit.Worker;
+            foreach (var part in armour) if (part.activeSelf != armed) part.SetActive(armed);
+            spear.gameObject.SetActive(kit == CrewKit.Warrior);
+            shieldArm.gameObject.SetActive(kit == CrewKit.Warrior);
+            bow.gameObject.SetActive(kit == CrewKit.Archer);
+            if (armed) SetTool(CrewTool.None);
+        }
+
+        /// <summary>A spear thrust over the shield: draw back, lunge, recover. Phase 0 to 1 per thrust.</summary>
+        public void Thrust(float phase)
+        {
+            var lunge = phase < 0.45f ? Mathf.Lerp(0f, -0.4f, phase / 0.45f) : phase < 0.65f ? Mathf.Lerp(-0.4f, 1f, (phase - 0.45f) / 0.2f) : Mathf.Lerp(1f, 0f, (phase - 0.65f) / 0.35f);
+            arm.localRotation = Quaternion.Euler(-80f - lunge * 12f, 0f, 0f);
+            spear.localRotation = Quaternion.Euler(80f - lunge * 6f, 0f, 0f);
+            legLeft.localRotation = Quaternion.Euler(-14f - lunge * 12f, 0f, 0f);
+            legRight.localRotation = Quaternion.Euler(10f + lunge * 10f, 0f, 0f);
+            Root.rotation = facing * Quaternion.Euler(lunge * 8f, 0f, 0f);
+            shieldArm.localRotation = Quaternion.Euler(-40f, 0f, 10f);
+        }
+
+        /// <summary>The shield raised against a blow, 0 lowered to 1 high.</summary>
+        public void Block(float amount)
+        {
+            shieldArm.localRotation = Quaternion.Euler(Mathf.Lerp(-40f, -95f, amount), 0f, Mathf.Lerp(10f, 25f, amount));
+            arm.localRotation = Quaternion.Euler(-60f, 0f, 0f);
+            spear.localRotation = Quaternion.Euler(70f, 0f, 0f);
+            Root.rotation = facing * Quaternion.Euler(-amount * 5f, 0f, 0f);
+        }
+
+        /// <summary>An archer draws and looses: bow arm out, string hand back to the cheek. Phase 0 to 1 per arrow.</summary>
+        public void Draw(float phase)
+        {
+            var pull = phase < 0.7f ? phase / 0.7f : 1f - (phase - 0.7f) / 0.3f;
+            bow.localRotation = Quaternion.Euler(-25f, 0f, 0f);
+            arm.localRotation = Quaternion.Euler(-80f, 0f, Mathf.Lerp(0f, 40f, pull));
+            legLeft.localRotation = Quaternion.Euler(-10f, 0f, 0f);
+            legRight.localRotation = Quaternion.Euler(8f, 0f, 0f);
+            Root.rotation = facing;
+        }
+
+        /// <summary>Struck down: falls back onto the deck (0 standing, 1 lying).</summary>
+        public void Fall(float amount)
+        {
+            Root.rotation = facing * Quaternion.Euler(-88f * Mathf.SmoothStep(0f, 1f, amount), 0f, 0f);
+            arm.localRotation = Quaternion.Euler(-150f * amount, 0f, 20f);
+            legLeft.localRotation = Quaternion.Euler(10f * amount, 0f, 0f);
+            legRight.localRotation = Quaternion.Euler(-10f * amount, 0f, 0f);
         }
 
         public CrewTool Tool { get; private set; }
@@ -227,7 +410,7 @@ namespace MorzaBogow.Presentation
                 return true;
             }
             var flat = new Vector3(offset.x, 0f, offset.z);
-            if (flat.sqrMagnitude > 1e-4f) Root.rotation = Quaternion.LookRotation(flat);
+            if (flat.sqrMagnitude > 1e-4f) Root.rotation = facing = Quaternion.LookRotation(flat);
             Root.position += offset / distance * step;
 
             stride += step * 2.6f;
@@ -242,7 +425,7 @@ namespace MorzaBogow.Presentation
         {
             var flat = point - Root.position;
             flat.y = 0f;
-            if (flat.sqrMagnitude > 1e-4f) Root.rotation = Quaternion.LookRotation(flat);
+            if (flat.sqrMagnitude > 1e-4f) Root.rotation = facing = Quaternion.LookRotation(flat);
         }
 
         public void Stand()

@@ -9,10 +9,10 @@ namespace MorzaBogow.Presentation
     /// Presentation only: it reads the order's class and progress and never changes the game.
     /// <list type="bullet">
     /// <item>0–10%: the keel laid on its cradle, scaffolding raised.</item>
-    /// <item>10–35%: frames (ribs) set up from stern to bow.</item>
-    /// <item>35–70%: planking rises from the keel to the gunwale.</item>
+    /// <item>10–55%: shell first, as in the Bronze Age: planking rises strake by strake from the keel to the gunwale.</item>
+    /// <item>55–70%: frames (ribs) set in inside the shell, from stern to bow.</item>
     /// <item>70–85%: the deck laid from stern to bow.</item>
-    /// <item>85–95%: mast stepped; a ram's bronze beak fitted.</item>
+    /// <item>85–95%: mast stepped; a galley's spur fitted at the forefoot.</item>
     /// <item>95–100%: oars and furled sail; the scaffolding comes down.</item>
     /// </list>
     /// </summary>
@@ -34,7 +34,8 @@ namespace MorzaBogow.Presentation
         Transform[] oars = new Transform[0];
         readonly CrewFigure[] shipwrights;
         ShipClass? building;
-        float length, beam, height, workTime;
+        GreekShipParts parts;
+        float length, beam, height, draft, workTime;
 
         public ShipClass? Building => building;
         public float Progress { get; private set; }
@@ -122,8 +123,9 @@ namespace MorzaBogow.Presentation
             var p = Progress;
             keel.gameObject.SetActive(true);
 
-            // Frames go up one after another from stern to bow.
-            var framed = Mathf.Clamp01((p - 0.1f) / 0.25f);
+            // Shell first, as hulls of the age were built: strakes of planking, edge-joined with mortises and tenons,
+            // rise on the keel; only then are the frames set in, from stern to bow.
+            var framed = Mathf.Clamp01((p - 0.55f) / 0.15f);
             for (var i = 0; i < ribs.Length; i++)
             {
                 var up = framed * ribs.Length > i + 0.01f;
@@ -131,15 +133,16 @@ namespace MorzaBogow.Presentation
                 if (up) FramesShown++;
             }
 
-            // Planking rises from the keel: the hull's own shape grows taller.
-            var planked = Mathf.Clamp01((p - 0.35f) / 0.35f);
+            // Planking rises from the keel: the hull's own shape grows taller, strake by strake.
+            var planked = Mathf.Clamp01((p - 0.1f) / 0.45f);
             PlankedFraction = planked;
             planking.gameObject.SetActive(planked > 0f);
             if (planked > 0f)
             {
-                var tall = height * Mathf.Lerp(0.15f, 1f, planked);
-                planking.localScale = new Vector3(beam, length * 0.5f, tall);
-                planking.localPosition = new Vector3(0f, tall * 0.5f, 0f);
+                // The Greek hull itself, growing up from its keel on the cradle.
+                var grown = Mathf.Lerp(0.15f, 1f, planked);
+                planking.localScale = new Vector3(1f, grown, 1f);
+                planking.localPosition = new Vector3(0f, draft * grown, 0f);
             }
 
             var decked = Mathf.Clamp01((p - 0.7f) / 0.15f);
@@ -147,18 +150,18 @@ namespace MorzaBogow.Presentation
             deck.gameObject.SetActive(decked > 0f);
             if (decked > 0f)
             {
-                var run = length * 0.8f * decked;
-                deck.localScale = new Vector3(beam * 0.72f, 0.15f, run);
-                deck.localPosition = new Vector3(0f, height * 0.92f, -length * 0.4f + run * 0.5f);
+                // Laid from the stern forward.
+                deck.localScale = new Vector3(1f, 1f, decked);
+                deck.localPosition = new Vector3(0f, draft, -length * 0.46f * (1f - decked));
             }
 
             var stepped = Mathf.Clamp01((p - 0.85f) / 0.08f);
             mast.gameObject.SetActive(stepped > 0f);
             if (stepped > 0f)
             {
-                var tall = length * 0.28f * stepped;
-                mast.localScale = new Vector3(0.5f, tall, 0.5f);
-                mast.localPosition = new Vector3(0f, height + tall, 0f);
+                // The mast rises from its step on the deck.
+                mast.localScale = new Vector3(1f, stepped, 1f);
+                mast.localPosition = new Vector3(0f, parts.MastFoot.y * (1f - stepped) + draft, 0f);
             }
             if (beak != null) beak.gameObject.SetActive(p >= 0.9f);
 
@@ -194,53 +197,58 @@ namespace MorzaBogow.Presentation
             workTime = 0f;
             if (shipClass == null) return;
 
-            var definition = ShipCatalog.Get(shipClass.Value);
-            length = (float)definition.Radius * 2f;
-            beam = (float)definition.Beam;
-            height = beam * 0.6f;
-            hullParts = new GameObject($"Hull under construction ({shipClass})").transform;
+            // The same Greek ship the battle shows, here in the cradle frame: keel at Y = 0.
+            parts = GreekShips.Parts(shipClass.Value);
+            var form = parts.Form;
+            length = form.Length;
+            beam = form.HullBeam;
+            draft = form.Draft;
+            height = parts.DeckHeight + draft;
+            hullParts = new GameObject($"Hull under construction ({shipClass}, {form.TypeName})").transform;
             hullParts.SetParent(cradle, false);
 
             keel = CrewFigure.Part(hullParts, PrimitiveType.Cube, materials?.Timber, new Vector3(0f, 0.18f, 0f), new Vector3(0.4f, 0.36f, length * 0.94f));
 
-            // Frames: a floor timber and two side timbers, narrowing toward stem and stern.
+            // Frames follow the hull's own sections: a floor timber and two side timbers, narrowing toward stem and stern.
             var count = Mathf.Max(5, Mathf.RoundToInt(length / 1.7f));
             ribs = new Transform[count];
             for (var i = 0; i < count; i++)
             {
-                var z = Mathf.Lerp(-0.42f, 0.42f, i / (count - 1f)) * length;
-                var taper = Mathf.Sqrt(Mathf.Max(0.08f, 1f - Mathf.Pow(2f * z / length, 2f)));
-                var half = beam * 0.5f * taper;
+                var s = Mathf.Lerp(0.08f, 0.92f, i / (count - 1f));
+                var half = GreekShips.HalfWidth(form, s);
+                var tall = GreekShips.Sheer(form, s) + draft;
                 var rib = new GameObject("Frame").transform;
                 rib.SetParent(hullParts, false);
-                rib.localPosition = new Vector3(0f, 0f, z);
+                rib.localPosition = new Vector3(0f, 0f, GreekShips.Z(form, s));
                 CrewFigure.Part(rib, PrimitiveType.Cube, materials?.Timber, new Vector3(0f, 0.35f, 0f), new Vector3(half * 1.6f, 0.22f, 0.25f));
                 foreach (var flank in new[] { -1f, 1f })
                 {
-                    CrewFigure.Part(rib, PrimitiveType.Cube, materials?.Timber, new Vector3(flank * half * 0.85f, height * 0.6f, 0f),
-                        new Vector3(0.22f, height * 1.15f, 0.25f), new Vector3(0f, 0f, -flank * 14f));
+                    CrewFigure.Part(rib, PrimitiveType.Cube, materials?.Timber, new Vector3(flank * half * 0.85f, tall * 0.55f, 0f),
+                        new Vector3(0.22f, tall * 1.05f, 0.25f), new Vector3(0f, 0f, -flank * 14f));
                 }
                 ribs[i] = rib;
             }
 
-            planking = CrewFigure.Part(hullParts, PrimitiveType.Capsule, materials?.Wood, Vector3.zero, Vector3.one, new Vector3(90f, 0f, 0f));
-            deck = CrewFigure.Part(hullParts, PrimitiveType.Cube, materials?.Timber, Vector3.zero, Vector3.one);
-            mast = CrewFigure.Part(hullParts, PrimitiveType.Cylinder, materials?.Wood, Vector3.zero, Vector3.one);
-            sail = CrewFigure.Part(hullParts, PrimitiveType.Cube, owner == 0 ? materials?.PlayerSail : materials?.EnemySail,
-                new Vector3(0f, height + length * 0.5f, 0f), new Vector3(length * 0.5f, 0.5f, 0.5f));
-            beak = shipClass == ShipClass.Ram
-                ? CrewFigure.Part(hullParts, PrimitiveType.Cube, materials?.Bronze, new Vector3(0f, 0.5f, length * 0.58f), new Vector3(0.7f, 0.7f, length * 0.25f))
-                : null;
+            planking = GreekShips.Attach(hullParts, "Planking", parts.Hull, materials);
+            deck = GreekShips.Attach(hullParts, "Deck", parts.Deck, materials);
+            mast = GreekShips.Attach(hullParts, "Rig", parts.Rig, materials);
+            sail = GreekShips.Attach(hullParts, "Furled sail", parts.Sail, materials, owner == 0 ? materials?.PlayerSail : materials?.EnemySail);
+            sail.localPosition = parts.SailTop + Vector3.up * draft;
+            sail.localScale = new Vector3(parts.SailSize.x, parts.SailSize.y * 0.12f, 0.12f);
+            beak = parts.Ram != null ? GreekShips.Attach(hullParts, "Ram", parts.Ram, materials) : null;
+            if (beak != null) beak.localPosition = Vector3.up * draft;
 
-            // Oars lie shipped along the sides until the hull is afloat.
-            var oarCount = shipClass == ShipClass.Cutter ? 3 : 6;
-            oars = new Transform[oarCount * 2];
+            // Oars lie shipped along the sides, blades aft, until the hull is afloat.
+            var pins = parts.OarPins;
+            oars = new Transform[pins.Length * 2];
             for (var i = 0; i < oars.Length; i++)
             {
-                var flank = i < oarCount ? -1f : 1f;
-                var along = Mathf.Lerp(-0.3f, 0.3f, (i % oarCount) / Mathf.Max(1f, oarCount - 1f)) * length;
-                oars[i] = CrewFigure.Part(hullParts, PrimitiveType.Cube, materials?.Wood, new Vector3(flank * (beam * 0.5f + 0.1f), height * 0.85f, along),
-                    new Vector3(0.14f, 0.14f, (float)Rules.OarReach(definition)));
+                var flank = i < pins.Length ? -1f : 1f;
+                var pin = pins[i % pins.Length];
+                var bank = parts.OarBank[i % pins.Length];
+                oars[i] = GreekShips.Attach(hullParts, "Oar", parts.Oars[bank], materials);
+                oars[i].localPosition = new Vector3(flank * (pin.x + 0.12f), pin.y + draft, pin.z - parts.OarLength[bank] * 0.38f);
+                oars[i].localRotation = Quaternion.Euler(0f, 90f, 0f);
             }
 
             // Scaffolding posts on both flanks.

@@ -1,0 +1,11 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_ram_retexture",
+  "name": "Taranowiec (bryła + retekstura Meshy)",
+  "category": "ship",
+  "shipClass": "Ram",
+  "description": "A lean Aegean warship with a low dark hull, a painted eye at the bow, a blue sheer stripe, a square linen sail and a bronze ram.",
+  "generation": { "provider": "blockout" },
+  "texturing": { "provider": "meshy_retexture", "prompt": "Weathered dark pine planks, blue painted sheer stripe, off-white linen sail, polished bronze ram, hand-painted look readable from far away" },
+  "lods": 3
+}
