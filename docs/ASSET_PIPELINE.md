@@ -89,6 +89,7 @@ Najważniejsze zasady:
   - `substance`: przekazanie ręczne;
   - `provided`: `texturing.maps` po rolach;
   - `flat`: płaskie kolory materiałów.
+- **`texturing.tint`** (opcjonalnie): trzy liczby 0..1, mnożnik koloru mapy bazowej w materiale HDRP (`_BaseColor`). Przyciemnia jasną teksturę bez nowego zlecenia, np. kora kłód `[0.6, 0.57, 0.53]`: w słońcu gry szara kora (albedo ok. 0,5) wyglądała na białą. Test `test_tint_darkens_a_colour_map_with_three_numbers_from_0_to_1`.
 - **Szkielet i animacje** tylko dla kategorii `character` i `creature`.
 - **`variants`**: najwyżej 2. Każdy wariant to osobne zadanie z osobnym kosztem.
 

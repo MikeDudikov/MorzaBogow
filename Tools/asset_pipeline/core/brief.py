@@ -157,6 +157,10 @@ def normalise(raw: dict, config: Config, base_dir=None) -> dict:
             maps[role] = str(path.resolve())
     if tex == "provided" and not maps:
         problems.append("texturing.provider=provided: podaj texturing.maps")
+    tint = texturing.get("tint")
+    if tint is not None and (not isinstance(tint, list) or len(tint) != 3
+                             or not all(isinstance(v, (int, float)) and 0 <= v <= 1 for v in tint)):
+        problems.append("texturing.tint: trzy liczby 0..1 (mnożnik koloru mapy bazowej)")
     texturing.update(provider=tex, size=size, maps=maps)
     brief["texturing"] = texturing
 

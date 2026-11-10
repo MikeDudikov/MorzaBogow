@@ -94,6 +94,7 @@ class Unity:
             "normalised": geometry.get("method") in ("blender", "blockout"),
             "forwardChecked": bool(geometry.get("forwardChecked", geometry.get("method") == "blockout")),
             "teamColour": brief.get("teamColour", []),
+            "tint": [float(v) for v in (brief["texturing"].get("tint") or [])],
             "dimensions": {k: float(dims.get(k, 0.0)) for k in ("length", "width", "height", "draft")},
             "budget": brief["budget"],
             "textureSize": brief["texturing"]["size"],

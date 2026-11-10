@@ -20,6 +20,12 @@ namespace MorzaBogow.Editor.AIAssets
         public int textureSize = 1024;
         public string reportPath, resultPath, previewPath, provenanceJson;
 
+        /// <summary>The brief's texturing.tint: linear 0..1 multipliers of the base colour map (empty: white, the map as it is).</summary>
+        public float[] tint = Array.Empty<float>();
+
+        /// <summary>The base colour a material with a colour map gets: the tint, or white.</summary>
+        public Color MapTint => tint != null && tint.Length == 3 ? new Color(tint[0], tint[1], tint[2]) : Color.white;
+
         public static AIAssetRequest Parse(string json) => JsonUtility.FromJson<AIAssetRequest>(json);
 
         public static AIAssetRequest Load(string path) => Parse(File.ReadAllText(path));

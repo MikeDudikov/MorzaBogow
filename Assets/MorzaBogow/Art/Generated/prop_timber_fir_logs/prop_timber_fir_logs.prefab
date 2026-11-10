@@ -109,9 +109,9 @@ MonoBehaviour:
   DisplayName: "S\u0105gi jod\u0142owych k\u0142\xF3d (sk\u0142ad drewna)"
   Category: building
   ShipClass: 
-  JobId: prop_timber_fir_logs-20261110-173757-57a9
-  ProvenanceJson: '{"pipeline": "0.1.0", "job": "prop_timber_fir_logs-20261110-173757-57a9",
-    "briefSha256": "f65073ab5369dad9d02300093dce3c765889226066fe629e3684f6c486b20267",
+  JobId: prop_timber_fir_logs-20261110-182521-7eda
+  ProvenanceJson: '{"pipeline": "0.1.0", "job": "prop_timber_fir_logs-20261110-182521-7eda",
+    "briefSha256": "66dcea9c903674358ca4f3d45d7808c301b5ef89346b79a008c59e6ef988bd48",
     "generation": "source", "texturing": "provided", "geometry": "blender", "remoteTasks":
     []}'
   Visual: {fileID: 4926833657044245524}

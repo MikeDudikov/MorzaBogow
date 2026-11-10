@@ -34,6 +34,14 @@ class BriefTests(unittest.TestCase):
         for field in ("id:", "shipClass:", "description:"):
             self.assertIn(field, text)
 
+    def test_tint_darkens_a_colour_map_with_three_numbers_from_0_to_1(self):
+        brief = briefs.normalise(self.ship(texturing={"tint": [0.6, 0.58, 0.55]}), self.config)
+        self.assertEqual(brief["texturing"]["tint"], [0.6, 0.58, 0.55])
+        for wrong in ([1.2, 0.5, 0.5], [0.5, 0.5], "dark"):
+            with self.assertRaises(BriefError) as caught:
+                briefs.normalise(self.ship(texturing={"tint": wrong}), self.config)
+            self.assertIn("texturing.tint", " ".join(caught.exception.problems))
+
     def test_a_ship_keeps_the_size_of_its_class(self):
         with self.assertRaises(BriefError) as caught:
             briefs.normalise(self.ship(dimensions={"length": 30}), self.config)

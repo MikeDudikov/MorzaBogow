@@ -222,7 +222,7 @@ namespace MorzaBogow.Editor.AIAssets
                 }
                 else material.shader = Shader.Find("HDRP/Lit");
                 var flat = (request.materials ?? Array.Empty<FlatMaterial>()).FirstOrDefault(m => string.Equals(m.name, name, StringComparison.OrdinalIgnoreCase));
-                material.SetColor("_BaseColor", baseMap != null ? Color.white : flat != null ? ColorOf(flat.baseColor) : new Color(0.7f, 0.7f, 0.7f));
+                material.SetColor("_BaseColor", baseMap != null ? request.MapTint : flat != null ? ColorOf(flat.baseColor) : new Color(0.7f, 0.7f, 0.7f));
                 material.SetTexture("_BaseColorMap", baseMap);
                 material.SetTexture("_NormalMap", normalMap);
                 if (normalMap != null) material.SetFloat("_NormalScale", 1f);
