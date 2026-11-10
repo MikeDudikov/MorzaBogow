@@ -71,7 +71,7 @@ Decyzja użytkownika z uzgodnienia paczki specyfikacji ([UZGODNIENIE_SPECYFIKACJ
   - odkładanie przerywane tylko zagrożeniem: 30 / 23 min.
 
   Został ostatni wariant, bo tylko w nim AI faktycznie dochodzi do Miasta i Doku.
-- **Kosztu i czasu doku nie zmieniano.** Rozbieżność z celami 60/90 min to sprawa AI (etap 7: odwrót, obrona, fale, odbudowa) albo ewentualnej zmiany reguły doku, do decyzji użytkownika. To pomiar AI kontra AI, nie playtest.
+- **Kosztu i czasu doku nie zmieniano.** Decyzja użytkownika z 2026-11-10: reguła doku zostaje, a długość meczów AI (cele 60/90 min) poprawi etap 7 (odwrót, obrona, fale, odbudowa). To pomiar AI kontra AI, nie playtest.
 
 ## Etap 1 — wdrożony
 
@@ -182,7 +182,7 @@ Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z eta
 | 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy; unikalne okręty drugiej cywilizacji i warianty barbarzyńskie (własne nazwy) | plan |
 | 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan |
 | 6 | Osady: forty przybrzeżne z limitem siły na osadę, Kuźnia (pancerze i tarany: zwykłe, srebrne, złote), badania pancerza, taranu i prędkości, transport sprzętu handlowcem, sprzedaż obiektów, rozbudowa portu (dok wdrożony przy uzgodnieniu paczki) | plan |
-| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową; druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
+| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową, które przy regule doku przywróci długość meczów AI (Standardowa 60, Długa 90 min; dziś 23–30 i 50–61 min); druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
 | 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty, weteranów i artefaktów (fabuła i misje własne) | plan |
 | 9 | Świątynie morza i wojny, zaklęcia za D/S z zasięgiem od świątyni (wiry, rafy, wiatr, ogień, osłony; własny dobór i liczby) | plan |
 
