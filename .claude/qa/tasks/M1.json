@@ -141,6 +141,7 @@
         "MorzaBogow.Tests.ShipPaintRulesTests.Ships_MeshesCarryTangentsForTheirNormalMaps",
         "MorzaBogow.Tests.GreekShipsTests.Ships_UvsRunAlongPlanksAndSpars",
         "MorzaBogow.Tests.GreekShipsTests.Ships_TheWaleBandIsItsOwnMeshInEveryApprovedPattern",
+        "MorzaBogow.Tests.GreekShipsTests.Ships_SteeringOarsReachNoDeeperThanTheKeel",
         "MorzaBogow.Tests.MarineTests.Wind_GustPeaksReachDownwindPointLater",
         "MorzaBogow.Tests.MarineTests.Wind_NeighboursFollowTheSpectrumCorrelation",
         "MorzaBogow.Tests.MarineTests.Wind_IslandWakeShelterAndTurbulence",

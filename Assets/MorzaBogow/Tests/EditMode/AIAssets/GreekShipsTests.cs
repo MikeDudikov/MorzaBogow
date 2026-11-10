@@ -176,5 +176,24 @@ namespace MorzaBogow.Tests
                 Assert.That(counts[1], Is.GreaterThan(counts[2]), shipClass.ToString());
             }
         }
+
+        [Test]
+        public void Ships_SteeringOarsReachNoDeeperThanTheKeel()
+        {
+            // Nothing of the ship reaches below its keel; the asset pipeline also takes a model's lowest point for its keel
+            // (Blender's pivot, Unity's draft check), so a blade below it fails the export of a light ship.
+            foreach (var shipClass in Classes)
+            {
+                var parts = GreekShips.Parts(shipClass);
+                var keel = -parts.Form.Draft;
+                Assert.That(parts.Steering.Mesh.bounds.min.y, Is.GreaterThanOrEqualTo(keel - 0.001f), $"{shipClass}: both steering oars no deeper than the keel");
+                for (var i = 0; i < parts.SteeringOars.Length; i++)
+                {
+                    var lowest = parts.SteeringPivots[i].y + parts.SteeringOars[i].Mesh.bounds.min.y;
+                    Assert.That(lowest, Is.GreaterThanOrEqualTo(keel - 0.001f), $"{shipClass} steering oar {i}: no deeper than the keel");
+                    Assert.That(lowest, Is.LessThan(-0.5f), $"{shipClass} steering oar {i}: its blade in the water");
+                }
+            }
+        }
     }
 }

@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_cutter_blockout",
+  "name": "Kuter (łódź, z generatora gry)",
+  "category": "ship",
+  "shipClass": "Cutter",
+  "description": "A small open rowing boat of the Aegean, 12th century BC: pitch-black hull with a red ochre wale and a white zigzag, four oars a side, thwarts, a steering oar on each quarter and a small brailed square sail.",
+  "generation": {
+    "provider": "blockout"
+  },
+  "texturing": {
+    "provider": "flat"
+  },
+  "lods": 3
+}

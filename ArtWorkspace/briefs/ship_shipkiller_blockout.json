@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "ship_shipkiller_blockout",
+  "name": "Niszczyciel okrętów (galera wielkich łuków, z generatora gry)",
+  "category": "ship",
+  "shipClass": "ShipKiller",
+  "description": "An Aegean galley of the 12th century BC carrying two great bows (a game anachronism) on its bow and stern platforms: pitch-black hull with a red ochre wale and a white zigzag, seven oars a side, a wooden spur and a brailed square sail.",
+  "generation": {
+    "provider": "blockout"
+  },
+  "texturing": {
+    "provider": "flat"
+  },
+  "lods": 3
+}
