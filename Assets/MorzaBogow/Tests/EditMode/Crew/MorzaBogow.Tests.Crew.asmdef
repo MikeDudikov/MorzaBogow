@@ -5,6 +5,7 @@
         "MorzaBogow.Settings",
         "MorzaBogow.Simulation",
         "MorzaBogow.Presentation",
+        "Unity.Mathematics",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

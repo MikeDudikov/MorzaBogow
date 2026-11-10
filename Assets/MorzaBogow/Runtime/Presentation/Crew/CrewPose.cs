@@ -18,6 +18,14 @@ namespace MorzaBogow.Presentation
     {
         /// <summary>The station's frame in the world (ship's model times the station's place and facing), unscaled.</summary>
         public float4x4 Frame;
+        /// <summary>
+        /// The ship's model he stands in, counted from 1 (its matrix in the frame's list), and his place and heading in it:
+        /// CrewFrameJob composes Frame from them before the pose. 0: Frame is given in the world as it is.
+        /// </summary>
+        public int ModelSlot;
+        public float3 Position;
+        /// <summary>Degrees about the model's up axis.</summary>
+        public float Facing;
         public float Height, Girth;
         public int Action;
         /// <summary>Phase of a cycle (rowing, hauling) or progress of a one-off (a throw, a fall), 0 to 1.</summary>
@@ -26,7 +34,7 @@ namespace MorzaBogow.Presentation
         public float Strength;
         /// <summary>Where he looks or aims, in the station's frame (unit vector); zero for straight ahead.</summary>
         public float3 Aim;
-        /// <summary>Hands that hold something (bit 1 left, bit 2 right) and where, in the station's frame.</summary>
+        /// <summary>Hands that hold something (bit 1 left, bit 2 right) and where: in the station's frame, or in the world with bit 4.</summary>
         public int Hands;
         public float3 HandLeft, HandRight;
         /// <summary>Feet that stand on something other than the station's floor (bit 1 left, bit 2 right), in the station's frame.</summary>
@@ -456,8 +464,9 @@ namespace MorzaBogow.Presentation
                 }
                 else world[i] = math.mul(world[parent], float4x4.TRS(offset, pose[i], new float3(1f)));
             }
-            if ((figure.Hands & 1) != 0) Reach(ref world, (int)Bone.UpperArmL, math.transform(figure.Frame, figure.HandLeft), scale, CrewBody.UpperArm, CrewBody.ForeArm + CrewBody.Palm, -1f);
-            if ((figure.Hands & 2) != 0) Reach(ref world, (int)Bone.UpperArmR, math.transform(figure.Frame, figure.HandRight), scale, CrewBody.UpperArm, CrewBody.ForeArm + CrewBody.Palm, 1f);
+            var marksInWorld = (figure.Hands & 4) != 0;
+            if ((figure.Hands & 1) != 0) Reach(ref world, (int)Bone.UpperArmL, marksInWorld ? figure.HandLeft : math.transform(figure.Frame, figure.HandLeft), scale, CrewBody.UpperArm, CrewBody.ForeArm + CrewBody.Palm, -1f);
+            if ((figure.Hands & 2) != 0) Reach(ref world, (int)Bone.UpperArmR, marksInWorld ? figure.HandRight : math.transform(figure.Frame, figure.HandRight), scale, CrewBody.UpperArm, CrewBody.ForeArm + CrewBody.Palm, 1f);
             if ((figure.Feet & 1) != 0) Reach(ref world, (int)Bone.ThighL, math.transform(figure.Frame, figure.FootLeft) + new float3(0f, CrewBody.AnkleHeight * scale, 0f), scale, CrewBody.Thigh, CrewBody.Shank, -1f, true);
             if ((figure.Feet & 2) != 0) Reach(ref world, (int)Bone.ThighR, math.transform(figure.Frame, figure.FootRight) + new float3(0f, CrewBody.AnkleHeight * scale, 0f), scale, CrewBody.Thigh, CrewBody.Shank, 1f, true);
             for (var i = 0; i < Bones; i++) bones[i] = world[i];
@@ -630,5 +639,24 @@ namespace MorzaBogow.Presentation
         [NativeDisableParallelForRestriction] public NativeArray<float4x4> Bones;
 
         public void Execute(int index) => CrewPose.Solve(Figures[index], Bones.Slice(index * CrewRenderer.Matrices, CrewRenderer.Matrices));
+    }
+
+    /// <summary>
+    /// Each man's frame from his ship's model and his place and heading in it (FigureInput.ModelSlot), on worker threads
+    /// before the pose job, so the frame's matrices are not multiplied in managed code; a man with slot 0 keeps his Frame.
+    /// </summary>
+    [BurstCompile(CompileSynchronously = true)]
+    public struct CrewFrameJob : IJobParallelFor
+    {
+        public NativeArray<FigureInput> Figures;
+        [ReadOnly] public NativeArray<float4x4> Models;
+
+        public void Execute(int index)
+        {
+            var figure = Figures[index];
+            if (figure.ModelSlot <= 0) return;
+            figure.Frame = math.mul(Models[figure.ModelSlot - 1], float4x4.TRS(figure.Position, quaternion.RotateY(math.radians(figure.Facing)), new float3(1f)));
+            Figures[index] = figure;
+        }
     }
 }

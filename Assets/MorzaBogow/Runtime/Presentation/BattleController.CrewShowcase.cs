@@ -28,8 +28,11 @@ namespace MorzaBogow.Presentation
         void LogCrews(string picture)
         {
             if (crewDirector == null) return;
+            var a = crewDirector.Averages;
             Debug.Log($"[CrewShowcase] {picture}: {crewDirector.FiguresDrawn} men on {crewDirector.ShipsDrawn} ships, LOD {crewDirector.Lod}, " +
-                      $"{crewDirector.Renderer.Instances} pieces, {crewDirector.Renderer.Draws} draws, pose {crewDirector.PoseMilliseconds:0.00} ms");
+                      $"{crewDirector.Renderer.Instances} pieces, {crewDirector.Renderer.Draws} draws, pose {crewDirector.PoseMilliseconds:0.00} ms; " +
+                      $"average {crewDirector.AverageFigures:0} men, {crewDirector.AverageDraws:0} draws, decide {a.Decide:0.00}, build {a.Build:0.00}, " +
+                      $"pose {a.Pose:0.00}, list {a.List:0.00}, place and submit {a.Draw:0.00}, all {a.Decide + a.Build + a.Pose + a.List + a.Draw:0.00} ms");
         }
 
         ShowcaseStep[] BuildCrewShowcase()
@@ -147,6 +150,37 @@ namespace MorzaBogow.Presentation
                     Order(ship, CommandKind.Move, to: spot + new Vector3(400f, 0f, (i - 2.5f) * 26f));
                     if (i == 2) flagship = ship;
                 }
+            });
+
+            // A battle of forty warships, every class of war on both sides, at the default strategic camera: what the crews
+            // cost when a fleet fights in view (LOD1); then the same battle from afar (LOD2).
+            Ship centre = null;
+            Add("bitwa-40", 8, () => centre, () =>
+            {
+                var spot = Begin(130f, ObliqueCamera.DefaultYaw);
+                var warships = new[] { ShipClass.Ram, ShipClass.CrewDestroyer, ShipClass.Boarder, ShipClass.ShipKiller, ShipClass.Bomber };
+                var ours = new List<Ship>();
+                var theirs = new List<Ship>();
+                for (var i = 0; i < 20; i++)
+                {
+                    var row = i / 5;
+                    var column = i % 5;
+                    ours.Add(Spawn(PlayerFaction, warships[i % warships.Length], spot + new Vector3(-150f + row * 22f, 0f, -60f + column * 30f)));
+                    theirs.Add(Spawn(enemy, warships[(i + 2) % warships.Length], spot + new Vector3(20f + row * 22f, 0f, -60f + column * 30f), Math.PI));
+                }
+                for (var i = 0; i < 20; i++)
+                {
+                    theirs[i].Hull = theirs[i].Definition.Hull * 4;
+                    ours[i].Hull = ours[i].Definition.Hull * 4;
+                    Order(ours[i], CommandKind.AttackShip, theirs[i]);
+                    Order(theirs[i], CommandKind.AttackShip, ours[i]);
+                }
+                centre = ours[12];
+            });
+            Add("bitwa-40-z-daleka", 4, () => centre, () =>
+            {
+                if (last != null) LogCrews(last);
+                height = 320f;
             });
 
             // The last picture's numbers.

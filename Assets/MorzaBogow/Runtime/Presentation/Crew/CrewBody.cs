@@ -188,6 +188,8 @@ namespace MorzaBogow.Presentation
         public enum Piece
         {
             Pelvis, Spine, Chest, Neck, Head, UpperArm, ForeArm, Hand, Thigh, Shin, Foot,
+            // From afar (LOD2): the trunk, and each arm and leg in one along its upper bone.
+            Trunk, ArmLong, LegLong,
             Hair, Beard, Helmet, Shield, Spear, Javelin, Bow, Quiver, Sword, Rope, Bailer, Pole, Stone, Bolt,
         }
 
@@ -199,12 +201,53 @@ namespace MorzaBogow.Presentation
         /// <summary>A mesh by its piece, detail, shape variant, side (0 right, 1 left) and up to two colours.</summary>
         public static Mesh Get(Piece piece, int lod, int variant, int side, CrewPalette.Cell first, CrewPalette.Cell second)
         {
+            Normalize(piece, variant, ref side, ref first, ref second);
             var key = (long)piece | (long)lod << 6 | (long)variant << 8 | (long)side << 14 | (long)first << 16 | (long)second << 24;
             if (cache.TryGetValue(key, out var mesh) && mesh != null) return mesh;
             mesh = Build(piece, lod, variant, side, first, second);
             mesh.name = $"Crew {piece} L{lod} v{variant}{(side == 1 ? " left" : "")} {first}/{second}";
             cache[key] = mesh;
             return mesh;
+        }
+
+        /// <summary>
+        /// Only what changes a mesh goes into its key: only the hand is built mirrored; the pieces of one colour named here
+        /// ignore their second colour, the hips their first, a shin without a greave its second; every other piece keeps
+        /// both. Meshes that look the same are then one mesh, one bucket and one draw (CrewRenderer).
+        /// </summary>
+        static void Normalize(Piece piece, int variant, ref int side, ref CrewPalette.Cell first, ref CrewPalette.Cell second)
+        {
+            if (piece != Piece.Hand) side = 0;
+            switch (piece)
+            {
+                case Piece.Pelvis:
+                    first = second;
+                    break;
+                case Piece.Shin:
+                    if (variant != 1) second = first;
+                    break;
+                case Piece.Spine:
+                case Piece.Chest:
+                case Piece.Neck:
+                case Piece.Head:
+                case Piece.ForeArm:
+                case Piece.Hand:
+                case Piece.Foot:
+                case Piece.Hair:
+                case Piece.Beard:
+                case Piece.Bow:
+                case Piece.Quiver:
+                case Piece.Rope:
+                case Piece.Bailer:
+                case Piece.Pole:
+                case Piece.Stone:
+                case Piece.Bolt:
+                case Piece.Trunk:
+                case Piece.ArmLong:
+                case Piece.LegLong:
+                    second = first;
+                    break;
+            }
         }
 
         public static void Clear()
@@ -476,6 +519,18 @@ namespace MorzaBogow.Presentation
                     break;
                 case Piece.Rope:
                     b.Blob(Vector3.zero, new Vector3(0.11f, 0.035f, 0.11f), 3, 8, p => p, _ => C(first));
+                    break;
+                case Piece.Trunk:
+                    // From afar: belly and chest as one, on the spine, up to the shoulders (the chest's joint is 0.155 above).
+                    b.Loft(new Vector3(0f, -0.02f, 0f), new Vector3(0f, 0.43f, 0f), t => new Vector2(Mathf.Lerp(0.14f, 0.19f, Mathf.Sin(t * 1.4f)), Mathf.Lerp(0.1f, 0.112f, t)), rings + 1, sides + 1, One, Vector3.forward);
+                    break;
+                case Piece.ArmLong:
+                    // From afar: the arm to the wrist in one, along the upper arm (0.309 and 0.242 m).
+                    b.Loft(new Vector3(0f, 0.035f, 0f), new Vector3(0f, -0.555f, 0.01f), t => new Vector2(Mathf.Lerp(0.05f, 0.03f, t), Mathf.Lerp(0.048f, 0.025f, t)), rings, sides, One, Vector3.forward);
+                    break;
+                case Piece.LegLong:
+                    // From afar: the leg to the ankle in one, along the thigh (0.407 and 0.408 m).
+                    b.Loft(new Vector3(0f, 0.05f, 0f), new Vector3(0f, -0.82f, 0.005f), t => new Vector2(Mathf.Lerp(0.08f, 0.035f, t), Mathf.Lerp(0.083f, 0.037f, t)), rings, sides, One, Vector3.forward);
                     break;
                 case Piece.Bailer:
                     b.Blob(new Vector3(0f, 0f, 0.06f), new Vector3(0.07f, 0.045f, 0.09f), 3, 6, p => p, _ => C(first));

@@ -455,17 +455,24 @@ namespace MorzaBogow.Tests
                     for (var i = 0; i < batch; i++, total++)
                         Spawn(battle, total % 2, classes[total % classes.Length], 200 + total % 20 * 45, 300 + total / 20 * 60);
                     battle.RunTicks(2);
-                    var watch = System.Diagnostics.Stopwatch.StartNew();
-                    double decide = 0, build = 0, pose = 0, list = 0, draw = 0;
-                    for (var f = 0; f < frames; f++)
+                    // The same men at the strategic camera's detail (LOD1) and from afar (LOD2), every one of them drawn.
+                    foreach (var detail in new[] { 1, 2 })
                     {
+                        crews.LodWithoutCamera = detail;
                         crews.Present((float)Rules.Dt, null);
-                        var t = crews.Timings;
-                        decide += t.Decide; build += t.Build; pose += t.Pose; list += t.List; draw += t.Draw;
+                        var watch = System.Diagnostics.Stopwatch.StartNew();
+                        double decide = 0, build = 0, pose = 0, list = 0, draw = 0;
+                        for (var f = 0; f < frames; f++)
+                        {
+                            crews.Present((float)Rules.Dt, null);
+                            var t = crews.Timings;
+                            decide += t.Decide; build += t.Build; pose += t.Pose; list += t.List; draw += t.Draw;
+                        }
+                        var ms = watch.Elapsed.TotalMilliseconds / frames;
+                        report.AppendLine($"{total} ships, LOD {crews.Lod}: {crews.FiguresDrawn} men, {crews.Renderer.Instances} pieces, {crews.Renderer.Draws} draws, {ms:0.00} ms a frame in the editor " +
+                                          $"(decide {decide / frames:0.00}, build {build / frames:0.00}, pose {pose / frames:0.00}, list {list / frames:0.00}, place and submit {draw / frames:0.00})");
                     }
-                    var ms = watch.Elapsed.TotalMilliseconds / frames;
-                    report.AppendLine($"{total} ships: {crews.FiguresDrawn} men, {crews.Renderer.Instances} pieces, {crews.Renderer.Draws} draws, {ms:0.00} ms a frame in the editor " +
-                                      $"(decide {decide / frames:0.00}, build {build / frames:0.00}, pose {pose / frames:0.00}, list {list / frames:0.00}, place and submit {draw / frames:0.00})");
+                    crews.LodWithoutCamera = 1;
                 }
                 Debug.Log("Crew fleet benchmark (editor, informational):\n" + report);
                 Assert.That(crews.FiguresDrawn, Is.GreaterThan(0));

@@ -711,7 +711,8 @@ namespace MorzaBogow.Presentation
 
         // Drawing ----------------------------------------------------------------------------------------------------
         /// <summary>Every man with a place, and the fallen, to pose and draw this frame.</summary>
-        public void Emit(List<Figure> figures, int lod, float clock)
+        /// <param name="modelSlot">His ship's model in the frame's list, counted from 1 (FigureInput.ModelSlot).</param>
+        public void Emit(List<Figure> figures, int lod, float clock, int modelSlot)
         {
             DrawnFigures = 0;
             var model = (float4x4)View.Model.localToWorldMatrix;
@@ -719,17 +720,17 @@ namespace MorzaBogow.Presentation
             {
                 var station = StationOf(man);
                 if (station == null || ashore.Contains(man.Man)) continue;
-                figures.Add(Build(man, station, model, lod, clock));
+                figures.Add(Build(man, station, modelSlot, lod, clock));
                 DrawnFigures++;
             }
             foreach (var body in bodies)
             {
-                figures.Add(Build(body, null, model, lod, clock));
+                figures.Add(Build(body, null, modelSlot, lod, clock));
                 DrawnFigures++;
             }
         }
 
-        Figure Build(CrewMan man, CrewStation station, float4x4 model, int lod, float clock)
+        Figure Build(CrewMan man, CrewStation station, int modelSlot, int lod, float clock)
         {
             Vector3 position;
             float facing;
@@ -769,10 +770,12 @@ namespace MorzaBogow.Presentation
                 seated = false;
             }
             if (man.Action == CrewAction.Walk || man.Action == CrewAction.Kneel || man.Action == CrewAction.Jolt || man.Action == CrewAction.Fall || man.Action == CrewAction.LieWounded) seated = seated && man.Action == CrewAction.LieWounded;
-            var frame = math.mul(model, float4x4.TRS(position, quaternion.RotateY(math.radians(facing)), new float3(1f)));
+            // His frame is composed on worker threads from the ship's model and this place (CrewFrameJob).
             var input = new FigureInput
             {
-                Frame = frame,
+                ModelSlot = modelSlot,
+                Position = position,
+                Facing = facing,
                 Height = man.Look.Height,
                 Girth = man.Look.Girth,
                 Action = (int)(man.Fallen ? CrewAction.Fall : man.Action),
@@ -781,33 +784,30 @@ namespace MorzaBogow.Presentation
                 Aim = man.Aim,
                 Seated = seated,
             };
-            // Hands that hold: a rower's on his oar's handle, the helmsman's on the tillers (reaching, CrewPose).
-            if (!man.Fallen && station != null)
+            // Hands that hold: a rower's on his oar's handle, the helmsman's on the tillers (reaching, CrewPose), marked in the
+            // world; from afar (LOD2, a few pixels a man) his pose alone.
+            if (!man.Fallen && station != null && lod < 2)
             {
                 if ((man.Action == CrewAction.Row || man.Action == CrewAction.RowStanding) && station.Oar >= 0)
                 {
-                    var inverse = math.fastinverse(frame);
                     var pivot = View.OarPivot(station.Oar).localToWorldMatrix;
                     var side = View.OarSide(station.Oar);
                     var inboard = Profile.Parts.OarInboard[0];
                     var end = pivot.MultiplyPoint3x4(new Vector3(-side * inboard, 0f, 0f));
                     var outer = pivot.MultiplyPoint3x4(new Vector3(-side * (inboard - 0.18f), 0f, 0f));
-                    var left = side > 0 ? outer : end;
-                    var right = side > 0 ? end : outer;
-                    input.Hands = 3;
-                    input.HandLeft = math.transform(inverse, left);
-                    input.HandRight = math.transform(inverse, right);
+                    input.Hands = 3 | 4;
+                    input.HandLeft = side > 0 ? outer : end;
+                    input.HandRight = side > 0 ? end : outer;
                 }
                 else if (man.Action == CrewAction.Steer || man.Action == CrewAction.SteerSeated)
                 {
-                    var inverse = math.fastinverse(frame);
                     var two = Profile.Parts.HelmStands.Length == 2;
                     var index = station.Side < 0 ? 0 : 1;
                     var l = two ? View.TillerGrip(index) + View.Model.TransformDirection(Vector3.left) * 0.08f : View.TillerGrip(0);
                     var r = two ? View.TillerGrip(index) + View.Model.TransformDirection(Vector3.right) * 0.08f : View.TillerGrip(1);
-                    input.Hands = 3;
-                    input.HandLeft = math.transform(inverse, l);
-                    input.HandRight = math.transform(inverse, r);
+                    input.Hands = 3 | 4;
+                    input.HandLeft = l;
+                    input.HandRight = r;
                 }
             }
             Equip(man, ref input, station);
@@ -862,6 +862,8 @@ namespace MorzaBogow.Presentation
                 look.Skin = Coarse(look.Skin);
                 look.Hair = Coarse(look.Hair);
                 look.Cloth = Coarse(look.Cloth);
+                look.Face = 0;
+                look.HairStyle = 0;
             }
             var h = look.Height / CrewBody.ReferenceHeight;
             var body = float4x4.Scale(new float3(h * look.Girth, h, h * look.Girth));
@@ -874,6 +876,21 @@ namespace MorzaBogow.Presentation
             var detail = Mathf.Min(lod, 2);
             void Add(Bone bone, CrewMeshes.Piece piece, int variant, int side, CrewPalette.Cell first, CrewPalette.Cell second, float4x4 local) =>
                 list.Add(((int)bone, CrewMeshes.Get(piece, detail, variant, side, first, second), local));
+            if (lod >= 2)
+            {
+                // Farther still (2 to 5 pixels a metre, a man a few pixels tall) eight pieces: the hips, the trunk, the head,
+                // each arm and leg in one along its upper bone, and the shield; hair, helmet and gear are below a pixel.
+                Add(Bone.Pelvis, CrewMeshes.Piece.Pelvis, 0, 0, cloth, cloth, body);
+                Add(Bone.Spine, CrewMeshes.Piece.Trunk, 0, 0, torso, torso, body);
+                Add(Bone.Head, CrewMeshes.Piece.Head, 0, 0, skin, skin, head);
+                Add(Bone.UpperArmL, CrewMeshes.Piece.ArmLong, 0, 1, skin, skin, body);
+                Add(Bone.UpperArmR, CrewMeshes.Piece.ArmLong, 0, 0, skin, skin, body);
+                Add(Bone.ThighL, CrewMeshes.Piece.LegLong, 0, 1, skin, skin, body);
+                Add(Bone.ThighR, CrewMeshes.Piece.LegLong, 0, 0, skin, skin, body);
+                if (look.Shield > 0 && role != CrewRole.WarriorRower && role != CrewRole.BankArcher && role != CrewRole.MachineCrew)
+                    list.Add((CrewRenderer.ShieldSocket, CrewMeshes.Get(CrewMeshes.Piece.Shield, detail, look.Shield, 0, CrewPalette.Cell.Wicker, look.ShieldPaint), one));
+                return list;
+            }
             Add(Bone.Pelvis, CrewMeshes.Piece.Pelvis, 0, 0, skin, look.Dress == 0 ? cloth : cloth, body);
             Add(Bone.Spine, CrewMeshes.Piece.Spine, 0, 0, look.Dress == 2 ? cloth : torso, torso, body);
             Add(Bone.Chest, CrewMeshes.Piece.Chest, look.Dress, 0, torso, torso, body);

@@ -35,6 +35,9 @@ namespace MorzaBogow.Presentation
         CrewRenderer renderer;
         NativeArray<FigureInput> inputs;
         NativeArray<float4x4> bones;
+        // Each drawn ship's model this frame, in the order its men were emitted (FigureInput.ModelSlot counts from 1).
+        NativeArray<float4x4> models;
+        readonly List<float4x4> shipModels = new List<float4x4>();
         long signature = -1;
         Bounds drawn;
 
@@ -189,6 +192,7 @@ namespace MorzaBogow.Presentation
             renderer?.Dispose();
             if (inputs.IsCreated) inputs.Dispose();
             if (bones.IsCreated) bones.Dispose();
+            if (models.IsCreated) models.Dispose();
         }
 
         /// <summary>A new match or a loaded one: nothing of the last is kept; the next events are those after the load.</summary>
@@ -300,6 +304,7 @@ namespace MorzaBogow.Presentation
             ChooseLod(camera);
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             figures.Clear();
+            shipModels.Clear();
             order.Clear();
             foreach (var pair in battle.Views) order.Add(pair.Key);
             order.Sort();
@@ -325,7 +330,8 @@ namespace MorzaBogow.Presentation
                 var decided = System.Diagnostics.Stopwatch.GetTimestamp();
                 deciding += decided - before;
                 if (!shown) continue;
-                crew.Emit(figures, lod, clock);
+                shipModels.Add(view.Model.localToWorldMatrix);
+                crew.Emit(figures, lod, clock, shipModels.Count);
                 building += System.Diagnostics.Stopwatch.GetTimestamp() - decided;
                 sign = sign * 31 + id * 7 + crew.Version;
                 var box = new Bounds(view.transform.position, new Vector3(view.Length + 6f, 12f, view.Length + 6f));
@@ -342,7 +348,8 @@ namespace MorzaBogow.Presentation
                 if (crew.View == null || world.FindShip(pair.Key) != null || crew.View.enabled) { gone.Add(pair.Key); continue; }
                 if (!crew.Abandon(clock)) { gone.Add(pair.Key); continue; }
                 if (!crew.View.gameObject.activeInHierarchy) continue;
-                crew.Emit(figures, lod, clock);
+                shipModels.Add(crew.View.Model.localToWorldMatrix);
+                crew.Emit(figures, lod, clock, shipModels.Count);
                 sign = sign * 31 + pair.Key * 7 + crew.Version;
             }
             foreach (var id in gone) crews.Remove(id);
@@ -360,9 +367,17 @@ namespace MorzaBogow.Presentation
                 bones = new NativeArray<float4x4>(capacity * CrewRenderer.Matrices, Allocator.Persistent);
                 signature = -1;
             }
+            if (!models.IsCreated || models.Length < shipModels.Count)
+            {
+                if (models.IsCreated) models.Dispose();
+                models = new NativeArray<float4x4>(Mathf.NextPowerOfTwo(shipModels.Count + 16), Allocator.Persistent);
+            }
             var posing = System.Diagnostics.Stopwatch.GetTimestamp();
+            for (var i = 0; i < shipModels.Count; i++) models[i] = shipModels[i];
             for (var i = 0; i < figures.Count; i++) inputs[i] = figures[i].Input;
-            new CrewPoseJob { Figures = inputs, Bones = bones }.Schedule(figures.Count, 16).Complete();
+            // Frames from the ships' models first, then the poses: both on worker threads.
+            var framing = new CrewFrameJob { Figures = inputs, Models = models }.Schedule(figures.Count, 64);
+            new CrewPoseJob { Figures = inputs, Bones = bones }.Schedule(figures.Count, 16, framing).Complete();
             var listing = System.Diagnostics.Stopwatch.GetTimestamp();
 
             sign = sign * 31 + figures.Count;
@@ -383,6 +398,14 @@ namespace MorzaBogow.Presentation
             PoseMilliseconds = (drawing - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
             renderer.Draw(bones, camera, drawn, lod == 0, 0);
             Timings = (Ms(deciding), Ms(building), Ms(listing - posing), Ms(drawing - listing), Ms(System.Diagnostics.Stopwatch.GetTimestamp() - drawing));
+            // Averaged over about a second of frames, for the logs of staged pictures and smoke runs.
+            const double k = 0.05;
+            var a = Averages;
+            var t = Timings;
+            Averages = (a.Decide + (t.Decide - a.Decide) * k, a.Build + (t.Build - a.Build) * k, a.Pose + (t.Pose - a.Pose) * k,
+                        a.List + (t.List - a.List) * k, a.Draw + (t.Draw - a.Draw) * k);
+            AverageFigures += (figures.Count - AverageFigures) * k;
+            AverageDraws += (renderer.Draws - AverageDraws) * k;
         }
 
         /// <summary>
@@ -390,6 +413,11 @@ namespace MorzaBogow.Presentation
         /// figures, the pose job, laying out the pieces when they changed, placing and submitting the draws.
         /// </summary>
         public (double Decide, double Build, double Pose, double List, double Draw) Timings { get; private set; }
+
+        /// <summary>The stages' times, the men drawn and the draws, each averaged over about a second of frames.</summary>
+        public (double Decide, double Build, double Pose, double List, double Draw) Averages { get; private set; }
+        public double AverageFigures { get; private set; }
+        public double AverageDraws { get; private set; }
 
         static double Ms(long ticks) => ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 
@@ -402,9 +430,18 @@ namespace MorzaBogow.Presentation
             GeometryUtility.TestPlanesAABB(planes, new Bounds(view.transform.position, new Vector3(view.Length + 4f, 14f, view.Length + 4f)));
 
         /// <summary>The level of detail by the camera's pixels per metre at 1080 lines; one for the whole frame (orthographic).</summary>
+        /// <summary>The level of detail without a camera (tests and tools): 1 by default, as at the default strategic camera.</summary>
+        public int LodWithoutCamera = 1;
+
         void ChooseLod(Camera camera)
         {
-            if (camera == null) return;
+            if (camera == null)
+            {
+                if (lod == LodWithoutCamera) return;
+                lod = LodWithoutCamera;
+                foreach (var crew in crews.Values) crew.Dirty();
+                return;
+            }
             var pixels = PixelsPerMetre(camera);
             var next = lod;
             if (pixels >= FullDetail * (lod == 0 ? 0.85f : 1.15f)) next = 0;
