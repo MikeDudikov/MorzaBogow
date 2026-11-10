@@ -1389,6 +1389,9 @@ namespace MorzaBogow.Presentation
             var shape = ShoreOf(portX, portY);
             islet.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(shape.outline, shape.lift);
             islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
+            // The sea's work on its shore: a notch under the cliffs, the wet swash, beachrock on the gentle side.
+            Landscape.CoastFeatures.Build(islet.transform, shape.outline, shape.lift, (uint)Mathf.RoundToInt((float)(portX * 31 + portY * 17)), materials?.ShoreRock,
+                Landscape.LandscapeArt.Wet(materials?.ShoreRock), Landscape.LandscapeArt.Beachrock(materials?.Floor));
             var (planted, pines) = PlantGrove(root.transform, shape.outline, shape.lift, portX * 3.1 + portY * 1.7, Mathf.Atan2(0f, (float)portX - landX), 115f, 0.24f, 0.82f, (x, z) =>
                 // Keep clear of where a settlement's buildings stand on the plateau.
                 Mathf.Abs(z) < 9.5f && x * Mathf.Sign((float)portX - landX) < 1f && x * Mathf.Sign((float)portX - landX) > -14.5f,
@@ -1610,6 +1613,8 @@ namespace MorzaBogow.Presentation
             land.transform.SetParent(root.transform, false);
             land.AddComponent<MeshFilter>().sharedMesh = ShoreShape.Mound(outline, lift);
             land.AddComponent<MeshRenderer>().sharedMaterials = new[] { materials?.ShoreRock, materials?.Ground(materials.Foliage) };
+            Landscape.CoastFeatures.Build(land.transform, outline, lift, (uint)Mathf.RoundToInt((float)(island.X * 29 + island.Y * 13)), materials?.ShoreRock,
+                Landscape.LandscapeArt.Wet(materials?.ShoreRock), Landscape.LandscapeArt.Beachrock(materials?.Floor));
             // Woods thicken with the island's size, within a budget a whole archipelago can afford to draw.
             var trees = Mathf.Clamp(Mathf.RoundToInt((float)island.Radius * 0.28f), 10, 32);
             PlantGrove(root.transform, outline, lift, island.X * 2.3 + island.Y * 1.1, toward, 25f, 0.1f, 0.8f, null, trees, 9f);
