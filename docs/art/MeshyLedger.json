@@ -1,0 +1,10 @@
+{
+ "schema": "morza-bogow/meshy-ledger@1",
+ "approvedCredits": 1000,
+ "extraWithoutAsking": ["animation", "destruction"],
+ "note": "User decisions 2026-11-10: up to 1000 credits for the visual refresh; more for convincing animation and destruction of buildings and ships without asking. One row per paid Meshy task, appended when it is created.",
+ "tasks": [
+  {"date": "2026-11-10", "asset": "ship_ram_retexture", "kind": "retexture", "meshyTask": "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58", "via": "ap.py (REST)", "credits": 10, "result": "rejected: uniform wood, the generator's metric UVs overlap"},
+  {"date": "2026-11-10", "asset": "ship_ram_retexture", "kind": "retexture", "meshyTask": "01a1c5f1-03d6-7181-96c2-5d19e41a74eb", "via": "ap.py (REST)", "credits": 10, "result": "kept: originalUv=false, Assets/MorzaBogow/Art/Generated/ship_ram_retexture"}
+ ]
+}

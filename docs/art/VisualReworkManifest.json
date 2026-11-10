@@ -1,0 +1,2174 @@
+{
+ "schema": "morza-bogow/visual-rework-manifest@1",
+ "anchor": {
+  "epoch": "E6 late classical, c. 400-323 BC",
+  "region": "R-LAD Attica (Piraeus, Zea, Laurion)",
+  "earlier": "E1 Late Helladic IIIC (earlier profile, inactive)",
+  "decision": "user 2026-11-10: Greece of the 4th c. BC (first 7th c., then corrected to the 4th c.)"
+ },
+ "scopes": {
+  "keep": "good as it is; no change without a reason",
+  "retexture": "new textures on the same geometry",
+  "material": "material correction (PBR values, masks, wear)",
+  "geometry-fix": "repair or detail of the existing geometry",
+  "replace": "new model in place of the old one",
+  "animation": "animation added or improved",
+  "add-missing": "a missing element of the presentation",
+  "exclude": "outside the refresh (protected)"
+ },
+ "meshy": {
+  "approvedCredits": 1000,
+  "extraWithoutAsking": [
+   "animation",
+   "destruction"
+  ],
+  "spentCredits": 20,
+  "tasksByAsset": {
+   "ship_ram_retexture": [
+    "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
+    "01a1c5f1-03d6-7181-96c2-5d19e41a74eb"
+   ]
+  }
+ },
+ "assets": [
+  {
+   "assetId": "ship.Cutter",
+   "use": "ShipClass.Cutter: gathering, scouting",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips generator, LH IIIC boat; pipeline prefab with flat colours",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes"
+   ],
+   "covers": [
+    "Cutter"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.Ram",
+   "use": "ShipClass.Ram: ramming; trial ship of the refresh",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips LH IIIC galley; Meshy retexture prefab (not used by the game)",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up",
+    "ram run: sprint, brace, impact, back-water"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "trireme features in the class's 20 m: eyes, finned ram, outrigger, side screens, aphlaston (scale compromise documented)"
+   ],
+   "covers": [
+    "Ram"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.CrewDestroyer",
+   "use": "archers' galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips LH IIIC galley",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "trireme with archers' deck"
+   ],
+   "covers": [
+    "CrewDestroyer"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.Boarder",
+   "use": "boarding galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips LH IIIC fifty-oar galley",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up",
+    "boarding: hooks, haul alongside, crossing"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "broad decked four or five (tetreres/penteres) with marines"
+   ],
+   "covers": [
+    "Boarder"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.Merchant",
+   "use": "transport and bridgeheads",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips merchantman with wooden topsides",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up",
+    "load lies lower"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "holkas after the Kyrenia ship: round hull, brailed square sail, amphora cargo"
+   ],
+   "covers": [
+    "Merchant"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.ShipKiller",
+   "use": "bolt-thrower galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips galley with machine stands",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up",
+    "machine: winding, loading, release, recoil"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "oxybeles (torsion bolt-shooter) on deck: no longer an anachronism in the 4th c. (early interpretation)"
+   ],
+   "covers": [
+    "ShipKiller"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.Bomber",
+   "use": "heavy stone-thrower galley",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "GreekShips galley with castles",
+   "scope": [
+    "geometry-fix",
+    "retexture",
+    "material",
+    "animation"
+   ],
+   "textures": [
+    "wood planks (fir/pine) CC0 scan",
+    "pitch",
+    "linen sail",
+    "bronze (ram, fittings)",
+    "rope",
+    "painted eye and parasemon"
+   ],
+   "materials": [
+    "ShipPaint palette (shared, SRP Batcher)",
+    "wet, charred and bronze states"
+   ],
+   "animations": [
+    "rowing stroke",
+    "brailing and furling the sail in battle",
+    "damage, list, sinking, break-up",
+    "machine: arm down, stone, release"
+   ],
+   "links": [
+    "GreekShips.cs",
+    "ShipVisual.cs",
+    "Looks/*",
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "game: single; prefab 3 LOD",
+   "criteria": [
+    "class dimensions, attack/boarding/crew points and colliders unchanged (tests)",
+    "silhouette reads at the strategic camera; side colour visible",
+    "no plastic gloss; wear placed by function",
+    "variants (ShipLook) keep their identity",
+    "water_guard check passes",
+    "lithobolos on a heavy ship (Tyre 332 BC; early interpretation)"
+   ],
+   "covers": [
+    "Bomber"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.variants",
+   "use": "individual looks of ships of one class",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "ShipLook workshops, grain, cloth, marks, gear (procedural-verified)",
+   "scope": [
+    "keep",
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/*"
+   ],
+   "lod": "LODGroup on the look's details",
+   "criteria": [
+    "deterministic from the ship id; saved beside the quick save",
+    "4th c. workshop palettes and parasemon"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ship.slipway-stages",
+   "use": "ship build progress on a slipway/ship shed",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "ShipyardVisual stages; shipwrights primitive",
+   "scope": [
+    "geometry-fix",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "adze, auger, carrying planks"
+   ],
+   "links": [
+    "ShipyardVisual.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "stages follow the build progress; never finish production themselves",
+    "assembly visible (keel, planking, frames, deck); no scaling from zero"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.warrior",
+   "use": "epibatai (marines) and soldiers on deck",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body, LH IIIC kit",
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "thrust, guard, brace at the ram, climb over rails, fall"
+   ],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2 (17/11/6 bones)",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "pilos helmet, linothorax or muscle cuirass, aspis with a city blazon, spear and sword"
+   ],
+   "covers": [
+    "Marine",
+    "WarriorRower",
+    "Commander"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.archer",
+   "use": "Cretan archers of an archers' bank",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body, LH IIIC kit",
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "nock, draw, aim, loose at weapon_fired"
+   ],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "bow, quiver, light dress"
+   ],
+   "covers": [
+    "BankArcher"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.peltast",
+   "use": "javelin men of a javelin bank",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body as warrior",
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "reach, wind-up, throw at weapon_fired"
+   ],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "pelte shield, javelins, exomis"
+   ],
+   "covers": [
+    "BankJavelin"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.rower",
+   "use": "rowers and sailors",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body, loincloth",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "one stroke rhythm per ship (RowingStroke)",
+    "back-water"
+   ],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "exomis or loincloth; hands on the oar handle through the whole stroke"
+   ],
+   "covers": [
+    "Rower",
+    "SailHand",
+    "LineHand",
+    "BowHand",
+    "Wounded"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.officers",
+   "use": "helmsman (kybernetes), bow officer (prorates), skipper",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "tillers, look-out, command gestures"
+   ],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "keleustes and trieraules only as looks of men already aboard"
+   ],
+   "covers": [
+    "Helmsman",
+    "Lookout",
+    "Skipper"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.machine-crew",
+   "use": "crews of bolt and stone throwers",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "segment body",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Crew/CrewBody.cs",
+    "Crew/CrewLooks.cs",
+    "Crew/CrewPose.cs",
+    "Crew/CrewAboard.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "winding, loading, aiming, release in the sim's timing"
+   ],
+   "covers": [
+    "MachineCrew"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "character.worker",
+   "use": "shipwrights, miners, woodcutters, porters ashore",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "CrewAshore on the crew body; primitive tools",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [
+    "adze, pick, carry, haul, wash ore"
+   ],
+   "links": [
+    "Crew/CrewAshore.cs",
+    "ResourceSiteVisual.cs",
+    "ShipyardVisual.cs"
+   ],
+   "lod": "LOD0-2",
+   "criteria": [
+    "realistic anatomy and proportions (CrewGeometryTests)",
+    "dress and gear of the 4th c. by role, not one armour for all",
+    "one crew material (palette atlas), instanced; CPU budget measured",
+    "certainty level in CrewRoles.json",
+    "tools of the trade; work never changes stock or production speed"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.missiles",
+   "use": "bolts, stones, arrows and javelins in flight",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "pooled meshes from World.Projectiles",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleEffects.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "launch from the hand or machine; flight time as the simulation"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.impacts",
+   "use": "hits and misses",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "Shuriken splinters, flash spheres",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleEffects.cs",
+    "ShipVisual.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "a miss never looks like a hit"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.sinking",
+   "use": "ship_sunk: settle, break-up, wreckage",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "ShipFate about 10 s, debris max 120",
+   "scope": [
+    "material",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleEffects.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "break-up into hull sections with the ship's materials"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.ram-contact",
+   "use": "ram impact",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "flash and splinters",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleEffects.cs",
+    "ShipVisual.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "breach at the struck place; crew jolt"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.boarding",
+   "use": "hooks, lines, crossing, fighting on the enemy deck",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "haul by translation; no crossing",
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Crew/CrewDirector.cs",
+    "Crew/CrewAboard.cs",
+    "CrewVisual.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "broadside to broadside, never bow-first",
+    "boarders cross the rails and fight on the enemy deck",
+    "picture only: simulation results unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "fx.building-destruction",
+   "use": "ruin and destruction of port buildings",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "PortBuildings ruin state",
+   "scope": [
+    "add-missing",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "effect matches the material (wood splinters, cloth shreds, rope snap, metal contact)",
+    "no gunpowder explosions",
+    "priority in a big battle; never hides units, target or UI",
+    "pooled; own materials, not the water's spray",
+    "break-up into modules, falling tiles, dust; follows the game's state"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "wreck.cargo",
+   "use": "World.Wrecks: salvageable cargo",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "procedural jars and ingots",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleEffects.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. amphorae (Rhodian, Samian) and lead"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.store",
+   "use": "store and houses of a port",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "procedural limestone boxes",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "courtyard houses (Olynthus) and a stoa"
+   ],
+   "covers": [
+    "Store"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.workshop",
+   "use": "ProjectKind.Workshop (weapons)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "procedural shed with forge",
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ergasterion with forge and bellows"
+   ],
+   "covers": [
+    "Workshop"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.town",
+   "use": "home port town",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "procedural terraces, walls, towers",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ashlar circuit walls with towers, tiled roofs"
+   ],
+   "covers": [
+    "Town"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.school",
+   "use": "School of Sages (research)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "colonnade, pediment, emissive flame",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "gymnasion with a Doric peristyle (Academy, Lyceum)"
+   ],
+   "covers": [
+    "SageSchool"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.dock",
+   "use": "dock (repairs for silver)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "shear legs and windlass",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "PortBuildings.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ship shed (neosoikos) after Zea: ramp, colonnade, roof"
+   ],
+   "covers": [
+    "Dock"
+   ],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.shipyard",
+   "use": "settlement shipyard and slipways",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "ramp and posts from primitives",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ShipyardVisual.cs",
+    "Environment/ShipyardProps.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "ship sheds and slipway of the 4th c."
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.outpost",
+   "use": "outpost / bridgehead",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "placeholder",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "BattleController.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "field camp: palisade, tents, beached boats"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "building.jetty",
+   "use": "jetties at sites and settlements",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "[PLACEHOLDER] primitive jetty",
+   "scope": [
+    "replace"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ResourceSiteVisual.cs",
+    "BattleController.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. construction: stone socle, mudbrick or ashlar, timber, tiles, plaster, polychromy (not all white marble)",
+    "footprint and interaction points unchanged",
+    "construction stages by assembly from the game's progress; no scaling",
+    "ruin follows the game's state",
+    "shared material library; LOD",
+    "timber jetty or stone quay"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "site.silver",
+   "use": "silver mine site",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "mine primitives; glossy ore",
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ResourceSiteVisual.cs",
+    "Environment/OreOutcrop.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "animations never change stock or production speed",
+    "state follows Stock and Capacity",
+    "no glowing silver",
+    "Laurion 4th c.: shaft and gallery mouth, ore baskets, washery (ergasterion) with cistern, furnace, slag",
+    "rock, ore, concentrate and metal told apart"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "site.wood",
+   "use": "timber yard",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "TreeModels trees, primitive log piles",
+   "scope": [
+    "replace",
+    "animation"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ResourceSiteVisual.cs",
+    "TreeModels.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "animations never change stock or production speed",
+    "state follows Stock and Capacity",
+    "no glowing silver",
+    "fir and pine logs, hewn beams, planks, end grain (Theophrastus HP 5.7)"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "environment.coast",
+   "use": "coast rocks and shore",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "CC0 coast model and Poly Haven boulders (LODs merged, x4 triangles)",
+   "scope": [
+    "replace",
+    "geometry-fix"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ShoreShape.cs",
+    "Editor/ShoreArt.cs",
+    "BattleController.ModelOf"
+   ],
+   "lod": "",
+   "criteria": [
+    "geology by region (limestone, marble, schist)",
+    "map topology and fields unchanged",
+    "boulder LOD merge fixed"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "rock.attica-set",
+   "use": "rock modules (limestone, marble, Laurion schist)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "missing",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "ShoreShape.cs",
+    "Environment/*"
+   ],
+   "lod": "",
+   "criteria": [
+    "4-6 Meshy variants with LOD; strata, cracks, erosion"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.olive.cultivated",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.olive.wild",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.pine.halepensis",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.pine.brutia",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.cypress.wild",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.cypress.columnar",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.quercus.coccifera",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.pistacia.lentiscus",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.phrygana",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "veg.halophytes",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.limestone.notch",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.marble-schist",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.beachrock",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.pebble-beach",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.sand-cove",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "coast.terra-rossa",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ore.laurion.outcrop",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "geometry-fix"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ore.face.E1",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E1 Late Helladic IIIC (earlier profile, inactive)",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ore.face.E5",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ore.heap",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "ore.washery.E5",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "yard.slipway.E1",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E1 Late Helladic IIIC (earlier profile, inactive)",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "yard.tools",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "yard.shed.zea2",
+   "use": "environment manifest item (EnvironmentAssetManifest.json)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "R-LAD Attica (Piraeus, Zea, Laurion)"
+   },
+   "current": "see EnvironmentAssetManifest.json",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Environment/*",
+    "docs/art/EnvironmentAssetManifest.json"
+   ],
+   "lod": "",
+   "criteria": [
+    "species and geology of the region and epoch; excluded post-antique species stay out",
+    "works with the match wind (vegetation)",
+    "map topology unchanged"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "prop.amphora",
+   "use": "transport amphorae (Rhodian, Samian, Chian)",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing or procedural (ShipLookLibrary gear)",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/ShipLookLibrary.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "prop.pithos",
+   "use": "storage jars",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing or procedural (ShipLookLibrary gear)",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/ShipLookLibrary.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "prop.anchor",
+   "use": "wooden-stock anchors with lead stock",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing or procedural (ShipLookLibrary gear)",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/ShipLookLibrary.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "prop.basket-net",
+   "use": "baskets, nets, rope coils",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing or procedural (ShipLookLibrary gear)",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/ShipLookLibrary.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "prop.herm-stele",
+   "use": "herms and stelae at harbours and sanctuaries",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing or procedural (ShipLookLibrary gear)",
+   "scope": [
+    "add-missing"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Looks/ShipLookLibrary.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "4th c. forms; Meshy model with LOD from Blender",
+    "shared materials; no unique large texture per object"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "textures.ship-look",
+   "use": "baked ship textures",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "procedural baker",
+   "scope": [
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Editor/ShipTextureBaker.cs"
+   ],
+   "lod": "",
+   "criteria": [
+    "CC0 scans for wood, pitch, linen, rope; bronze"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "shader.ship-paint",
+   "use": "ship paint graph",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "HDRP Lit graph with renderer value",
+   "scope": [
+    "keep",
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Art/Ships/Shaders/ShipPaint.shadergraph"
+   ],
+   "lod": "",
+   "criteria": [
+    "wet and charred bits wired to existing systems only"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "materials.pbr-library",
+   "use": "shared PBR material library",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "partial",
+   "scope": [
+    "material"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Art/*"
+   ],
+   "lod": "",
+   "criteria": [
+    "HDRP mask R=metal G=AO B=detail A=smoothness; sRGB only for colour; normals tested"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "shaders.catalog",
+   "use": "shader catalogue",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "one custom graph",
+   "scope": [
+    "keep"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Art/Ships/Shaders"
+   ],
+   "lod": "",
+   "criteria": [
+    "no new shader without a measured need"
+   ],
+   "covers": [],
+   "status": "planned"
+  },
+  {
+   "assetId": "audio",
+   "use": "sound of the battle and the world",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "missing (no audio layer)",
+   "scope": [
+    "exclude"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [],
+   "lod": "",
+   "criteria": [
+    "no audio layer exists; out of this refresh until decided"
+   ],
+   "covers": [],
+   "status": "out-of-scope"
+  },
+  {
+   "assetId": "water.system",
+   "use": "the sea: HDRP water, deformation, foam, wakes, spray, marine simulation",
+   "profile": {
+    "epoch": "E6 late classical, c. 400-323 BC",
+    "region": "Aegean (game map)"
+   },
+   "current": "protected",
+   "scope": [
+    "exclude"
+   ],
+   "textures": [],
+   "materials": [],
+   "animations": [],
+   "links": [
+    "Tools/visual/water_guard.py"
+   ],
+   "lod": "",
+   "criteria": [
+    "water_guard check passes (docs/art/WaterProtection.md)"
+   ],
+   "covers": [],
+   "status": "protected"
+  }
+ ]
+}
