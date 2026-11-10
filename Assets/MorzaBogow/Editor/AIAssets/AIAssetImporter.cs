@@ -135,7 +135,9 @@ namespace MorzaBogow.Editor.AIAssets
             importer.importCameras = false;
             importer.importLights = false;
             importer.addCollider = false;
-            importer.isReadable = false;
+            // Rocks and trees are merged into one mesh per shore or wood while the battle is built (Mesh.CombineMeshes),
+            // which a player can do only with meshes it may read; everything else stays GPU-only.
+            importer.isReadable = request.category == "rock" || request.category == "vegetation";
             importer.meshCompression = ModelImporterMeshCompression.Off;
             importer.importNormals = ModelImporterNormals.Import;
             importer.importTangents = ModelImporterTangents.CalculateMikk;

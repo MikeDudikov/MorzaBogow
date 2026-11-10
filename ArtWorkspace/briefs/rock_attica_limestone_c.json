@@ -6,7 +6,7 @@
   "description": "A low coastal limestone boulder of Attica about 3 m wide: bedding lines, karst pits and lichen, darker where the sea wets it; among the boulders of the shores.",
   "dimensions": { "height": 1.2 },
   "generation": { "provider": "source", "model": "../meshy/rock_attica_limestone_c/rock_attica_limestone_c.glb", "forward": "+Z" },
-  "texturing": { "provider": "provided", "maps": {
+  "texturing": { "provider": "provided", "tint": [0.72, 0.69, 0.64], "maps": {
     "base_color": "../meshy/rock_attica_limestone_c/rock_attica_limestone_c_textures/base_color.png",
     "normal": "../meshy/rock_attica_limestone_c/rock_attica_limestone_c_textures/normal.png",
     "metallic": "../meshy/rock_attica_limestone_c/rock_attica_limestone_c_textures/metallic.png",

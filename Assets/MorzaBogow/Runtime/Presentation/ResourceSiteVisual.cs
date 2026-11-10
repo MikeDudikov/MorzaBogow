@@ -441,7 +441,7 @@ namespace MorzaBogow.Presentation
         /// <summary>The art set's tree for a yard: its cypresses or pines in turn by number; none without them.</summary>
         static GameObject YardTree(bool cypress, int number)
         {
-            var art = AegeanArt.Current;
+            var art = AegeanArt.PlainTrees ? null : AegeanArt.Current;
             var kinds = art == null ? null : cypress ? art.Cypresses : art.Pines;
             return kinds != null && kinds.Length > 0 ? kinds[number % kinds.Length] : null;
         }

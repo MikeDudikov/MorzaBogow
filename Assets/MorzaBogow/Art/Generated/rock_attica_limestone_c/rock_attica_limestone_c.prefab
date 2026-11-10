@@ -143,9 +143,9 @@ MonoBehaviour:
   DisplayName: "G\u0142az wapienia attyckiego C"
   Category: rock
   ShipClass: 
-  JobId: rock_attica_limestone_c-20261110-180847-3868
-  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_attica_limestone_c-20261110-180847-3868",
-    "briefSha256": "b6c173aaad920765f84d5bc6c15d6e9284ffcda02f4353c27ec24286767d8316",
+  JobId: rock_attica_limestone_c-20261110-191524-e408
+  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_attica_limestone_c-20261110-191524-e408",
+    "briefSha256": "aef95c3426bbbe53488beb79205e0b756809dc4be8902e78916ec926f94338e0",
     "generation": "source", "texturing": "provided", "geometry": "blender", "remoteTasks":
     []}'
   Visual: {fileID: 618139506445403027}

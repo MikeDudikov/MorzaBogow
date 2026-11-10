@@ -1592,6 +1592,7 @@ namespace MorzaBogow.Presentation
             var random = new System.Random((int)(seed * 100.0) ^ 0x2F6A1D3);
             float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
             var dark = new TreeModels.Grove();
+            var drawn = new ArtGrove();
             // Olives are trees of their own (Presentation.Landscape): bones the match's wind bends, a form from a stable id.
             var olive = new Landscape.TreeGroveBuilder();
             var plainOlives = new TreeModels.Grove();
@@ -1628,9 +1629,10 @@ namespace MorzaBogow.Presentation
                     var exposure = Mathf.Clamp01(1f - (ShoreShape.At(outline, angle) - radius) / 25f);
                     olive.Add(species, id, new Vector3(spot.x, ground, spot.y), yaw, leeward, exposure);
                 }
-                else dark.Add(kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale);
+                else if (!AddArtTree(drawn, kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale)) dark.Add(kind, variant, new Vector3(spot.x, ground, spot.y), yaw, scale);
             }
             AddGrove(parent, dark, materials?.Foliage);
+            AddArtGrove(parent, drawn);
             AddGrove(parent, plainOlives, materials?.OliveFoliage);
             if (olive.Count > 0)
             {
@@ -1638,6 +1640,54 @@ namespace MorzaBogow.Presentation
                 TreesPlanted += olive.Count;
             }
             return (planted.Count, pines);
+        }
+
+        /// <summary>
+        /// Pines and cypresses of a wood from the pipeline (AegeanArt): Aleppo pines for the plain stone pines, its
+        /// cypresses for the plain cypresses, as tall as the plain trees would stand, merged per material into one mesh
+        /// at their second level of detail, as the plain grove and the boulders are, so a wood costs a draw or two.
+        /// </summary>
+        sealed class ArtGrove
+        {
+            public readonly Dictionary<Material, List<CombineInstance>> Parts = new Dictionary<Material, List<CombineInstance>>();
+            public int Count;
+        }
+
+        /// <summary>Adds a tree of the art set in place of a plain one; false when the set has none of its kind.</summary>
+        static bool AddArtTree(ArtGrove grove, TreeKind kind, int variant, Vector3 position, float yaw, float scale)
+        {
+            var art = AegeanArt.PlainTrees ? null : AegeanArt.Current;
+            var kinds = art == null ? null : kind == TreeKind.Cypress ? art.Cypresses : kind == TreeKind.StonePine ? art.Pines : null;
+            var prefab = kinds != null && kinds.Length > 0 ? kinds[variant % kinds.Length] : null;
+            if (prefab == null) return false;
+            // The plain meshes stand 8.75 m (pine) and 11.6 m (cypress) on average at scale 1 before LifeSize.
+            var bounds = AegeanArt.FinestBounds(prefab);
+            var size = (kind == TreeKind.Cypress ? 11.6f : 8.75f) * TreeModels.LifeSize * scale / Mathf.Max(0.01f, bounds.size.y);
+            var placement = Matrix4x4.TRS(position - Vector3.up * (bounds.min.y * size), Quaternion.Euler(0f, yaw, 0f), Vector3.one * size);
+            foreach (var (mesh, material, local) in AegeanArt.LevelMeshes(prefab, 1))
+            {
+                if (material == null) continue;
+                if (!grove.Parts.TryGetValue(material, out var list)) grove.Parts[material] = list = new List<CombineInstance>();
+                list.Add(new CombineInstance { mesh = mesh, transform = placement * local });
+            }
+            grove.Count++;
+            return true;
+        }
+
+        void AddArtGrove(Transform parent, ArtGrove grove)
+        {
+            foreach (var pair in grove.Parts)
+            {
+                if (pair.Value.Count == 0) continue;
+                var combined = new Mesh { name = "Art grove", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                combined.CombineMeshes(pair.Value.ToArray(), true, true);
+                generatedMeshes.Add(combined);
+                var trees = new GameObject("Grove");
+                trees.transform.SetParent(parent, false);
+                trees.AddComponent<MeshFilter>().sharedMesh = combined;
+                trees.AddComponent<MeshRenderer>().sharedMaterial = pair.Key;
+            }
+            TreesPlanted += grove.Count;
         }
 
         void AddGrove(Transform parent, TreeModels.Grove grove, Material leaves)
@@ -1741,16 +1791,23 @@ namespace MorzaBogow.Presentation
             if (spots != null && spots.Length > 0 && island.Radius >= WoodedCoastRadius)
             {
                 var grove = new TreeModels.Grove();
+                var drawn = new ArtGrove();
                 var random = new System.Random((int)(island.X * 13 + island.Y * 7));
                 foreach (var spot in spots)
                 {
                     var local = root.transform.InverseTransformPoint(coast.transform.TransformPoint(spot));
                     var cypress = random.NextDouble() < 0.22;
-                    grove.Add(cypress ? TreeKind.Cypress : TreeKind.StonePine, random.Next(4), local - new Vector3(0f, 0.25f, 0f), (float)random.NextDouble() * 360f,
-                        cypress ? 0.6f + (float)random.NextDouble() * 0.3f : 0.65f + (float)random.NextDouble() * 0.35f);
+                    var kind = cypress ? TreeKind.Cypress : TreeKind.StonePine;
+                    var variant = random.Next(4);
+                    var at = local - new Vector3(0f, 0.25f, 0f);
+                    var yaw = (float)random.NextDouble() * 360f;
+                    var treeScale = cypress ? 0.6f + (float)random.NextDouble() * 0.3f : 0.65f + (float)random.NextDouble() * 0.35f;
+                    // The pipeline's pines and cypresses where the art set has them, the plain meshes otherwise.
+                    if (!AddArtTree(drawn, kind, variant, at, yaw, treeScale)) grove.Add(kind, variant, at, yaw, treeScale);
                 }
                 AddGrove(root.transform, grove, materials?.Foliage);
-                CoastTreesPlanted += grove.Count;
+                AddArtGrove(root.transform, drawn);
+                CoastTreesPlanted += grove.Count + drawn.Count;
             }
             return root;
         }

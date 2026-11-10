@@ -6,7 +6,7 @@
   "description": "A weathered coastal limestone outcrop of Attica, about 4 m wide: horizontal bedding, karst pits, a tidal notch at its foot, lichen; for the coasts of the game's islets.",
   "dimensions": { "height": 1.9 },
   "generation": { "provider": "source", "model": "../meshy/rock_attica_limestone_a/rock_attica_limestone_a.glb", "forward": "+Z" },
-  "texturing": { "provider": "provided", "maps": {
+  "texturing": { "provider": "provided", "tint": [0.72, 0.69, 0.64], "maps": {
     "base_color": "../meshy/rock_attica_limestone_a/rock_attica_limestone_a_textures/base_color.png",
     "normal": "../meshy/rock_attica_limestone_a/rock_attica_limestone_a_textures/normal.png",
     "metallic": "../meshy/rock_attica_limestone_a/rock_attica_limestone_a_textures/metallic.png",

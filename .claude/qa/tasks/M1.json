@@ -152,6 +152,8 @@
         "MorzaBogow.Tests.PortMasonryTests.Port_StoreYardKeepsClearOfTheDoorsAndInsideTheWalls",
         "MorzaBogow.Tests.AegeanArtTests.Art_ModelsWithLevelsOfDetailGiveTheirFinestLevelOnly",
         "MorzaBogow.Tests.AegeanArtTests.Art_SetListsThePipelinesRocksAndLogsInPathOrder",
+        "MorzaBogow.Tests.AegeanArtTests.Art_WoodsAreMergedAtTheTreesSecondLevelOfDetail",
+        "MorzaBogow.Tests.AegeanArtTests.Art_ModelsMergedInTheBattleHaveReadableMeshes",
         "MorzaBogow.Tests.MarineTests.Wind_GustPeaksReachDownwindPointLater",
         "MorzaBogow.Tests.MarineTests.Wind_NeighboursFollowTheSpectrumCorrelation",
         "MorzaBogow.Tests.MarineTests.Wind_IslandWakeShelterAndTurbulence",

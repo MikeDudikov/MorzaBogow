@@ -109,9 +109,9 @@ MonoBehaviour:
   DisplayName: Wychodnia marmuru pentelickiego A
   Category: rock
   ShipClass: 
-  JobId: rock_pentelic_marble_a-20261110-172941-ebb6
-  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_pentelic_marble_a-20261110-172941-ebb6",
-    "briefSha256": "034fa472ee2bc3b8920bb83b102eec72dc24a6174593063374ea8b38a228695c",
+  JobId: rock_pentelic_marble_a-20261110-191525-074d
+  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_pentelic_marble_a-20261110-191525-074d",
+    "briefSha256": "ae5c2f568023f328b317b4da749c6a3c6c514b7eeff596c1b6d9acbbe959e2f4",
     "generation": "source", "texturing": "provided", "geometry": "blender", "remoteTasks":
     []}'
   Visual: {fileID: 6623750882139873684}

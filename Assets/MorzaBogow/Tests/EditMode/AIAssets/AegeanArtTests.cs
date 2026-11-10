@@ -50,6 +50,35 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Art_WoodsAreMergedAtTheTreesSecondLevelOfDetail()
+        {
+            var set = Resources.Load<AegeanArt>(AegeanArt.ResourcePath);
+            var trees = set.Pines.Concat(set.Cypresses).ToList();
+            Assert.That(trees.Count, Is.GreaterThanOrEqualTo(2), "a pine and a cypress for the woods");
+            foreach (var tree in trees)
+            {
+                var lods = tree.GetComponentInChildren<LODGroup>().GetLODs();
+                int Level(int level) => lods[level].renderers.Sum(r => Triangles(r.GetComponent<MeshFilter>().sharedMesh));
+                Assert.That(AegeanArt.LevelMeshes(tree, 1).Sum(part => Triangles(part.mesh)), Is.EqualTo(Level(1)), $"{tree.name}: the second level");
+                Assert.That(Level(1), Is.LessThan(Level(0)), $"{tree.name}: lighter than the finest");
+                Assert.That(AegeanArt.LevelMeshes(tree, 9).Sum(part => Triangles(part.mesh)), Is.EqualTo(Level(lods.Length - 1)), $"{tree.name}: past the last level, the last");
+                Assert.That(AegeanArt.LevelMeshes(tree, 1).All(part => part.material != null), Is.True, $"{tree.name}: merged per material");
+            }
+        }
+
+        [Test]
+        public void Art_ModelsMergedInTheBattleHaveReadableMeshes()
+        {
+            // The battle merges rocks and trees with Mesh.CombineMeshes; a player drops meshes it may not read.
+            var set = Resources.Load<AegeanArt>(AegeanArt.ResourcePath);
+            var merged = set.Rocks.Concat(set.Pines).Concat(set.Cypresses).ToList();
+            Assert.That(merged.Count, Is.GreaterThanOrEqualTo(5));
+            foreach (var prefab in merged)
+            foreach (var filter in prefab.GetComponentsInChildren<MeshFilter>(true))
+                Assert.That(filter.sharedMesh.isReadable, Is.True, $"{prefab.name}/{filter.name}: Read/Write on, or the player drops it from the merged shore or wood");
+        }
+
+        [Test]
         public void Art_SetListsThePipelinesRocksAndLogsInPathOrder()
         {
             var set = Resources.Load<AegeanArt>(AegeanArt.ResourcePath);

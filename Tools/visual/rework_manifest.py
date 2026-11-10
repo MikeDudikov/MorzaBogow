@@ -228,8 +228,10 @@ STATUS = {
                  "felled as before, no wind sway yet",
     "site.silver": "in progress: 4th c. ore workshop (flat-washing platform, stand tank, channel, settling tanks), open cistern, "
                    "mortars, schist rock behind the adit (R-LAURION-WORKSHOPS)",
-    "veg.pine.halepensis": "Meshy model in the timber yards (veg_pinus_halepensis_a); coast groves still the old meshes",
-    "veg.cypress.columnar": "Meshy model in the timber yards (veg_cupressus_sempervirens); coast groves still the old meshes",
+    "veg.pine.halepensis": "Meshy model (veg_pinus_halepensis_a) in the timber yards and the coastal woods, merged per island at its "
+                           "second level of detail; no wind sway",
+    "veg.cypress.columnar": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; "
+                            "no wind sway",
     "building.ruin": "collapse into the ruin when a settlement falls in sight: sinking walls, the roof falling in, dust, flying tiles",
     "fx.building-destruction": "done: walls sink and lean, the roof falls in, two clouds of dust, tiles thrown, the ruin shows "
                                "through the dust (2.6 s of game time; PortMasonryTests)",

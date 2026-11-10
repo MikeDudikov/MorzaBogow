@@ -65,6 +65,9 @@ namespace MorzaBogow.Presentation
         static AegeanArt loaded;
         static bool looked;
 
+        /// <summary>-morzaPlainTrees: the plain pine and cypress meshes instead of the set's, to measure what its trees cost.</summary>
+        public static readonly bool PlainTrees = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaPlainTrees") >= 0;
+
         /// <summary>The set in Resources, loaded once; null when there is none.</summary>
         public static AegeanArt Current
         {
@@ -103,14 +106,22 @@ namespace MorzaBogow.Presentation
         /// A prefab's meshes with their material and placement in its space, taking only its finest level of detail when
         /// it has a LODGroup (merging every level draws the model once per level).
         /// </summary>
-        public static System.Collections.Generic.IEnumerable<(Mesh mesh, Material material, Matrix4x4 local)> FinestMeshes(GameObject prefab)
+        public static System.Collections.Generic.IEnumerable<(Mesh mesh, Material material, Matrix4x4 local)> FinestMeshes(GameObject prefab) =>
+            LevelMeshes(prefab, 0);
+
+        /// <summary>
+        /// As FinestMeshes, at the given level of detail (the last one if the prefab has fewer): a wood merged into one
+        /// mesh is drawn at its second level, as seen from the strategy camera.
+        /// </summary>
+        public static System.Collections.Generic.IEnumerable<(Mesh mesh, Material material, Matrix4x4 local)> LevelMeshes(GameObject prefab, int level)
         {
             var group = prefab.GetComponentInChildren<LODGroup>();
             System.Collections.Generic.HashSet<Renderer> finest = null;
             if (group != null && group.lodCount > 0)
             {
+                var lods = group.GetLODs();
                 finest = new System.Collections.Generic.HashSet<Renderer>();
-                foreach (var renderer in group.GetLODs()[0].renderers) if (renderer != null) finest.Add(renderer);
+                foreach (var renderer in lods[Mathf.Clamp(level, 0, lods.Length - 1)].renderers) if (renderer != null) finest.Add(renderer);
             }
             foreach (var filter in prefab.GetComponentsInChildren<MeshFilter>())
             {

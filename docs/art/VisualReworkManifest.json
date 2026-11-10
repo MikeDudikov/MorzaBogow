@@ -1398,7 +1398,7 @@
     "map topology unchanged"
    ],
    "covers": [],
-   "status": "Meshy model in the timber yards (veg_pinus_halepensis_a); coast groves still the old meshes"
+   "status": "Meshy model (veg_pinus_halepensis_a) in the timber yards and the coastal woods, merged per island at its second level of detail; no wind sway"
   },
   {
    "assetId": "veg.pine.brutia",
@@ -1479,7 +1479,7 @@
     "map topology unchanged"
    ],
    "covers": [],
-   "status": "Meshy model in the timber yards (veg_cupressus_sempervirens); coast groves still the old meshes"
+   "status": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; no wind sway"
   },
   {
    "assetId": "veg.quercus.coccifera",

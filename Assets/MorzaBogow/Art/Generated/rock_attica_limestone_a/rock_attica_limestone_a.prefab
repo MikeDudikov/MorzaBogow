@@ -109,9 +109,9 @@ MonoBehaviour:
   DisplayName: Wychodnia wapienia attyckiego A
   Category: rock
   ShipClass: 
-  JobId: rock_attica_limestone_a-20261110-162132-f240
-  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_attica_limestone_a-20261110-162132-f240",
-    "briefSha256": "53695fc17960d4801bcd24b25dc538f64dee1cf869e6e70876e2a44e4c451a35",
+  JobId: rock_attica_limestone_a-20261110-191524-18e8
+  ProvenanceJson: '{"pipeline": "0.1.0", "job": "rock_attica_limestone_a-20261110-191524-18e8",
+    "briefSha256": "06736231aa7b43053ab2c93b18e3e95438429b22be5a645c15c2cac4c62dfa13",
     "generation": "source", "texturing": "provided", "geometry": "blender", "remoteTasks":
     []}'
   Visual: {fileID: 9065886720201442692}
