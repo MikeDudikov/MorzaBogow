@@ -3,7 +3,7 @@
 Data: 2026-11-10. Gałąź: `balans-skala`. Status:
 - 3a i 3b wdrożone;
 - 3c część 1 (symulacja: niszczyciel okrętów, bombowiec, budowa bez domyślnego uzbrojenia, AI) wdrożona;
-- 3c część 2 (prezentacja: modele broni, pociski i stożki ostrzału, budynki na wyspie portu, zapowiedź taranu w 3D) ruszy po partiach A–C.
+- 3c część 2 (prezentacja: budynki na wyspie portu, budowa w toku i ruiny, zapowiedź taranu w 3D, stożki ostrzału, ikony nowych klas) wdrożona; opis niżej w „Prezentacja (3c część 2)”.
 
 Liczby są własne Mórz Bogów. Wszystkie obliczenia należą do deterministycznej symulacji (`Runtime/Simulation`), a prezentacja tylko je czyta.
 
@@ -190,7 +190,74 @@ W nawiasie: kadłub zwycięzcy na końcu.
 ## Interfejs (3c część 1)
 
 - **Menu zamówień** linii wojennej pokazuje pięć klas wojennych z ceną zależną od przełącznika uzbrojenia. Bombowiec bez Warsztatu w porcie albo bez badania jest niedostępny, a podpowiedź podaje powód (`World.ShipProblem`).
-- **Ikony nowych klas** są tymczasowe. Modele, pociski, stożki ostrzału i budynki portu wejdą w 3c części 2.
+- **Ikony nowych klas** zastąpiła 3c część 2 (niżej).
+
+## Prezentacja (3c część 2)
+
+Prezentacja tylko czyta symulację; w `Runtime/Simulation` nic się nie zmieniło. Kadłuby, broń na stanowiskach, załogi, pociski i pochylnie były już wcześniej (GreekShips, ShipVisual, Crew/*, BattleEffects, ShipyardVisual) i nie są dublowane.
+
+### Budynki portu (`Runtime/Presentation/PortBuildings.cs`)
+
+Budynki stoją na lądowej połowie wyspy portu (x w stronę portu od −14,5 do 1 m, |z| < 9,5 m), tarasami na zboczu: każdy ma stopę na najniższym gruncie pod sobą. Pomost, pochylnie, punkt magazynu tragarzy i oś pomostu zostają wolne (test).
+
+| Stan osady | Wygląd |
+|---|---|
+| zawsze | kamienny magazyn z dachem z dachówki i dom (przyczółek: mniejszy magazyn i chata) |
+| `HasWorkshop` | otwarta wiata na słupach od strony linii wojennej, komin kuźni, belki, rama katapulty na kozłach |
+| `IsTown` | cztery domy na tarasach i mur z basztami wokół działki, z bramą od portu |
+| `HasSageSchool` | bielona kolumnada z frontonem na najwyższym tarasie |
+| `HasDock` | kozioł (dźwig z dwóch nóg) na końcu pomostu, z boku jego osi, z talią i kołowrotem: tu leżą okręty w naprawie |
+
+- **Budowa w toku** (`Settlement.Project`, `ProjectKind`, postęp `DoneTicks/TotalTicks`), według progów pochylni:
+  - do 15%: fundament i paliki;
+  - 15–80%: ściany rosną wśród rusztowań;
+  - od 80%: dach;
+  - rusztowanie znika przy 97%.
+
+  `PortBuildings.WorkSpots` podaje miejsca dla przyszłych budowniczych i naprawiających (ShoreMan w CrewAshore, osobne zadanie).
+- **Badanie broni ciężkiej** nie stawia budynku: przed Szkołą płonie trójnóg z ogniem.
+- **Ruiny.** Zniszczona osada nie znika z wyspą. Każdy budynek, który stał, zostaje jako ruina:
+  - ściany urwane do 25–50% wysokości;
+  - bez dachów, z opalonymi belkami i gruzem;
+  - kolumny jako kikuty;
+  - kozioł przewrócony na pomost.
+
+  Kształt ruin wynika z numeru osady. Widoczność jak przy osadzie: własna zawsze, wroga w zasięgu wzroku. Wolny brzeg w tym miejscu jest ukryty, dopóki stoją ruiny; ruiny znikają, gdy na tym brzegu stanie nowa osada.
+- **Materiały** to kopie materiałów sceny: wapień brzegu na kamień, jego bielona kopia na tynk, dachówka, drewno, opalone drewno.
+- **Siatki** składa generator okrętów (`GreekShips.MeshBuilder`): jedna siatka z podsiatkami na budynek.
+
+### Zapowiedź taranu (`RamTelegraphView.cs`)
+
+Od zawołania szarży (`RamPhase.Telegraph`) do uderzenia albo odskoku na morzu leży pas od dziobu taranującego do celu.
+- **Lont.** Pas napełnia się jak lont: `1 − TelegraphTicks / ceil(RamTelegraphSeconds · 30)`. Pełny oznacza, że uderzenie się liczy, i wtedy pulsuje.
+- **Pierścień** wokół celu bije coraz szybciej.
+- **Błysk** przy dziobie oznacza chwilę zawołania.
+
+Kolory są jak w interfejsie, czytelne dla obu stron:
+- własny taran: turkus sojusznika;
+- taran wroga: czerwień wroga.
+
+Taranującego, którego gracz nie widzi, nie rysuje się wcale.
+
+### Stożki ostrzału (`FiringArcs.cs`)
+
+Rysowane dla zaznaczonych własnych okrętów z bronią, najwyżej 8 naraz.
+
+**Kształt.** Każdy typ zamontowanej broni ma wycinek od najmniejszego do największego zasięgu z `WeaponCatalog`. Rozciąga się na połowę łuku na każdą burtę od dziobu i jest liczony od środka okrętu, dokładnie jak `World.InReach` (test porównuje oba w ponad tysiącu punktów).
+
+**Paski stanowisk.** Wewnątrz dalekiej krawędzi każde zamontowane stanowisko tego typu ma własny pasek, kolejne w głąb:
+
+| Stan (jak na karcie okrętu) | Pasek |
+|---|---|
+| gotowe | turkus sojusznika, ciągły |
+| bez obsługi (`World.Manned`) | bursztyn, przerywany |
+| zniszczone (`ModuleHp ≤ 0`) | czerwień, przerywany |
+
+Puste gniazdo nie ma stożka.
+
+### Ikony klas
+
+`ship-killer` (kadłub i balista z ciężkim bełtem) i `bomber` (kadłub, ramię katapulty, kamień i jego tor) w 64 i 128 px. Rysuje je `Editor/HudClassIcons.cs` w kolorze i grubości linii ikon pakietu interfejsu: kolor zmierzony z `archer-ship-128.png`. Każda klasa ma własną ikonę (test).
 
 ## Granice weryfikacji
 

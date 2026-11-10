@@ -1461,7 +1461,7 @@ namespace MorzaBogow.Presentation
         /// Vertices and triangles per paint. Each triangle is wound to face the given outward direction, so normals are
         /// right whatever order the corners come in. Triangles remember the hull section (by Z) they lie in.
         /// </summary>
-        sealed class MeshBuilder
+        internal sealed class MeshBuilder
         {
             readonly float[] cuts;
             readonly List<Vector3> positions = new List<Vector3>();

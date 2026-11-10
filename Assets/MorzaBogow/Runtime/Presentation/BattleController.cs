@@ -251,6 +251,8 @@ namespace MorzaBogow.Presentation
             // -morzaPlainOlives draws the old one-mesh olives instead, to measure what the new trees cost in one build.
             Landscape.Vegetation.PlainOlives = Array.IndexOf(System.Environment.GetCommandLineArgs(), "-morzaPlainOlives") >= 0;
             if (fog == null) fog = new BattleFog(materials?.Fog);
+            if (ramTelegraph == null) ramTelegraph = new RamTelegraphView(materials);
+            if (firingArcs == null) firingArcs = new FiringArcs(materials);
             opponent = new Opponent(1) { BuildIndex = opponentBuildIndex };
             BuildStaticViews();
             SyncViews();
@@ -682,7 +684,7 @@ namespace MorzaBogow.Presentation
                     pivot = ahead + new Vector3(-25f, 0f, 0f);
                     Debug.Log($"[Showcase] formation: {group.Length} rams, line then wedge");
                 } },
-            };
+            }.Concat(PortShowcase(home, area)).ToArray();
         }
 
         /// <summary>Open water away from every ship where a group and its formation fit: a box of 260 by 180 m, all sea.</summary>
@@ -921,6 +923,10 @@ namespace MorzaBogow.Presentation
             if (crewRoot != null) Destroy(crewRoot.gameObject);
             crewRoot = null;
             effects?.Clear();
+            ramTelegraph?.Destroy();
+            ramTelegraph = null;
+            firingArcs?.Destroy();
+            firingArcs = null;
         }
 
         /// <summary>Reads the sea from a stand-in instead of HDRP's water, for tests of the hull poses.</summary>
@@ -964,6 +970,7 @@ namespace MorzaBogow.Presentation
             siteWorkplaces.Clear();
             portWorkplaces.Clear();
             yards.Clear();
+            portBuildings.Clear();
             launches.Clear();
             recalled.Clear();
             foreach (var mesh in generatedMeshes) if (mesh != null) Destroy(mesh);
@@ -976,6 +983,14 @@ namespace MorzaBogow.Presentation
 
         readonly Dictionary<int, ShipyardVisual> yards = new Dictionary<int, ShipyardVisual>();
         public IReadOnlyDictionary<int, ShipyardVisual> Yards => yards;
+
+        // Buildings on each settlement's land, a ram's called charge and the selected ships' firing arcs (3c part 2).
+        readonly Dictionary<int, PortBuildings> portBuildings = new Dictionary<int, PortBuildings>();
+        RamTelegraphView ramTelegraph;
+        FiringArcs firingArcs;
+        public IReadOnlyDictionary<int, PortBuildings> PortBuildings => portBuildings;
+        public RamTelegraphView RamTelegraph => ramTelegraph;
+        public FiringArcs FiringArcs => firingArcs;
 
         /// <summary>A finished hull's run down its slipway into the sea, then afloat to where the game has it.</summary>
         sealed class Launch
@@ -1369,7 +1384,6 @@ namespace MorzaBogow.Presentation
             var toward = Mathf.Sign((float)settlement.X - (float)Rules.SettlementLandX(settlement));
             var width = settlement.IsOutpost ? 9f : 11f;
             var depth = settlement.IsOutpost ? 12f : 16f;
-            var tall = settlement.IsOutpost ? 4f : 6f;
             // Built into the slope behind the harbour: its foot at the lowest ground under it, its back set into the hill.
             var shape = ShoreOf(settlement.X, settlement.Y);
             var centreX = -toward * (width * 0.5f + 1.5f);
@@ -1380,7 +1394,8 @@ namespace MorzaBogow.Presentation
                 var z = ((corner & 2) == 0 ? -0.5f : 0.5f) * depth;
                 foot = Mathf.Min(foot, ShoreShape.GroundAt(shape.outline, shape.lift, x, z));
             }
-            AddViewPart(root, PrimitiveType.Cube, "Buildings", materials?.Neutral, new Vector3(centreX, foot + tall * 0.5f - 0.3f, 0f), new Vector3(width, tall, depth));
+            // The store, workshop, town, school and dock as the settlement has them, on the same landward plot (PortBuildings).
+            portBuildings[settlement.Id] = new PortBuildings(root.transform, materials, settlement, toward, shape.outline, shape.lift);
             yards[settlement.Id] = new ShipyardVisual(root.transform, materials, settlement, toward);
             // A beach shipyard's gear of the 12th century BC beside the ramps, clear of them, the jetty and the buildings.
             var slipX = toward * (float)Rules.SlipAlong;
@@ -1984,6 +1999,8 @@ namespace MorzaBogow.Presentation
             SyncWrecks();
             UpdateDestinationMarkers();
             UpdateTargetMarkers();
+            ramTelegraph?.Update(World, PlayerFaction, views, Time.unscaledTime, at => effects.Ping(at));
+            firingArcs?.Update(World, PlayerFaction, selected, views);
             fogTimer += delta;
             if (fogTimer >= 0.1f)
             {
@@ -2066,18 +2083,33 @@ namespace MorzaBogow.Presentation
                     settlementViews[settlement.Id] = view;
                     mapObjects.Add(view);
                 }
-                var shown = !settlement.Destroyed && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
+                // A fallen settlement keeps its land and shows its ruins, until another rises on the same shore.
+                var ruined = settlement.Destroyed && !RebuiltOver(settlement);
+                var shown = (!settlement.Destroyed || ruined) && (settlement.Owner == PlayerFaction || World.CanSee(PlayerFaction, settlement.X, settlement.Y));
                 if (view.activeSelf != shown) view.SetActive(shown);
-                if (shown && yards.TryGetValue(settlement.Id, out var yard)) yard.Update(settlement, paused ? 0f : delta * Speed);
+                if (shown && portBuildings.TryGetValue(settlement.Id, out var buildings)) buildings.Update(settlement, ruined, paused ? 0f : delta * Speed);
+                if (!shown || !yards.TryGetValue(settlement.Id, out var yard)) continue;
+                if (ruined) { yard.War.Show(null, 0f, 0f); yard.Port.Show(null, 0f, 0f); }
+                else yard.Update(settlement, paused ? 0f : delta * Speed);
             }
 
             foreach (var shore in World.Sites)
             {
                 if (!freeShoreViews.TryGetValue(shore.Id, out var view)) continue;
-                var shown = World.IsSiteFree(shore) && World.IsExplored(PlayerFaction, shore.X, shore.Y);
+                // Ruins standing on a free shore are drawn by their settlement's view, with its land.
+                var shown = World.IsSiteFree(shore) && World.IsExplored(PlayerFaction, shore.X, shore.Y) && !RuinsShownAt(shore.X, shore.Y);
                 if (view.activeSelf != shown) view.SetActive(shown);
             }
         }
+
+        /// <summary>Another settlement, still standing, has risen where this one fell.</summary>
+        bool RebuiltOver(Settlement fallen) =>
+            World.Settlements.Any(item => item != fallen && !item.Destroyed && World.Distance(item.X, item.Y, fallen.X, fallen.Y) < 1);
+
+        /// <summary>The ruins of a settlement at this port point are on screen.</summary>
+        bool RuinsShownAt(double x, double y) =>
+            World.Settlements.Any(item => item.Destroyed && World.Distance(item.X, item.Y, x, y) < 1
+                                          && settlementViews.TryGetValue(item.Id, out var view) && view != null && view.activeSelf);
 
         void BreakOnRock(SurfPatch patch)
         {

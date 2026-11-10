@@ -2478,7 +2478,8 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        static string ClassIcon(ShipClass shipClass)
+        /// <summary>The icon of a hull class in Hud/Icons (64 and 128 px).</summary>
+        public static string ClassIcon(ShipClass shipClass)
         {
             switch (shipClass)
             {
@@ -2486,9 +2487,9 @@ namespace MorzaBogow.Presentation
                 case ShipClass.Ram: return "trireme";
                 case ShipClass.CrewDestroyer: return "archer-ship";
                 case ShipClass.Merchant: return "merchant";
-                // Stand-in glyphs until the class icons of the 3c presentation part.
-                case ShipClass.ShipKiller: return "target";
-                case ShipClass.Bomber: return "volley";
+                // Drawn in the package's style by Editor/HudClassIcons (3c part 2).
+                case ShipClass.ShipKiller: return "ship-killer";
+                case ShipClass.Bomber: return "bomber";
                 default: return "boarding-ship";
             }
         }

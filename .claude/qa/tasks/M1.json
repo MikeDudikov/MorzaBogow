@@ -186,6 +186,17 @@
     },
     "PlayMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.PortPresentationTests.PortBuildings_FollowTheSettlementsBuildings",
+        "MorzaBogow.Tests.PortPresentationTests.PortBuildings_KeepClearOfTheJettySlipwaysAndStoreDoor",
+        "MorzaBogow.Tests.PortPresentationTests.PortBuildings_AProjectRisesWithItsProgress",
+        "MorzaBogow.Tests.PortPresentationTests.PortBuildings_ResearchLightsAFireAndRaisesNothing",
+        "MorzaBogow.Tests.PortPresentationTests.PortBuildings_AFallenSettlementLeavesRuinsUntilAnotherRises",
+        "MorzaBogow.Tests.PortPresentationTests.RamTelegraph_DrawnForBothSidesOnlyWhileTheChargeIsCalled",
+        "MorzaBogow.Tests.PortPresentationTests.RamTelegraph_AHiddenRammerDrawsNothing",
+        "MorzaBogow.Tests.PortPresentationTests.FiringArcs_CoverExactlyWhatTheGameReaches",
+        "MorzaBogow.Tests.PortPresentationTests.FiringArcs_DrawEachPostAndMarkTheUnmannedAndBroken",
+        "MorzaBogow.Tests.PortPresentationTests.ClassIcons_TheNewClassesHaveIconsOfTheirOwn",
+        "MorzaBogow.Tests.PortPresentationTests.PortViews_LeaveTheSimulationUntouched",
         "MorzaBogow.Tests.LandscapeTests.Landscape_OlivesOfTheBattleAreTreesTheMatchWindBends",
         "MorzaBogow.Tests.LandscapeTests.Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas",
         "MorzaBogow.Tests.LandscapeTests.Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt",
