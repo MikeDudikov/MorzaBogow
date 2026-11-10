@@ -354,6 +354,16 @@ Budowle portu buduje kod (`Runtime/Presentation/PortBuildings.cs`). Podglądy z 
 - **Podgląd** (batch z urządzeniem graficznym, bez okna gry): `-executeMethod MorzaBogow.Editor.BuildingPreview.PreviewPort`, obrazy w `artifacts-log/buildings/`.
 - **Testy:** `PortMasonryTests` (4, EditMode) i dotychczasowe `PortPresentationTests`.
 
+## Gotowe modele w grze: zestaw `AegeanArt`
+
+Gra bierze gotowe prefaby potoku z jednego zasobu w Resources: `Assets/MorzaBogow/Art/Resources/AegeanArt.asset` (`Runtime/Presentation/AegeanArt.cs`). Dzięki temu build je zawiera, a scena bitwy nie musi być przebudowywana (jej bloki wody są chronione).
+
+- **Wypełnienie** po każdym gotowym zadaniu: `-executeMethod MorzaBogow.Editor.AegeanArtSet.RefreshBatch` (menu: Morza Bogów → Zasoby → Odśwież zestaw egejski). Bierze `Art/Generated/rock_*` (skały) i `prop_timber_*` (stosy kłód) w porządku ścieżek, więc ta sama wyspa dostaje te same skały.
+- **Brzegi:** skały z zestawu dochodzą do głazów sceny w `BattleController.ScatterBoulders`. Scena bez własnych głazów (testowa) zostaje bez nich.
+- **Scalanie głazów:** `ModelOf` brał wszystkie poziomy LOD, więc każdy głaz z Poly Haven był rysowany czterokrotnie. Teraz bierze tylko najdokładniejszy poziom (`AegeanArt.FinestMeshes`).
+- **Składy drewna:** stosy jodłowych kłód z potoku (po trzy obok siebie i jeden na wierzchu w każdej z dwóch sągów) zamiast walców. Sągi maleją z zasobem warstwami, wierzchnie pierwsze. Bez zestawu zostają walce.
+- **Testy:** `AegeanArtTests` (EditMode): zestaw zgodny z prefabami potoku, scalanie tylko LOD0.
+
 ## Ograniczenia
 
 - **Najniższy punkt modelu jest stępką.** Przygotowanie w Blenderze stawia ten punkt na −zanurzenie, a walidator porównuje go z zanurzeniem klasy (tolerancja 8%). Wiosła sterowe, taran i inne części nie mogą schodzić poniżej kadłuba.

@@ -147,7 +147,19 @@ namespace MorzaBogow.Presentation
                 workSpots.Add(new Vector3(x, Ground(x, z - 1.6f), z - 1.6f));
             }
 
-            // Log stacks on the shore: these shrink with the stock.
+            // Log stacks on the shore: these shrink with the stock. The pipeline's fir logs where the art set has them
+            // (AegeanArt): three stacks side by side and one on top in each pile, the top one going first.
+            var art = AegeanArt.Current;
+            var logs = art != null && art.TimberStacks != null && art.TimberStacks.Length > 0 ? art.TimberStacks[0] : null;
+            if (logs != null)
+            {
+                for (var stack = -1; stack <= 1; stack += 2)
+                {
+                    foreach (var (across, layer) in new[] { (-1, 0), (0, 0), (1, 0), (0, 1) })
+                        pile.Add(LogStack(model, logs, stack * 7f, across, layer, random));
+                }
+                return;
+            }
             for (var stack = -1; stack <= 1; stack += 2)
             {
                 for (var layer = 0; layer < 3; layer++)
@@ -303,6 +315,28 @@ namespace MorzaBogow.Presentation
                 var active = i < shown;
                 if (pile[i].activeSelf != active) pile[i].SetActive(active);
             }
+        }
+
+        /// <summary>
+        /// One stack of the pipeline's fir logs in a pile at x along the shore: its logs along z and 6.8 m long like the
+        /// plain logs, side by side across (−1, 0, 1) and lying on the stacks below (layer), each turned a little.
+        /// </summary>
+        GameObject LogStack(Transform model, GameObject prefab, float x, int across, int layer, System.Random random)
+        {
+            var bounds = AegeanArt.FinestBounds(prefab);
+            var alongX = bounds.size.x > bounds.size.z;
+            var length = Mathf.Max(0.01f, alongX ? bounds.size.x : bounds.size.z);
+            var width = alongX ? bounds.size.z : bounds.size.x;
+            var scale = 6.8f / length;
+            var item = Object.Instantiate(prefab, model, false);
+            item.name = "Log stack";
+            var px = x + across * width * scale * 0.92f;
+            var turn = Quaternion.Euler(0f, (alongX ? 90f : 0f) + ((float)random.NextDouble() - 0.5f) * 8f, 0f);
+            var lift = layer * bounds.size.y * scale * 0.7f;
+            item.transform.localRotation = turn;
+            item.transform.localScale = Vector3.one * scale;
+            item.transform.localPosition = new Vector3(px, Ground(px, -1f) - bounds.min.y * scale + lift, -1f) - turn * (new Vector3(bounds.center.x, 0f, bounds.center.z) * scale);
+            return item;
         }
 
         static Transform Part(Transform parent, PrimitiveType type, Material material, Vector3 position, Vector3 scale, Vector3 rotation)

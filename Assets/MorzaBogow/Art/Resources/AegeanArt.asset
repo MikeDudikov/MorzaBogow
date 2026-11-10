@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2ac505620ba7f14e8523009e8f38236, type: 3}
+  m_Name: AegeanArt
+  m_EditorClassIdentifier: MorzaBogow.Presentation::MorzaBogow.Presentation.AegeanArt
+  Rocks:
+  - {fileID: 3924736295425047746, guid: a471afab4d53c6c4ca53612b370e1c60, type: 3}
+  - {fileID: 4443414618749441720, guid: a605745278134894b98deea14d7d0cf4, type: 3}
+  TimberStacks:
+  - {fileID: 3256698879134898687, guid: 3b9632a15f69ca047944398f815a2bdd, type: 3}

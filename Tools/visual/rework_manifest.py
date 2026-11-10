@@ -207,8 +207,10 @@ STATUS = {
     "character.peltast": "in progress: pelte and caps (commit 9ed303b)",
     "prop.amphora": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
     "fx.boarding": "done: broadside haul, oars in, the front crosses and fights on the other deck, the dead lie where they fell, return over the rails (BoardingPresentationTests 3/3)",
-    "rock.attica-set": "variants: rock_attica_limestone_a ready; rock_pentelic_marble_a refined in Meshy, pipeline import next; "
+    "rock.attica-set": "in the game: rock_attica_limestone_a and rock_pentelic_marble_a among the shore boulders (AegeanArt); "
                        "sea-stack and Laurion schist previews rejected",
+    "environment.coast": "in progress: boulder merge fixed (finest level of detail only, was every level: x4 triangles); "
+                         "Attic rocks among the boulders",
     "building.school": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature "
                        "(blue triglyphs, regulae and mutules; red taenia and raking sima; blue tympana), ashlar crepis; rises column "
                        "by column and stands as one mesh (PortMasonryTests)",
@@ -219,7 +221,7 @@ STATUS = {
     "prop.pithos": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
     "prop.anchor": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview "
                    "(an admiralty anchor) rejected",
-    "site.wood": "fir log stack refined in Meshy (prop_timber_fir_logs), pipeline import next",
+    "site.wood": "in progress: fir log stacks from the pipeline at the timber yards (AegeanArt), shrinking layer by layer with the stock",
     "materials.masonry": "done: ashlar and plaster baked in code (BuildingTextureBaker), Ashlar.mat and Stucco.mat in Resources",
 }
 for _entry in ENTRIES:

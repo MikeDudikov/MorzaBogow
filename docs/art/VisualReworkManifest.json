@@ -22,7 +22,7 @@
    "animation",
    "destruction"
   ],
-  "spentCredits": 120,
+  "spentCredits": 130,
   "tasksByAsset": {
    "ship_ram_retexture": [
     "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
@@ -58,7 +58,8 @@
    ],
    "prop_timber_fir_logs": [
     "01a1c66a-4a3d-7580-80af-351d11e1eab6",
-    "01a1c677-1169-77ee-b108-a5188260db4d"
+    "01a1c677-1169-77ee-b108-a5188260db4d",
+    "01a1c683-5f35-76d4-a843-f454493bd90b"
    ],
    "prop_pithos": [
     "01a1c66a-5e9e-7155-aca3-313aea7d2530"
@@ -1236,7 +1237,7 @@
     "fir and pine logs, hewn beams, planks, end grain (Theophrastus HP 5.7)"
    ],
    "covers": [],
-   "status": "fir log stack refined in Meshy (prop_timber_fir_logs), pipeline import next"
+   "status": "in progress: fir log stacks from the pipeline at the timber yards (AegeanArt), shrinking layer by layer with the stock"
   },
   {
    "assetId": "environment.coast",
@@ -1265,7 +1266,7 @@
     "boulder LOD merge fixed"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "in progress: boulder merge fixed (finest level of detail only, was every level: x4 triangles); Attic rocks among the boulders"
   },
   {
    "assetId": "rock.attica-set",
@@ -1290,7 +1291,7 @@
     "4-6 Meshy variants with LOD; strata, cracks, erosion"
    ],
    "covers": [],
-   "status": "variants: rock_attica_limestone_a ready; rock_pentelic_marble_a refined in Meshy, pipeline import next; sea-stack and Laurion schist previews rejected"
+   "status": "in the game: rock_attica_limestone_a and rock_pentelic_marble_a among the shore boulders (AegeanArt); sea-stack and Laurion schist previews rejected"
   },
   {
    "assetId": "veg.olive.cultivated",

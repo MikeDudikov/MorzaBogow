@@ -158,7 +158,7 @@
    "meshyTask": "01a1c676-fc73-7372-9ddf-7d2747172049",
    "via": "Meshy MCP",
    "credits": 10,
-   "result": "pending"
+   "result": "kept: Assets/MorzaBogow/Art/Generated/rock_pentelic_marble_a (job rock_pentelic_marble_a-20261110-172941-ebb6, LOD 1959/685/234)"
   },
   {
    "date": "2026-11-10",
@@ -167,7 +167,16 @@
    "meshyTask": "01a1c677-1169-77ee-b108-a5188260db4d",
    "via": "Meshy MCP",
    "credits": 10,
-   "result": "pending"
+   "result": "imported (job prop_timber_fir_logs-20261110-172942-2539, LOD 5880/2058/704) but the bark came out near black, not silver fir grey; retextured"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_timber_fir_logs",
+   "kind": "text-to-3d refine (PBR), second texture",
+   "meshyTask": "01a1c683-5f35-76d4-a843-f454493bd90b",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: mid-grey bark, pale cut ends, metallic map black (job prop_timber_fir_logs-20261110-173757-57a9); the timber yards' log stacks (AegeanArt)"
   }
  ]
 }

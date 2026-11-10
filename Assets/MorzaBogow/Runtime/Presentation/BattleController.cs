@@ -1486,28 +1486,30 @@ namespace MorzaBogow.Presentation
         readonly List<Mesh> generatedMeshes = new List<Mesh>();
         readonly Dictionary<(Material, bool), List<CombineInstance>> boulderBatch = new Dictionary<(Material, bool), List<CombineInstance>>();
 
+        /// <summary>
+        /// A boulder's finest level of detail only (AegeanArt.FinestMeshes): merging every level drew each rock as many
+        /// times over as it had levels, four for the Poly Haven boulders.
+        /// </summary>
         BoulderModel ModelOf(GameObject prefab)
         {
             if (boulderModels.TryGetValue(prefab, out var model)) return model;
-            var parts = new List<(Mesh, Material, Matrix4x4)>();
-            var bounds = new Bounds();
-            var first = true;
-            foreach (var filter in prefab.GetComponentsInChildren<MeshFilter>())
-            {
-                var renderer = filter.GetComponent<MeshRenderer>();
-                if (filter.sharedMesh == null || renderer == null) continue;
-                var local = prefab.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
-                parts.Add((filter.sharedMesh, renderer.sharedMaterial, local));
-                var meshBounds = filter.sharedMesh.bounds;
-                for (var corner = 0; corner < 8; corner++)
-                {
-                    var point = local.MultiplyPoint3x4(meshBounds.center + Vector3.Scale(meshBounds.extents, new Vector3((corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1)));
-                    if (first) { bounds = new Bounds(point, Vector3.zero); first = false; } else bounds.Encapsulate(point);
-                }
-            }
-            model = new BoulderModel { Parts = parts.ToArray(), Width = Mathf.Max(0.01f, Mathf.Max(bounds.size.x, bounds.size.z)) };
+            var bounds = AegeanArt.FinestBounds(prefab);
+            model = new BoulderModel { Parts = AegeanArt.FinestMeshes(prefab).ToArray(), Width = Mathf.Max(0.01f, Mathf.Max(bounds.size.x, bounds.size.z)) };
             boulderModels[prefab] = model;
             return model;
+        }
+
+        /// <summary>
+        /// The scene's boulders, and among them the pipeline's rocks of the region (AegeanArt) in their fixed order. A
+        /// scene without boulders of its own (a test's) stays without.
+        /// </summary>
+        GameObject[] Boulders()
+        {
+            var given = materials?.Boulders;
+            if (given == null || given.Length == 0) return given;
+            var art = AegeanArt.Current;
+            if (art == null || art.Rocks == null || art.Rocks.Length == 0) return given;
+            return given.Concat(art.Rocks.Where(rock => rock != null)).ToArray();
         }
 
         /// <summary>
@@ -1516,7 +1518,7 @@ namespace MorzaBogow.Presentation
         /// </summary>
         void ScatterBoulders(Transform parent, float[] outline, double seed, bool coast)
         {
-            var prefabs = materials?.Boulders;
+            var prefabs = Boulders();
             if (prefabs == null || prefabs.Length == 0 || Array.IndexOf(Environment.GetCommandLineArgs(), "-morzaNoBoulders") >= 0) return;
             var random = new System.Random((int)(seed * 1000.0) ^ 0x5BD1E995);
             float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);

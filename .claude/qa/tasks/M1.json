@@ -149,6 +149,8 @@
         "MorzaBogow.Tests.PortMasonryTests.Port_SchoolIsADoricPeristyleOnItsStylobate",
         "MorzaBogow.Tests.PortMasonryTests.Port_AshlarCoursesRunLevelOnEveryUprightFace",
         "MorzaBogow.Tests.PortMasonryTests.Port_StoreYardKeepsClearOfTheDoorsAndInsideTheWalls",
+        "MorzaBogow.Tests.AegeanArtTests.Art_ModelsWithLevelsOfDetailGiveTheirFinestLevelOnly",
+        "MorzaBogow.Tests.AegeanArtTests.Art_SetListsThePipelinesRocksAndLogsInPathOrder",
         "MorzaBogow.Tests.MarineTests.Wind_GustPeaksReachDownwindPointLater",
         "MorzaBogow.Tests.MarineTests.Wind_NeighboursFollowTheSpectrumCorrelation",
         "MorzaBogow.Tests.MarineTests.Wind_IslandWakeShelterAndTurbulence",
