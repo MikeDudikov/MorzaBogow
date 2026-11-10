@@ -75,6 +75,7 @@ namespace MorzaBogow.Simulation
             ApplyCommands();
             AssignBerths();
             StepProduction();
+            StepRegrowth();
             StepOrdersAndMovement();
             StepRams();
             StepWeapons();

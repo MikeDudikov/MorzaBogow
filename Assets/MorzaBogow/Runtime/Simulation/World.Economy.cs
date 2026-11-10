@@ -17,8 +17,31 @@ namespace MorzaBogow.Simulation
                         + Ships.Sum(ship => type == ResourceType.Wood ? ship.HoldWood : ship.HoldSilver)
                         + Wrecks.Sum(wreck => type == ResourceType.Wood ? wreck.Wood : wreck.Silver);
             return type == ResourceType.Wood
-                ? total + SpentWood + LostWood - ReturnedWood
-                : total + SpentSilver + LostSilver - ReturnedSilver;
+                ? total + SpentWood + LostWood - ReturnedWood - GrownWood
+                : total + SpentSilver + LostSilver - ReturnedSilver - GrownSilver;
+        }
+
+        /// <summary>What deposits have grown back since the start; the ledger counts it as new resources, not a leak.</summary>
+        public long GrownWood, GrownSilver;
+
+        /// <summary>
+        /// Renewing deposits: a point no hull has worked for Rules.RegrowDelaySeconds grows back toward its starting stock
+        /// at Rules.RegrowShare of what it yields at most (World.NodeCap), forests and mines alike. So a game is never ended
+        /// by empty deposits; working a point hard still exhausts it for a while.
+        /// </summary>
+        void StepRegrowth()
+        {
+            foreach (var node in Nodes)
+            {
+                if (node.Capacity <= 0 || node.Stock >= node.Capacity) continue;
+                if (Tick - node.LastWorkedTick < Rules.RegrowDelaySeconds * Rules.TickRate) continue;
+                node.RegrowRemainder += NodeCap(node) * Rules.RegrowShare * Rules.Dt * Rules.Centi;
+                var whole = Math.Min((long)node.RegrowRemainder, node.Capacity - node.Stock);
+                if (whole <= 0) continue;
+                node.RegrowRemainder -= whole;
+                node.Stock += whole;
+                if (node.Type == ResourceType.Wood) GrownWood += whole; else GrownSilver += whole;
+            }
         }
 
         // ---------- Production: complete templates, reserved in full, consumed with progress ----------
@@ -366,6 +389,7 @@ namespace MorzaBogow.Simulation
                     ship.WorkRemainder -= whole;
                     whole = Math.Min(whole, Math.Min(node.Stock, ship.Definition.Capacity * Rules.Centi - ship.Cargo));
                     if (whole <= 0) continue;
+                    node.LastWorkedTick = Tick;
                     node.Stock -= whole;
                     ship.Cargo += whole;
                 }

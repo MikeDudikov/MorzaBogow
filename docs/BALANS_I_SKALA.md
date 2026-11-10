@@ -7,12 +7,29 @@ Data: 2026-11-10. Gałąź: `balans-skala`. Status: etapy 1 (profile długości,
 Polecenie z 2026-11-09, potwierdzone 2026-11-10 słowami „słuchaj mojego polecenia, a nie dokumentu akurat w tej kwestii”:
 
 - pojedyncza rozgrywka trwa **30–90 min** zależnie od scenariusza;
-- w tym czasie da się zbudować **30–55 jednostek zbalansowanej floty bojowej**, zanim złoża D i S naturalnie się wyczerpią;
+- w tym czasie da się zbudować **30–55 jednostek zbalansowanej floty bojowej**, zanim złoża D i S naturalnie się wyczerpią (*zastąpione korektą z 2026-11-10: złoża się odnawiają i nie decydują o końcu gry*);
 - teren, drzewa i budowle w skali względem statków;
 - podział czasu gry: **~50% bitwy morskie, ~35% gospodarka i logistyka, ~15% osady i obrona**;
 - mechaniki docelowe: walka wręcz na pokładach przy abordażu, uzbrojenie per okręt (katapulty, balisty, ogień grecki), załoga z wioślarzy, łuczników, mieczników i włóczników, haki abordażowe i przejmowanie okrętów w całości; ochrona kupców, szlaki zaopatrzenia, polowanie na Ketosa po dużą premię D/S, koszt napraw i leczenia rannych, odzysk z wraków; rozbudowa głównego portu, szkoła mędrców (badania: pancerz, broń oblężnicza), fortece przybrzeżne, porty jako bazy, stocznie i szkolenie załóg; bohaterowie mitologiczni z unikalnymi zdolnościami.
 
 W tych kwestiach decyzja zastępuje dotychczasowe zapisy. Dotyczy to m.in.: E00/VIZ07 (potyczka 15–25 min), E08 (budżet 34 000 D / 12 400 S jako jedyny wzorzec), E07 (brak wypłaty za potwory, brak odnawialnego srebra), GAME_DESIGN 6.3 (brak fortec budowanych przez gracza), C04/E04 (tylko marynarze/żołnierze/specjaliści; ceny jako kompletne szablony bez zmian uzbrojenia) oraz szkoły morskiej jako jedynego miejsca badań. Pozostałe reguły E00–E12 (dwa skończone zasoby, lokalne magazyny, fizyczny ładunek, brak utrzymania floty i potrzeb mieszkańców) pozostają w mocy, dopóki użytkownik nie zdecyduje inaczej.
+
+## Korekta 2026-11-10: złoża nie decydują o końcu rozgrywki
+
+Użytkownik: „złoża miały nie decydować o końcu rozgrywki”. Od tej zmiany:
+
+- **Złoża się odnawiają** (`ResourceNode.Capacity`, `World.StepRegrowth`).
+  - Punkt nieeksploatowany przez 60 s odrasta do swojego stanu początkowego.
+  - Tempo to 15% największej wydajności punktu (`World.NodeCap`), na przykład dla srebra w profilu Standardowym 4 × 0,53 × 0,15 ≈ 0,32 S/s.
+  - Intensywnie eksploatowany punkt nadal się wyczerpuje, ale tylko na pewien czas.
+  - Przyrost księga D/S liczy jako nowe zasoby (`GrownWood`/`GrownSilver`).
+  - Zapis gry ma wersję 12.
+- **Koniec rozgrywki wyznaczają cele:** zniszczenie portu macierzystego albo utrata całej floty bez możliwości odbudowy. Wyczerpanie złóż nie kończy gry.
+- **Profile Krótka/Standardowa/Długa** ustalają teraz wielkość mapy, zasoby punktów, tempo wydobycia, mury i tempo AI. Zakładana długość 30/60/90 min wynika z tempa, nie z wyczerpania złóż.
+- **Cel „30–55 okrętów, zanim złoża się wyczerpią”** jest nieaktualny. Liczbę okrętów ogranicza tempo gospodarki, linie produkcji i limit floty (100).
+- **Pomiar bez walki z odnawianiem** (ziarno 9): do 130 min powstaje na stronę 59–71 okrętów (Krótka), 33–43 (Standardowa) i 58–67 (Długa). Srebro chwilowo spada (Krótka: poniżej 10% w 46. min), potem odrasta.
+- **Mecze AI kontra AI** kończą się zniszczeniem portu po 35–76 min.
+- **Etap 5** doda pozostałe odnawialne źródła: ławice ryb, wraki po sztormach i konwoje.
 
 ## Etap 1 — wdrożony
 

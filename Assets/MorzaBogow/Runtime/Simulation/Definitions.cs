@@ -413,6 +413,9 @@ namespace MorzaBogow.Simulation
         public const long SailorSilver = 50, SoldierSilver = 100, HealSilver = 25, RetrainSilver = 50;
         public const double RecruitSeconds = 1, RetrainSeconds = 2, HealPerSecond = 4;
 
+        /// <summary>Renewing deposits: a point left alone this long grows back at this share of its greatest yield.</summary>
+        public const double RegrowDelaySeconds = 60, RegrowShare = 0.15;
+
         /// <summary>An idle ship this close to its own shipyard port regroups there by itself.</summary>
         public const double MusterRange = 80;
 

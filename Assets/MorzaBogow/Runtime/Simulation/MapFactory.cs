@@ -236,7 +236,7 @@ namespace MorzaBogow.Simulation
 
         static int AddNode(World world, ResourceType type, double x, double y, long units, int knownMask)
         {
-            var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, KnownMask = knownMask };
+            var node = new ResourceNode { Id = world.NextId++, Type = type, X = x, Y = y, Stock = units * Rules.Centi, Capacity = units * Rules.Centi, KnownMask = knownMask };
             world.Nodes.Add(node);
             world.Islands.Add(SiteLand(x, y));
             return node.Id;

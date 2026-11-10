@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 11;
+        public const int Version = 12;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -94,6 +94,7 @@ namespace MorzaBogow.Simulation
                 writer.Write(world.SpentWood); writer.Write(world.SpentSilver);
                 writer.Write(world.LostWood); writer.Write(world.LostSilver);
                 writer.Write(world.ReturnedWood); writer.Write(world.ReturnedSilver);
+                writer.Write(world.GrownWood); writer.Write(world.GrownSilver);
                 writer.Write(world.Explored);
                 writer.Write((int)world.Length);
 
@@ -111,6 +112,7 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(node.Id); writer.Write((int)node.Type); writer.Write(node.X); writer.Write(node.Y);
                     writer.Write(node.Stock); writer.Write(node.KnownMask);
+                    writer.Write(node.Capacity); writer.Write(node.LastWorkedTick); writer.Write(node.RegrowRemainder);
                     WriteIds(writer, node.Workers);
                     WriteIds(writer, node.Waiting);
                 }
@@ -213,6 +215,7 @@ namespace MorzaBogow.Simulation
                 world.SpentWood = reader.ReadInt64(); world.SpentSilver = reader.ReadInt64();
                 world.LostWood = reader.ReadInt64(); world.LostSilver = reader.ReadInt64();
                 world.ReturnedWood = reader.ReadInt64(); world.ReturnedSilver = reader.ReadInt64();
+                world.GrownWood = reader.ReadInt64(); world.GrownSilver = reader.ReadInt64();
                 world.Explored = reader.ReadBytes(World.FogCells * World.FogCells);
                 if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
                 world.Length = (MatchLength)reader.ReadInt32();
@@ -239,6 +242,7 @@ namespace MorzaBogow.Simulation
                     {
                         Id = reader.ReadInt32(), Type = (ResourceType)reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
                         Stock = reader.ReadInt64(), KnownMask = reader.ReadInt32(),
+                        Capacity = reader.ReadInt64(), LastWorkedTick = reader.ReadInt32(), RegrowRemainder = reader.ReadDouble(),
                     };
                     ReadIds(reader, node.Workers);
                     ReadIds(reader, node.Waiting);

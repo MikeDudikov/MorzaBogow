@@ -40,6 +40,15 @@ namespace MorzaBogow.Simulation
         public double X, Y;
         public long Stock;
         public int KnownMask;
+
+        /// <summary>
+        /// Deposits renew (user decision of 2026-11-10: they do not decide the end of a game): left alone for a while, a
+        /// point grows back toward the stock it started with (Capacity; zero means it does not renew).
+        /// </summary>
+        public long Capacity;
+        public int LastWorkedTick = -100000;
+        public double RegrowRemainder;
+
         public readonly List<int> Workers = new List<int>();
         public readonly List<int> Waiting = new List<int>();
     }

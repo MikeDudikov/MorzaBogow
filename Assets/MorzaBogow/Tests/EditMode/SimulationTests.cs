@@ -1516,6 +1516,28 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Deposits_RenewWhenLeftAloneSoTheyNeverEndTheGame()
+        {
+            var world = MapFactory.CreateSkirmish(1);
+            // A contested central point no one works at the start.
+            var node = world.Nodes.First(item => item.Type == ResourceType.Silver && item.KnownMask == 0);
+            node.Stock = node.Capacity / 2;
+            node.LastWorkedTick = world.Tick;
+            var half = node.Stock;
+            var ledger = world.LedgerTotal(ResourceType.Silver);
+            Run(world, Rules.RegrowDelaySeconds - 5);
+            Assert.That(node.Stock, Is.EqualTo(half), "Nothing grows back while the point was worked recently.");
+            Run(world, 65);
+            Assert.That(node.Stock, Is.GreaterThan(half), "Left alone, it grows back.");
+            Assert.That(node.Stock - half, Is.EqualTo(world.NodeCap(node) * Rules.RegrowShare * 60 * Rules.Centi).Within(Rules.Centi), "At its regrowth rate.");
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(ledger), "The ledger counts the growth.");
+
+            node.Stock = node.Capacity - 1;
+            Run(world, 10);
+            Assert.That(node.Stock, Is.EqualTo(node.Capacity), "Never beyond its starting stock.");
+        }
+
+        [Test]
         public void Scale_YieldSlowsWorkAndTheNodeCapAlike()
         {
             var world = MapFactory.CreateSkirmish(1, MatchLength.Long);

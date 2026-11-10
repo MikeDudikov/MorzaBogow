@@ -13,6 +13,7 @@
         "MorzaBogow.Tests.SimulationTests.Match_StartMatchesTheDocumentedSetup",
         "MorzaBogow.Tests.SimulationTests.Scale_LongerScenariosSpreadWiderAndHoldMoreAndYieldSlower",
         "MorzaBogow.Tests.SimulationTests.Scale_YieldSlowsWorkAndTheNodeCapAlike",
+        "MorzaBogow.Tests.SimulationTests.Deposits_RenewWhenLeftAloneSoTheyNeverEndTheGame",
         "MorzaBogow.Tests.SimulationTests.Scale_HinterlandsJoinTheirIsletsAndLeaveEveryBerthOpen",
         "MorzaBogow.Tests.SimulationTests.Land_EveryIsletHasAnIrregularNaturalShoreThatKeepsItsQuays",
         "MorzaBogow.Tests.SimulationTests.Crew_EveryPlanFillsTheHullAndTheDefaultKeepsThePrice",
