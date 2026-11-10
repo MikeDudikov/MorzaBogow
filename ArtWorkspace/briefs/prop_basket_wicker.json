@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "prop_basket_wicker",
+  "name": "Kosz wiklinowy z rudą",
+  "category": "ship_equipment",
+  "description": "A woven wicker basket about 60 cm wide, half full of lumps of galena with white cerussite crusts: ore carried from the adit to the crushing mortars and the washery of a Laurion workshop (R-LAURION-WORKSHOPS).",
+  "dimensions": { "height": 0.45 },
+  "generation": { "provider": "source", "model": "../meshy/prop_basket_wicker/prop_basket_wicker.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/prop_basket_wicker/prop_basket_wicker_textures/base_color.png",
+    "normal": "../meshy/prop_basket_wicker/prop_basket_wicker_textures/normal.png",
+    "metallic": "../meshy/prop_basket_wicker/prop_basket_wicker_textures/metallic.png",
+    "roughness": "../meshy/prop_basket_wicker/prop_basket_wicker_textures/roughness.png" } },
+  "lods": 3
+}

@@ -259,6 +259,11 @@ namespace MorzaBogow.Presentation
             if (!Landscape.Vegetation.PlainOlives) grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
             else PlainOlives(model, materials);
             BuildWashery(model, materials);
+            // Baskets of ore by the heap and the mortars, on their way to the washery.
+            var basket = art != null ? art.Prop("prop_basket_") : null;
+            if (basket != null)
+                foreach (var (x, z, yaw) in new[] { (2.0f, 4.9f, 20f), (4.4f, 2.5f, 140f), (6.0f, 5.1f, 260f) })
+                    AegeanArt.Place(basket, model, new Vector3(x, Ground(x, z), z), 1.2f, yaw, "Ore basket");
             BuildChests(model, materials);
         }
 
@@ -406,6 +411,11 @@ namespace MorzaBogow.Presentation
             }
             jettyEnd = new Vector3(0f, 1.4f, end + 0.6f);
             landing = new Vector3(0f, Mathf.Max(1.4f, Ground(0f, Shore + 1f)), Shore + 1.5f);
+            // A coil of rope by the jetty's end, off the crews' way along its middle.
+            var art = AegeanArt.Current;
+            var coil = art != null ? art.Prop("prop_rope_") : null;
+            // The model stands on its edge: laid flat on the planks.
+            if (coil != null) AegeanArt.Place(coil, model, new Vector3(1.3f, 1.375f, end + 1.6f), 0.95f, Quaternion.Euler(0f, 35f, 0f) * Quaternion.Euler(90f, 0f, 0f), "Rope coil");
         }
 
         /// <summary>Shows a share of the pile matching the remaining stock. An empty point shows none.</summary>

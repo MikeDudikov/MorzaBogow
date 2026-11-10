@@ -369,7 +369,9 @@ Gra bierze gotowe prefaby potoku z jednego zasobu w Resources: `Assets/MorzaBogo
 - **Scalanie głazów:** `ModelOf` brał wszystkie poziomy LOD, więc każdy głaz z Poly Haven był rysowany czterokrotnie. Teraz bierze tylko najdokładniejszy poziom (`AegeanArt.FinestMeshes`).
 - **Składy drewna:** stosy jodłowych kłód z potoku (po trzy obok siebie i jeden na wierzchu w każdej z dwóch sągów) zamiast walców. Sągi maleją z zasobem warstwami, wierzchnie pierwsze. Bez zestawu zostają walce.
 - **Drzewa składów:** sosna alepska (`veg_pinus_halepensis_a`) i cyprys kolumnowy (`veg_cupressus_sempervirens`) z Meshy, tej samej wysokości co dawne bryły, przechylają się i padają przy ścince jak dotąd. Nie kołyszą się na wietrze (dawne też nie); kołysze się tylko gaj oliwny z generatora środowiska. Kępy przybrzeżne zostają przy `TreeModels`.
-- **Kopalnia srebra:** skały z zestawu przyciemnione do łupku zamiast sześcianów za sztolnią.
+- **Kopalnia srebra:** skały z zestawu przyciemnione do łupku zamiast sześcianów za sztolnią; kosze wiklinowe z rudą przy hałdzie i moździerzach.
+- **Rekwizyty** (`AegeanArt.Props`, szukane po początku nazwy, rozstawiane przez `AegeanArt.Place`): zwój liny na pomostach miejsc surowców i przy magazynie portu, kosze z rudą w Laurionie. Wszystkie `prop_*` z potoku oprócz stosów kłód.
+- **Seria 3 Meshy:** kosz, lina i trzeci głaz wapienny zostały. Odrzucone: sieć (wyszła klatka z patyków) i herma (popiersie na okrągłej kolumnie z cokołem, forma rzymska; herma to czworokątny filar).
 - **Testy:** `AegeanArtTests` (EditMode): zestaw zgodny z prefabami potoku, scalanie tylko LOD0.
 
 ## Ograniczenia

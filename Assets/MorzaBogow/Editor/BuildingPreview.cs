@@ -83,6 +83,20 @@ namespace MorzaBogow.Editor
             if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
         }
 
+        /// <summary>Lists every renderer of a silver site with its materials, to see what draws each part of it.</summary>
+        public static void ListSiteMaterials()
+        {
+            var materials = Materials();
+            var site = ResourceSiteVisual.Create(new ResourceNode { Id = 11, Type = ResourceType.Silver, Stock = 1000, Capacity = 1000 }, materials);
+            foreach (var renderer in site.GetComponentsInChildren<Renderer>(true))
+            {
+                var names = string.Join(", ", System.Array.ConvertAll(renderer.sharedMaterials, m => m == null ? "null" : m.name));
+                Debug.Log($"[Sites] {renderer.transform.parent?.name}/{renderer.name} ({renderer.GetType().Name}): {names}");
+            }
+            Object.DestroyImmediate(site.gameObject);
+            if (Application.isBatchMode) EditorApplication.Exit(0);
+        }
+
         /// <summary>The battle scene's materials for buildings: the palette of the previews and the shore's limestone, read only.</summary>
         static PlaceholderMaterials Materials()
         {

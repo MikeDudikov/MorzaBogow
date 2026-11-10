@@ -33,6 +33,9 @@ namespace MorzaBogow.Editor.AIAssets
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) { why = "brak urządzenia graficznego (-nographics)"; return false; }
             PreviewRenderUtility preview = null;
             Texture2D image = null;
+            // Shader variants still compiling in the background are drawn with a stand-in: a picture waits for them instead.
+            var asynchronous = ShaderUtil.allowAsyncCompilation;
+            ShaderUtil.allowAsyncCompilation = false;
             try
             {
                 preview = new PreviewRenderUtility();
@@ -80,6 +83,7 @@ namespace MorzaBogow.Editor.AIAssets
             {
                 if (image != null) Object.DestroyImmediate(image);
                 preview?.Cleanup();
+                ShaderUtil.allowAsyncCompilation = asynchronous;
             }
         }
 

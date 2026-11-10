@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: MorzaBogow.Presentation::MorzaBogow.Presentation.AegeanArt
   Rocks:
   - {fileID: 3924736295425047746, guid: a471afab4d53c6c4ca53612b370e1c60, type: 3}
+  - {fileID: 7443872634268321286, guid: 7ee2e5fbb266ea04cbddb1362570e56d, type: 3}
   - {fileID: 4443414618749441720, guid: a605745278134894b98deea14d7d0cf4, type: 3}
   TimberStacks:
   - {fileID: 3256698879134898687, guid: 3b9632a15f69ca047944398f815a2bdd, type: 3}
@@ -21,3 +22,7 @@ MonoBehaviour:
   - {fileID: 7495711061767569529, guid: cc062ceaca8eb004281a72aefdd4fb1a, type: 3}
   Cypresses:
   - {fileID: 6032480844290076145, guid: 8870f20177dc75849938374c9ea692fe, type: 3}
+  Props:
+  - {fileID: 5203376832149232500, guid: 046e0c5749bf6f3429f86f37c0421d69, type: 3}
+  - {fileID: 8747324817682984553, guid: accfc774dbeb00d49a963d3ac86707df, type: 3}
+  - {fileID: 5836354624061065553, guid: f39cffddb159daa478c01c399c7040a2, type: 3}

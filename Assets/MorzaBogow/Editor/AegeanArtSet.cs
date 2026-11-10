@@ -32,9 +32,10 @@ namespace MorzaBogow.Editor
             set.TimberStacks = Prefabs("prop_timber_");
             set.Pines = Prefabs("veg_pinus_");
             set.Cypresses = Prefabs("veg_cupressus_");
+            set.Props = Prefabs("prop_").Where(prefab => !prefab.name.StartsWith("prop_timber_", System.StringComparison.Ordinal)).ToArray();
             EditorUtility.SetDirty(set);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[AegeanArt] {set.Rocks.Length} rocks, {set.TimberStacks.Length} timber stacks, {set.Pines.Length} pines, {set.Cypresses.Length} cypresses in {AssetPath}");
+            Debug.Log($"[AegeanArt] {set.Rocks.Length} rocks, {set.TimberStacks.Length} timber stacks, {set.Pines.Length} pines, {set.Cypresses.Length} cypresses, {set.Props.Length} props in {AssetPath}");
             return set;
         }
 

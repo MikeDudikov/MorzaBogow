@@ -672,6 +672,11 @@ namespace MorzaBogow.Presentation
             }
             Discard(made.Mesh);
             Attach(item.Root.transform, "Store yard", b.Build(GreekMaterial.Terracotta, GreekMaterial.Pitch, GreekMaterial.Wood, GreekMaterial.Lead));
+            // A coil of rope in the street between the house and the amphorae: the pipeline's model (AegeanArt), if any.
+            var art = AegeanArt.Current;
+            var coil = art != null ? art.Prop("prop_rope_") : null;
+            if (coil != null)
+                AegeanArt.Place(coil, item.Root.transform, Local(front + 0.55f, 1.3f, Ground(front + 0.55f, 1.3f)), 0.9f, Quaternion.Euler(0f, 15f, 0f) * Quaternion.Euler(90f, 0f, 0f), "Rope coil");
         }
 
         /// <summary>The School's three steps (1 m in all), its columns' measures and axes: 0.35 m in from the stylobate's edge.</summary>

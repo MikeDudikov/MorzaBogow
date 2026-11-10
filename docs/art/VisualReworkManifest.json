@@ -22,7 +22,7 @@
    "animation",
    "destruction"
   ],
-  "spentCredits": 160,
+  "spentCredits": 215,
   "tasksByAsset": {
    "ship_ram_retexture": [
     "01a1c5ec-11ef-7391-a0f5-7b7f80f65c58",
@@ -74,6 +74,24 @@
    "veg_cupressus_sempervirens": [
     "01a1c693-f5ca-76f6-b907-88aa2b82290b",
     "01a1c696-a9d0-7476-8c2b-ea8637adc4eb"
+   ],
+   "prop_basket_wicker": [
+    "01a1c6a0-cc45-7699-b361-3e80a0c4a0aa",
+    "01a1c6a2-8647-7167-8922-388ba464d253"
+   ],
+   "prop_rope_coil": [
+    "01a1c6a0-e367-7077-9f56-c4bf47dd0758",
+    "01a1c6a2-9e2c-7010-b664-6ee5d520e5f4"
+   ],
+   "prop_fishing_net": [
+    "01a1c6a0-fa0a-7043-8d5e-b3c7a1f5f1eb"
+   ],
+   "prop_herm_marble": [
+    "01a1c6a1-10c4-7756-a319-4a2b7027ba17"
+   ],
+   "rock_attica_limestone_c": [
+    "01a1c6a1-2766-759c-863f-a1abbca5c954",
+    "01a1c6a2-b3a7-7032-94ad-7e1f36b8e477"
    ]
   }
  },
@@ -1299,7 +1317,7 @@
     "4-6 Meshy variants with LOD; strata, cracks, erosion"
    ],
    "covers": [],
-   "status": "in the game: rock_attica_limestone_a and rock_pentelic_marble_a among the shore boulders (AegeanArt); sea-stack and Laurion schist previews rejected"
+   "status": "in the game: rock_attica_limestone_a and _c and rock_pentelic_marble_a among the shore boulders, darkened to schist behind the Laurion adit (AegeanArt); sea-stack and Laurion schist previews rejected"
   },
   {
    "assetId": "veg.olive.cultivated",
@@ -2047,7 +2065,7 @@
     "shared materials; no unique large texture per object"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "in progress: wicker ore baskets at the Laurion washery and rope coils on the jetties and by the store (Meshy, AegeanArt); the net preview rejected (a cage of sticks)"
   },
   {
    "assetId": "prop.herm-stele",
@@ -2072,7 +2090,7 @@
     "shared materials; no unique large texture per object"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "Meshy herm rejected (a bust on a round column, Roman); still missing"
   },
   {
    "assetId": "textures.ship-look",

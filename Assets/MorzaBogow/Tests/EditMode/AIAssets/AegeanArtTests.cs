@@ -63,6 +63,10 @@ namespace MorzaBogow.Tests
             Assert.That(set.TimberStacks, Is.EqualTo(logs));
             Assert.That(set.Pines, Is.EqualTo(AegeanArtSet.Prefabs("veg_pinus_")), "the timber yards' pines");
             Assert.That(set.Cypresses, Is.EqualTo(AegeanArtSet.Prefabs("veg_cupressus_")), "the timber yards' cypresses");
+            Assert.That(set.Props, Is.EqualTo(AegeanArtSet.Prefabs("prop_").Where(p => !p.name.StartsWith("prop_timber_")).ToArray()), "the small props, logs apart");
+            Assert.That(set.Prop("prop_basket_"), Is.Not.Null, "a basket of ore for Laurion");
+            Assert.That(set.Prop("prop_rope_"), Is.Not.Null, "a coil of rope for the jetties");
+            Assert.That(set.Prop("prop_nothing_"), Is.Null);
             var paths = rocks.Select(AssetDatabase.GetAssetPath).ToList();
             Assert.That(paths, Is.Ordered.Using((System.Collections.Generic.IComparer<string>)System.StringComparer.Ordinal), "in path order, so the same land gets the same rocks");
             foreach (var prefab in rocks.Concat(logs))

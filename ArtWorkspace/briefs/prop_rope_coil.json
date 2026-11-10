@@ -1,0 +1,15 @@
+{
+  "schema": "morza-bogow/asset-brief@1",
+  "id": "prop_rope_coil",
+  "name": "Zwój liny okrętowej",
+  "category": "ship_equipment",
+  "description": "A coil of thick twisted ship's rope about 80 cm across, with tarred patches and a frayed end, lying on a jetty or by a store.",
+  "dimensions": { "height": 0.25 },
+  "generation": { "provider": "source", "model": "../meshy/prop_rope_coil/prop_rope_coil.glb", "forward": "+Z" },
+  "texturing": { "provider": "provided", "maps": {
+    "base_color": "../meshy/prop_rope_coil/prop_rope_coil_textures/base_color.png",
+    "normal": "../meshy/prop_rope_coil/prop_rope_coil_textures/normal.png",
+    "metallic": "../meshy/prop_rope_coil/prop_rope_coil_textures/metallic.png",
+    "roughness": "../meshy/prop_rope_coil/prop_rope_coil_textures/roughness.png" } },
+  "lods": 3
+}

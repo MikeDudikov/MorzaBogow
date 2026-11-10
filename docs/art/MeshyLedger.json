@@ -213,6 +213,78 @@
    "via": "Meshy MCP",
    "credits": 10,
    "result": "kept: Assets/MorzaBogow/Art/Generated/veg_cupressus_sempervirens; timber yards (AegeanArt)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_basket_wicker",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c6a0-cc45-7699-b361-3e80a0c4a0aa",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: woven basket with ore lumps; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_rope_coil",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c6a0-e367-7077-9f56-c4bf47dd0758",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: flat coil with a frayed end; refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_fishing_net",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c6a0-fa0a-7043-8d5e-b3c7a1f5f1eb",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a cage of sticks, not a heap of net"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_herm_marble",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c6a1-10c4-7756-a319-4a2b7027ba17",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "rejected: a bust on a round column with a plinth (Roman), a herm is a square pillar"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_attica_limestone_c",
+   "kind": "text-to-3d preview (smart-topology meshy-t2.5)",
+   "meshyTask": "01a1c6a1-2766-759c-863f-a1abbca5c954",
+   "via": "Meshy MCP",
+   "credits": 5,
+   "result": "kept: a weathered boulder (not flat-topped as asked); refined"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_basket_wicker",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c6a2-8647-7167-8922-388ba464d253",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/prop_basket_wicker (LOD 1470/513/193); ore baskets at the Laurion washery (AegeanArt)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "prop_rope_coil",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c6a2-9e2c-7010-b664-6ee5d520e5f4",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/prop_rope_coil (LOD 1469/513/379); on the site jetties and by the store (AegeanArt)"
+  },
+  {
+   "date": "2026-11-10",
+   "asset": "rock_attica_limestone_c",
+   "kind": "text-to-3d refine (PBR)",
+   "meshyTask": "01a1c6a2-b3a7-7032-94ad-7e1f36b8e477",
+   "via": "Meshy MCP",
+   "credits": 10,
+   "result": "kept: Assets/MorzaBogow/Art/Generated/rock_attica_limestone_c (LOD 1960/686/234); among the shore boulders (AegeanArt)"
   }
  ]
 }

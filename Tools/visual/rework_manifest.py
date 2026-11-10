@@ -207,8 +207,11 @@ STATUS = {
     "character.peltast": "in progress: pelte and caps (commit 9ed303b)",
     "prop.amphora": "first model ready: Meshy MCP -> Blender -> Unity (prop_amphora_rhodian)",
     "fx.boarding": "done: broadside haul, oars in, the front crosses and fights on the other deck, the dead lie where they fell, return over the rails (BoardingPresentationTests 3/3)",
-    "rock.attica-set": "in the game: rock_attica_limestone_a and rock_pentelic_marble_a among the shore boulders (AegeanArt); "
-                       "sea-stack and Laurion schist previews rejected",
+    "rock.attica-set": "in the game: rock_attica_limestone_a and _c and rock_pentelic_marble_a among the shore boulders, darkened "
+                       "to schist behind the Laurion adit (AegeanArt); sea-stack and Laurion schist previews rejected",
+    "prop.basket-net": "in progress: wicker ore baskets at the Laurion washery and rope coils on the jetties and by the store "
+                       "(Meshy, AegeanArt); the net preview rejected (a cage of sticks)",
+    "prop.herm-stele": "Meshy herm rejected (a bust on a round column, Roman); still missing",
     "environment.coast": "in progress: boulder merge fixed (finest level of detail only, was every level: x4 triangles); "
                          "Attic rocks among the boulders",
     "building.school": "trial done: hall in a 4x6 Doric peristyle (fluted shafts with entasis, echinus, abacus), painted entablature "
