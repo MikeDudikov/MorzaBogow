@@ -197,11 +197,50 @@ Pomiar A/B (`-morzaSmokeReport … 90`, z `-morzaNoCrew` i bez) **jest nierozstr
 - Różnicy GPU (+10 ms przy 24 postaciach) nie przypisuję załogom.
 - Wymagany dalej: pomiar ABBA na cichej maszynie i w scenie bitwy, przy 40 okrętach w kadrze.
 
+### Optymalizacja kosztu CPU w dużych bitwach (2026-11-10, commity 27a101f i następny)
+
+**Co się zmieniło:**
+- **Klucz siatki** zawiera tylko to, co zmienia siatkę (`CrewMeshes.Normalize`):
+  - lewa i prawa kończyna to jedna siatka;
+  - części jednobarwne nie zależą od nieużywanego koloru;
+  - części innych sesji (narzędzia na brzegu) zachowują oba kolory.
+- **LOD2** to człowiek z 8 części: biodra, tułów, głowa, ręce i nogi z jednego kawałka, tarcza. Dłonie bez IK. Od LOD1 jedna twarz i jedna fryzura.
+- **Ramka postaci** składana jest w zadaniu Burst (`CrewFrameJob`, `FigureInput.ModelSlot`), a cele dłoni podawane w świecie (bit 4 w `Hands`). Kod zarządzany nie mnoży już ani nie odwraca macierzy. Zmiana jest zgodna wstecz.
+- **Lista części** po zmianie załóg (w bitwie co klatkę) powstaje w dwóch przejściach bez wyszukiwania siatki dla każdej części. Kubełki są liczone raz na listę części człowieka.
+
+**Benchmark w edytorze** (`Crew_J -morzaBenchmark`, bez kamery, wszyscy ludzie rysowani, przed → po):
+
+| Flota | Części | Wywołania | CPU na klatkę |
+|---|---|---|---|
+| 100 okrętów, LOD1 | 54 171 (bez zmian) | 177 → 148 | 26,1 → 9,8 ms |
+| 100 okrętów, LOD2 | 53 344 → 29 568 | 175 → 74 | 22,9 → 8,5 ms |
+| 200 okrętów, LOD1 | 108 521 (bez zmian) | 289 → 253 | 73,1 → 25,1 ms |
+| 200 okrętów, LOD2 | 106 880 → 59 260 | 285 → 133 | 64,5 → 18,6 ms |
+
+Budowa postaci przy 100 okrętach: 8,3 → 1,6 ms. Czasy edytora wahają się do ok. 50% między przebiegami, a liczby części i wywołań są deterministyczne.
+
+**W grze** (build, scena `bitwa-40` ze zrzutów: 40 okrętów w walce przy kamerze domyślnej; w świecie 68 okrętów z wcześniejszych scen), średnie etapów w ms na klatkę:
+
+| Scena | Postacie | Wywołania | Decyzje | Budowa | Pozy | Lista | Macierze i rysowanie | Razem |
+|---|---|---|---|---|---|---|---|---|
+| bitwa, LOD1, przed szybką listą | 2141 | 102 | 2,20 | 2,24 | 0,86 | 3,88 | 3,45 | 12,6 |
+| bitwa, LOD1, po | 2142 | 102 | 1,76 | 1,74 | 0,75 | 1,79 | 3,10 | 9,1 |
+| bitwa z daleka, LOD2, przed szybką listą | 2399 | 55 | 3,08 | 3,11 | 1,21 | 8,85 | 2,75 | 19,0 |
+| bitwa z daleka, LOD2, po | 2388 | 54 | 2,33 | 2,33 | 1,02 | 3,23 | 2,28 | 11,2 |
+| flota z daleka (266 postaci), po | 266 | 57 | 0,37 | 0,22 | 0,17 | 0,00 | 0,43 | 1,2 |
+
+Pomiaru bitwy w grze sprzed pierwszej części optymalizacji nie ma. Unity było stale zajęte przez inne sesje, więc zrezygnowałem z osobnego buildu wyjściowego.
+
 **Budżet** (cel: do 1,0 ms CPU i 1,0 ms GPU przy 40 widocznych okrętach):
-- W zmierzonych scenach (do ok. 270 postaci w kadrze) CPU głównego wątku załóg wynosi 0,5–0,9 ms.
-- Pełna bitwa z 40 okrętami w kadrze (ok. 1500 postaci) przekroczy 1 ms. Z liniowego wzrostu w benchmarku wychodzi szacunkowo 2–4 ms. Głównym kosztem będzie wtedy budowa postaci i zlecenie rysowania.
-- Koszt GPU załóg jest niezmierzony.
-- Sprzęt docelowy (i7, RTX 5060) nie był dostępny.
+- Do ok. 300 postaci w kadrze (rejs, flota) CPU głównego wątku załóg wynosi ok. 1 ms.
+- Bitwa z ponad 2000 postaci w kadrze kosztuje 9–11 ms, czyli **nadal wielokrotnie ponad budżet**.
+
+Dalsze dźwignie:
+- `BatchRendererGroup` z danymi na instancję, zamiast osobnych wywołań i kopiowania macierzy;
+- budowa postaci w całości w Burst (dane ludzi jako tablice, nie obiekty);
+- rzadsze decyzje dla dalekich załóg.
+
+Koszt GPU załóg jest niezmierzony. Sprzęt docelowy (i7, RTX 5060) nie był dostępny.
 
 **Zrzuty załóg** (`-morzaCrewShowcase`, build 13:40) leżą w `artifacts-log/crew-shots/`, poza repozytorium:
 - `zaloga-01…07`: rejs każdej klasy z bliska;

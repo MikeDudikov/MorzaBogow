@@ -40,11 +40,14 @@ namespace MorzaBogow.Tests
             }
         }
 
-        static void AssertSame(float4x4[] a, float4x4[] b, string what)
+        /// <summary>The largest difference between two sets of bone matrices, column by column.</summary>
+        static float Difference(float4x4[] a, float4x4[] b)
         {
+            var most = 0f;
             for (var i = 0; i < a.Length; i++)
             for (var c = 0; c < 4; c++)
-                Assert.That(math.length(a[i][c] - b[i][c]), Is.LessThan(1e-4f), $"{what}: matrix {i}, column {c}");
+                most = math.max(most, math.length(a[i][c] - b[i][c]));
+            return most;
         }
 
         [Test]
@@ -58,7 +61,7 @@ namespace MorzaBogow.Tests
             composed.ModelSlot = 1;
             composed.Position = place;
             composed.Facing = facing;
-            AssertSame(Pose(given, model), Pose(composed, model), "the frame composed in the job");
+            Assert.That(Difference(Pose(given, model), Pose(composed, model)), Is.LessThan(1e-4f), "The frame composed in the job gives the same bones.");
         }
 
         [Test]
@@ -75,7 +78,7 @@ namespace MorzaBogow.Tests
             world.Hands = 3 | 4;
             world.HandLeft = math.transform(frame, left);
             world.HandRight = math.transform(frame, right);
-            AssertSame(Pose(station), Pose(world), "hands marked in the world");
+            Assert.That(Difference(Pose(station), Pose(world)), Is.LessThan(1e-4f), "Hands marked in the world give the same bones.");
         }
 
         [Test]

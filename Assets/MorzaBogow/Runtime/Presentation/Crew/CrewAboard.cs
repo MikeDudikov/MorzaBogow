@@ -737,7 +737,6 @@ namespace MorzaBogow.Presentation
         public void Emit(List<Figure> figures, int lod, float clock, int modelSlot)
         {
             DrawnFigures = 0;
-            var model = (float4x4)View.Model.localToWorldMatrix;
             foreach (var man in Men)
             {
                 var station = StationOf(man);
@@ -877,8 +876,8 @@ namespace MorzaBogow.Presentation
         public static List<(int Bone, Mesh Mesh, float4x4 Local)> Pieces(CrewLook look, CrewRole role, CrewTrade trade, int lod)
         {
             var list = new List<(int, Mesh, float4x4)>();
-            // From afar (3 to 15 pixels a man) shades that close up tell one man from another merge into a few, so the men
-            // share fewer meshes and draws; the sides' colours, helmets, shields and builds stay.
+            // From afar (3 to 15 pixels a man) shades, faces and cuts of hair that close up tell one man from another merge
+            // into a few, so the men share fewer meshes and draws; the sides' colours, helmets, shields and builds stay.
             if (lod > 0)
             {
                 look.Skin = Coarse(look.Skin);

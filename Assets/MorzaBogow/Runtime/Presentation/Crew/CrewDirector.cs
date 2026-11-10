@@ -426,14 +426,23 @@ namespace MorzaBogow.Presentation
             {
                 signature = sign;
                 figureOf.Clear();
+                // Two passes over the pieces: count each mesh's, then each straight into its slot. A man's pieces keep
+                // their buckets with them (BucketsOf), so no piece is looked up by its mesh.
                 renderer.BeginList();
+                for (var i = 0; i < figures.Count; i++)
+                {
+                    var buckets = BucketsOf(figures[i].Parts);
+                    for (var p = 0; p < buckets.Length; p++) renderer.Count(buckets[p]);
+                }
+                renderer.Layout();
                 for (var i = 0; i < figures.Count; i++)
                 {
                     var figure = figures[i];
                     figureOf[Key(figure.Ship, figure.Man)] = i;
-                    foreach (var part in figure.Parts) renderer.Add(i, part.Bone, part.Mesh, part.Local);
+                    var parts = figure.Parts;
+                    var buckets = BucketsOf(parts);
+                    for (var p = 0; p < buckets.Length; p++) renderer.Place(i, parts[p].Bone, buckets[p], parts[p].Local);
                 }
-                renderer.EndList();
             }
             var drawing = System.Diagnostics.Stopwatch.GetTimestamp();
             PoseMilliseconds = (drawing - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
@@ -461,6 +470,20 @@ namespace MorzaBogow.Presentation
         public double AverageDraws { get; private set; }
 
         static double Ms(long ticks) => ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+        // Each man's list of pieces (one per man and level of detail) with its meshes' buckets, worked out once.
+        readonly Dictionary<List<(int Bone, Mesh Mesh, float4x4 Local)>, int[]> bucketsOf = new Dictionary<List<(int Bone, Mesh Mesh, float4x4 Local)>, int[]>();
+
+        int[] BucketsOf(List<(int Bone, Mesh Mesh, float4x4 Local)> parts)
+        {
+            if (bucketsOf.TryGetValue(parts, out var buckets)) return buckets;
+            // Lists of men long gone are let go now and then; the buckets themselves stay as long as the renderer.
+            if (bucketsOf.Count > 20000) bucketsOf.Clear();
+            buckets = new int[parts.Count];
+            for (var p = 0; p < parts.Count; p++) buckets[p] = renderer.Bucket(parts[p].Mesh);
+            bucketsOf[parts] = buckets;
+            return buckets;
+        }
 
         public static long Key(int ship, int man) => (long)ship << 20 | (uint)man;
 

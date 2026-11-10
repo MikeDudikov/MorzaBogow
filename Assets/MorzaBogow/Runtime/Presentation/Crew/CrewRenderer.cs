@@ -94,6 +94,53 @@ namespace MorzaBogow.Presentation
             bucketCount[bucket]++;
         }
 
+        // The quick list, for a frame whose men changed (a battle, every frame): no lookup per piece and no copy between.
+        /// <summary>The bucket (one draw's mesh) of a mesh, made the first time it is asked for.</summary>
+        public int Bucket(Mesh mesh)
+        {
+            if (bucketOf.TryGetValue(mesh, out var bucket)) return bucket;
+            bucket = meshes.Count;
+            meshes.Add(mesh);
+            bucketOf[mesh] = bucket;
+            bucketCount.Add(0);
+            return bucket;
+        }
+
+        /// <summary>First pass: one more piece in this bucket (after BeginList).</summary>
+        public void Count(int bucket) => bucketCount[bucket]++;
+
+        /// <summary>Between the passes: where each bucket's pieces start, and room for all of them.</summary>
+        public void Layout()
+        {
+            if (bucketStart.Length < meshes.Count) bucketStart = new int[meshes.Count + 16];
+            if (cursor.Length < meshes.Count) cursor = new int[meshes.Count + 16];
+            var start = 0;
+            for (var b = 0; b < meshes.Count; b++)
+            {
+                bucketStart[b] = start;
+                cursor[b] = start;
+                start += bucketCount[b];
+            }
+            partCount = start;
+            if (!parts.IsCreated || parts.Length < partCount)
+            {
+                if (parts.IsCreated) parts.Dispose();
+                if (instances.IsCreated) instances.Dispose();
+                var capacity = Mathf.Max(256, Mathf.NextPowerOfTwo(partCount));
+                parts = new NativeArray<CrewPart>(capacity, Allocator.Persistent);
+                instances = new NativeArray<float4x4>(capacity, Allocator.Persistent);
+            }
+        }
+
+        /// <summary>Second pass: a piece straight into its slot (the same order and buckets as counted).</summary>
+        public void Place(int figure, int bone, int bucket, float4x4 local)
+        {
+            var slot = cursor[bucket]++;
+            parts[slot] = new CrewPart { Figure = figure, Bone = bone, Local = local, Slot = slot };
+        }
+
+        int[] cursor = System.Array.Empty<int>();
+
         /// <summary>Lays out the instance buffer: each mesh's pieces together, so one draw covers them.</summary>
         public void EndList()
         {
