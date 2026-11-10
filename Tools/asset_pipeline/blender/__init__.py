@@ -14,6 +14,14 @@ from ..providers.base import capability
 LOD_RATIOS = (1.0, 0.35, 0.12)
 
 
+def output_file(out: pathlib.Path, reported: str) -> pathlib.Path:
+    """A file Blender reports in its own path style (C:\\... from Windows Blender, /mnt/... or POSIX) as one in `out`.
+
+    PureWindowsPath splits on both separators; a POSIX Path would take a whole C:\\... string for the file's name.
+    """
+    return out / pathlib.PureWindowsPath(reported).name
+
+
 class Blender:
     name = "blender"
     paid = False
@@ -80,8 +88,8 @@ class Blender:
             raise Fatal(f"Blender zakończył się kodem {code}: {' | '.join(tail)[-600:]}")
         report = json.loads(report_path.read_text(encoding="utf-8"))
         return {
-            "lods": [project_relative(out / pathlib.Path(l["file"]).name, self.config.root) for l in report["lods"]],
-            "glb": project_relative(out / pathlib.Path(report["glb"]).name, self.config.root) if report.get("glb") else None,
+            "lods": [project_relative(output_file(out, l["file"]), self.config.root) for l in report["lods"]],
+            "glb": project_relative(output_file(out, report["glb"]), self.config.root) if report.get("glb") else None,
             "triangles": [l["triangles"] for l in report["lods"]],
             "bounds": report.get("bounds"),
             "forward": "+Z",

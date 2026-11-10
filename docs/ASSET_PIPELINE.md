@@ -26,7 +26,7 @@ Stan na 2026-11-10. Polecenie `ap capabilities` pokazuje bieżący stan konfigur
 | **Unity 6000.3.28f1** (batch, `AIAssetBatch`) | import, materiały HDRP, prefab, LOD, walidacja, podgląd | uruchomione: 19 testów EditMode i przebieg E2E | dostępne |
 | **Meshy API** | Text-, Image- i Multi-image-to-3D, retekstura, remesh, szkielet, animacje | dokumentacja docs.meshy.ai sprawdzona 2026-11-10; **bez próby na żywo** (brak klucza) | `needs_configuration`: `MESHY_API_KEY` |
 | **ComfyUI** | koncept, tekstury | trasy serwera z dokumentacji (`/prompt`, `/history`, `/queue`, `/view`); **bez próby na żywo** | `needs_configuration`: `COMFYUI_URL` i własny workflow |
-| **Blender** (headless) | geometria: osie, skala, punkt zaczepienia, czyszczenie, UV, decymacja, LOD, eksport FBX i GLB | wywołanie CLI z podręcznika 5.2; **skrypt `blender/prepare.py` nigdy nie był uruchomiony** (Blender niezainstalowany) | `needs_configuration`: `BLENDER_PATH` |
+| **Blender** (headless) | geometria: osie, skala, punkt zaczepienia, czyszczenie, UV, decymacja, LOD, eksport FBX i GLB | Blender 5.2.3 LTS portable (`C:\Users\noirp\Tools\blender-5.2.3-windows-x64`, SHA-256 zgodny z blender.org). Próba `prepare.py` 2026-11-10: model źródłowy w cm, dziobem w −X → 12,00 m, stępka −0,70 m, dziób +Z, LOD 1904/665/228. Import tej próby do Unity nieuruchomiony | dostępny po ustawieniu `BLENDER_PATH` |
 | **Substance 3D Painter** | tekstury | **nieweryfikowane** (brak dostępnej dokumentacji automatyzacji) | przekazanie ręczne |
 | **DeepMotion / SayMotion** | animacje | **nieweryfikowane** (dokumentacja API nieosiągalna) | przekazanie ręczne |
 | **Cascadeur** | szkielet, animacje | **nieweryfikowane** (skrypty działają tylko w aplikacji) | przekazanie ręczne |
@@ -255,7 +255,7 @@ Import Unity czeka (ponowienie co 120 s), gdy:
 
 ## Testy
 
-- **Python:** `cd Tools && python3 -m unittest discover -s asset_pipeline/tests -t .` (w WSL). 42 testy:
+- **Python:** `cd Tools && python3 -m unittest discover -s asset_pipeline/tests -t .` (w WSL). 44 testy:
   - brief;
   - kolejka i worker: etapy, czekanie, ponowienia, `Retry-After`, konfiguracja, dzierżawy, anulowanie, błąd wewnętrzny;
   - odzyskiwanie Meshy;
@@ -334,7 +334,8 @@ Prefaby: `Assets/MorzaBogow/Art/Generated/ship_<klasa>_blockout/`. Podglądy: `A
 - **Zajęty projekt:** gdy inna sesja trzyma Unity z projektem dłużej niż 4 próby co 120 s, zadanie kończy się `failed`. Wznowienie: `ap resume <zadanie>`. Błąd kompilacji w cudzym kodzie zatrzymuje eksport tak samo.
 
 - **Okręt z generatora to nie jest grafika docelowa.** To ta sama geometria, którą gra rysuje w bitwie (`GreekShips`), z płaską paletą bez tekstur PBR. Jest wejściem dla retekstury Meshy (`ArtWorkspace/briefs/ship_ram_retexture.json`, 10 kr.). Gra buduje okręty w locie z tego samego generatora, więc prefab nie musi być podpięty do `ShipVisual`.
-- **Meshy, ComfyUI i Blender** nie zostały uruchomione na żywo: brak klucza, serwera i programu. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
+- **Blender:** pierwsze uruchomienie znalazło błąd ścieżek. Blender z Windows zwraca `C:\...`, a Python w WSL doklejał je do katalogu zadania. Poprawione w `blender/__init__.py`; test `test_blender.py`.
+- **Meshy i ComfyUI** nie zostały uruchomione na żywo: brak klucza i serwera. Kod odpowiada ich dokumentacji z 2026-11-10. Pierwsze prawdziwe uruchomienie może wymagać poprawek. Pola wyników szkieletu i animacji Meshy są odczytywane ogólnie: wszystkie linki do FBX i GLB w odpowiedzi.
 - **Kierunek dziobu** modelu z Meshy jest nieznany, gdy brief ma `forward: auto`. Unity bierze dłuższą oś poziomą z dodatnim zwrotem, a raport ostrzega o konieczności sprawdzenia podglądu.
 - **Bez Blendera** model z Meshy idzie jako jeden poziom LOD z mesh LOD importera Unity. Naprawa przekroczonej geometrii wymaga Blendera.
 - **Substance, DeepMotion i Cascadeur** działają tylko przez przekazanie ręczne.
