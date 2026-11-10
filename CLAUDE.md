@@ -69,7 +69,8 @@ Decyzje wdrożeniowe oceniaj według GAME_VISION.md. Pierwszeństwo mają grywal
   - ilości w 0,01 jednostki (`Rules.Centi`);
   - losowość z ziarna;
   - bilans księgi D/S.
-- **Prezentacja.** `Runtime/Presentation` tylko czyta symulację. Rozgrywka nie używa fizyki Unity (Rigidbody, kolizje). Fale, pływanie, pogoda i efekty są wyłącznie wizualne.
+- **Prezentacja.** `Runtime/Presentation` tylko czyta symulację. Rozgrywka nie używa fizyki Unity (Rigidbody, kolizje).
+- **Wiatr i morze** (decyzja użytkownika z 2026-11-10, `docs/MORZE_I_WIATR.md`). Wiatr i energia fal są stanem symulacji (`World.Marine`): deterministyczne, na zegarze świata, w zapisie. Wpływ na prędkość, dryf i kurs okrętów działa tylko za przełącznikiem `WindAffectsMovement`, w meczach domyślnie wyłączonym. Kołysanie kadłubów, piana, pogoda HDRP i efekty są wyłącznie wizualne.
 - **Testy i zapis.** Nowa reguła gry wymaga testu EditMode. Zmiana formatu zapisu podnosi `SaveGame.Version`.
 - **Struktura.** Własna struktura folderów (`Runtime/Simulation`, `Runtime/Presentation`, `Runtime/Settings`, `Editor`, `Tests/EditMode`, `Tests/PlayMode`) z asmdef i przestrzeniami nazw `MorzaBogow.*`.
 - **Wejście:** według decyzji z 2026-11-10 przechodzimy na Input System. Przypisania klawiszy w `KeyBindings` (KeyCode zapisany w PlayerPrefs) zostają. Do zakończenia przejścia działa stary Input Manager.

@@ -158,6 +158,12 @@ namespace MorzaBogow.Simulation
             {
                 aimX = target.X + Math.Cos(target.Heading) * target.Speed * flight;
                 aimY = target.Y + Math.Sin(target.Heading) * target.Speed * flight;
+                if (WindMoves)
+                {
+                    VelocityOf(target, out var leadX, out var leadY);
+                    aimX = target.X + leadX * flight;
+                    aimY = target.Y + leadY * flight;
+                }
             }
             else
             {

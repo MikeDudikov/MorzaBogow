@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 16;
+        public const int Version = 17;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -148,6 +148,7 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(ship.Id); writer.Write(ship.Owner); writer.Write((int)ship.Class);
                     writer.Write(ship.X); writer.Write(ship.Y); writer.Write(ship.Heading); writer.Write(ship.Speed); writer.Write(ship.Hull);
+                    writer.Write(ship.WindSpeedFactor); writer.Write(ship.DriftX); writer.Write(ship.DriftY);
                     writer.Write(ship.Sailors); writer.Write(ship.Swordsmen); writer.Write(ship.Archers); writer.Write(ship.Wounded); writer.Write(ship.CrewDamage); writer.Write(ship.Morale);
                     writer.Write(ship.Reload); writer.Write(ship.LastDamagedTick);
                     writer.Write(ship.PaidConstructionWood); writer.Write(ship.PaidConstructionSilver);
@@ -213,6 +214,10 @@ namespace MorzaBogow.Simulation
                     writer.Write((int)shot.Weapon); writer.Write(shot.FromX); writer.Write(shot.FromY); writer.Write(shot.ToX); writer.Write(shot.ToY);
                     writer.Write(shot.LaunchTick); writer.Write(shot.ArriveTick);
                 }
+
+                // Wind and sea (docs/MORZE_I_WIATR.md): what evolves; grids and the surface are rebuilt from the map.
+                writer.Write(world.Marine != null);
+                world.Marine?.Write(writer);
 
                 writer.Flush();
                 return stream.ToArray();
@@ -311,6 +316,7 @@ namespace MorzaBogow.Simulation
                     {
                         Id = reader.ReadInt32(), Owner = reader.ReadInt32(), Class = (ShipClass)reader.ReadInt32(),
                         X = reader.ReadDouble(), Y = reader.ReadDouble(), Heading = reader.ReadDouble(), Speed = reader.ReadDouble(), Hull = reader.ReadDouble(),
+                        WindSpeedFactor = reader.ReadDouble(), DriftX = reader.ReadDouble(), DriftY = reader.ReadDouble(),
                         Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Archers = reader.ReadInt32(), Wounded = reader.ReadInt32(), CrewDamage = reader.ReadDouble(), Morale = reader.ReadDouble(),
                         Reload = reader.ReadDouble(), LastDamagedTick = reader.ReadInt32(),
                         PaidConstructionWood = reader.ReadInt64(), PaidConstructionSilver = reader.ReadInt64(),
@@ -402,6 +408,7 @@ namespace MorzaBogow.Simulation
                         LaunchTick = reader.ReadInt32(), ArriveTick = reader.ReadInt32(),
                     });
                 }
+                if (reader.ReadBoolean()) world.Marine = MarineState.Read(reader, world);
                 return world;
             }
         }

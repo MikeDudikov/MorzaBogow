@@ -157,6 +157,12 @@ namespace MorzaBogow.Simulation
         public int Id, Owner;
         public ShipClass Class;
         public double X, Y, Heading, Speed, Hull;
+
+        /// <summary>
+        /// When the wind moves ships (World.Marine): the factor sail, wind and waves give the speed (C09: within ±25%)
+        /// and the leeway and surface drift over the ground, m/s. 1 and 0 otherwise.
+        /// </summary>
+        public double WindSpeedFactor = 1, DriftX, DriftY;
         /// <summary>
         /// The crew by trade (docs/ZALOGA_I_ABORDAZ.md): sailors steer, row and gather; swordsmen fight hand to hand when
         /// boarding or repelling boarders; archers shoot at the crews of nearby ships and defend their own deck. The

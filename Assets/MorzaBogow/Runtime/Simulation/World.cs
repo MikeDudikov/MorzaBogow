@@ -76,6 +76,7 @@ namespace MorzaBogow.Simulation
             AssignBerths();
             StepProduction();
             StepRegrowth();
+            StepMarine();
             StepOrdersAndMovement();
             StepRams();
             StepWeapons();
@@ -326,6 +327,7 @@ namespace MorzaBogow.Simulation
             var distance = Distance(ship.X, ship.Y, x, y);
             var arrivalFactor = Math.Min(1.0, Math.Max(0.15, (distance - tolerance) / 25.0));
             var target = wantedSpeed * Math.Min(turningFactor, arrivalFactor) * CrewSpeedFactor(ship);
+            if (WindMoves) target *= ship.WindSpeedFactor;
             var acceleration = ship.Definition.Speed / 4 * Rules.Dt;
             ship.Speed = ship.Speed < target ? Math.Min(target, ship.Speed + acceleration) : Math.Max(target, ship.Speed - acceleration);
         }
@@ -353,7 +355,9 @@ namespace MorzaBogow.Simulation
                 var along = rx * dx + ry * dy;
                 var otherDefinition = other.Definition;
                 if (along <= 0 || along - otherDefinition.Radius > look || along >= closest) continue;
-                if (other.Speed * Math.Cos(other.Heading - desired) >= Math.Max(0, ship.Speed) * 0.9 && other.Speed > 0.5) continue;
+                var otherAlong = other.Speed * Math.Cos(other.Heading - desired);
+                if (WindMoves) { VelocityOf(other, out var ovx, out var ovy); otherAlong = ovx * dx + ovy * dy; }
+                if (otherAlong >= Math.Max(0, ship.Speed) * 0.9 && other.Speed > 0.5) continue;
 
                 var across = -rx * dy + ry * dx;
                 var otherHalf = Math.Max(0, otherDefinition.Radius - otherDefinition.Beam / 2);
@@ -388,6 +392,7 @@ namespace MorzaBogow.Simulation
         {
             ship.X += Math.Cos(ship.Heading) * ship.Speed * Rules.Dt;
             ship.Y += Math.Sin(ship.Heading) * ship.Speed * Rules.Dt;
+            Drift(ship);
             ResolveLand(ship);
         }
 
@@ -430,6 +435,12 @@ namespace MorzaBogow.Simulation
             lead = Math.Min(lead, 8);
             var aimX = target.X + Math.Cos(target.Heading) * target.Speed * lead;
             var aimY = target.Y + Math.Sin(target.Heading) * target.Speed * lead;
+            if (WindMoves)
+            {
+                VelocityOf(target, out var leadX, out var leadY);
+                aimX = target.X + leadX * lead;
+                aimY = target.Y + leadY * lead;
+            }
             Steer(ship, aimX, aimY, ship.Definition.Speed, -100);
         }
 
@@ -451,6 +462,12 @@ namespace MorzaBogow.Simulation
                 var bowError = Math.Abs(NormalizeAngle(toTarget - ship.Heading));
                 var closing = ship.Speed * Math.Cos(bowError)
                               - target.Speed * Math.Cos(NormalizeAngle(target.Heading - toTarget));
+                if (WindMoves)
+                {
+                    VelocityOf(ship, out var ownX, out var ownY);
+                    VelocityOf(target, out var otherX, out var otherY);
+                    closing = (ownX - otherX) * Math.Cos(toTarget) + (ownY - otherY) * Math.Sin(toTarget);
+                }
                 var called = ship.RamState == RamPhase.Telegraph && ship.TelegraphTicks <= 0;
 
                 ship.RamState = RamPhase.Recoil;
