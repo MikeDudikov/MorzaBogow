@@ -386,7 +386,7 @@ namespace MorzaBogow.Simulation
         public const int BoardFrontBase = 4;
 
         /// <summary>Hand-to-hand worth of each trade, attacking and defending its own deck.</summary>
-        public const double SwordAttack = 1.2, SwordDefence = 1.1, JavelinAttack = 0.9, JavelinDefence = 1.0, ArcherAttack = 0.4, ArcherDefence = 0.9, SailorAttack = 0.25, SailorDefence = 0.35;
+        public const double SwordAttack = 1.2, SwordDefence = 1.1, JavelinAttack = 0.9, JavelinDefence = 1.0, ArcherAttack = 0.4, ArcherDefence = 0.9;
 
         /// <summary>Archers behind the front shoot onto the enemy deck; a defender shoots from its own, a little better.</summary>
         public const double ArcherSupportAttack = 0.3, ArcherSupportDefence = 0.4;

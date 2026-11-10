@@ -513,7 +513,7 @@ namespace MorzaBogow.Presentation
                         else if (World.FindShip(item.OtherId)?.Owner == PlayerFaction && item.Amount == 1) Announce("Szermierze przecięli liny – abordaż odparty.", HeraldLevel.Important, at);
                         break;
                     case "boarding_repelled":
-                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce("Abordaż odparty – nasi wojownicy polegli lub są ranni.", HeraldLevel.Important, at);
+                        if (World.FindShip(item.SubjectId)?.Owner == PlayerFaction) Announce("Abordaż odparty – cała załoga bojowa została na wrogim pokładzie. Okręt jest bezbronny, dopóki port nie przeszkoli nowej.", HeraldLevel.Important, at);
                         else if (World.FindShip(item.OtherId)?.Owner == PlayerFaction) Announce("Odparliśmy abordaż.", HeraldLevel.Important, at);
                         break;
                     case "ship_surrendered":

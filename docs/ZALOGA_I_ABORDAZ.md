@@ -11,7 +11,7 @@ Data: 2026-11-10. Gałąź: `balans-skala`. Decyzje użytkownika:
 
 | Klasa | Rola |
 |---|---|
-| Żeglarze | Sterują, wiosłują i zbierają surowce. Prędkość zależy wyłącznie od nich: mniej niż ¼ załogi spowalnia okręt proporcjonalnie, a 40% (skład Żegluga) daje +8% prędkości. Wręcz walczą tylko wtedy, gdy na pokładzie nie zostało wojsko. |
+| Żeglarze | Sterują, wiosłują i zbierają surowce. Prędkość zależy wyłącznie od nich: mniej niż ¼ załogi spowalnia okręt proporcjonalnie, a 40% (skład Żegluga) daje +8% prędkości. Nie walczą na pokładzie (od uzgodnienia paczki 2026-11-10). |
 | Szermierze | Walka wręcz: niosą abordaż, odpierają go i przecinają liny abordażowe wroga. |
 | Łucznicy | Ostrzał załóg okrętów w zasięgu 15–100 m, gdzie strzela każdy łucznik; w abordażu wsparcie z dystansu i obrona własnego pokładu. |
 | Ranni | Dwóch na pięciu poległych. Nie walczą i nie wiosłują, zostają na pokładzie do przegrupowania w porcie. |
@@ -51,7 +51,7 @@ Każdy domyślny skład ma tylu żeglarzy i wojowników, ilu zakłada cena E04, 
 
 1. **Haki (3 s).** Liny zrywa odpłynięcie celu albo różnica prędkości, jak dawniej. Szermierze obrońcy tną liny w tempie 0,008 na sekundę za każdego szermierza ponad połowę szermierzy atakującego. Abordażowiec przecina tak haki taranu w około 2,7 s. Między równymi okrętami liny trzymają.
 2. **Walka na burtach, runda co 1 s:**
-   - Front: walczy 4 + ⌊szerokość węższego pokładu w m⌋ ludzi na stronę. Najpierw stają szermierze, potem łucznicy, a żeglarze dopiero, gdy wojska zabraknie.
+   - Front: walczy 4 + ⌊szerokość węższego pokładu w m⌋ ludzi na stronę. Najpierw stają szermierze, potem oszczepnicy, potem łucznicy. Żeglarze nie walczą na pokładzie (uzgodnienie paczki, 2026-11-10): okręt bez wojowników nie stawia oporu.
    - Siła: atak lub obrona ludzi we froncie (tabela poniżej), plus wsparcie łuczników spoza frontu (0,3 w ataku, 0,4 w obronie), razy (0,5 + morale/100).
    - Straty: każda strona traci w ludziach 0,15 × siła przeciwnika. Ułamki przechodzą na następną rundę. Padają ludzie z frontu, najpierw z liczniejszej grupy.
    - Morale: spada o 120 × poległe/pełna załoga.
@@ -59,11 +59,16 @@ Każdy domyślny skład ma tylu żeglarzy i wojowników, ilu zakłada cena E04, 
    | Klasa | Atak | Obrona |
    |---|---|---|
    | Szermierz | 1,2 | 1,1 |
+   | Oszczepnik | 0,9 | 1,0 |
    | Łucznik | 0,4 | 0,9 |
-   | Żeglarz | 0,25 | 0,35 |
 
-3. **Kapitulacja.** Załoga bez wojska albo z morale poniżej 20 przez 3 s kontroli poddaje okręt (`ship_surrendered`, `ship_captured`).
-4. **Przejęcie w całości.**
+3. **Kapitulacja.** Załoga z morale poniżej 20 przez 3 s kontroli poddaje okręt (`ship_surrendered`, `ship_captured`). Okręt bez wojowników nie walczy wcale: po 3 s kontroli zostaje przejęty bez strat atakującego. Dotyczy to też kutrów i handlowców bez wojowników.
+4. **Porażka atakującego** (decyzja użytkownika z uzgodnienia paczki, [UZGODNIENIE_SPECYFIKACJI.md](UZGODNIENIE_SPECYFIKACJI.md)).
+   - Gdy atakującemu skończą się wojownicy na wrogim pokładzie (`boarding_repelled`), traci całą załogę bojową: poległych i rannych z tego abordażu (`BoardingLink.AttackerWoundedAtStart`).
+   - Ranni sprzed ataku zostają. Żeglarze wracają z okrętem do portu.
+   - Do przeszkolenia nowych wojowników w porcie okręt nie może abordażować (minimum 10 wojowników) i nie obroni własnego pokładu.
+   - Przecięcie lin przed walką nie jest taką porażką: nikt nie przeszedł na wrogi pokład.
+5. **Przejęcie w całości.**
    - Kadłub, ładunek, zapłacony koszt i wyposażenie zostają.
    - Żeglarze wiosłują dla nowego właściciela, ranni wroga przepadają.
    - Na pokład przechodzi załoga pryzowa: min(wojownicy atakującego, ¼ załogi okrętu), najpierw szermierze. Gdy zdobyczy brakuje żeglarzy, część pryzowych siada do wioseł.
@@ -113,6 +118,8 @@ Port pobiera opłatę na początku każdego kroku z lokalnego magazynu. Bez sreb
 Wersja 10 zapisu zawiera:
 - klasy ludzi, rannych, plan, ułamek rannych i licznik przegrupowania;
 - postęp cięcia lin i ułamki strat obu stron abordażu.
+
+Wersja 14 dopisuje rannych atakującego z chwili zarzucenia haków (`BoardingLink.AttackerWoundedAtStart`).
 
 Zapis i wczytanie w trakcie walki daje identyczny dalszy przebieg (test).
 

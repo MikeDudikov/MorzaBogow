@@ -8,7 +8,7 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 13;
+        public const int Version = 14;
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -184,6 +184,7 @@ namespace MorzaBogow.Simulation
                     writer.Write(link.AttackerId); writer.Write(link.TargetId); writer.Write(link.HookTicks);
                     writer.Write(link.CycleTicks); writer.Write(link.ControlTicks); writer.Write(link.Hooked);
                     writer.Write(link.CutProgress); writer.Write(link.AttackerLossRemainder); writer.Write(link.TargetLossRemainder);
+                    writer.Write(link.AttackerWoundedAtStart);
                 }
 
                 writer.Write(world.Sites.Count);
@@ -360,6 +361,7 @@ namespace MorzaBogow.Simulation
                         AttackerId = reader.ReadInt32(), TargetId = reader.ReadInt32(), HookTicks = reader.ReadInt32(),
                         CycleTicks = reader.ReadInt32(), ControlTicks = reader.ReadInt32(), Hooked = reader.ReadBoolean(),
                         CutProgress = reader.ReadDouble(), AttackerLossRemainder = reader.ReadDouble(), TargetLossRemainder = reader.ReadDouble(),
+                        AttackerWoundedAtStart = reader.ReadInt32(),
                     });
                 }
 

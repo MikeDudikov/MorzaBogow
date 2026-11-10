@@ -269,6 +269,12 @@ namespace MorzaBogow.Simulation
         /// <summary>Casualties owed to each side between rounds, so the fight loses no men to rounding.</summary>
         public double AttackerLossRemainder, TargetLossRemainder;
 
+        /// <summary>
+        /// The attacker's wounded when the hooks went over. A boarding lost on the enemy deck leaves the wounded of this
+        /// attack there too (docs/UZGODNIENIE_SPECYFIKACJI.md); those already aboard before it stay.
+        /// </summary>
+        public int AttackerWoundedAtStart;
+
         /// <summary>Strength each side brought to the last round, for the interface. Not saved; derived next round.</summary>
         public double AttackerStrength, TargetStrength;
         public int AttackerFront, TargetFront;

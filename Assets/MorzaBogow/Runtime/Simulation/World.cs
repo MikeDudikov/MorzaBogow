@@ -564,7 +564,7 @@ namespace MorzaBogow.Simulation
                 : Math.Max(target.Speed, ship.Speed - ship.Definition.Speed / 4 * Rules.Dt);
             if (relative > Rules.BoardRelativeSpeed) return;
             if (Boardings.Any(item => item.TargetId == target.Id)) return;
-            Boardings.Add(new BoardingLink { AttackerId = ship.Id, TargetId = target.Id, HookTicks = (int)(Rules.BoardHookSeconds * Rules.TickRate) });
+            Boardings.Add(new BoardingLink { AttackerId = ship.Id, TargetId = target.Id, HookTicks = (int)(Rules.BoardHookSeconds * Rules.TickRate), AttackerWoundedAtStart = ship.Wounded });
             Emit("hooks_thrown", ship.Id, target.Id, target.X, target.Y, 0);
         }
 
@@ -606,13 +606,19 @@ namespace MorzaBogow.Simulation
 
                 if (attacker.Soldiers <= 0)
                 {
+                    // A boarding lost on the enemy deck costs the whole fighting crew (docs/UZGODNIENIE_SPECYFIKACJI.md):
+                    // the wounded of this attack are left there too. The sailors stay at the oars to bring the hull home,
+                    // where a port must train new fighters before it can board or hold its own deck again.
+                    var lost = Math.Max(0, attacker.Wounded - link.AttackerWoundedAtStart);
+                    attacker.Wounded -= lost;
                     Boardings.Remove(link);
                     attacker.Order = OrderKind.Idle;
-                    Emit("boarding_repelled", attacker.Id, target.Id, target.X, target.Y, 0);
+                    Emit("boarding_repelled", attacker.Id, target.Id, target.X, target.Y, lost);
                     continue;
                 }
 
-                // No fighters left, or a broken crew, strikes its colours after the attacker holds the deck a while.
+                // No fighters left, or a broken crew, strikes its colours after the attacker holds the deck a while; a deck
+                // without fighters puts up no fight at all (DeckStrength), so it is taken without loss.
                 var yielding = target.Soldiers <= 0 || target.Morale < Rules.SurrenderMorale;
                 if (!yielding) { link.ControlTicks = 0; continue; }
                 if (++link.ControlTicks < Rules.BoardControlSeconds * Rules.TickRate) continue;
@@ -628,21 +634,22 @@ namespace MorzaBogow.Simulation
             Rules.BoardFrontBase + (int)Math.Floor(Math.Min(attacker.Definition.Beam, target.Definition.Beam));
 
         /// <summary>
-        /// What a crew brings to one round on deck: the men in the front (swordsmen first, then javelin men, then archers,
-        /// and sailors only when no fighters are left aboard); the javelin men and archers behind the front throwing and
-        /// shooting onto the other deck; all scaled by morale. A defender fights on its own deck: its missiles count for more.
+        /// What a crew brings to one round on deck: the men in the front (swordsmen first, then javelin men, then archers);
+        /// the javelin men and archers behind the front throwing and shooting onto the other deck; all scaled by morale. A
+        /// defender fights on its own deck: its missiles count for more. Sailors never stand at the rail, so a ship with no
+        /// fighters aboard cannot resist a boarding (docs/UZGODNIENIE_SPECYFIKACJI.md). The sailors' place in the tuple
+        /// stays for the front order, always empty.
         /// </summary>
         public static (double strength, int swordsmen, int javelins, int archers, int sailors) DeckStrength(Ship ship, int front, bool attacking)
         {
             var swordsmen = Math.Min(ship.Swordsmen, front);
             var javelins = Math.Min(ship.Javelins, front - swordsmen);
             var archers = Math.Min(ship.Archers, front - swordsmen - javelins);
-            var sailors = ship.Soldiers == 0 ? Math.Min(ship.Sailors, front) : 0;
             var melee = attacking
-                ? swordsmen * Rules.SwordAttack + javelins * Rules.JavelinAttack + archers * Rules.ArcherAttack + sailors * Rules.SailorAttack
-                : swordsmen * Rules.SwordDefence + javelins * Rules.JavelinDefence + archers * Rules.ArcherDefence + sailors * Rules.SailorDefence;
+                ? swordsmen * Rules.SwordAttack + javelins * Rules.JavelinAttack + archers * Rules.ArcherAttack
+                : swordsmen * Rules.SwordDefence + javelins * Rules.JavelinDefence + archers * Rules.ArcherDefence;
             var support = (ship.Archers - archers + ship.Javelins - javelins) * (attacking ? Rules.ArcherSupportAttack : Rules.ArcherSupportDefence);
-            return ((melee + support) * (0.5 + ship.Morale / 100.0), swordsmen, javelins, archers, sailors);
+            return ((melee + support) * (0.5 + ship.Morale / 100.0), swordsmen, javelins, archers, 0);
         }
 
         /// <summary>

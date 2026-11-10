@@ -1132,6 +1132,61 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Board_ALostFightCostsTheWholeFightingCrewButNotTheSailors()
+        {
+            // A few swordsmen against a deck of archers and javelin men (no swordsmen to cut the lines): the hooks hold
+            // and the attack is beaten on the enemy deck.
+            var (world, attacker, target) = Grappled(ShipClass.Ram, ShipClass.CrewDestroyer);
+            attacker.Swordsmen = 12; attacker.Javelins = 0; attacker.Archers = 0;
+            attacker.Wounded = 2;
+            target.Swordsmen = 0; target.Javelins = 10; target.Archers = 40;
+            var sailors = attacker.Sailors;
+            var repelled = false;
+            var lost = 0;
+            for (var i = 0; i < 60 * Rules.TickRate && !repelled; i++)
+            {
+                world.Step();
+                var item = world.Events.FirstOrDefault(e => e.Type == "boarding_repelled");
+                if (item == null) continue;
+                repelled = true;
+                lost = (int)item.Amount;
+            }
+            Assert.That(repelled, Is.True, "The attack is beaten on the enemy deck.");
+            Assert.That(attacker.Soldiers, Is.Zero, "No fighter comes back.");
+            Assert.That(lost, Is.GreaterThan(0), "The wounded of this attack are left on the enemy deck.");
+            Assert.That(attacker.Wounded, Is.EqualTo(2), "Those wounded before the attack stay aboard.");
+            Assert.That(attacker.Sailors, Is.EqualTo(sailors), "The sailors stay at the oars to bring the hull home.");
+            Assert.That(target.Owner, Is.EqualTo(1));
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { attacker.Id }, TargetId = target.Id });
+            world.Step();
+            Assert.That(attacker.Order, Is.Not.EqualTo(OrderKind.Board), "Without fighters it cannot board again until a port trains a crew.");
+        }
+
+        [Test]
+        public void Board_AShipWithoutFightersCannotResist()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.Merchant);
+            // Swordsmen only, so no javelin or arrow flies on the way in: what is measured is the deck alone.
+            attacker.Javelins = 0;
+            attacker.Archers = 0;
+            Assert.That(target.Soldiers, Is.Zero, "A merchant carries sailors only.");
+            var sailors = target.Sailors;
+            int? aboard = null;
+            var ticks = 0;
+            for (; ticks < 30 * Rules.TickRate && target.Owner == 1; ticks++)
+            {
+                world.Step();
+                if (target.Owner != 1) break;
+                if (world.Boardings.Any(link => link.Hooked)) aboard ??= attacker.Soldiers + attacker.Wounded;
+                if (aboard.HasValue) Assert.That(attacker.Soldiers + attacker.Wounded, Is.EqualTo(aboard.Value), "Sailors do not fight at the rail: the attacker loses no one.");
+                Assert.That(target.Sailors, Is.EqualTo(sailors), "Nor does anyone fall on the defenceless deck.");
+            }
+            Assert.That(target.Owner, Is.EqualTo(0), "Taken once the deck is held.");
+            Assert.That(ticks, Is.LessThanOrEqualTo((int)((Rules.BoardHookSeconds + Rules.BoardControlSeconds + 2) * Rules.TickRate)), "Hooks, then the deck held, and nothing more.");
+            Assert.That(target.Sailors, Is.GreaterThanOrEqualTo(Math.Min(sailors, target.Definition.BaseSailors)), "Its sailors row on for the new owner.");
+        }
+
+        [Test]
         public void Board_SaveDuringTheFightContinuesIdentically()
         {
             var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.CrewDestroyer);

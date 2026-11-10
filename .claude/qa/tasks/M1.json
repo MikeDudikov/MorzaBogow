@@ -44,6 +44,8 @@
         "MorzaBogow.Tests.SimulationTests.Board_ABrokenCrewSurrendersAndTheShipIsTakenWhole",
         "MorzaBogow.Tests.SimulationTests.Board_DefendingSwordsmenCutTheLinesOfAWeakerBoarder",
         "MorzaBogow.Tests.SimulationTests.Board_SaveDuringTheFightContinuesIdentically",
+        "MorzaBogow.Tests.SimulationTests.Board_ALostFightCostsTheWholeFightingCrewButNotTheSailors",
+        "MorzaBogow.Tests.SimulationTests.Board_AShipWithoutFightersCannotResist",
         "MorzaBogow.Tests.SimulationTests.Port_AnIdleShipRegroupsByItselfForTheQuotedSilver",
         "MorzaBogow.Tests.SimulationTests.Port_WithoutSilverTheMusterWaitsAndChargesNothing",
         "MorzaBogow.Tests.SimulationTests.Port_ANewPlanChangesTheCrewOnlyAtPort",

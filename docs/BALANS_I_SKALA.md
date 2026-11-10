@@ -121,21 +121,28 @@ Mecze AI kontra AI z walką kończą się wcześniej: Krótka 11–31 min, Stand
 
 Decyzje użytkownika z 2026-11-10:
 
-- ludzie tylko jako obsada okrętów: żeglarze, szermierze, łucznicy (plus bohaterowie);
+- ludzie tylko jako obsada okrętów: żeglarze, szermierze, oszczepnicy, łucznicy (plus bohaterowie);
 - surowce w pełni odnawialne (ławice ryb, wraki po sztormach, neutralne konwoje), a ryby, bursztyn i szczątki zamieniane na D/S;
 - przejęcie okrętu razem z uzbrojeniem.
+
+Decyzje z uzgodnienia paczki specyfikacji (2026-11-10, [UZGODNIENIE_SPECYFIKACJI.md](UZGODNIENIE_SPECYFIKACJI.md)):
+
+- **Nowe obszary w mapie drogowej**, z własnymi nazwami i liczbami: magia i świątynie, skarby i artefakty, druga cywilizacja i barbarzyńcy, potwory i czarownicy.
+- **Naprawa** tylko w doku i tylko za srebro.
+- **Nieudany abordaż** kosztuje atakującego całą załogę bojową, a okręt bez wojowników jest bezbronny.
 
 Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z etapu 1 przestają być jedynym ograniczeniem.
 
 | Etap | Zakres | Stan |
 |---|---|---|
-| 2 | Trzy klasy załogi, składy wybierane w porcie, walka na burtach, ranni, przejęcie w całości, automatyczne przegrupowanie w porcie ([ZALOGA_I_ABORDAZ.md](ZALOGA_I_ABORDAZ.md)) | wdrożony |
-| 3 | Warsztat i modułowe uzbrojenie (skorpion, gastrafetes, katapulta kamienna; po badaniu balista, onager i katapulta z pociskami ołowianymi, z minimalnym zasięgiem; ogień grecki i wapno palone tylko na okrętach specjalnych), montaż na okrętach i w fortach, szablony floty, broń widoczna w 3D, karty porównawcze ze stożkami ostrzału | plan |
-| 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy | plan |
-| 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa; zagrożenia: wiry, rafy, harpie, meduzy | plan |
-| 6 | Osady: szkoła mędrców, warsztat, rozbudowa portu, forty przybrzeżne | plan |
-| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), programowanie zachowania okrętów, szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową | plan |
-| 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty i weteranami | plan |
+| 2 | Cztery klasy załogi (z oszczepnikami od 3a), składy wybierane w porcie, walka na burtach, ranni, przejęcie w całości, automatyczne przegrupowanie w porcie ([ZALOGA_I_ABORDAZ.md](ZALOGA_I_ABORDAZ.md)); porażka abordażu i bezbronność bez wojowników według uzgodnienia paczki | wdrożony |
+| 3 | **3a:** stanowiska broni z obsługą, pociski z lotem i rozrzutem, moduły, pancerz, taran z zapowiedzią. **3b:** Warsztat (arsenał), Miasto, Szkoła Mędrców, badanie broni ciężkiej, wymiana broni w porcie, szablony floty. **3c:** niszczyciel okrętów i bombowiec, broń widoczna w 3D, pociski i stożki ostrzału, budynki na wyspie portu, budowa bez domyślnego uzbrojenia | 3a, 3b wdrożone; 3c plan |
+| 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy; unikalne okręty drugiej cywilizacji i warianty barbarzyńskie (własne nazwy) | plan |
+| 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan |
+| 6 | Osady: forty przybrzeżne z limitem siły na osadę, Kuźnia (pancerze i tarany: zwykłe, srebrne, złote), badania pancerza, taranu i prędkości, transport sprzętu handlowcem, sprzedaż obiektów, rozbudowa portu (dok wdrożony przy uzgodnieniu paczki) | plan |
+| 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami i odbudową; druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
+| 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty, weteranów i artefaktów (fabuła i misje własne) | plan |
+| 9 | Świątynie morza i wojny, zaklęcia za D/S z zasięgiem od świątyni (wiry, rafy, wiatr, ogień, osłony; własny dobór i liczby) | plan |
 
 ## Granice weryfikacji
 
