@@ -189,6 +189,10 @@ Zmierzone na modelu:
     - Błąd względem kroku co tick (harness, silna etezja, 4 m/s, 4 klasy, 4 kursy): 7–15% RMS ruchu, czyli dla kutra około 6 cm nurzania i 0,4° przechyłu. Przy 7 px/m to poniżej piksela.
     - Testy: `Seakeeping_ThreeTickStepsStayCloseToEveryTickSteps` (próg 20%) i `SeakeepingDriverTests` (każdy kadłub raz na 3 ticki, nigdy wszystkie w jednym ticku, bez skoków obrazu, ułożenie po powrocie).
   - **Koszt.** Przed zmianami: około 17 µs na okręt na tick w .NET, 16–20 µs na Mono poza grą i około 90 µs w grze pod obciążeniem GPU. W grze wolniej działa też sama symulacja, więc różnica to środowisko, nie kołysanie. Dokładne przyspieszenia dają na Mono 15–40% mniej (pomiar zaszumiony), a krok co 3 ticki dzieli koszt dalekiego widoku przez 3.
+  - **Pomiar w buildzie** (2026-11-10, 14:10, Ultra, test dymny 60 s, ten sam mecz co wcześniej; `artifacts-log/marine-ab4-Ultra-sea.json`). Kołysanie kosztuje 0,33 ms na tick przy 7 okrętach, wcześniej 0,62 ms (`marine-ab3`), czyli o 47% mniej. Średnio krokuje 58% śledzonych kadłubów (`seakeepingStepShare` 0,582): daleki widok mieszał się ze zbliżeniami do zrzutów.
+    - W tym samym czasie inna sesja testowała w Unity: klatka 82,5 ms wobec 74 ms, GPU 41,5 ms wobec 33,1 ms. Liczby są więc zaszumione, a koszt na kadłub z krokiem (około 80 µs) mieści się w tym szumie.
+    - Wyniki zalewania bez zmian albo lepsze: woda średnio 0,05 m nad linią wodną, ponad pokład w 0,67% z 16 012 próbek, korelacja fal 0,835.
+  - **Budżet.** Przy 50 okrętach w domyślnym, dalekim widoku z tych liczb wychodzi około 1,3 ms na tick, czyli około 0,7 ms na klatkę przy 60 kl./s i prędkości 1×. To wciąż około ⅓ ponad budżet 0,5 ms, ale wcześniej było około 2,2 ms. Dalsze zejście wymagałoby liczenia kadłubów poza głównym wątkiem (osobne bufory próbkowania na wątek) albo dłuższego kroku przy największym oddaleniu. Ani jedno, ani drugie nie jest zrobione.
 
 **Zgłoszenie użytkownika (2026-11-10): „na łodzie wdziera się woda, a czasami w 90% są pod wodą”.**
 
