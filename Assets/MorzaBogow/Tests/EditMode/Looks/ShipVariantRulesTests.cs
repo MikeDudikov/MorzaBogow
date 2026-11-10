@@ -194,13 +194,18 @@ namespace MorzaBogow.Tests
                             var pins = view.Model.GetComponentsInChildren<Transform>().Where(t => t.name == "Oar").Select(t => t.position).ToArray();
                             Assert.That(box.max.z < pins.Min(p => p.z) - 0.3f || box.min.z > pins.Max(p => p.z) + 0.3f, Is.True, $"{what}: the rowers");
                             Assert.That(Mathf.Max(-box.min.x, box.max.x), Is.LessThan(pins.Min(p => Mathf.Abs(p.x))), $"{what}: inboard of the oars");
-                            // The mast and the steering oars.
+                            // The mast; the helm as the view holds it (steering oars on their pivots, the tillers' ends in the
+                            // helmsman's hands, where he stands); every rower's seat on both sides.
                             Assert.That(DistanceXZ(box, view.Model.TransformPoint(view.Parts.MastFoot)), Is.GreaterThan(0.3f), $"{what}: the mast");
+                            foreach (var oar in view.Model.GetComponentsInChildren<Transform>().Where(t => t.name == "Steering oar"))
+                                Assert.That(DistanceXZ(box, oar.position), Is.GreaterThan(0.5f), $"{what}: the steering oars");
+                            for (var i = 0; i < 2; i++)
+                                Assert.That(DistanceXZ(box, view.TillerGrip(i)), Is.GreaterThan(0.4f), $"{what}: the tiller in the helmsman's hand");
+                            foreach (var stand in view.Parts.HelmStands)
+                                Assert.That(DistanceXZ(box, view.Model.TransformPoint(stand)), Is.GreaterThan(0.4f), $"{what}: the helmsman");
+                            foreach (var seat in view.Parts.RowerSeats)
                             foreach (var side in new[] { -1f, 1f })
-                            {
-                                var pin = new Vector3(side * (GreekShips.HalfWidth(form, 0.15f) + 0.15f), 0f, GreekShips.Z(form, 0.15f));
-                                Assert.That(DistanceXZ(box, pin), Is.GreaterThan(0.5f), $"{what}: the steering oars");
-                            }
+                                Assert.That(DistanceXZ(box, view.Model.TransformPoint(new Vector3(side * seat.x, seat.y, seat.z))), Is.GreaterThan(0.4f), $"{what}: a rower");
                             // On board and low.
                             var s = Mathf.InverseLerp(GreekShips.Z(form, 0f), GreekShips.Z(form, 1f), box.center.z);
                             Assert.That(Mathf.Max(-box.min.x, box.max.x), Is.LessThan(GreekShips.HalfWidth(form, s)), $"{what}: on board");

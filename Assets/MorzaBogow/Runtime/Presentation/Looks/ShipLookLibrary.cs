@@ -282,24 +282,38 @@ namespace MorzaBogow.Presentation
 
         public static Place PlaceOf(ShipClass shipClass, string id) => PlacesOf(shipClass).FirstOrDefault(p => p.Id == id);
 
-        /// <summary>The part of the hull (s, 0 stern to 1 bow) where the rowers sit, from the first to the last thole pin.</summary>
+        /// <summary>The part of the hull (s, 0 stern to 1 bow) where the rowers work: every thole pin and every rower's seat.</summary>
         public static (float first, float last) OarSpan(GreekShipParts parts)
         {
             var f = parts.Form;
             float first = 1f, last = 0f;
-            foreach (var pin in parts.OarPins)
+            void Take(Vector3 point)
             {
-                var s = Mathf.InverseLerp(GreekShips.Z(f, 0f), GreekShips.Z(f, 1f), pin.z);
+                var s = Mathf.InverseLerp(GreekShips.Z(f, 0f), GreekShips.Z(f, 1f), point.z);
                 first = Mathf.Min(first, s);
                 last = Mathf.Max(last, s);
             }
+            foreach (var pin in parts.OarPins) Take(pin);
+            if (parts.RowerSeats != null) foreach (var seat in parts.RowerSeats) Take(seat);
             return (first, last);
+        }
+
+        static float DistanceXZ(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+        /// <summary>Distance on the deck from a point to the line between two others: the tiller between its oar and the hand.</summary>
+        static float DistanceToSegmentXZ(Vector3 from, Vector3 to, Vector3 point)
+        {
+            var a = new Vector2(from.x, from.z);
+            var ab = new Vector2(to.x, to.z) - a;
+            var t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector2.Dot(new Vector2(point.x, point.z) - a, ab) / ab.sqrMagnitude) : 0f;
+            return (a + ab * t - new Vector2(point.x, point.z)).magnitude;
         }
 
         /// <summary>
         /// Why a piece of gear may not stand at a place, or null if it may: it must stay on the deck or its platform, off the
-        /// stem and stern posts, out of the rowers' benches, the gangway and the band along the rail where crews board, fight
-        /// and work, clear of the mast, the steering oars and every weapon post with room for its crew, and low.
+        /// stem and stern posts, out of the rowers' benches and seats, the gangway and the band along the rail where crews
+        /// board, fight and work, clear of the mast, the helmsman, his tillers and steering oars, and every weapon post with
+        /// room for its crew, and low.
         /// </summary>
         public static string Blocked(ShipClass shipClass, GearItem item, Place place, float margin = 0f)
         {
@@ -330,11 +344,20 @@ namespace MorzaBogow.Presentation
             var mast = new Vector2(parts.MastFoot.x, parts.MastFoot.z);
             // The mast's own radius (as the rig builds it) and room to work its halyards.
             if (Vector2.Distance(mast, new Vector2(p.x, p.z)) < radius + 0.012f * f.Length + 0.08f + 0.4f) return "the mast";
-            foreach (var side in new[] { -1f, 1f })
-            {
-                var pin = new Vector2(side * (GreekShips.HalfWidth(f, 0.15f) + 0.15f), GreekShips.Z(f, 0.15f));
-                if (Vector2.Distance(pin, new Vector2(p.x, p.z)) < radius + 0.7f) return "the steering oars";
-            }
+            // The helm: where each helmsman stands or sits, the steering oars at their pivots on the quarters, the ends of
+            // the tillers in his hands and the tillers between, which swing as he steers.
+            if (parts.HelmStands != null)
+                foreach (var stand in parts.HelmStands)
+                    if (DistanceXZ(stand, p) < radius + 0.6f) return "the helmsman";
+            if (parts.SteeringPivots != null)
+                for (var i = 0; i < parts.SteeringPivots.Length; i++)
+                {
+                    var pivot = parts.SteeringPivots[i];
+                    if (DistanceXZ(pivot, p) < radius + 0.7f) return "the steering oars";
+                    if (parts.TillerGrips == null || i >= parts.TillerGrips.Length) continue;
+                    var grip = parts.TillerGrips[i];
+                    if (DistanceXZ(grip, p) < radius + 0.6f || DistanceToSegmentXZ(pivot, grip, p) < radius + 0.3f) return "the helmsman's tillers";
+                }
             var slots = ShipCatalog.Get(shipClass).Slots;
             for (var i = 0; i < slots.Length && i < parts.Mounts.Length; i++)
             {
