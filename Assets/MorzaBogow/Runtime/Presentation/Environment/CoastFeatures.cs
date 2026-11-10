@@ -32,6 +32,9 @@ namespace MorzaBogow.Presentation.Landscape
 
             /// <summary>Pebble beaches along the gentle shores (Shingle): where they lie, the wet rock band gives way.</summary>
             public Shingle.Result Shingle;
+
+            /// <summary>Rock samphire and sea lavender on the cliff faces and rocky shores (CliffPlants).</summary>
+            public CliffPlants.Result Plants;
             public int Slabs;
         }
 
@@ -45,6 +48,7 @@ namespace MorzaBogow.Presentation.Landscape
             var shingle = pebbles != null ? pebbles : Landscape.Shingle.Pebbles != null ? Landscape.Shingle.Pebbles : beachrock != null ? beachrock : rock;
             Attach(islet, "Shingle", result.Shingle.Dry, shingle);
             Attach(islet, "Shingle (wet)", result.Shingle.Wet, LandscapeArt.Wet(shingle));
+            CliffPlants.Attach(islet, result.Plants);
             return result;
         }
 
@@ -62,7 +66,7 @@ namespace MorzaBogow.Presentation.Landscape
         public static Result Make(float[] outline, float[] lift, uint seed)
         {
             var shingle = Landscape.Shingle.Make(outline, lift, seed);
-            var result = new Result { Notch = Notch(outline, lift, seed), Wet = Wet(outline, lift, shingle), Shingle = shingle };
+            var result = new Result { Notch = Notch(outline, lift, seed), Wet = Wet(outline, lift, shingle), Shingle = shingle, Plants = CliffPlants.Make(outline, lift, seed) };
             result.Beachrock = Beachrock(outline, lift, seed, out result.Slabs);
             return result;
         }

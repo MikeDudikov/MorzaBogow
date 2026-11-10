@@ -79,7 +79,7 @@ namespace MorzaBogow.Presentation.Landscape
             }
         }
 
-        sealed class Canvas
+        internal sealed class Canvas
         {
             public readonly int Size;
             public readonly float[] R, G, B, A, Nx, Ny, Smooth, Occlusion;
@@ -241,7 +241,7 @@ namespace MorzaBogow.Presentation.Landscape
             }
         }
 
-        static Vector2[] Curve(Vector2 a, Vector2 b, Vector2 c, int segments)
+        internal static Vector2[] Curve(Vector2 a, Vector2 b, Vector2 c, int segments)
         {
             var points = new Vector2[segments + 1];
             for (var i = 0; i <= segments; i++)
@@ -259,7 +259,7 @@ namespace MorzaBogow.Presentation.Landscape
             return total;
         }
 
-        static (Vector2 point, Vector2 direction) At(Vector2[] path, float along)
+        internal static (Vector2 point, Vector2 direction) At(Vector2[] path, float along)
         {
             for (var i = 1; i < path.Length; i++)
             {
@@ -274,7 +274,7 @@ namespace MorzaBogow.Presentation.Landscape
             return (path[path.Length - 1], Vector2.up);
         }
 
-        static Vector2 Rotate(Vector2 v, float angle)
+        internal static Vector2 Rotate(Vector2 v, float angle)
         {
             var c = Mathf.Cos(angle);
             var s = Mathf.Sin(angle);
@@ -374,7 +374,7 @@ namespace MorzaBogow.Presentation.Landscape
         }
 
         /// <summary>Spreads the leaves' colour into the empty texels around them, so the smaller mips do not fringe dark.</summary>
-        static void Dilate(Canvas canvas)
+        internal static void Dilate(Canvas canvas)
         {
             var size = canvas.Size;
             var n = size * size;
@@ -453,7 +453,7 @@ namespace MorzaBogow.Presentation.Landscape
             }
         }
 
-        static void Blit(Canvas canvas, Result result, int x0, int y0)
+        internal static void Blit(Canvas canvas, Result result, int x0, int y0)
         {
             var size = canvas.Size;
             for (var y = 0; y < size; y++)

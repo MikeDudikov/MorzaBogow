@@ -108,6 +108,67 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Coast_CliffPlantsGrowOnTheFacesAboveTheNotchAndOnRockyShoresOnly()
+        {
+            var (outline, lift) = Islet();
+            var plants = CoastFeatures.Make(outline, lift, 7).Plants;
+            Assert.That(plants.Clumps.Count, Is.GreaterThan(10), "The cliffs carry their plants...");
+            Assert.That(plants.Clumps.Count, Is.LessThanOrEqualTo(CliffPlants.MostClumps));
+            Assert.That(plants.Clumps.Any(c => c.Kind == CliffPlants.Kind.Samphire) && plants.Clumps.Any(c => c.Kind == CliffPlants.Kind.SeaLavender), Is.True, "...samphire and sea lavender both.");
+            foreach (var clump in plants.Clumps)
+            {
+                Assert.That(CliffPlants.Band(lift[clump.Sample], out var bottom, out var top, out var cliff), Is.True, "Never on a gentle shore or a beach.");
+                Assert.That(clump.OnCliff, Is.EqualTo(cliff));
+                Assert.That(clump.Position.y, Is.InRange(bottom - 1e-3f, top + 1e-3f), "In the spray zone: over the notch on a cliff, over the wet rock elsewhere.");
+                Assert.That(bottom, Is.GreaterThan(cliff ? CoastFeatures.NotchTop : CoastFeatures.WetTop));
+                // Rooted in the rock: as far from the islet's centre as the face itself at that height.
+                var next = (clump.Sample + 1) % outline.Length;
+                var a = CoastFeatures.SurfaceRadius(outline, lift, clump.Sample, clump.Position.y);
+                var b = CoastFeatures.SurfaceRadius(outline, lift, next, clump.Position.y);
+                var radius = new Vector2(clump.Position.x, clump.Position.z).magnitude;
+                Assert.That(radius, Is.InRange(Mathf.Min(a, b) - 0.05f, Mathf.Max(a, b) + 0.05f), "On the face, not floating off it.");
+                var (least, most) = clump.Kind == CliffPlants.Kind.Samphire ? (CliffPlants.SamphireMin, CliffPlants.SamphireMax) : (CliffPlants.LavenderMin, CliffPlants.LavenderMax);
+                Assert.That(clump.Size, Is.InRange(least, most));
+            }
+            Assert.That(plants.Mesh.vertexCount, Is.EqualTo(plants.Clumps.Count * 12), "Three crossed cards each.");
+
+            Assert.That(CoastFeatures.Make(outline, lift, 7).Plants.Clumps.Select(c => c.Position), Is.EqualTo(plants.Clumps.Select(c => c.Position)), "Same islet, same plants.");
+            Assert.That(CoastFeatures.Make(outline, lift, 8).Plants.Clumps.Select(c => c.Position), Is.Not.EqualTo(plants.Clumps.Select(c => c.Position)), "Another islet, other plants.");
+            var gentle = new float[outline.Length];
+            Assert.That(CoastFeatures.Make(outline, gentle, 7).Plants.Clumps, Is.Empty, "A low islet of beaches has none.");
+        }
+
+        [Test]
+        public void Coast_CliffPlantAtlasShowsGreySamphireAndVioletSeaLavender()
+        {
+            var atlas = CliffPlantAtlas.Bake(256);
+            for (var cell = 0; cell < 4; cell++) Assert.That(atlas.Coverage(cell), Is.InRange(0.03f, 0.7f), $"Quarter {cell} holds a plant, with air around it.");
+            var half = atlas.Size / 2;
+            (float r, float g, float b, int violet) Mean(int cell)
+            {
+                var corner = TreeGenerator.AtlasCells[cell];
+                int x0 = (int)(corner.x * atlas.Size), y0 = (int)(corner.y * atlas.Size), count = 0, violet = 0;
+                float r = 0f, g = 0f, b = 0f;
+                for (var y = 0; y < half; y++)
+                {
+                    for (var x = 0; x < half; x++)
+                    {
+                        var c = atlas.Colour[(y0 + y) * atlas.Size + x0 + x];
+                        if (c.a <= 127) continue;
+                        r += c.r; g += c.g; b += c.b; count++;
+                        if (c.b > c.g + 12 && c.r > c.g) violet++;
+                    }
+                }
+                return (r / count, g / count, b / count, violet);
+            }
+            var samphire = Mean(CliffPlants.SamphireSide);
+            Assert.That(samphire.g, Is.GreaterThan(samphire.r).And.GreaterThan(samphire.b), "Samphire is grey-green.");
+            Assert.That(Mean(CliffPlants.LavenderSpray).violet, Is.GreaterThan(20), "Sea lavender flowers violet.");
+            Assert.That(Mean(CliffPlants.LavenderRosette).g, Is.GreaterThan(Mean(CliffPlants.LavenderRosette).b), "Its rosette is green.");
+            Assert.That(CliffPlantAtlas.Bake(256).Colour, Is.EqualTo(atlas.Colour), "The same pixels every time.");
+        }
+
+        [Test]
         public void Coast_SameSeedSameShore()
         {
             var (outline, lift) = Islet();

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using MorzaBogow.Presentation.Landscape;
 using UnityEditor;
 using UnityEngine;
@@ -31,9 +32,11 @@ namespace MorzaBogow.Editor
             Folders();
             var bark = Bark("OliveBark", "bark_willow_02", new Color(0.82f, 0.82f, 0.8f));
             var leaves = Leaves("OliveLeaves", TreeSpecies.OliveCultivated);
+            // Rock samphire and sea lavender on the cliffs (CliffPlants), on the same translucent foliage material.
+            var cliffPlants = FoliageMaterial("CliffPlants", CliffPlantAtlas.Bake(1024));
             AssetDatabase.SaveAssets();
             ExportManifest();
-            Debug.Log($"[Environment] trial set: bark {(bark != null ? AssetDatabase.GetAssetPath(bark) : "MISSING SOURCE")}, leaves {(leaves != null ? AssetDatabase.GetAssetPath(leaves) : "FAILED")}");
+            Debug.Log($"[Environment] trial set: bark {(bark != null ? AssetDatabase.GetAssetPath(bark) : "MISSING SOURCE")}, leaves {(leaves != null ? AssetDatabase.GetAssetPath(leaves) : "FAILED")}, cliff plants {AssetDatabase.GetAssetPath(cliffPlants)}");
         }
 
         /// <summary>
@@ -57,6 +60,92 @@ namespace MorzaBogow.Editor
             Shot(Islet(), Path.Combine(folder, "env-coast-cliff.png"), 14f, 180f, false);
             Shot(Islet(), Path.Combine(folder, "env-coast-gentle.png"), 22f, 0f, false);
             Shot(Islet(), Path.Combine(folder, "env-coast-strategic.png"), 45f, 30f, true);
+        }
+
+        /// <summary>
+        /// A close look at the cliff plants: a few metres of the preview islet's cliff face cut out around its densest
+        /// clumps (the whole islet would leave them a few pixels), seen from the sea and from above.
+        /// Batch mode with a graphics device: -executeMethod MorzaBogow.Editor.EnvironmentArt.PreviewCliffPlants
+        /// </summary>
+        public static void PreviewCliffPlants()
+        {
+            var folder = Path.Combine(Application.dataPath, "..", "artifacts-log");
+            Shot(CliffCut(), Path.Combine(folder, "env-cliff-plants-face.png"), 8f, 0f, false);
+            Shot(CliffCut(), Path.Combine(folder, "env-cliff-plants-above.png"), 40f, 0f, false);
+        }
+
+        static GameObject CliffCut()
+        {
+            var rock = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Limestone.mat");
+            var meadow = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Meadow.mat");
+            var outline = MorzaBogow.Presentation.ShoreShape.Ellipse(40f, 30f);
+            var lift = MorzaBogow.Presentation.ShoreShape.Cliffs(0f, 60f, 110f, 1.3f);
+            var made = CoastFeatures.Make(outline, lift, 7);
+            // The cliff clump with the most others within 3 m: the window is 3 m around it.
+            var clumps = made.Plants.Clumps.FindAll(clump => clump.OnCliff);
+            var centre = clumps.Count == 0 ? Vector3.zero : clumps.OrderByDescending(c => clumps.Count(o => (o.Position - c.Position).sqrMagnitude < 9f)).First().Position;
+            var box = new Bounds(centre, new Vector3(3f, 3f, 3f));
+            var root = new GameObject("Cliff plants preview");
+            // Turned so the face looks along +z, toward a camera at yaw 0.
+            var face = new GameObject("Face");
+            face.transform.SetParent(root.transform, false);
+            face.transform.rotation = Quaternion.FromToRotation(new Vector3(centre.x, 0f, centre.z).normalized, Vector3.back);
+            Part(face.transform, "Islet", Crop(MorzaBogow.Presentation.ShoreShape.Mound(outline, lift), box), rock, meadow);
+            Part(face.transform, "Notch", Crop(made.Notch, box), rock);
+            Part(face.transform, "Cliff plants", Crop(made.Plants.Mesh, box), CliffPlants.Material);
+            return root;
+        }
+
+        static void Part(Transform parent, string name, Mesh mesh, params Material[] materials)
+        {
+            if (mesh == null || mesh.vertexCount == 0) return;
+            var item = new GameObject(name);
+            item.transform.SetParent(parent, false);
+            item.AddComponent<MeshFilter>().sharedMesh = mesh;
+            item.AddComponent<MeshRenderer>().sharedMaterials = materials;
+        }
+
+        /// <summary>The triangles of a mesh whose middle lies in a box, as a mesh of their own (every submesh kept).</summary>
+        static Mesh Crop(Mesh mesh, Bounds box)
+        {
+            var vertices = mesh.vertices;
+            var normals = mesh.normals;
+            var uvs = mesh.uv;
+            var keptVertices = new System.Collections.Generic.List<Vector3>();
+            var keptNormals = new System.Collections.Generic.List<Vector3>();
+            var keptUvs = new System.Collections.Generic.List<Vector2>();
+            var remap = new System.Collections.Generic.Dictionary<int, int>();
+            var submeshes = new System.Collections.Generic.List<System.Collections.Generic.List<int>>();
+            int Keep(int index)
+            {
+                if (remap.TryGetValue(index, out var kept)) return kept;
+                kept = keptVertices.Count;
+                keptVertices.Add(vertices[index]);
+                if (normals.Length == vertices.Length) keptNormals.Add(normals[index]);
+                if (uvs.Length == vertices.Length) keptUvs.Add(uvs[index]);
+                remap[index] = kept;
+                return kept;
+            }
+            for (var s = 0; s < mesh.subMeshCount; s++)
+            {
+                var triangles = mesh.GetTriangles(s);
+                var kept = new System.Collections.Generic.List<int>();
+                for (var t = 0; t < triangles.Length; t += 3)
+                {
+                    if (!box.Contains((vertices[triangles[t]] + vertices[triangles[t + 1]] + vertices[triangles[t + 2]]) / 3f)) continue;
+                    kept.Add(Keep(triangles[t])); kept.Add(Keep(triangles[t + 1])); kept.Add(Keep(triangles[t + 2]));
+                }
+                submeshes.Add(kept);
+            }
+            var cut = new Mesh { name = mesh.name + " (cut)", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            cut.SetVertices(keptVertices);
+            if (keptNormals.Count == keptVertices.Count) cut.SetNormals(keptNormals);
+            if (keptUvs.Count == keptVertices.Count) cut.SetUVs(0, keptUvs);
+            cut.subMeshCount = submeshes.Count;
+            for (var s = 0; s < submeshes.Count; s++) cut.SetTriangles(submeshes[s], s);
+            if (keptNormals.Count != keptVertices.Count) cut.RecalculateNormals();
+            cut.RecalculateBounds();
+            return cut;
         }
 
         static GameObject Islet()
@@ -182,9 +271,11 @@ namespace MorzaBogow.Editor
             return material;
         }
 
-        static Material Leaves(string name, TreeSpecies species)
+        static Material Leaves(string name, TreeSpecies species) => FoliageMaterial(name, LeafAtlas.Bake(species, 1024));
+
+        /// <summary>A translucent, alpha-clipped HDRP/Lit material over a baked atlas (colour, normal and mask PNGs).</summary>
+        static Material FoliageMaterial(string name, LeafAtlas.Result atlas)
         {
-            var atlas = LeafAtlas.Bake(species, 1024);
             var colour = Png($"{Output}/{name}_colour.png", atlas.Colour, atlas.Size, false);
             var normal = Png($"{Output}/{name}_normal.png", atlas.Normal, atlas.Size, true);
             var mask = Png($"{Output}/{name}_mask.png", atlas.Mask, atlas.Size, true);

@@ -59,6 +59,11 @@ Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.jso
   - pod żwirem mokry pas skały ustępuje;
   - materiał z CC0 dry_river_pebbles (`ShingleArt`), wybielony ku jasnym otoczakom wapiennym, kafel 2 m;
   - żadne przeczytane źródło nie opisuje plaż żwirowych epoki (raport 3.12), więc to spekulacja.
+- **Rośliny klifów** (`CliffPlants`, raport 2.17 i 8.15–8.21):
+  - kępy kopru morskiego (*Crithmum maritimum*) i zatrwianu (*Limonium*) na ścianach klifów 1,9–5 m nad morzem i na skalistych brzegach nad mokrym pasem;
+  - kwitnące, bo światło gry to egejskie lato;
+  - jedna siatka kart na wysepkę z atlasu `CliffPlantAtlas`, bez cieni i bez ruchu na wietrze (uproszczenie);
+  - flory opisują stan współczesny, więc dla starożytności to interpretacja.
 - **Ruda srebra, typ Laurion, E1** (`OreOutcrop`):
   - po bokach wejścia do kopalni marmur pod łupkiem, z rdzawym kontaktem między nimi;
   - w kontakcie ziarna galenitu (jedyny metal) i biały cerusyt;

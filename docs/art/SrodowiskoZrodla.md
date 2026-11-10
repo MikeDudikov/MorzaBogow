@@ -315,3 +315,44 @@ Drugie badanie wykonał osobny agent. Liczby pochodzą z odczytanych tabel albo,
 - wymiary liści dzikiej oliwki.
 
 Wartości przyjęte w kodzie są oznaczone w `TreeSpecies.Sources` jako interpretacje.
+
+## 8. Makia i rośliny klifów: morfologia (trzecie badanie, 2026-11-10)
+
+Badanie wykonał osobny agent. Wszystkie źródła opisują stan współczesny, żadne nie mówi wprost o roślinności w latach 1200–400 p.n.e., więc ich użycie dla starożytności to interpretacja. Flora Europaea była czytana w wersji Plazi po OCR; liczby zniekształcone przez OCR mają pewność I.
+
+| # | Twierdzenie | Źródło [dostęp] | Miejsce | Pewn. | Zastosowanie |
+|---|---|---|---|---|---|
+| 8.1 | *Q. coccifera*: zimozielony krzew do 2 m, rzadko małe drzewo; młode pędy omszone | Tutin i in., Flora Europaea vol. 1 (1964), Plazi [R] | s. 62 | U | wysokość krzewu |
+| 8.2 | *Q. coccifera*: liście ok. 1,5–4 cm (zapis OCR „1-5-4”), sztywne, jajowate lub podłużne, brzeg kolczasto-ząbkowany i falisty; ogonek 1–4 mm; wierzch ciemnozielony, spód bladozielony, nagie | jw. [R] | s. 62 | U (długość: I) | liść kermesu |
+| 8.3 | *Q. coccifera*: krzew 0,25–1,5 m albo drzewo do 15 m, gdy nie jest zgryzany; liście 1–6 × 0,7–3 cm, brzeg z 4–8 kolcami, obie strony błyszczące i nagie | Coombes, Cameron 2021, Trees and Shrubs Online [R] | strona gatunku | U | pokrój zgryzany i niezgryzany, połysk |
+| 8.4 | *Q. coccifera*: 0,5 do 3–5 m, korona gęsta, zaokrąglona; liście 1–3,5 × 0,7–2 cm, 5–8 par ostrych zębów, falisty brzeg | Oaks of the World [R] | strona gatunku | U/I | ząbki, kopuła |
+| 8.5 | *Q. coccifera* w Grecji: ponad 0,4 mln ha zarośli, forma niska 0,5–0,8 m i wysoka ok. 2 m; przycinanie zwiększa liczbę pędów | Tsiouvaras 1987, J. Range Manage. 40: 542–546 [A] | abstrakt | U | forma zgryzana 0,5–0,8 m |
+| 8.6 | Wysokość i pokrycie krzewów *Q. coccifera* rosną z odległością od zagród | Papanastasis i in. 2009, Options Méditerranéennes A 85: 49–54 [R] | s. 49–50 | U | niższe krzewy przy osadach |
+| 8.7 | Zgryzane krzewy na Krecie przyjmują formy półkuliste | Bergmeier 1996 [S] | nieodczytane | I | forma kopułowa |
+| 8.8 | *Q. coccifera*: krzewy lub drzewa 2–6 m, odporne na wypas, suche kamieniste gleby, często wapienne | EUFORGEN [R] | karta gatunku | U | siedlisko |
+| 8.9 | *P. lentiscus*: krzew lub małe drzewo 1–8 m; liście parzystopierzaste, (4–)8–12 listków 1–5 cm, skórzaste, z ością; osadka szeroko oskrzydlona | Flora Europaea vol. 2, Plazi [R] | s. 237 | U (szerokość listka 0,5–1,5 cm: I) | liść lentyszka |
+| 8.10 | *P. lentiscus*: 0,5–2 m, kora szara lub czerwonawa, liście naprzemianległe, listki całobrzegie | Blasco-Zumeta, Flora de Pina de Ebro [R] | ark. 037 | U | ułożenie liści, kora |
+| 8.11 | *P. lentiscus*: 1–3(5) m, korona 1–2(10) m, liście ciemnozielone, 3–6 par listków | Diputación de Cádiz, Guía virtual [R] | ark. 56 | U/I | proporcje korony |
+| 8.12 | *P. lentiscus*: do 4–5 m, makia do 700–800(–1000) m n.p.m. | FILMED, Uniw. Walencja [R] | strona gatunku | U | zasięg |
+| 8.13 | *P. lentiscus* (okaz uprawny): korona kulista i gęsta, 3–5 par listków ok. 2,5 cm, młode liście żółtozielone | Univ. Arizona Campus Arboretum [R] | strona taksonu | I | kopuła, młode przyrosty |
+| 8.14 | *P. lentiscus*: liść żyje ok. 19 miesięcy | Gratani, Varone 2006, Photosynthetica 44: 161–168 [R] | „Leaf life-span” | U (Włochy) | zimozieloność |
+| 8.15 | *C. maritimum*: bylina 15–50 cm, drewniejąca u nasady; odcinki liścia 1–5 cm, równowąskie; 8–36 szypuł baldachu; skały nadmorskie | Flora Europaea vol. 2, Plazi [R] | s. 333 | U | wymiary kępy i odcinków |
+| 8.16 | *C. maritimum*: do 60 cm, silnie rozgałęziony, liście sukulentne; kwitnie VI–IX | Renna 2018, Plants 7: 92 [R] | rozdz. 2, s. 2–3 | U | kwitnienie latem |
+| 8.17 | *C. maritimum*: poduszki ponad 50 cm, odcinki 1–2 cm, mięsiste, sinozielone; kwiaty 2–4 mm, białe lub żółtawe | Monaco Nature Encyclopedia 2018 [R] | strona gatunku | I | kolor, rozpiętość |
+| 8.18 | *C. maritimum*: do 45 cm, łatki liścia mięsiste, walcowate; łodyga niebieskawozielona | Flora of the Burren (Naturalis) [R] | strona taksonu | U | walcowate odcinki |
+| 8.19 | *C. maritimum* rośnie bardzo blisko morza; kwiaty zielonożółte | Herbari Virtual UIB [R] | „fonoll marí” | U | strefa przybrzeżna |
+| 8.20 | *L. rhodense*: 10–35 cm, liście rozety 20–35 × 2–5 mm, łodygi 10–25 cm rozgałęzione od nasady, płatki bladofioletowe, VII–IX; szczeliny niskich klifów w zasięgu bryzgów | Crespo, Pena-Martín 2013, Phytotaxa 94: 30–40 [R] | s. 35–38 | U | zatrwian klifów Egei |
+| 8.21 | *L. virgatum*: 15–60 cm, liście mięsiste, ciemnozielone, 30–85 × 4–8,5 mm, korona czerwonofioletowa; skaliste wybrzeża | Brullo, Erben 2016, Phytotaxa 240 [R] | Plazi (strona niepewna) | U | rozeta i kolor kwiatów |
+| 8.22 | *L. sinuatum*: liście 20–150 × 8–30 mm, łodyga z falistymi skrzydłami, kielich niebieski | Brullo, Erben 2016 [R] | Plazi | U | nieużyte |
+| 8.23 | *L. ammophilon*: 15–30 cm, liście 20–40 × 2–7 mm, sine; korona liliowa | Cretan Flora [R] | strona gatunku | I | wariant liliowy |
+| 8.24 | Wykładnik Vogla F ∝ U^(2+V): iglaste od −0,72 do −1,1, gęste struktury dążą do −1 | Gosselin 2019, arXiv:1905.08055 [R] | równanie 4, tab. 1 | U (iglaste) | V krzewów (Sp: przeniesienie) |
+| 8.25 | Liście obniżają częstotliwość i zwiększają tłumienie drzew | Jackson i in. 2019, J. R. Soc. Interface 16 [S] | nieodczytane | I | brak liczb dla krzewów |
+
+**Bez odpowiedzi:**
+- liczba pędów i gęstość rozgałęzień *Q. coccifera* w liczbach;
+- długość ogonka i kolor spodu listka *P. lentiscus*;
+- średnica baldachu i grubość odcinków *C. maritimum*, wysokość strefy bryzgów w metrach;
+- miesiące kwitnienia *L. virgatum* i *L. sinuatum*;
+- zmierzone częstotliwości kołysania, tłumienie, Cd i wykładnik Vogla krzewów 1–3 m.
+
+Rośliny klifów (`CliffPlants`, `CliffPlantAtlas`) korzystają z 8.15–8.21: wymiary kęp, sinozielone mięsiste odcinki samphire z baldachami, rozety i liliowe kłosy zatrwianu, kwitnienie latem.

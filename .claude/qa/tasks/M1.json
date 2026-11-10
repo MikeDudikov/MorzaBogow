@@ -29,6 +29,8 @@
         "MorzaBogow.Tests.CoastTests.Coast_SameSeedSameShore",
         "MorzaBogow.Tests.CoastTests.Coast_ShingleLiesOnTheGentleShoreFromUnderTheWaterToAboveTheSwash",
         "MorzaBogow.Tests.CoastTests.Coast_WhereShingleLiesItsOwnWetPartTakesTheSwash",
+        "MorzaBogow.Tests.CoastTests.Coast_CliffPlantsGrowOnTheFacesAboveTheNotchAndOnRockyShoresOnly",
+        "MorzaBogow.Tests.CoastTests.Coast_CliffPlantAtlasShowsGreySamphireAndVioletSeaLavender",
         "MorzaBogow.Tests.SiteTests.Ore_EachBlowThrowsDustAndChipsFromTheFaceWithoutTheGamesRandom",
         "MorzaBogow.Tests.SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween",
         "MorzaBogow.Tests.SiteTests.Ore_OnlyTheGalenaIsMetal",
