@@ -89,6 +89,7 @@ Najważniejsze zasady:
   - `substance`: przekazanie ręczne;
   - `provided`: `texturing.maps` po rolach;
   - `flat`: płaskie kolory materiałów.
+- **Faktura w promptach tekstur** (decyzja użytkownika z 2026-11-10, `CLAUDE.md`): każdy prompt tekstur (dopracowanie i retekstura Meshy, image-to-3D, ComfyUI) kończy się szablonem `templates.weathering` z `pipeline.json`: "heavy surface imperfections, scratches, rust, dirt accumulation in crevices, oil stains, rough worn surface, photorealistic weathering". Dotyczy też własnego `texturing.prompt` briefu; gdy prompt już ją zawiera, nie jest powtarzana. Przy limicie 800 znaków skraca się opis, nigdy faktura. Szablon `texture` zastrzega rdzę tylko dla żelaza (brąz i ołów mają patynę). Test `test_texture_prompt_always_ends_with_the_house_weathering`.
 - **`texturing.tint`** (opcjonalnie): trzy liczby 0..1, mnożnik koloru mapy bazowej w materiale HDRP (`_BaseColor`). Przyciemnia jasną teksturę bez nowego zlecenia, np. kora kłód `[0.6, 0.57, 0.53]`: w słońcu gry szara kora (albedo ok. 0,5) wyglądała na białą. Test `test_tint_darkens_a_colour_map_with_three_numbers_from_0_to_1`.
 - **Szkielet i animacje** tylko dla kategorii `character` i `creature`.
 - **`variants`**: najwyżej 2. Każdy wariant to osobne zadanie z osobnym kosztem.

@@ -34,6 +34,23 @@ class BriefTests(unittest.TestCase):
         for field in ("id:", "shipClass:", "description:"):
             self.assertIn(field, text)
 
+    def test_texture_prompt_always_ends_with_the_house_weathering(self):
+        weathering = self.config.data["templates"]["weathering"]
+        self.assertIn("photorealistic weathering", weathering)
+        plain = briefs.texture_prompt(briefs.normalise(self.ship(), self.config), self.config)
+        self.assertTrue(plain.endswith(weathering), plain)
+        self.assertIn(self.config.data["templates"]["texture"].rstrip("."), plain)
+        # A long description gives way; the weathering stays whole within the limit.
+        long = briefs.texture_prompt(briefs.normalise(self.ship(description="A hull of pine planks. " * 60), self.config), self.config)
+        self.assertLessEqual(len(long), briefs.PROMPT_LIMIT)
+        self.assertTrue(long.endswith(weathering), long[-200:])
+        # A brief's own prompt keeps its words and gets the weathering once.
+        own = briefs.texture_prompt(briefs.normalise(self.ship(texturing={"prompt": "Silver fir bark, pale cut ends"}), self.config), self.config)
+        self.assertTrue(own.startswith("Silver fir bark, pale cut ends"))
+        self.assertEqual(own.count(weathering), 1)
+        again = briefs.texture_prompt(briefs.normalise(self.ship(texturing={"prompt": f"Pine bark, {weathering}"}), self.config), self.config)
+        self.assertEqual(again.count(weathering), 1, "not twice when the brief already asks for it")
+
     def test_tint_darkens_a_colour_map_with_three_numbers_from_0_to_1(self):
         brief = briefs.normalise(self.ship(texturing={"tint": [0.6, 0.58, 0.55]}), self.config)
         self.assertEqual(brief["texturing"]["tint"], [0.6, 0.58, 0.55])

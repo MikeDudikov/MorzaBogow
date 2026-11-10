@@ -245,9 +245,23 @@ def prompt(brief: dict, config: Config) -> str:
 
 
 def texture_prompt(brief: dict, config: Config) -> str:
-    style = config.data.get("templates", {}).get("texture", "Physically based materials under neutral lighting, no baked shadows")
-    base = brief.get("texturing", {}).get("prompt") or f"{brief['description'].strip()}. {style}"
-    return base[:PROMPT_LIMIT]
+    """The text for texturing: the brief's own texturing.prompt, or its description with the house texture style, always
+    ending with the house weathering (templates.weathering, CLAUDE.md: surface texture). Within 800 characters the head
+    gives way, never the weathering."""
+    templates = config.data.get("templates", {})
+    style = templates.get("texture", "Physically based materials under neutral lighting, no baked shadows").strip()
+    weathering = (templates.get("weathering") or "").strip()
+    own = (brief.get("texturing", {}).get("prompt") or "").strip()
+    head = own or brief["description"].strip()
+    tail = [] if own else [style]
+    if weathering and weathering.lower() not in head.lower():
+        tail.append(weathering)
+    ending = ". ".join(part.rstrip(". ") for part in tail)
+    if not ending:
+        return head[:PROMPT_LIMIT]
+    room = PROMPT_LIMIT - len(ending) - 2
+    head = head[:max(0, room)].rstrip(" .,;")
+    return f"{head}. {ending}"[:PROMPT_LIMIT] if head else ending[:PROMPT_LIMIT]
 
 
 def template(category: str, ship_class=None) -> dict:
