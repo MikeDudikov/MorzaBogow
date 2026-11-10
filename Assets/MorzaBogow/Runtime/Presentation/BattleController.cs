@@ -469,6 +469,8 @@ namespace MorzaBogow.Presentation
         /// <summary>The simulation's waves drawn into the water around the view, on simulation time (still in a pause).</summary>
         void RenderSea(float fraction)
         {
+            // Decorative water decals follow a change of profile (WaterDetail); the sea below is drawn on every profile.
+            WaterDetail.Refresh();
             if (waterSurface != null) waterSurface.timeMultiplier = paused ? 0.001f : Speed;
             if (seaRenderer == null || World.Marine == null) return;
             SeaSurfaceRenderer.UpdateBands(waterSurface);

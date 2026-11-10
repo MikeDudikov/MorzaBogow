@@ -156,7 +156,19 @@ Zmierzone na modelu:
   - jeden `WaterDecal` w trybie tekstury (graf HDRP „Water Decal Sample”, materiał `Resources/SeaHeightsDecal.mat`, wariant `_TYPE_TEXTURE`) dodaje ją do wody;
   - fazy liczone w podwójnej precyzji na CPU, ograniczenie 0,55·h/Hs z tekstury głębi, wygaszenie 32 m przy brzegu obszaru;
   - pasmo duże HDRP wyłączone, średnie na ⅓ (tylko faktura), zmarszczki z wiatru meczu.
-- **Low i Medium** nie mają decali wody. Rysuje się tam pasmo HDRP z wiatrem i kierunkiem meczu: morze wygląda podobnie, ale grzbiety nie są tymi, na których kołyszą się kadłuby (jawne przybliżenie).
+- **Low i Medium** (od 2026-11-10, 15:00): decale wody są na każdym profilu (assety HDRP i `M0Bootstrap`), więc wszędzie rysuje się morze symulacji i kadłuby kołyszą się na widocznych falach (VISUAL_TECH_SPEC, V10: „kuter nie może kołysać się na innej fazie fali niż widoczna tafla”). Wcześniej Low i Medium rysowały własne pasmo HDRP o innej fazie.
+  - **Detal według tabeli profili.** Fala dziobowa, piana przy kadłubie i dziobie oraz przybój rysują się dopiero od High (`WaterDetail`, także po zmianie profilu w trakcie gry). Low ma „prosty detal”, Medium „ograniczony”. Testy: `WaterDetailTests`.
+  - **Pomiar A/B w jednym buildzie** (15:37–15:49, test dymny 60 s, flaga `-morzaNoSea`; `artifacts-log/marine-ab5-*`):
+
+| Przebieg | GPU | Klatka | CPU główny | Korelacja fal | Skala fal | Woda przy burtach RMS / maks. | Ponad pokład |
+|---|---|---|---|---|---|---|---|
+| Low z morzem | 19,2 ms | 24,0 ms | 9,8 ms | 0,872 | 1,02 | 0,32 / 0,88 m | 0% |
+| Low bez morza | 19,5 ms | 20,8 ms | 6,6 ms | — | — | — | — |
+| Medium z morzem | 19,9 ms | 23,6 ms | 9,1 ms | 0,867 | 1,04 | 0,32 / 0,88 m | 0% |
+| Medium bez morza | 21,1 ms | 22,3 ms | 6,0 ms | — | — | — | — |
+
+  - Decal fal nie ma mierzalnego kosztu GPU (różnice w szumie). Dodatkowe około 3 ms CPU to symulacja morza (wiatr i fale), która działa na każdym profilu. Kołysanie kosztuje 0,12 ms na tick, a wysyłka fal do GPU 0,07–0,08 ms.
+  - Przed zmianą Low miał korelację −0,06, fale HDRP o 47% wyższe od fal symulacji, wodę przy burtach RMS 0,48 m i 1,6% próbek ponad pokładem.
 - **`SeakeepingDriver`** zastępuje sprężyny `HullMotion`:
   - model 3 stopni swobody z przechyłem i trymem od `SailForces` dla widocznych okrętów, raz na tick symulacji, pokazywany między dwoma tickami;
   - stoi w pauzie i przyspiesza z prędkością gry;
@@ -227,7 +239,7 @@ Poprawki:
 - **Zbliżenia z Ultra** (`marine-ab3-Ultra-sea-shot-2.png`, `-shot-5.png`): pokłady suche, bez wody wewnątrz kadłubów.
 - **Kadłub nie tonie:** średnia woda leży kilka centymetrów od linii wodnej.
 - **RMS 0,4 m to ruch względny wody przy burtach i rufie.** Obejmuje fale krótsze od kadłuba, przechył (punkty burt leżą na pół szerokości), falę dziobową HDRP i różnicę między falą rysowaną a fizyczną (korelacja 0,83).
-- **Na Low** HDRP rysuje własne fale, o 47% wyższe od fal symulacji i w innej fazie. Kadłuby kołyszą się na falach symulacji, więc tam woda częściej sięga burty. To opisane przybliżenie profili bez decali (Low, Medium).
+- **Na Low** HDRP rysował wtedy własne fale, o 47% wyższe od fal symulacji i w innej fazie, więc woda częściej sięgała burty. Od 15:00 Low i Medium rysują fale symulacji (zob. wyżej: korelacja 0,87, 0% ponad pokładem).
 - **Poprawka 3** (żagiel) jest sprawdzona testami i harnessem, ale nie buildem: ten mecz ma etezję umiarkowaną, przy której skracanie żagla nie zachodzi.
 
 **Do oceny przez człowieka (ruchomy obraz):**

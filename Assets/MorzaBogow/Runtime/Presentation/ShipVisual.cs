@@ -649,6 +649,8 @@ namespace MorzaBogow.Presentation
             decal.resolution = new Vector2Int(64, 64);
             decal.updateMode = CustomRenderTextureUpdateMode.OnLoad;
             decal.material = material;
+            // Wakes, foam and surf are detail: drawn from the High profile on (WaterDetail, the profile table).
+            WaterDetail.Track(decal);
             return decal;
         }
 

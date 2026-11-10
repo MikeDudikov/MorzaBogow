@@ -104,7 +104,10 @@ namespace MorzaBogow.Presentation
             UpdateBands(surface);
         }
 
-        /// <summary>Whether the profile draws water decals (High and above): only then can the simulation's waves be drawn.</summary>
+        /// <summary>
+        /// Whether the profile draws water decals: every profile does, so the simulation's waves are drawn on all of them
+        /// (WaterDetail keeps the decorative decals from High on). False only for an asset that turns them off.
+        /// </summary>
         public static bool DecalsSupported =>
             GraphicsSettingsAsset != null && GraphicsSettingsAsset.currentPlatformRenderPipelineSettings.supportWaterDecals;
 
@@ -112,8 +115,8 @@ namespace MorzaBogow.Presentation
 
         /// <summary>
         /// With decals the large band is off (the decal draws the simulation's waves) and the medium band a third, as texture.
-        /// Without them (Low, Medium) HDRP's own bands stand in, from the match's wind and direction: the sea looks as rough,
-        /// but its crests are not the ones the hulls ride.
+        /// Without them (an asset that turns them off) HDRP's own bands stand in, from the match's wind and direction: the sea
+        /// looks as rough, but its crests are not the ones the hulls ride.
         /// </summary>
         public static void UpdateBands(WaterSurface surface)
         {

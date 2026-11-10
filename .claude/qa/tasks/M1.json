@@ -241,6 +241,8 @@
         "MorzaBogow.Tests.WeatherControllerTests.Weather_EachBattleTakesTheScenesVolumeNotAnotherOverlay",
         "MorzaBogow.Tests.SeakeepingDriverTests.Seakeeping_FarViewStepsEachHullEveryThirdTickAndShowsItSmoothly",
         "MorzaBogow.Tests.SeakeepingDriverTests.Seakeeping_CloseViewStepsEveryTickAndAReturningHullStartsOnTheWater",
+        "MorzaBogow.Tests.WaterDetailTests.Sea_EveryProfileDrawsTheSimulatedWavesAndTheDetailFromHigh",
+        "MorzaBogow.Tests.WaterDetailTests.Ship_WakeAndFoamFollowTheProfileButNeverTheirShape",
         "MorzaBogow.Tests.FormationOrderTests.Orders_AGroupMoveGivesEachShipItsOwnPlaceInTheChosenFormation",
         "MorzaBogow.Tests.FormationOrderTests.Hud_TheFormationSwitchShowsForAGroupAndNamesTheFormation",
         "MorzaBogow.Tests.FormationOrderTests.Orders_TheRestOfAMixedGroupFollowsInFormationWhenPartEscortsOrSalvages",

@@ -75,7 +75,9 @@ namespace MorzaBogow.Editor
             settings.supportVolumetricClouds = atLeastExtraHigh;
             settings.supportSubsurfaceScattering = atLeastHigh;
             settings.supportWater = true;
-            settings.supportWaterDecals = atLeastHigh;
+            // Every profile draws the simulation's sea by a water decal (SeaSurfaceRenderer), so hulls ride the waves shown;
+            // the decorative ones (bow waves, foam, surf) stay from High on, in code (WaterDetail).
+            settings.supportWaterDecals = true;
 
             // Every visible ship has a bow wave and two foam patches, and surf runs along every shore: 400 ships need room.
             settings.maximumWaterDecalCount = 2048;
