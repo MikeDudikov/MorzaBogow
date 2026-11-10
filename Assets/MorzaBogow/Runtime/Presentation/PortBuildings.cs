@@ -107,9 +107,15 @@ namespace MorzaBogow.Presentation
 
         public bool ShowsRuin(PortBuilding kind)
         {
-            // The School's ruin is its own fallen elements, shown once the first of them lies at rest.
-            if (kind == PortBuilding.SageSchool && schoolDamage != null && schoolDamage.Broken)
-                return Ruined && schoolDamage.Frame.gameObject.activeSelf && schoolDamage.SettledPieces > 0;
+            // A building that breaks element by element lies in the ruin of its own fallen pieces, shown once the first
+            // of them is at rest.
+            if (Breaks(kind))
+            {
+                if (!Ruined) return false;
+                foreach (var view in DamagesOf(kind))
+                    if (view.Broken && view.Frame.gameObject.activeSelf && view.SettledPieces > 0) return true;
+                return false;
+            }
             return structures.TryGetValue(kind, out var item) && item.Ruin != null && item.Ruin.activeSelf;
         }
 
@@ -188,6 +194,7 @@ namespace MorzaBogow.Presentation
             RoofOn = false;
             workSpots.Clear();
 
+            var falls = new List<(Structure item, bool animate)>();
             foreach (PortBuilding kind in System.Enum.GetValues(typeof(PortBuilding)))
             {
                 var whole = stood[kind];
@@ -196,10 +203,10 @@ namespace MorzaBogow.Presentation
                 var item = Get(kind);
                 if (ruined)
                 {
-                    if (kind == PortBuilding.SageSchool && whole && schoolPiece != null)
+                    if (whole && Breaks(kind))
                     {
-                        // The School comes down element by element into the ruin of its own fallen pieces.
-                        RuinSchool(item, stoodBefore && item.Root.activeSelf);
+                        // It comes down element by element into the ruin of its own fallen pieces (PortBuildings.Breakables).
+                        falls.Add((item, stoodBefore && item.Root.activeSelf));
                         continue;
                     }
                     if (whole && item.Ruin == null) item.Ruin = BuildRuin(item);
@@ -220,6 +227,10 @@ namespace MorzaBogow.Presentation
                     AddWorkSpots(item);
                 }
             }
+            // The pieces in the air are few (StructureDamageView budgets): the School, the port's showpiece, takes them first,
+            // then the town, the workshop and the store; what is over the budget lies at rest at once, in a puff of dust.
+            falls.Sort((a, b) => FallOrder(a.item.Kind).CompareTo(FallOrder(b.item.Kind)));
+            foreach (var (item, animate) in falls) RuinKind(item, animate);
 
             // Research raises nothing; a fire burns before the School while the sages work.
             var researching = !ruined && project == ProjectKind.HeavyArmsResearch && settlement.HasSageSchool;
@@ -402,6 +413,9 @@ namespace MorzaBogow.Presentation
             TiledGable(roof, w, d, h, walls, 0.35f);
             piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, walls, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h);
+            // Its walls, door and roof bays break as the settlement's hull goes (PortBuildings.Breakables).
+            var rest = PieceRest(piece, 0.7f, w, d);
+            AddBreakable(item, piece, $"{item.Kind}.{name}.{item.Pieces.Count - 1}/", () => BuildHouseModel(w, d, h, walls, rest), rest, FootprintDistance(piece));
         }
 
         /// <summary>
@@ -617,6 +631,8 @@ namespace MorzaBogow.Presentation
             TiledGable(roof, w, d, h, GreekMaterial.Wood, 0.3f);
             piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h);
+            var rest = PieceRest(piece, 0f, w, d);
+            AddBreakable(item, piece, "Workshop.Shed/", () => BuildShedModel(w, d, h, rest), rest, FootprintDistance(piece));
         }
 
         /// <summary>A storage jar 1.4 m tall, from its foot up (height, radius): egg-shaped, two raised rope bands, a rolled rim.</summary>
@@ -827,6 +843,7 @@ namespace MorzaBogow.Presentation
             RakingSima(roof, 2f * (ex + 0.15f), 2f * (ez + 0.15f), eaves, overhang, pitch);
             piece.Roof = Attach(piece.Root, "Roof", roof.Build(GreekMaterial.Terracotta, GreekMaterial.Azure, GreekMaterial.Ochre, GreekMaterial.Wood));
             AddScaffold(piece, w, d, h + steps);
+            AddBreakable(item, piece, "school/", BuildSchoolModel, SchoolRestHeight, FootprintDistance(piece));
         }
 
         /// <summary>
@@ -903,6 +920,7 @@ namespace MorzaBogow.Presentation
                 }
             }
             piece.Footing = Attach(piece.Root, "Wall footing", footing.Build(GreekMaterial.Stone));
+            AddBreakable(item, piece, "Town.Wall/", BuildWallModel, point => Ground(point.x * toward, point.z), WallDistance);
         }
 
         const float WallHeight = 3.2f;
@@ -1121,7 +1139,7 @@ namespace MorzaBogow.Presentation
         bool applied;
 
         /// <summary>Some building of the settlement is still falling into its ruin.</summary>
-        public bool Collapsing => falling.Count > 0 || schoolDamage != null && schoolDamage.Busy;
+        public bool Collapsing => falling.Count > 0 || breakables.Exists(item => item.View != null && item.View.Busy);
 
         /// <summary>Starts a standing building's fall: dust bursts from it as it gives; its ruin shows later, through the dust.</summary>
         bool StartFalling(Structure item)

@@ -63,11 +63,11 @@ SLICE = {
         "tests": ["BuildingDestructionTests (A, B, C, E, F, G, H, I, L, M, out of sight)", "PortMasonryTests",
                   "DestructionPresentationTests", "PortPresentationTests.PortViews_LeaveTheSimulationUntouched"],
         "results": "artifacts-log/destruction/school-*.png (intact, surface, local, partial, falling, ruin; close and strategic)",
-        "limitations": ["only the School breaks element by element; the other buildings sink into their ruins as before",
+        "limitations": ["the dock still falls as one piece into its seeded ruin; the other buildings break as the School does (PortBuildings.Breakables)",
                         "mudbrick is a tint of the plaster texture, not a brick texture of its own",
                         "scars are flat patches, not carved geometry",
                         "cost of a whole collapse not yet measured in the Windows build"],
-        "nextAction": "measure a collapse in the build (smoke report); then the same elements for the houses and the store",
+        "nextAction": "measure a port's collapse in the build (smoke report); split the School's own model build over frames",
         "stages": [{"state": "fracturing", "date": "2026-11-10", "commit": "6af648b"},
                    {"state": "validating", "date": "2026-11-10", "evidence": "BuildingDestructionTests 11/11, previews in artifacts-log/destruction"}],
         "config": "DamagePlan thresholds; StructureDamageView.MaxBodiesPerStructure 56, MaxBodies 112, MaxChunks 12",
@@ -104,6 +104,9 @@ SLICE = {
 # The state of the rest, by assetId, where the rework's status says more than "planned".
 STATE = {
     "fx.building-destruction": "validating",
+    "building.store": "validating",
+    "building.town": "validating",
+    "building.workshop": "validating",
     "building.ruin": "validating",
     "ship.Ram": "preparing",
     "fx.boarding": "ready",

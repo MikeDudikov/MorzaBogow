@@ -115,6 +115,138 @@ namespace MorzaBogow.Editor
         }
 
         /// <summary>
+        /// A whole home port under fire (docs/art/DESTRUCTION.md): shelled at its harbour side down to 60% and to 25% of its
+        /// hull, and in ruins; from the strategy camera's angle and close.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.PreviewPortDamage
+        /// </summary>
+        public static void PreviewPortDamage()
+        {
+            var folder = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "artifacts-log", "destruction");
+            var failed = 0;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var materials = Materials();
+                foreach (var (name, share, ruined) in new[] { ("shelled-40", 0.4f, false), ("shelled-75", 0.75f, false), ("ruin", 1f, true) })
+                {
+                    failed += Shot(DamagedPort(materials, share, ruined), Path.Combine(folder, $"port-{name}-strategic.png"), 45f, 30f, true) ? 0 : 1;
+                    failed += Shot(DamagedPort(materials, share, ruined), Path.Combine(folder, $"port-{name}-close.png"), 26f, -130f, false) ? 0 : 1;
+                }
+                Debug.Log($"[Buildings] port damage previews in {folder}: {(failed == 0 ? "all written" : failed + " failed")}");
+            }
+            catch (System.Exception error)
+            {
+                Debug.LogError($"[Buildings] {error}");
+                failed++;
+            }
+            if (Application.isBatchMode) EditorApplication.Exit(failed == 0 ? 0 : 1);
+        }
+
+        /// <summary>A home port with every building, shelled from the harbour at its front buildings, every fall over.</summary>
+        static GameObject DamagedPort(PlaceholderMaterials materials, float share, bool ruined)
+        {
+            var root = new GameObject("Port damage preview");
+            var settlement = new Settlement { Id = 3, Owner = 0, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true };
+            var buildings = new PortBuildings(root.transform, materials, settlement, 1f, null, null);
+            buildings.Update(settlement, false, 0f);
+            // Bolts and stones on the store, the workshop and the houses nearest the harbour.
+            for (var i = 0; i < 14; i++)
+            {
+                var at = buildings.Root.TransformPoint(new Vector3(-2.5f - (i % 4) * 1.6f, 2f, -7.5f + i * 1.15f));
+                buildings.Struck(settlement, at, at + new Vector3(90f, 0f, (i % 3 - 1) * 20f), WeaponType.HeavyCatapult, 10 + i, false);
+            }
+            settlement.Hull = settlement.MaxHull * (1f - share);
+            buildings.Update(settlement, false, 0f);
+            for (var i = 0; i < 40 && buildings.Collapsing; i++) buildings.Update(settlement, false, 0.25f);
+            if (ruined)
+            {
+                settlement.Hull = 0;
+                buildings.Update(settlement, true, 0f);
+                for (var i = 0; i < 40 && buildings.Collapsing; i++) buildings.Update(settlement, true, 0.25f);
+            }
+            for (var i = buildings.Root.childCount - 1; i >= 0; i--)
+            {
+                var child = buildings.Root.GetChild(i);
+                if (child.name.StartsWith("Collapse") || child.name.StartsWith("Fragments") || child.name.StartsWith("Falling")) Object.DestroyImmediate(child.gameObject);
+            }
+            var box = new Bounds(buildings.Root.TransformPoint(new Vector3(-6.75f, 2f, 0f)), new Vector3(16f, 1f, 19f));
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Object.DestroyImmediate(ground.GetComponent<Collider>());
+            ground.name = AIAssets.AIAssetPreview.Backdrop + " ground";
+            ground.transform.SetParent(root.transform, false);
+            ground.transform.localPosition = new Vector3(box.center.x, 1.99f, box.center.z);
+            ground.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ground.transform.localScale = new Vector3(box.size.x + 80f, box.size.z + 80f, 1f);
+            var meadow = materials.Meadow != null ? materials.Meadow : materials.Limestone;
+            if (meadow != null) ground.GetComponent<MeshRenderer>().sharedMaterial = meadow;
+            return root;
+        }
+
+        /// <summary>
+        /// What a whole port's fall into ruin costs on this machine's CPU in the editor (informative only): every building
+        /// at once, frame by frame at 60 frames a second. Five runs; medians and the worst frame in the log.
+        /// -executeMethod MorzaBogow.Editor.BuildingPreview.MeasurePortDamage
+        /// </summary>
+        public static void MeasurePortDamage()
+        {
+            var materials = Materials();
+            var first = new System.Collections.Generic.List<double>();
+            var launch = new System.Collections.Generic.List<double>();
+            var frames = new System.Collections.Generic.List<double>();
+            var worst = 0.0;
+            var triangles = 0;
+            var renderers = 0;
+            var inAirMost = 0;
+            for (var run = 0; run < 5; run++)
+            {
+                var root = new GameObject("Measure");
+                var settlement = new Settlement { Id = 3 + run, Owner = 0, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true };
+                var buildings = new PortBuildings(root.transform, materials, settlement, 1f, null, null);
+                buildings.Update(settlement, false, 0f);
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                settlement.Hull = settlement.MaxHull * 0.85;
+                buildings.Update(settlement, false, 0f);
+                first.Add(watch.Elapsed.TotalMilliseconds);
+                watch.Restart();
+                settlement.Hull = 0;
+                buildings.Update(settlement, true, 0f);
+                launch.Add(watch.Elapsed.TotalMilliseconds);
+                for (var i = 0; i < 400 && buildings.Collapsing; i++)
+                {
+                    inAirMost = System.Math.Max(inAirMost, StructureDamageView.BodiesInAir);
+                    watch.Restart();
+                    buildings.Update(settlement, true, 1f / 60f);
+                    var ms = watch.Elapsed.TotalMilliseconds;
+                    frames.Add(ms);
+                    worst = System.Math.Max(worst, ms);
+                }
+                triangles = 0;
+                renderers = 0;
+                foreach (var filter in buildings.Root.GetComponentsInChildren<MeshFilter>(false))
+                {
+                    if (filter.sharedMesh == null) continue;
+                    triangles += filter.sharedMesh.triangles.Length / 3;
+                    renderers++;
+                }
+                foreach (PortBuilding kind in System.Enum.GetValues(typeof(PortBuilding)))
+                    foreach (var view in buildings.DamagesOf(kind)) view.Forget();
+                foreach (var owned in root.GetComponentsInChildren<OwnedMeshes>(true))
+                    if (owned.Meshes != null)
+                        foreach (var mesh in owned.Meshes.ToArray()) if (mesh != null) Object.DestroyImmediate(mesh);
+                Object.DestroyImmediate(root);
+            }
+            double Median(System.Collections.Generic.List<double> list)
+            {
+                list.Sort();
+                return list.Count == 0 ? 0 : list[list.Count / 2];
+            }
+            Debug.Log($"[Destruction] whole port, 5 runs, editor CPU: every building's elements built and its first scars {Median(first):0.0} ms; " +
+                      $"the fall into ruin started {Median(launch):0.0} ms; a frame of the fall median {Median(frames):0.00} ms, worst {worst:0.0} ms ({frames.Count} frames); " +
+                      $"most pieces in the air {inAirMost}; the ruin at rest: {renderers} renderers, {triangles} triangles");
+            if (Application.isBatchMode) EditorApplication.Exit(0);
+        }
+
+        /// <summary>
         /// What the School's destruction costs on this machine's CPU in the editor (informative only; the build decides):
         /// building its elements, a local failure, the fall into ruin frame by frame at 60 frames a second, the rubble at
         /// rest. Ten runs; medians and the worst frame in the log.

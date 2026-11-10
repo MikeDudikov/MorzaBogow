@@ -1,8 +1,9 @@
 # Zniszczenia budowli i okrętów
 
-Data: 2026-11-10. Pionowy wycinek z polecenia „jedna budowla i jeden okręt kompletnie przed produkcją masową”:
-- **budowla:** Szkoła Mędrców (`PortBuildings.School.cs`, `Destruction/*`);
-- **okręt:** złamanie masztu na każdej klasie z masztem (`ShipVisual.Mast.cs`), obok istniejących wyłomów, strzał, rozdarć żagla, złamanych stanowisk, wygiętego taranu i tonięcia (`ShipFate`).
+Data: 2026-11-10. Najpierw pionowy wycinek z polecenia („jedna budowla i jeden okręt kompletnie przed produkcją masową”), potem rozszerzenie na port:
+- **budowla wycinka:** Szkoła Mędrców (`PortBuildings.School.cs`, `Destruction/*`);
+- **okręt wycinka:** złamanie masztu na każdej klasie z masztem (`ShipVisual.Mast.cs`), obok istniejących wyłomów, strzał, rozdarć żagla, złamanych stanowisk, wygiętego taranu i tonięcia (`ShipFate`);
+- **produkcja (po wycinku):** te same zasady dla magazynu i jego domu, czterech domów miasta, warsztatu i murów z wieżami (`PortBuildings.Breakables.cs`). Dok nadal pada w całości w swoją dawną ruinę.
 
 Źródła i poziom pewności: [HistoricalConstraints.md](HistoricalConstraints.md#zniszczenia-budowli-i-okrętów-pionowy-wycinek-destructionmd) i [ReferenceRegister.json](ReferenceRegister.json) (`R-DRUM-JOINTS`, `R-OLYMPIA-QUAKE`, `R-MUDBRICK-DECAY`, `R-SAILS-ASHORE`, `R-KYRENIA-MASTSTEP`). Stan zadań: [ArtProductionManifest.json](ArtProductionManifest.json) (`Tools/visual/production_manifest.py`).
 
@@ -28,6 +29,16 @@ Data: 2026-11-10. Pionowy wycinek z polecenia „jedna budowla i jeden okręt ko
 
 Ta sama wartość kadłuba daje zawsze ten sam etap i tę samą liczbę awarii własnych, niezależnie od liczby strzałów (test F).
 
+### Rozkład uszkodzeń osady na budowle (`PortBuildings.ShareOut`)
+
+Osada ma jeden kadłub, a stoi w niej do dziewięciu budowli. Każda dostaje własny poziom uszkodzenia:
+- **bez zapisanych trafień:** każda ma poziom osady;
+- **z trafieniami:** każde trafienie liczy się dla najbliższej budowli (do 12 m). Udział budowli `s` to jej część trafień, wygładzona o 0,3 / n. Poziom to `d · (1 + 0,75 · (n · s − 1))`, przycięty do 0–1. Gdzie padały pociski, budowla pęka mocniej, gdzie indziej słabiej (testy O, A).
+- **bez cofania:** poziom budowli nigdy nie maleje, chyba że kadłub osady rośnie (rozbudowa murów) albo port wstaje z ruin. Trafienia gdzie indziej nie podnoszą więc tego, co już leży (test P).
+- **całość:** aż do upadku osady żadna budowla nie przechodzi w ruinę; najwyżej częściowe zawalenie (9 awarii własnych).
+
+Przy upadku całego portu bryły w powietrzu dostaje najpierw Szkoła, potem miasto, warsztat i magazyn. Co przekracza budżet, od razu leży w obłoku pyłu.
+
 ## Model konstrukcyjny Szkoły
 
 | Elementy | Liczba | Materiał | Rola | Podparcie | Odłączenie | Połączenie |
@@ -43,7 +54,15 @@ Ta sama wartość kadłuba daje zawsze ten sam etap i tę samą liczbę awarii w
 | przęsła dachu | 2 × 4 | ceramika i drewno | dach | fryzy pod okapem i ściana pod spadkiem | zapadnięcie | dachówki na krokwiach |
 | frontony | 2 | kamień tynkowany | detal | fryzy krótkiego boku | zsunięcie | płyty tympanonu na gzymsie |
 
-- **Awarie własne** mogą mieć tylko: jeden „słaby” bęben na kolumnę (stały dla kolumny z ziarna), ściany i przęsła dachu (32 kandydatów). Reszta pada tylko razem z tym, na czym spoczywa (`StructureGraph.Cascade`). `Validate` pilnuje, że każdy element spoczywa na fundamencie.
+- **Pozostałe budowle portu** (`PortBuildings.Breakables`):
+
+  | Budowla | Elementy | Materiał i odłączenie |
+  |---|---|---|
+  | dom (magazyn, dom, domy miasta, chata przyczółka) | cokół; ściany frontu przy drzwiach i nad nimi, tył (1–2), szczyty z trójkątem; drzwi z ościeżnicą; dach 1–2 przęsła na stronę na ścianie pod okapem i szczycie | cegła suszona (osiadanie), w magazynie kamień (osiadanie w gruz i bloki); dachówki (zapadnięcie) |
+  | warsztat | sprzęt na ziemi (stały); 6 słupów; kamienny tylny mur; komin; dach 2 × 2 przęsła na słupach i murze | drewno (przewrócenie), kamień (osiadanie), dachówki |
+  | mury miasta | skała (stała); odcinki kurtyny po ok. 2,4 m z blankami; 6 wież; czapy wież | ciosy (osiadanie w gruz i bloki), czapy (zsunięcie i sterta dachówek) |
+
+- **Awarie własne** Szkoły mogą mieć tylko: jeden „słaby” bęben na kolumnę (stały dla kolumny z ziarna), ściany i przęsła dachu (32 kandydatów). W pozostałych budowlach awarie własne mają ściany, słupy, komin, odcinki muru, wieże i przęsła dachu. Reszta pada tylko razem z tym, na czym spoczywa (`StructureGraph.Cascade`). `Validate` pilnuje, że każdy element spoczywa na fundamencie.
 - **Kolejność:** najpierw element najbliżej trafień (odległość od środka elementu, do 1,5 m wyrównania z ziarna).
 - **Kierunek upadku:** na zewnątrz budowli (do środka stoi sala, w bok sąsiednie kolumny), odchylony do 30° w stronę, w którą leciał najbliższy pocisk, plus do 10° z ziarna. Bloki i bębny dziedziczą kierunek po tym, co je niosło.
 
@@ -136,6 +155,15 @@ Ta sama wartość kadłuba daje zawsze ten sam etap i tę samą liczbę awarii w
 | K, woda | zrobione | `water_guard check` (76 części bez zmian) |
 | L, wydajność | częściowo | `Destruction_L_AFallStaysWithinItsBudgets`; pomiar w edytorze niżej; pomiar w buildzie nie wykonany |
 | M, wielka bitwa | zrobione dla budżetu | `Destruction_M_ManyPortsFallingAtOnceShareOneBudget` |
+| rozszerzenie na port | zrobione | `Destruction_N_HousesTheWorkshopAndTheWallBreakToo`, `Destruction_O_TheShotsDrawTheDamageToWhatTheyStruck`, `Destruction_P_ShotsElsewhereNeverPutBackWhatFell`, `Destruction_Q_InSightTheBuildingsAreTakenApartAFewAFrame` |
+
+## Pomiary całego portu (edytor, informacyjnie)
+
+`BuildingPreview.MeasurePortDamage`, 5 przebiegów, wszystkie budowle portu macierzystego:
+- **modele elementów:** w zasięgu wzroku powstają po jednym na klatkę (`PortBuildings.ModelsPerFrame` = 1). Najpierw budowle już uszkodzone, potem reszta z wyprzedzeniem, od pierwszego trafienia. Pierwsze uszkodzenie kosztuje więc 3,5 ms zamiast 55 ms naraz. Port pierwszy raz widziany albo po wczytaniu buduje wszystko od razu.
+- **start upadku całego portu:** 26,7 ms, gdy modele są gotowe; 57,8 ms, gdy port pada tuż po pierwszym trafieniu i modele budują się dopiero wtedy.
+- **klatka upadku:** mediana 0,06 ms, najgorsza 4,9 ms; budżet 112 brył w powietrzu wykorzystany.
+- **ruina portu w spoczynku:** 27 rendererów (9 budowli × 3), ok. 51 tys. trójkątów.
 
 ## Pomiary (edytor, procesor tego laptopa, informacyjnie)
 
@@ -150,8 +178,9 @@ Koszt GPU i build Windows nie zmierzone. Edytor nie potwierdza wydajności na do
 
 ## Ograniczenia i dalsza praca
 
-- **Zasięg wycinka:** element po elemencie pęka tylko Szkoła. Domy, magazyn, warsztat, mury i dok nadal osiadają w swoje ruiny jak wcześniej. Mają te same rodzaje elementów (ściany z cegły na cokole, przęsła dachu), więc rozszerzenie to kolejny krok.
+- **Zasięg:** element po elemencie pękają Szkoła, magazyn z domem, domy miasta, warsztat i mury z wieżami. Dok (kozły) nadal pada w całości w swoją dawną ruinę. Budowle przyczółka (magazyn, chata) mają ten sam model domu.
+- **Start upadku całego portu** to jednorazowy skok 27–58 ms w chwili zniszczenia osady. Do rozłożenia na klatki, jeśli pomiar w buildzie to potwierdzi.
 - **Wygląd:** cegła suszona to odcień tekstury tynku, nie własna tekstura. Rysy są płaskie, nie rzeźbione.
-- **Hitch 14,6 ms** przy pierwszym uszkodzeniu: można budować elementy zawczasu lub rozkładać budowę na kilka klatek.
+- **Model Szkoły** powstaje w jednej klatce (ok. 15 ms): budowle powstają po jednej na klatkę, ale samej Szkoły budowa nie jest jeszcze dzielona.
 - **Okręt:** brak łamanych wioseł i desek na wodzie; do tego decyzja o zwijaniu albo zostawianiu żagla w bitwie (R-SAILS-ASHORE).
 - **Podgląd okrętów** jest bez powierzchni wody: część masztu pod linią wody jest tam widoczna, w grze zakrywa ją morze.

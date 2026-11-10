@@ -27,11 +27,14 @@ namespace MorzaBogow.Tests
             battle = host.AddComponent<BattleController>();
             battle.Paused = true;
             path = Path.Combine(Application.temporaryCachePath, "destruction-test.mbsave");
+            // Every building taken apart in one update, so the test can look at all of them at once.
+            PortBuildings.ModelsPerFrame = int.MaxValue;
         }
 
         [TearDown]
         public void TearDown()
         {
+            PortBuildings.ModelsPerFrame = 1;
             Object.DestroyImmediate(host);
             foreach (var item in Object.FindObjectsByType<ShipVisual>(FindObjectsInactive.Include, FindObjectsSortMode.None)) Object.DestroyImmediate(item.gameObject);
             foreach (var file in new[] { path, ShipLookBook.PathBeside(path), DestructionBook.PathBeside(path), path + ".bak", ShipLookBook.PathBeside(path) + ".bak", DestructionBook.PathBeside(path) + ".bak" })
@@ -84,17 +87,18 @@ namespace MorzaBogow.Tests
             Assert.That(struck.Category, Is.EqualTo("bolt"));
             Assert.That(new Vector2(struck.DirX, struck.DirZ).magnitude, Is.EqualTo(1f).Within(1e-3f), "with the way they flew");
 
-            // Far gone (as more shots would take it), the School shows it: elements fail and come to rest.
-            home.Hull = home.MaxHull * 0.3;
+            // Far gone (as more shots would take it), the port shows it: elements fail where the bolts struck, and come to rest.
+            home.Hull = home.MaxHull * 0.1;
             battle.RunTicks(0);
             // The fall in game time, the game itself held.
             for (var i = 0; i < 20 && buildings.Collapsing; i++) buildings.Update(home, false, 0.25f);
-            var view = buildings.DamageOf(PortBuilding.SageSchool);
-            Assert.That(view, Is.Not.Null);
-            Assert.That(view.Broken, Is.True);
-            Assert.That(view.Stage, Is.EqualTo(DestructionStage.PartialCollapse).Or.EqualTo(DestructionStage.LocalFailure));
-            var failed = view.Graph.Elements.Where(e => view.IsFailed(e.Index)).Select(e => e.Id).OrderBy(id => id).ToList();
+            var kinds = new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.SageSchool };
+            string Fallen(PortBuildings port) => string.Join(";", kinds.SelectMany(kind => port.DamagesOf(kind))
+                .Select(view => view.Frame.name + ":" + string.Join(",", view.Graph.Elements.Where(e => view.IsFailed(e.Index)).Select(e => e.Id).OrderBy(id => id))));
+            Assert.That(kinds.SelectMany(kind => buildings.DamagesOf(kind)).Any(view => view.Broken), Is.True, "the port's buildings break");
+            var failed = Fallen(buildings);
             var own = buildings.Record.Failures.Select(f => f.Element).ToList();
+            Assert.That(own, Is.Not.Empty);
 
             battle.QuickSave(path);
             Assert.That(File.Exists(DestructionBook.PathBeside(path)), Is.True, "the record is written beside the save");
@@ -103,11 +107,9 @@ namespace MorzaBogow.Tests
             battle.RunTicks(0);
             var loaded = battle.PortBuildings[Home.Id];
             Assert.That(loaded, Is.Not.SameAs(buildings), "the load built the port anew");
-            var again = loaded.DamageOf(PortBuilding.SageSchool);
-            Assert.That(again, Is.Not.Null);
-            Assert.That(again.Busy, Is.False, "nothing falls again after a load");
+            Assert.That(loaded.Collapsing, Is.False, "nothing falls again after a load");
             Assert.That(loaded.Record.Failures.Select(f => f.Element), Is.EqualTo(own), "the same failures, in the same order");
-            Assert.That(again.Graph.Elements.Where(e => again.IsFailed(e.Index)).Select(e => e.Id).OrderBy(id => id), Is.EqualTo(failed));
+            Assert.That(Fallen(loaded), Is.EqualTo(failed), "the same elements lie fallen in every building");
         }
     }
 }

@@ -175,7 +175,8 @@ ENV = [("veg.olive.cultivated", "keep"), ("veg.olive.wild", "keep"), ("veg.pine.
        ("coast.limestone.notch", "keep"), ("coast.marble-schist", "add-missing"), ("coast.beachrock", "keep"),
        ("coast.pebble-beach", "add-missing"), ("coast.sand-cove", "add-missing"), ("coast.terra-rossa", "add-missing"),
        ("ore.laurion.outcrop", "geometry-fix"), ("ore.face.E1", "keep"), ("ore.face.E5", "add-missing"), ("ore.heap", "material"),
-       ("ore.washery.E5", "add-missing"), ("yard.slipway.E1", "keep"), ("yard.tools", "material"), ("yard.shed.zea2", "add-missing")]
+       ("ore.washery.E5", "add-missing"), ("ore.dust", "add-missing"), ("yard.slipway.E1", "keep"), ("yard.tools", "material"),
+       ("yard.shed.zea2", "add-missing")]
 for env_id, scope in ENV:
     early = env_id.endswith(".E1")
     entry(env_id, "environment manifest item (EnvironmentAssetManifest.json)", "see EnvironmentAssetManifest.json",
@@ -225,9 +226,12 @@ STATUS = {
                        "by column and stands as one mesh (PortMasonryTests); the destruction slice's building: 150 elements "
                        "(drums, capitals, entablature spans, brick walls, roof bays, pediments) that fail with the settlement's hull",
     "building.store": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; "
-                      "yard of pithoi, amphorae and one-armed anchors with lead-filled stocks",
-    "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE)",
-    "building.workshop": "in progress: tiled roof with antefixes",
+                      "yard of pithoi, amphorae and one-armed anchors with lead-filled stocks; both break element by element "
+                      "(walls by the door and over it, gable ends, door, roof bays; the store's stone into rubble and blocks)",
+    "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE); "
+                     "its four houses and the wall break element by element (curtain stretches, towers, their caps)",
+    "building.workshop": "in progress: tiled roof with antefixes; breaks element by element (six posts go over, the back wall and the "
+                         "chimney slump, the roof bays slide off)",
     "prop.pithos": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
     "prop.anchor": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview "
                    "(an admiralty anchor) rejected",
@@ -239,13 +243,14 @@ STATUS = {
                            "second level of detail; no wind sway",
     "veg.cypress.columnar": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; "
                             "no wind sway",
-    "building.ruin": "the School's ruin is its own fallen elements (column stumps, rows of drums, entablature blocks, tile heaps, "
-                     "brick mounds); the other buildings still sink into their seeded ruins",
-    "fx.building-destruction": "vertical slice done for the School (docs/art/DESTRUCTION.md): stages from the settlement's hull, "
-                               "failures where the shots struck, support graph, columns topple into rows of drums, blocks drop, "
-                               "brick slumps, roof bays break into tile heaps; pooled pieces within budgets, one rubble mesh at "
-                               "rest; kept beside a quick save (BuildingDestructionTests 11/11, DestructionPresentationTests 1/1); "
-                               "the other buildings: the old sinking fall",
+    "building.ruin": "a port's ruin is its buildings' own fallen elements (column stumps, rows of drums, entablature blocks, tile "
+                     "heaps, brick mounds, wall and tower stumps in ashlar rubble); only the dock still sinks into its seeded ruin",
+    "fx.building-destruction": "done for the School (vertical slice) and every building of a port but the dock "
+                               "(docs/art/DESTRUCTION.md): stages from the settlement's hull, shared out to the buildings by where "
+                               "the shots fell and never put back but by a rising hull; support graphs; columns and posts topple, "
+                               "blocks drop, brick and stone slump, roof bays break into tile heaps; pooled pieces within budgets, "
+                               "the School first; buildings taken apart a frame at a time; kept beside a quick save "
+                               "(BuildingDestructionTests 15/15, DestructionPresentationTests 1/1)",
     "fx.ship-damage": "vertical slice done for the mast (docs/art/DESTRUCTION.md): below 40% of the hull it snaps above the deck "
                       "and goes over the listing side with yard and sail, two lines hold it alongside, splinters and a water "
                       "column (ShipDestructionTests 4/4); oars and planks not yet broken afloat",

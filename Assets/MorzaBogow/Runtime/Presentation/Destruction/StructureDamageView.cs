@@ -180,7 +180,7 @@ namespace MorzaBogow.Presentation
         /// Shows the structure at the damage given (DamagePlan.Damage of the game's hull), fallen or not. Animate: the
         /// failures new since the last call are seen to fall; otherwise they lie where they would have come to rest.
         /// </summary>
-        public void Apply(float damageNow, bool fallenNow, bool animate)
+        public void Apply(float damageNow, bool fallenNow, bool animate, bool mayMend = true)
         {
             if (record == null) record = new DestructionRecord();
             if (applied && Mathf.Approximately(damageNow, damage) && fallenNow == fallen) return;
@@ -206,7 +206,7 @@ namespace MorzaBogow.Presentation
                 if (entry.Element.StartsWith(prefix)) mine.Add(graph.IndexOf(entry.Element.Substring(prefix.Length)));
 
             // A hull raised again puts back the last to fail first.
-            while (mine.Count > wanted)
+            while (mayMend && mine.Count > wanted)
             {
                 var last = mine[mine.Count - 1];
                 mine.RemoveAt(mine.Count - 1);
@@ -261,7 +261,7 @@ namespace MorzaBogow.Presentation
             FailedCount = 0;
             for (var i = 0; i < graph.Count; i++) if (failed[i]) FailedCount++;
             Broken = FailedCount > 0;
-            var scarred = UpdateScars();
+            var scarred = UpdateScars(mayMend);
             Stage = DamagePlan.StageOf(damage, fallen, bodies.Count == 0);
             // Most shots change the hull and nothing that shows: the meshes are rebuilt only when an element or a scar
             // comes or goes.
@@ -750,12 +750,12 @@ namespace MorzaBogow.Presentation
         // ---------- Scars ----------
 
         /// <summary>Adds or takes away scars to the number the damage gives; true if the scars shown changed.</summary>
-        bool UpdateScars()
+        bool UpdateScars(bool mayMend)
         {
             var wanted = fallen ? DamagePlan.MaxScars : DamagePlan.Scars(damage);
             var mine = record.Scars.FindAll(scar => scar.Element.StartsWith(prefix));
             var changed = false;
-            while (mine.Count > wanted)
+            while (mayMend && mine.Count > wanted)
             {
                 record.Scars.Remove(mine[mine.Count - 1]);
                 mine.RemoveAt(mine.Count - 1);
@@ -796,7 +796,7 @@ namespace MorzaBogow.Presentation
             var near = float.MaxValue;
             foreach (var element in graph.Elements)
             {
-                if (failed[element.Index] || element.Role == ElementRole.Decor) continue;
+                if (failed[element.Index] || element.Role == ElementRole.Decor || shapes[element.Index].Whole == null) continue;
                 var d = element.Box.SqrDistance(at) + 0.3f * DestructionHash.Unit(hash, 10 + element.Index % 50);
                 if (d < near) { near = d; best = element.Index; }
             }

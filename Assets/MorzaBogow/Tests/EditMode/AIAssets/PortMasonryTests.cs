@@ -77,7 +77,8 @@ namespace MorzaBogow.Tests
             var settlement = Town();
             var buildings = Port(settlement);
             var school = buildings.Root.Find("SageSchool");
-            var piece = buildings.Root.Find("Store/Store");
+            // The dock still falls as one piece (the other buildings break element by element: BuildingDestructionTests).
+            var piece = buildings.Root.Find("Dock/Shear legs");
             var standing = piece.localPosition;
 
             buildings.Update(settlement, true, 0f);
@@ -93,7 +94,7 @@ namespace MorzaBogow.Tests
             Assert.That(piece.localPosition, Is.EqualTo(standing), "a pause holds the fall");
 
             buildings.Update(settlement, true, PortBuildings.CollapseSeconds * 0.5f);
-            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the store's walls sink into their rubble");
+            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the dock's shear legs sink as they fall");
             Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.True, "its first columns lie at rest: the ruin shows");
 
             buildings.Update(settlement, true, PortBuildings.CollapseSeconds);

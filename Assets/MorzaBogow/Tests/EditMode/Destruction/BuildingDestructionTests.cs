@@ -24,15 +24,21 @@ namespace MorzaBogow.Tests
         {
             maxBodies = StructureDamageView.MaxBodies;
             maxPerStructure = StructureDamageView.MaxBodiesPerStructure;
+            // The tests look at every building after one update; in the game they are taken apart a few a frame.
+            PortBuildings.ModelsPerFrame = int.MaxValue;
         }
 
         [TearDown]
         public void Clear()
         {
-            foreach (var port in ports) port.DamageOf(PortBuilding.SageSchool)?.Forget();
+            // In edit mode no OnDestroy runs: every view's pieces in the air leave the budget here.
+            foreach (var port in ports)
+            foreach (PortBuilding kind in System.Enum.GetValues(typeof(PortBuilding)))
+            foreach (var view in port.DamagesOf(kind)) view.Forget();
             ports.Clear();
             StructureDamageView.MaxBodies = maxBodies;
             StructureDamageView.MaxBodiesPerStructure = maxPerStructure;
+            PortBuildings.ModelsPerFrame = 1;
             foreach (var land in lands)
             {
                 if (land == null) continue;
@@ -86,8 +92,12 @@ namespace MorzaBogow.Tests
         static List<StructureElement> OwnFailures(PortBuildings buildings)
         {
             var view = buildings.DamageOf(PortBuilding.SageSchool);
-            return buildings.Record.Failures.Select(f => view.Graph[view.Graph.IndexOf(f.Element.Substring("school/".Length))]).ToList();
+            return buildings.Record.Failures.Where(f => f.Element.StartsWith("school/"))
+                .Select(f => view.Graph[view.Graph.IndexOf(f.Element.Substring("school/".Length))]).ToList();
         }
+
+        /// <summary>How many elements failed in their own right in the pieces whose record prefix starts so (one building's).</summary>
+        static int OwnFailuresOf(PortBuildings buildings, string prefix) => buildings.Record.Failures.Count(f => f.Element.StartsWith(prefix));
 
         static HashSet<string> FailedIds(StructureDamageView view) =>
             new HashSet<string>(view.Graph.Elements.Where(element => view.IsFailed(element.Index)).Select(element => element.Id));
@@ -103,11 +113,11 @@ namespace MorzaBogow.Tests
 
             var view = buildings.DamageOf(PortBuilding.SageSchool);
             Assert.That(view, Is.Not.Null, "damaged, the School is drawn in its elements");
-            Assert.That(view.Stage, Is.EqualTo(DestructionStage.LocalFailure));
             var failed = OwnFailures(buildings);
-            Assert.That(failed.Count, Is.InRange(2, 3), "a local failure: two or three elements of their own");
+            Assert.That(failed.Count, Is.GreaterThanOrEqualTo(2), "the shots fell on the School: its elements fail");
             foreach (var element in failed)
                 Assert.That(element.Box.center.x, Is.GreaterThan(0f), $"{element.Id} failed on the side the shots struck, the harbour's");
+            Assert.That(OwnFailuresOf(buildings, "Store."), Is.LessThan(failed.Count), "the store, which no shot struck, breaks less");
             Assert.That(view.Graph.Elements.Count(e => view.IsFailed(e.Index)), Is.GreaterThan(failed.Count), "and what rested on them came down too");
             // The record keeps the shots: where, from which way, with what.
             var events = buildings.Record.Events;
@@ -257,22 +267,22 @@ namespace MorzaBogow.Tests
             var va = a.DamageOf(PortBuilding.SageSchool);
             var vb = b.DamageOf(PortBuilding.SageSchool);
             Assert.That(va.Stage, Is.EqualTo(vb.Stage));
-            Assert.That(OwnFailures(a).Count, Is.EqualTo(OwnFailures(b).Count).And.EqualTo(4));
+            Assert.That(OwnFailures(a).Count, Is.EqualTo(OwnFailures(b).Count), "the same hull and the same places struck");
             Assert.That(arrows.Hull, Is.EqualTo(hull), "showing the damage takes nothing off the hull");
         }
 
         [Test]
         public void Destruction_G_RaisedWallsPutBackTheLastToFallFirst()
         {
+            // No shots noted: every building takes the settlement's own share, so the School's failures follow the hull.
             var settlement = Town();
             var buildings = Port(settlement);
-            ShellFromTheHarbour(buildings, settlement, 5);
             Damage(settlement, 0.35f);
             buildings.Update(settlement, false, 0f);
             Settle(buildings, settlement);
             var view = buildings.DamageOf(PortBuilding.SageSchool);
             var first = buildings.Record.Failures.Select(f => f.Element).ToList();
-            Assert.That(first.Count, Is.EqualTo(1));
+            Assert.That(OwnFailures(buildings).Count, Is.EqualTo(DamagePlan.Failures(0.35f, false, 32)), "one of its own at 35% lost");
 
             Damage(settlement, 0.85f);
             buildings.Update(settlement, false, 0f);
@@ -334,7 +344,7 @@ namespace MorzaBogow.Tests
             var fresh = new Settlement { Id = 6, HasWorkshop = true, IsTown = true, HasSageSchool = true, HasDock = true, Hull = settlement.Hull };
             var plainPort = Port(fresh);
             Assert.That(plainPort.DamageOf(PortBuilding.SageSchool).Stage, Is.EqualTo(view.Stage));
-            Assert.That(OwnFailures(plainPort).Count, Is.EqualTo(OwnFailures(buildings).Count));
+            Assert.That(OwnFailures(plainPort).Count, Is.EqualTo(DamagePlan.Failures(0.75f, false, 32)), "with no shots noted, the hull's own share");
         }
 
         [Test]
@@ -427,6 +437,117 @@ namespace MorzaBogow.Tests
             Assert.That(view.Broken, Is.True);
             Assert.That(view.Busy, Is.False, "what fell out of sight is not seen falling later");
             Assert.That(buildings.Collapsing, Is.False);
+        }
+
+        [Test]
+        public void Destruction_N_HousesTheWorkshopAndTheWallBreakToo()
+        {
+            var settlement = Town();
+            var buildings = Port(settlement);
+            Assert.That(buildings.BreakablePieces(PortBuilding.Store), Is.EqualTo(2), "the store and its house");
+            Assert.That(buildings.BreakablePieces(PortBuilding.Town), Is.EqualTo(5), "four houses and the wall");
+            Assert.That(buildings.BreakablePieces(PortBuilding.Workshop), Is.EqualTo(1));
+            Assert.That(buildings.BreakablePieces(PortBuilding.Dock), Is.Zero, "the dock still falls as one piece");
+            Damage(settlement, 0.7f);
+            buildings.Update(settlement, false, 0f);
+            Settle(buildings, settlement);
+            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool })
+            {
+                var views = buildings.DamagesOf(kind);
+                Assert.That(views.Count, Is.EqualTo(buildings.BreakablePieces(kind)), $"{kind}: every piece shows the damage");
+                foreach (var view in views)
+                {
+                    Assert.That(view.Graph.Validate(), Is.Empty, $"{view.Frame.name}: everything rests on its foundation");
+                    Assert.That(view.Broken, Is.True, $"{view.Frame.name}: at 70% lost its elements fail");
+                }
+            }
+            // Each by its own material and construction.
+            var store = buildings.DamagesOf(PortBuilding.Store)[0].Graph;
+            Assert.That(store.Elements.Where(e => e.Role == ElementRole.Wall).All(e => e.Material == BuildMaterial.Stone), Is.True, "the store is of stone");
+            var house = buildings.DamagesOf(PortBuilding.Store)[1].Graph;
+            Assert.That(house.Elements.Where(e => e.Role == ElementRole.Wall).All(e => e.Material == BuildMaterial.Mudbrick && e.Detach == DetachMethod.Crumble), Is.True,
+                "the house is of brick, which slumps");
+            Assert.That(house.Elements.Count(e => e.Role == ElementRole.Roof), Is.GreaterThanOrEqualTo(2));
+            var shed = buildings.DamagesOf(PortBuilding.Workshop)[0].Graph;
+            Assert.That(shed.Elements.Count(e => e.Material == BuildMaterial.Timber && e.Detach == DetachMethod.Topple), Is.EqualTo(6), "six posts that go over");
+            var wall = buildings.DamagesOf(PortBuilding.Town).Single(v => v.Frame.name.Contains("Wall")).Graph;
+            Assert.That(wall.Elements.Count(e => e.Id.StartsWith("tower.") && !e.Id.EndsWith(".roof")), Is.EqualTo(6));
+            Assert.That(wall.Elements.Count(e => e.Id.StartsWith("wall.")), Is.GreaterThan(15), "the curtain in stretches");
+            Assert.That(wall.Elements.Where(e => e.Id.EndsWith(".roof")).All(e => e.Supports.Length == 1), Is.True, "a tower's cap rests on its tower");
+
+            // Brought down whole, every building lies in the ruin of its own pieces.
+            buildings.Update(settlement, true, 0f);
+            Settle(buildings, settlement, true);
+            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool })
+            {
+                Assert.That(buildings.ShowsRuin(kind), Is.True, $"{kind} lies in its ruin");
+                Assert.That(buildings.Root.Find(kind.ToString()).gameObject.activeSelf, Is.False, $"{kind}: what stood is gone");
+                foreach (var view in buildings.DamagesOf(kind))
+                    Assert.That(view.SettledPieces, Is.EqualTo(view.FailedCount), $"{view.Frame.name}: all at rest");
+            }
+            Assert.That(buildings.ShowsRuin(PortBuilding.Dock), Is.True, "the dock in its old ruin");
+        }
+
+        [Test]
+        public void Destruction_O_TheShotsDrawTheDamageToWhatTheyStruck()
+        {
+            var settlement = Town();
+            var buildings = Port(settlement);
+            ShellFromTheHarbour(buildings, settlement, 8);
+            Damage(settlement, 0.3f);
+            buildings.Update(settlement, false, 0f);
+            Settle(buildings, settlement);
+            var school = OwnFailures(buildings).Count;
+            Assert.That(school, Is.GreaterThan(DamagePlan.Failures(0.3f, false, 32)), "more than its share where the shots fell");
+            foreach (var prefix in new[] { "Store.", "Workshop.", "Town." })
+                Assert.That(OwnFailuresOf(buildings, prefix), Is.LessThan(school), $"{prefix} breaks less than the School the shots struck");
+        }
+
+        [Test]
+        public void Destruction_Q_InSightTheBuildingsAreTakenApartAFewAFrame()
+        {
+            PortBuildings.ModelsPerFrame = 1;
+            var settlement = Town();
+            var buildings = Port(settlement);
+            ShellFromTheHarbour(buildings, settlement, 6);
+            Damage(settlement, 0.05f);
+            int Made() => System.Enum.GetValues(typeof(PortBuilding)).Cast<PortBuilding>().Sum(kind => buildings.DamagesOf(kind).Count);
+            buildings.Update(settlement, false, 0f);
+            Assert.That(Made(), Is.EqualTo(1), "one building a frame, ahead of need");
+            Assert.That(buildings.DamageOf(PortBuilding.SageSchool), Is.Not.Null, "the one the shots struck, which shows damage first, comes first");
+            for (var i = 0; i < 12; i++) buildings.Update(settlement, false, 0f);
+            Assert.That(Made(), Is.EqualTo(9), "within a few frames every building is ready to break");
+            // A port first seen (or seen again) is taken apart at once.
+            var other = Town(6);
+            var seen = Port(other);
+            Damage(other, 0.5f);
+            seen.Unseen();
+            seen.Update(other, false, 0f);
+            Assert.That(System.Enum.GetValues(typeof(PortBuilding)).Cast<PortBuilding>().Sum(kind => seen.DamagesOf(kind).Count), Is.EqualTo(9));
+        }
+
+        [Test]
+        public void Destruction_P_ShotsElsewhereNeverPutBackWhatFell()
+        {
+            var settlement = Town();
+            var buildings = Port(settlement);
+            ShellFromTheHarbour(buildings, settlement, 8);
+            Damage(settlement, 0.3f);
+            buildings.Update(settlement, false, 0f);
+            Settle(buildings, settlement);
+            var fallen = FailedIds(buildings.DamageOf(PortBuilding.SageSchool));
+            Assert.That(fallen, Is.Not.Empty);
+            // Now the shots fall on the store: its share grows; the School's would shrink, but what fell stays down.
+            var store = buildings.Footprint(PortBuilding.Store);
+            for (var i = 0; i < 30; i++)
+            {
+                var at = buildings.Root.TransformPoint(new Vector3(store.center.x, 2f, store.center.z + (i % 5 - 2) * 0.8f));
+                buildings.Struck(settlement, at, at + new Vector3(80f, 0f, 0f), WeaponType.StoneCatapult, 300 + i, false);
+            }
+            Damage(settlement, 0.32f);
+            buildings.Update(settlement, false, 0f);
+            Settle(buildings, settlement);
+            Assert.That(fallen.IsSubsetOf(FailedIds(buildings.DamageOf(PortBuilding.SageSchool))), Is.True, "only a rising hull puts anything back");
         }
     }
 }

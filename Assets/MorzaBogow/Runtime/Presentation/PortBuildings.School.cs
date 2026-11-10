@@ -18,9 +18,8 @@ namespace MorzaBogow.Presentation
 
         Piece schoolPiece;
         GreekMesh schoolCrepis;
-        StructureDamageView schoolDamage;
         DestructionRecord record;
-        bool continuous = true, schoolStood, schoolHidden;
+        bool continuous = true;
         readonly Dictionary<GreekMaterial, ParticleSystem> chips = new Dictionary<GreekMaterial, ParticleSystem>();
         Mesh chipMesh;
 
@@ -34,99 +33,15 @@ namespace MorzaBogow.Presentation
             set
             {
                 record = value;
-                if (schoolDamage != null) schoolDamage.Record = Record;
+                foreach (var item in breakables) if (item.View != null) item.View.Record = Record;
             }
         }
 
-        /// <summary>The view of a building's damage: the School's, once it has been damaged; none for the rest yet.</summary>
-        public StructureDamageView DamageOf(PortBuilding kind) => kind == PortBuilding.SageSchool ? schoolDamage : null;
+        /// <summary>The view of a building's damage, its first piece's (the School's only one), once it has been damaged.</summary>
+        public StructureDamageView DamageOf(PortBuilding kind) => breakables.Find(item => item.Kind == kind && item.View != null)?.View;
 
         /// <summary>The settlement went out of sight: what changes before it is seen again is shown at rest, not falling.</summary>
         public void Unseen() => continuous = false;
-
-        // ---------- Following the hull ----------
-
-        void UpdateDamage(Settlement settlement, bool ruined, float delta)
-        {
-            var stands = !ruined && settlement.HasSageSchool && Rising != PortBuilding.SageSchool && schoolPiece != null;
-            if (stands)
-            {
-                var damage = DamagePlan.Damage(settlement.Hull, settlement.MaxHull);
-                if (schoolDamage != null || damage >= DamagePlan.SurfaceFrom)
-                {
-                    EnsureSchoolDamage();
-                    // Seen to fall only when it stood in sight a moment ago.
-                    schoolDamage.Apply(damage, false, continuous && schoolStood);
-                }
-            }
-            schoolStood = stands;
-            continuous = true;
-            if (schoolDamage == null) return;
-            var quiet = schoolDamage.Animate(delta);
-            if (Ruined && quiet && structures.TryGetValue(PortBuilding.SageSchool, out var item) && item.Root.activeSelf && schoolDamage.Broken)
-                // The School has come down: only its ruin is left.
-                item.Root.SetActive(false);
-            ShowSchoolBroken();
-        }
-
-        /// <summary>While elements of the School have failed, its one mesh, roof and crepis give way to the elements.</summary>
-        void ShowSchoolBroken()
-        {
-            var broken = schoolDamage != null && schoolDamage.Broken;
-            var piece = schoolPiece;
-            if (piece == null) return;
-            var crepis = piece.Body != null ? piece.Body.GetComponent<MeshRenderer>() : null;
-            if (broken)
-            {
-                if (piece.Whole != null && piece.Whole.gameObject.activeSelf) piece.Whole.gameObject.SetActive(false);
-                if (piece.Roof != null && piece.Roof.gameObject.activeSelf) piece.Roof.gameObject.SetActive(false);
-                if (crepis != null && crepis.enabled) crepis.enabled = false;
-                schoolHidden = true;
-                return;
-            }
-            if (!schoolHidden) return;
-            schoolHidden = false;
-            if (crepis != null) crepis.enabled = true;
-            if (!Ruined && Rising != PortBuilding.SageSchool) Stage(piece, 1f);
-        }
-
-        /// <summary>The settlement fell: the School comes down whole, seen falling if it stood in sight.</summary>
-        void RuinSchool(Structure item, bool animate)
-        {
-            EnsureSchoolDamage();
-            schoolDamage.Apply(1f, true, animate && continuous);
-            item.Root.SetActive(animate && continuous && schoolDamage.Busy);
-            ShowSchoolBroken();
-        }
-
-        void EnsureSchoolDamage()
-        {
-            if (schoolDamage != null) return;
-            var (graph, shapes) = BuildSchoolModel();
-            var host = new StructureHost
-            {
-                RestHeight = SchoolRestHeight,
-                Materials = slots =>
-                {
-                    var list = new Material[slots.Length];
-                    for (var i = 0; i < list.Length; i++) list[i] = MaterialFor(slots[i], materials);
-                    return list;
-                },
-                RubbleMaterials = slots =>
-                {
-                    var list = new Material[slots.Length];
-                    for (var i = 0; i < list.Length; i++) list[i] = RubbleMaterialFor(slots[i], materials);
-                    return list;
-                },
-                Owned = owned,
-            };
-            schoolDamage = new StructureDamageView(root, "SageSchool (damage)", graph, shapes, host, "school/", DestructionHash.Mix((uint)seed, 31));
-            // In the School's own frame: on its foot, its +X toward the harbour, as its piece stands.
-            schoolDamage.Frame.localPosition = schoolPiece.Root.localPosition;
-            schoolDamage.Frame.localRotation = schoolPiece.Root.localRotation;
-            host.Burst = (point, material, strength, hash) => Burst(schoolDamage.Frame, point, material, strength, hash);
-            schoolDamage.Record = Record;
-        }
 
         /// <summary>
         /// What has fallen is dulled by its own dust: whitewash and painted stone greyed and darker, the paint's blue and red
@@ -807,7 +722,8 @@ namespace MorzaBogow.Presentation
         /// What is left of a stretch of brick wall that slumped: plaster still on its faces up to a ragged top of bare
         /// brick, about the given height over its foot, the line of its top fixed by the hash.
         /// </summary>
-        static void JaggedWall(GreekShips.MeshBuilder b, Vector3 foot, bool alongZ, float length, float thickness, float level, uint hash)
+        static void JaggedWall(GreekShips.MeshBuilder b, Vector3 foot, bool alongZ, float length, float thickness, float level, uint hash,
+                               GreekMaterial faces = GreekMaterial.Paint, GreekMaterial top = GreekMaterial.Mudbrick)
         {
             var segments = Mathf.Max(4, Mathf.RoundToInt(length / 0.22f));
             var along = alongZ ? Vector3.forward : Vector3.right;
@@ -830,14 +746,14 @@ namespace MorzaBogow.Presentation
                     var c = b.Vertex(At(k + 1, side, 0f), new Vector2((k + 1) * length / segments, 0f));
                     var d = b.Vertex(At(k + 1, side, heights[k + 1]), new Vector2((k + 1) * length / segments, heights[k + 1]));
                     var e = b.Vertex(At(k, side, heights[k]), new Vector2(k * length / segments, heights[k]));
-                    b.Quad(GreekMaterial.Paint, a, c, d, e, across * side);
+                    b.Quad(faces, a, c, d, e, across * side);
                 }
                 // The broken top: bare brick.
                 var t0 = b.Vertex(At(k, -1f, heights[k]), new Vector2(k * 0.3f, 0f));
                 var t1 = b.Vertex(At(k + 1, -1f, heights[k + 1]), new Vector2((k + 1) * 0.3f, 0f));
                 var t2 = b.Vertex(At(k + 1, 1f, heights[k + 1]), new Vector2((k + 1) * 0.3f, thickness));
                 var t3 = b.Vertex(At(k, 1f, heights[k]), new Vector2(k * 0.3f, thickness));
-                b.Quad(GreekMaterial.Mudbrick, t0, t1, t2, t3, Vector3.up);
+                b.Quad(top, t0, t1, t2, t3, Vector3.up);
             }
             foreach (var (k, facing) in new[] { (0, -1f), (segments, 1f) })
             {
@@ -845,7 +761,7 @@ namespace MorzaBogow.Presentation
                 var c = b.Vertex(At(k, 1f, 0f), new Vector2(thickness, 0f));
                 var d = b.Vertex(At(k, 1f, heights[k]), new Vector2(thickness, heights[k]));
                 var e = b.Vertex(At(k, -1f, heights[k]), new Vector2(0f, heights[k]));
-                b.Quad(GreekMaterial.Mudbrick, a, c, d, e, along * facing);
+                b.Quad(top, a, c, d, e, along * facing);
             }
         }
 
