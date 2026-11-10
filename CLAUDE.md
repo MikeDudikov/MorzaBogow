@@ -60,6 +60,7 @@ Decyzje wdrożeniowe oceniaj według GAME_VISION.md. Pierwszeństwo mają grywal
   - **Mało lądu.** Ląd poza złożami (las do wycinki, kopalnie srebra), portami i wolnymi brzegami to tylko kilka małych skał wapiennych.
   - **Klimat antycznej Grecji:** wapienne klify, sucha trawa, pinie, cyprysy, oliwki, turkusowe płycizny.
   - **Widoczność.** Ląd i drzewa nie mogą zasłaniać statków.
+  - **Faktura powierzchni** (decyzja użytkownika z 2026-11-10). W opisach tekstur i materiałów, czyli w promptach Meshy i potoku assetów, stosuj: "heavy surface imperfections, scratches, rust, dirt accumulation in crevices, oil stains, rough worn surface, photorealistic weathering".
 - **Mapa drogowa:** etapy 3c–9 w `docs/BALANS_I_SKALA.md`, w tym magia i świątynie, skarby i artefakty, druga cywilizacja i barbarzyńcy, potwory i czarownicy. Wszystko z własnymi nazwami i liczbami.
 
 ## Architektura
