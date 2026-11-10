@@ -63,6 +63,23 @@
       ]
     },
     {
+      "id": "dry_river_pebbles",
+      "name": "Dry River Pebbles (plaża żwirowa w zestawie środowiska)",
+      "status": "DOWNLOADED",
+      "license": "CC0 1.0 (Poly Haven)",
+      "url": "https://polyhaven.com/a/dry_river_pebbles",
+      "downloaded": "2026-11-10",
+      "directory": "Assets/Art/PolyHaven/Textures",
+      "textureResolution": "2K",
+      "textureFormat": "JPG",
+      "files": [
+        { "path": "Assets/Art/PolyHaven/Textures/dry_river_pebbles_ao_2k.jpg", "bytes": 2666455, "sha256": "f49ddfdccbd4f6b8901684ef5d960f0ef5786e8e07f6cdb8061c01b4a714539d" },
+        { "path": "Assets/Art/PolyHaven/Textures/dry_river_pebbles_diff_2k.jpg", "bytes": 3251744, "sha256": "f3d3b581bffc78be28b1eb4b73101bff574841944fb6867be901b3bc03d1bda7" },
+        { "path": "Assets/Art/PolyHaven/Textures/dry_river_pebbles_nor_gl_2k.jpg", "bytes": 4113113, "sha256": "d92c80789c6bfc07a5139832a1c4c26014bbb4754b579a1559b3e04efdfd8ad2" },
+        { "path": "Assets/Art/PolyHaven/Textures/dry_river_pebbles_rough_2k.jpg", "bytes": 2144156, "sha256": "f3f39740c59548607ddcfdb5fb0d817bab21e705b7d96ad7aaf1bee56c0d2a2f" }
+      ]
+    },
+    {
       "id": "ancient_ships_hdrp",
       "name": "Ancient Ships [HDRP]",
       "status": "NOT_PURCHASED",

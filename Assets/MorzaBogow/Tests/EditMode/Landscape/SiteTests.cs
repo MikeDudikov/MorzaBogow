@@ -30,6 +30,56 @@ namespace MorzaBogow.Tests
             Assert.That(made.Workings.bounds.size.y, Is.LessThan(2.5f));
         }
 
+        static float Off(Color a, Color b) => Mathf.Max(Mathf.Max(Mathf.Abs(a.r - b.r), Mathf.Abs(a.g - b.g)), Mathf.Max(Mathf.Abs(a.b - b.b), Mathf.Abs(a.a - b.a)));
+
+        [Test]
+        public void Ore_EachBlowThrowsDustAndChipsFromTheFaceWithoutTheGamesRandom()
+        {
+            var site = new GameObject("Silver site");
+            var spray = new Material(Shader.Find("HDRP/Unlit"));
+            spray.SetColor("_UnlitColor", new Color(0.95f, 0.97f, 1f, 0.75f));
+            try
+            {
+                var dust = new OreDust(site.transform, spray);
+                var dustMaterial = dust.Dust.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+                var chipMaterial = dust.Chips.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+                Assert.That(dustMaterial, Is.Not.SameAs(spray), "The sea's spray stays as it is...");
+                Assert.That(Off(spray.GetColor("_UnlitColor"), new Color(0.95f, 0.97f, 1f, 0.75f)), Is.LessThan(1e-4f));
+                Assert.That(Off(dustMaterial.GetColor("_UnlitColor"), OreDust.DustColour), Is.LessThan(1e-4f), "...the dust is pale stone, as its shader takes no particle colour...");
+                Assert.That(Off(chipMaterial.GetColor("_UnlitColor"), OreDust.ChipColour), Is.LessThan(1e-4f), "...and the chips grey.");
+                Assert.That(new OreDust(site.transform, spray).Dust.GetComponent<ParticleSystemRenderer>().sharedMaterial, Is.SameAs(dustMaterial), "One copy for every site.");
+
+                dust = new OreDust(site.transform, null);
+                var face = new Vector3(2f, 1f, 6.4f);
+                var state = UnityEngine.Random.state;
+                dust.Blow(face, Vector3.back);
+                dust.Blow(face, Vector3.back);
+                Assert.That(UnityEngine.Random.state, Is.EqualTo(state), "No random numbers of Unity, nor of the game.");
+                Assert.That(dust.Blows, Is.EqualTo(2));
+                Assert.That(dust.Dust.particleCount, Is.EqualTo(12), "A puff of dust at each blow...");
+                Assert.That(dust.Chips.particleCount, Is.EqualTo(10), "...and a few chips.");
+
+                var puffs = new ParticleSystem.Particle[dust.Dust.particleCount];
+                dust.Dust.GetParticles(puffs);
+                Assert.That(puffs.All(p => (p.position - face).magnitude < 0.5f), Is.True, "The dust rises from the face itself...");
+                Assert.That(puffs.All(p => p.velocity.y > 0f && p.velocity.z < 0f), Is.True, "...and drifts up and out toward the miner.");
+                var chips = new ParticleSystem.Particle[dust.Chips.particleCount];
+                dust.Chips.GetParticles(chips);
+                Assert.That(chips.All(p => p.startSize <= 0.08f + 1e-4f && p.velocity.z < 0f), Is.True, "Chips are small stones thrown back at him.");
+
+                var again = new OreDust(site.transform, null);
+                again.Blow(face, Vector3.back);
+                var first = new ParticleSystem.Particle[again.Dust.particleCount];
+                again.Dust.GetParticles(first);
+                Assert.That(first.Select(p => p.position), Is.EqualTo(puffs.Take(first.Length).Select(p => p.position)), "The same blow throws the same dust.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(site);
+                Object.DestroyImmediate(spray);
+            }
+        }
+
         [Test]
         public void Ore_OnlyTheGalenaIsMetal()
         {

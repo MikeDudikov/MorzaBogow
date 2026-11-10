@@ -424,6 +424,30 @@ namespace MorzaBogow.Presentation
         /// <summary>Size of the hand-sorted ore heap by the mine (0.35 nearly worked out to 1 full); 0 where there is none.</summary>
         public float SortedOreScale => sortedOre != null ? sortedOre.localScale.x : 0f;
 
+        Landscape.OreDust oreDust;
+
+        /// <summary>Share of a blow at which the pick meets the rock: it comes down between 0.3 and 0.5 (CrewPose, CutLine).</summary>
+        public const float PickImpact = 0.5f;
+
+        /// <summary>Blows struck at the face so far by every miner of this site (dust and chips flew at each).</summary>
+        public int OreBlows => oreDust?.Blows ?? 0;
+
+        /// <summary>
+        /// A miner at a work spot went from <paramref name="before"/> to <paramref name="after"/> blows this frame
+        /// (CrewVisual): each time his pick meets the rock in between, dust and chips fly from the face before him, where
+        /// he looks (1 m up, 1.2 m in). Silver only; presentation only, with no state of its own, so men sharing a spot
+        /// never mix their blows.
+        /// </summary>
+        public void Worked(int spot, float before, float after)
+        {
+            if (Kind != ResourceType.Silver || workSpots.Count == 0) return;
+            if (Mathf.Floor(after - PickImpact) <= Mathf.Floor(before - PickImpact)) return;
+            if (oreDust == null) oreDust = new Landscape.OreDust(modelRoot, CurrentMaterials?.Spray);
+            var at = WorkSpot(spot);
+            var face = at + modelRoot.TransformDirection(new Vector3(0f, 1f, 1.2f));
+            oreDust.Blow(face, (at - face).normalized);
+        }
+
         public void UpdateStock(long stock)
         {
             var fraction = startStock > 0 ? (double)stock / startStock : 0.0;

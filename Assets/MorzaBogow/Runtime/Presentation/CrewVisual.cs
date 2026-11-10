@@ -769,6 +769,7 @@ namespace MorzaBogow.Presentation
             figure.Face(spot + (site.Kind == ResourceType.Wood ? new Vector3(0f, 0f, 1.6f) : new Vector3(0f, 1f, 1.2f)));
             member.Timer += delta;
             figure.Strike(member.Timer / StrikeSeconds % 1f);
+            site.Worked(member.Spot, (member.Timer - delta) / StrikeSeconds, member.Timer / StrikeSeconds);
             if (site.Kind != ResourceType.Wood) return;
 
             site.Fell(member.Spot, member.Timer / (StrikeSeconds * StrikesPerTree) * 0.8f);

@@ -29,15 +29,22 @@ namespace MorzaBogow.Presentation.Landscape
         public sealed class Result
         {
             public Mesh Notch, Wet, Beachrock;
+
+            /// <summary>Pebble beaches along the gentle shores (Shingle): where they lie, the wet rock band gives way.</summary>
+            public Shingle.Result Shingle;
             public int Slabs;
         }
 
-        public static Result Build(Transform islet, float[] outline, float[] lift, uint seed, Material rock, Material wetRock, Material beachrock)
+        public static Result Build(Transform islet, float[] outline, float[] lift, uint seed, Material rock, Material wetRock, Material beachrock, Material pebbles = null)
         {
             var result = Make(outline, lift, seed);
             Attach(islet, "Notch", result.Notch, rock);
             Attach(islet, "Wet band", result.Wet, wetRock != null ? wetRock : rock);
             Attach(islet, "Beachrock", result.Beachrock, beachrock != null ? beachrock : rock);
+            // Shingle: the built CC0 pebbles, or the beachrock's sandy stone until they are built.
+            var shingle = pebbles != null ? pebbles : Landscape.Shingle.Pebbles != null ? Landscape.Shingle.Pebbles : beachrock != null ? beachrock : rock;
+            Attach(islet, "Shingle", result.Shingle.Dry, shingle);
+            Attach(islet, "Shingle (wet)", result.Shingle.Wet, LandscapeArt.Wet(shingle));
             return result;
         }
 
@@ -54,7 +61,8 @@ namespace MorzaBogow.Presentation.Landscape
         /// <summary>The meshes alone, in the islet's space (tests and previews).</summary>
         public static Result Make(float[] outline, float[] lift, uint seed)
         {
-            var result = new Result { Notch = Notch(outline, lift, seed), Wet = Wet(outline, lift) };
+            var shingle = Landscape.Shingle.Make(outline, lift, seed);
+            var result = new Result { Notch = Notch(outline, lift, seed), Wet = Wet(outline, lift, shingle), Shingle = shingle };
             result.Beachrock = Beachrock(outline, lift, seed, out result.Slabs);
             return result;
         }
@@ -115,7 +123,7 @@ namespace MorzaBogow.Presentation.Landscape
             return Finish("Notch", vertices, triangles);
         }
 
-        static Mesh Wet(float[] outline, float[] lift)
+        static Mesh Wet(float[] outline, float[] lift, Shingle.Result shingle)
         {
             var samples = outline.Length;
             var heights = new[] { -0.45f, -0.1f, 0.2f, WetTop };
@@ -134,6 +142,8 @@ namespace MorzaBogow.Presentation.Landscape
             var row = heights.Length;
             for (var i = 0; i < samples; i++)
             {
+                // Where shingle lies, its own wet part takes the swash.
+                if (shingle != null && shingle.Covers(i) && shingle.Covers((i + 1) % samples)) continue;
                 var a = i * row;
                 var b = (i + 1) % samples * row;
                 for (var k = 0; k + 1 < row; k++)

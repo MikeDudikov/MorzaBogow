@@ -88,6 +88,44 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Landscape_DustFliesWhenThePickMeetsTheRockOfSilverOnly()
+        {
+            yield return null;
+            var node = new ResourceNode { Id = 5, Type = ResourceType.Silver, X = 160, Y = 40, Stock = 1000, Capacity = 1000 };
+            var silver = ResourceSiteVisual.Create(node, null);
+            var wood = ResourceSiteVisual.Create(new ResourceNode { Id = 6, Type = ResourceType.Wood, X = -160, Y = 40, Stock = 1000, Capacity = 1000 }, null);
+            try
+            {
+                Assert.That(silver.WorkSpotCount, Is.GreaterThan(0), "The mine has its faces to work.");
+                silver.Worked(0, 0f, 0.4f);
+                Assert.That(silver.OreBlows, Is.Zero, "The pick is still coming down.");
+                silver.Worked(0, 0.4f, 0.6f);
+                Assert.That(silver.OreBlows, Is.EqualTo(1), "It meets the rock: one blow.");
+                silver.Worked(0, 0.6f, 1.3f);
+                silver.Worked(0, 1.3f, 1.3f);
+                Assert.That(silver.OreBlows, Is.EqualTo(1), "Raising it again, or a paused game, throws nothing.");
+                silver.Worked(1, 0.45f, 0.55f);
+                silver.Worked(2, 0.45f, 0.55f);
+                Assert.That(silver.OreBlows, Is.EqualTo(3), "Two men striking together: a blow each.");
+
+                var dust = silver.GetComponentsInChildren<ParticleSystem>().First(item => item.name == "Ore dust");
+                var puffs = new ParticleSystem.Particle[dust.particleCount];
+                dust.GetParticles(puffs);
+                var face = silver.WorkSpot(0) + new Vector3(0f, 1f, 1.2f);
+                Assert.That(Vector3.Distance(puffs[0].position, face), Is.LessThan(0.5f), "At the face before him, where he looks.");
+
+                wood.Worked(0, 0.4f, 0.6f);
+                Assert.That(wood.OreBlows, Is.Zero, "Axes in the forest throw no ore dust.");
+                Assert.That(node.Stock, Is.EqualTo(1000), "The picture never changes the stock.");
+            }
+            finally
+            {
+                Object.Destroy(silver.gameObject);
+                Object.Destroy(wood.gameObject);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas()
         {
             yield return null;

@@ -54,10 +54,16 @@ Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.jso
   - gaj poza kadrem kamery nic nie liczy;
   - z daleka ruszają się tylko pień i konary.
 - **Wybrzeże** (`CoastFeatures`): warga notchu w sektorach klifów, mokry pas oraz płyty beachrocku na łagodnych brzegach.
+- **Plaża żwirowa** (`Shingle`):
+  - odcinki na łagodnych brzegach, od 0,35 m pod wodą do 0,7 m nad nią, mokre i ciemne do 0,22 m, wyżej suche;
+  - pod żwirem mokry pas skały ustępuje;
+  - materiał z CC0 dry_river_pebbles (`ShingleArt`), wybielony ku jasnym otoczakom wapiennym, kafel 2 m;
+  - żadne przeczytane źródło nie opisuje plaż żwirowych epoki (raport 3.12), więc to spekulacja.
 - **Ruda srebra, typ Laurion, E1** (`OreOutcrop`):
   - po bokach wejścia do kopalni marmur pod łupkiem, z rdzawym kontaktem między nimi;
   - w kontakcie ziarna galenitu (jedyny metal) i biały cerusyt;
-  - płytkie wyrobiska oraz hałda sortowanej rudy, która maleje ze stanem złoża.
+  - płytkie wyrobiska oraz hałda sortowanej rudy, która maleje ze stanem złoża;
+  - przy każdym uderzeniu kilofa górnika obłok jasnego pyłu i kilka szarych odłamków (`OreDust`), w chwili, gdy kilof trafia w skałę.
 - **Stocznia plażowa E1** (`ShipyardProps`): obok istniejących pochylni bale i deski, szałas z dachem z trzciny, stojak z narzędziami z brązu, kocioł smoły i kamienne podpórki.
 
 **Uruchomienie pokazu:**
@@ -74,7 +80,7 @@ Builds/M1/MorzaBogow.exe -force-device-index 0 -morzaLandscapeShowcase <prefiks>
 - Pełnej klatki nie rozstrzygnięto: czas symulacji wahał się między przebiegami od 3 do 12 ms.
 
 **Jeszcze nie zrobione:**
-- plaża żwirowa i frygana;
+- frygana;
 - sosny, cyprysy, makia;
 - przodek E5 i płuczka;
-- animacje: pył i odłamki przy rudzie, praca szkutników.
+- animacja pracy szkutników.

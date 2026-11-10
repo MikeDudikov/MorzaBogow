@@ -62,6 +62,52 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Coast_ShingleLiesOnTheGentleShoreFromUnderTheWaterToAboveTheSwash()
+        {
+            var (outline, lift) = Islet();
+            var shingle = CoastFeatures.Make(outline, lift, 7).Shingle;
+            Assert.That(shingle.Samples, Is.GreaterThan(outline.Length / 10), "A gentle shore has its pebble beaches...");
+            Assert.That(shingle.Samples, Is.LessThan(outline.Length * 3 / 4), "...in stretches between bare shore.");
+
+            var dry = shingle.Dry.vertices;
+            var wet = shingle.Wet.vertices;
+            Assert.That(wet.Min(p => p.y), Is.EqualTo(Shingle.Bottom + Shingle.Lift).Within(1e-4f), "It starts under the water...");
+            Assert.That(dry.Max(p => p.y), Is.EqualTo(Shingle.Top + Shingle.Lift).Within(1e-4f), "...and reaches up past the swash.");
+            Assert.That(wet.Max(p => p.y), Is.LessThanOrEqualTo(dry.Min(p => p.y) + 1e-4f), "Wet below, dry above.");
+            var points = dry.Concat(wet).ToArray();
+            Assert.That(points.All(p => lift[Sample(outline, p)] <= CoastFeatures.GentleLift), Is.True, "Never under the cliffs.");
+
+            // Seen from the sea and from the strategic camera, as the shore it lies on.
+            var normals = shingle.Dry.normals.Concat(shingle.Wet.normals).ToArray();
+            var facing = Enumerable.Range(0, points.Length).Count(i =>
+                normals[i].y > 0.05f && Vector3.Dot(new Vector3(normals[i].x, 0f, normals[i].z), new Vector3(points[i].x, 0f, points[i].z)) > 0f);
+            Assert.That(facing, Is.GreaterThan(points.Length * 9 / 10), "The strip faces out and up.");
+
+            Assert.That(CoastFeatures.Make(outline, lift, 7).Shingle.Dry.vertices, Is.EqualTo(dry), "Same islet, same beach.");
+            var cliffs = Enumerable.Repeat(1.3f, outline.Length).ToArray();
+            var none = CoastFeatures.Make(outline, cliffs, 7).Shingle;
+            Assert.That(none.Samples, Is.Zero, "An islet of cliffs has no beach.");
+            Assert.That(none.Dry.vertexCount + none.Wet.vertexCount, Is.Zero);
+        }
+
+        [Test]
+        public void Coast_WhereShingleLiesItsOwnWetPartTakesTheSwash()
+        {
+            var (outline, lift) = Islet();
+            var made = CoastFeatures.Make(outline, lift, 7);
+            var vertices = made.Wet.vertices;
+            var triangles = made.Wet.triangles;
+            var underPebbles = 0;
+            for (var t = 0; t < triangles.Length; t += 3)
+            {
+                if (made.Shingle.Covers(Sample(outline, vertices[triangles[t]])) && made.Shingle.Covers(Sample(outline, vertices[triangles[t + 1]])) &&
+                    made.Shingle.Covers(Sample(outline, vertices[triangles[t + 2]]))) underPebbles++;
+            }
+            Assert.That(underPebbles, Is.Zero, "The bare rock's wet band does not run under the pebbles.");
+            Assert.That(triangles.Length, Is.GreaterThan(0), "Elsewhere it stays.");
+        }
+
+        [Test]
         public void Coast_SameSeedSameShore()
         {
             var (outline, lift) = Islet();

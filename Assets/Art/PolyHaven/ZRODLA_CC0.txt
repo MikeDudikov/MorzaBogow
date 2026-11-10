@@ -9,6 +9,8 @@ Tekstury 2K (kolor, normalne OpenGL, chropowatość):
 Tekstury 2K dla środowiska (kolor, normalne OpenGL, chropowatość, okluzja), pobrane 2026-11-10
 przez dl.polyhaven.org, sumy MD5 sprawdzone (ArtWorkspace/cc0/polyhaven/downloads.csv):
 - bark_willow_02        https://polyhaven.com/a/bark_willow_02        – kora oliwki (zamiennik: szara, bruzdowana kora wierzby)
+- dry_river_pebbles     https://polyhaven.com/a/dry_river_pebbles     – plaża żwirowa łagodnych brzegów (otoczaki rzeczne jako zamiennik
+                                                                         otoczaków morskich; mokry pas to ciemniejsza kopia materiału)
 
 Modele 1K (FBX z teksturami):
 - boulder_01              https://polyhaven.com/a/boulder_01
