@@ -1,6 +1,16 @@
 # Załogi okrętów
 
-Data: 2026-11-10. Stan: wdrożenie etapami (plan w sesji „Załogi okrętów”), tylko prezentacja; symulacja bez zmian.
+Data: 2026-11-10. Tylko prezentacja; symulacja i zapis gry bez zmian.
+
+**Stan.** Załogi są widoczne na wszystkich 7 klasach i biorą udział w ataku według danych gry. Commity: b8ef3c5, 1a47397, a0616a2, 3bf48db.
+
+**Poza zakresem:**
+- przejście przez relingi przy abordażu;
+- nowe ciało dla postaci na brzegu i w stoczni;
+- wypieczony LOD2;
+- pomiar GPU na cichej maszynie.
+
+Szczegóły w „Ograniczeniach”.
 
 ## Co jest widać
 
@@ -127,6 +137,62 @@ Wyniki testów i pomiarów dopisuję tutaj po każdym etapie (sprzęt pomiarowy:
 - **CPU w edytorze** się nie zmienił, więc ten czas idzie gdzie indziej niż na liczbę siatek. Różnica 61 → 70 ms przy 200 okrętach to szum: obok działały edytory innych sesji.
 - **Wiarygodny pomiar** daje dopiero build z kamerą gry (odrzucanie i LOD).
 - **Pełny pomiar** z `-morzaBenchmark`. Bez tej flagi bramka rysuje tylko 20 okrętów raz.
+
+Po rozbiciu czasu na etapy (`CrewDirector.Timings`) poprawiłem szukanie celów i budowę postaci. Ten sam benchmark:
+
+| Flota | Razem | Decyzje | Budowa postaci | Pozy | Lista części | Macierze i zlecenie rysowania |
+|---|---|---|---|---|---|---|
+| 100 okrętów, przed | 22,48 ms | 5,56 | 9,11 | 0,82 | 0,48 | 6,08 |
+| 100 okrętów, po | 16,78 ms | 2,63 | 6,36 | 0,80 | 0,49 | 6,11 |
+| 200 okrętów, przed | 70,43 ms | 32,69 | 16,45 | 1,60 | 1,29 | 17,62 |
+| 200 okrętów, po | 38,53 ms | 4,79 | 12,31 | 1,56 | 1,20 | 17,85 |
+
+Decyzje rosły kwadratowo: test mgły przeglądał wszystkie okręty dla każdego stanowiska w każdej klatce. Teraz rosną liniowo.
+
+**Build Windows** (`Builds/M1`, 2026-11-10 13:40):
+- warunki: profil Ultra, 1920×1080, pełny ekran w oknie, RTX 3050 Ti Laptop (i7-11390H, 16 GB);
+- w czasie przebiegów nie działał edytor Unity innych sesji, tylko usługa Unity Hub.
+
+Koszt załóg na głównym wątku mierzy sama gra (decyzje, pozy, macierze, zlecenie rysowania), średnio na klatkę:
+
+| Przebieg | Klatki | Średnio postaci w kadrze | Wywołania rysowania | CPU główny załóg |
+|---|---|---|---|---|
+| test dymny 90 s (początek meczu, kamera domyślna) | 1569 | 24 | 97 | 0,532 ms |
+| zrzuty załóg (głównie zbliżenia LOD0, na końcu flota z daleka) | 1757 | 87 | 176 | 0,881 ms |
+
+Wybrane ujęcia (log `[CrewShowcase]`; „pozy” to decyzje, budowa, pozy i lista, bez zlecenia rysowania):
+
+| Ujęcie | Postacie / okręty w świecie | LOD | Części | Wywołania | Pozy |
+|---|---|---|---|---|---|
+| rejs Boarder | 90 / 8 | 0 | 1901 | 215 | 0,32 ms |
+| taran | 87 / 13 | 0 | 1811 | 243 | 0,32 ms |
+| oszczepy | 123 / 17 | 0 | 2581 | 253 | 0,58 ms |
+| abordaż | 109 / 22 | 0 | 2274 | 270 | 1,04 ms |
+| flota z daleka | 266 / 28 | 1 | 3626 | 94 | 0,74 ms |
+
+Pomiar A/B (`-morzaSmokeReport … 90`, z `-morzaNoCrew` i bez) **jest nierozstrzygający**:
+
+| Przebieg | Średnia klatka | CPU główny | CPU renderowanie | GPU | Symulacja | Ticki w 90 s |
+|---|---|---|---|---|---|---|
+| z załogami | 54,5 ms | 15,70 ms | 6,46 ms | 48,64 ms | 2,63 ms | 4869 |
+| bez załóg | 53,9 ms | 27,03 ms | 10,28 ms | 38,66 ms | 5,22 ms | 4114 |
+
+- Przebieg bez załóg miał dwa razy dłuższą symulację, która od załóg nie zależy, i mniej ticków. Laptop był wtedy obciążony inaczej: to drugi z rzędu przebieg po 5 minutach pełnego obciążenia, prawdopodobnie dławienie temperaturowe.
+- Różnicy GPU (+10 ms przy 24 postaciach) nie przypisuję załogom.
+- Wymagany dalej: pomiar ABBA na cichej maszynie i w scenie bitwy, przy 40 okrętach w kadrze.
+
+**Budżet** (cel: do 1,0 ms CPU i 1,0 ms GPU przy 40 widocznych okrętach):
+- W zmierzonych scenach (do ok. 270 postaci w kadrze) CPU głównego wątku załóg wynosi 0,5–0,9 ms.
+- Pełna bitwa z 40 okrętami w kadrze (ok. 1500 postaci) przekroczy 1 ms. Z liniowego wzrostu w benchmarku wychodzi szacunkowo 2–4 ms. Głównym kosztem będzie wtedy budowa postaci i zlecenie rysowania.
+- Koszt GPU załóg jest niezmierzony.
+- Sprzęt docelowy (i7, RTX 5060) nie był dostępny.
+
+**Zrzuty załóg** (`-morzaCrewShowcase`, build 13:40) leżą w `artifacts-log/crew-shots/`, poza repozytorium:
+- `zaloga-01…07`: rejs każdej klasy z bliska;
+- `08` taran, `09` salwa, `10` oszczepy, `11` machiny, `12` abordaż;
+- `13` flota z kamery strategicznej.
+
+Z bliska widać wioślarzy przy wiosłach w jednym rytmie i ludzi w barwie strony na pomoście i platformach. Z daleka (LOD1, kilka pikseli na człowieka) załoga czyta się jako ciemne rzędy na pokładzie i ruch wioseł.
 
 ## Ograniczenia
 
