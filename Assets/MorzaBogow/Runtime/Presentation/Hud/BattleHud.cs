@@ -71,7 +71,7 @@ namespace MorzaBogow.Presentation
         readonly List<(VisualElement row, VisualElement glyph, Label text)> classCounts = new List<(VisualElement, VisualElement, Label)>();
         Label groupHull, groupCrew;
         VisualElement portPortrait;
-        Label portCardName, portWoodValue, portSilverValue, portBerths, portYard, portHullValue;
+        Label portWoodValue, portSilverValue, portBerths, portYard, portHullValue;
         MeterBar portHullMeter, portWoodMeter, portSilverMeter;
         VisualElement portStores;
         Label wreckCargo, wreckTime;
@@ -530,6 +530,13 @@ namespace MorzaBogow.Presentation
             Text("Plan zmienia się od razu; broń wymienia port przy przegrupowaniu (zdjęcie 3 s, montaż 5 s / ciężka 10 s). Brakującą port zamawia w Warsztacie.", "popover-note", panel);
         }
 
+        /// <summary>Opens the active port's building menu (showcase pictures).</summary>
+        public void OpenBuildForTest() => OpenBuild();
+
+        public void ClosePopoverForTest() => ClosePopover();
+        /// <summary>Where the open popover lies on screen, or null (showcase diagnostics).</summary>
+        public Rect? PopoverBoundsForTest => popover == null ? (Rect?)null : popover.worldBound;
+
         /// <summary>Opens the weapon choice for the shown ship and returns how many options it lists (tests).</summary>
         public int OpenWeaponsForTest()
         {
@@ -642,7 +649,7 @@ namespace MorzaBogow.Presentation
             portView = Element("selection-content", content);
             portPortrait = Element("portrait", portView);
             var card = Element("card", portView);
-            portCardName = Text(string.Empty, "card-name", card);
+            // Three rows fit the 194 px band; the port's name is the section title above the card.
             var hull = Element("card-row", card);
             Glyph(hull, "settlement", "glyph-small");
             Text("Mury", "small", hull).style.marginLeft = 6;
@@ -668,12 +675,19 @@ namespace MorzaBogow.Presentation
             portBerths.style.marginLeft = 6;
             portYard = Text(string.Empty, "small", berths);
             portYard.style.marginLeft = 18;
+            // One line only: a long works summary is cut with an ellipsis, never wrapped out of the band.
+            berths.style.overflow = Overflow.Hidden;
+            portYard.style.whiteSpace = WhiteSpace.NoWrap;
+            portYard.style.overflow = Overflow.Hidden;
+            portYard.style.textOverflow = TextOverflow.Ellipsis;
+            portYard.style.flexShrink = 1;
+            portYard.style.minWidth = 0;
+            Tip(portYard, () => new TipInfo { Title = "Stocznia i rozbudowa", Body = portYard.text });
 
-            // Buildings, the workshop line and the arsenal (docs/UZBROJENIE.md).
-            portWorksRow = Element("card-row", card);
-            Glyph(portWorksRow, "shipyard", "glyph-small");
-            portWorks = Text(string.Empty, "small", portWorksRow);
-            portWorks.style.marginLeft = 6;
+            // Buildings, the workshop line and the arsenal (docs/UZBROJENIE.md): on the berths row, whose summary text
+            // gives way to the buttons; the card has no height for a fourth row in the 194 px band.
+            portWorksRow = berths;
+            portWorks = portYard;
             portBuildButton = new Button(OpenBuild) { text = "Rozbudowa", focusable = true };
             portBuildButton.AddToClassList("card-button");
             portWorksRow.Add(portBuildButton);
@@ -1194,7 +1208,8 @@ namespace MorzaBogow.Presentation
             else if (port != null)
             {
                 FillPort(port);
-                SetText(selectionTitle, port.Owner == player ? "Port" : "Port wroga");
+                // The port's name heads the section, so the card keeps three rows in the band.
+                SetText(selectionTitle, battle.PortName(port));
                 SetText(selectionNote, string.Empty);
             }
             else if (wreck != null)
@@ -1349,7 +1364,6 @@ namespace MorzaBogow.Presentation
             var own = port.Owner == player;
             portPortrait.style.backgroundImage = Icon(port.IsOutpost ? "outpost" : "settlement", 128);
             portPortrait.EnableInClassList("enemy", !own);
-            SetText(portCardName, battle.PortName(port));
             var hull = (float)(port.Hull / port.MaxHull);
             portHullMeter.Set(hull, HudPalette.Hull(hull), patterns && hull <= 0.3f);
             SetText(portHullValue, $"{Mathf.CeilToInt((float)port.Hull)} / {Mathf.CeilToInt((float)port.MaxHull)}");
@@ -1361,16 +1375,17 @@ namespace MorzaBogow.Presentation
                 SetText(portWoodValue, $"{port.Wood / Rules.Centi} / {port.Capacity(ResourceType.Wood) / Rules.Centi}");
                 SetText(portSilverValue, $"{port.Silver / Rules.Centi} / {port.Capacity(ResourceType.Silver) / Rules.Centi}");
                 SetText(portBerths, $"Stanowiska {port.DockedShips.Count}/{Rules.PortBerths}" + (port.PortWaiting.Count > 0 ? $" · czeka {port.PortWaiting.Count}" : string.Empty));
-                SetText(portYard, port.HasShipyard ? "Stocznia czynna" : port.ShipyardBuild != null ? $"Stocznia: budowa {Mathf.RoundToInt(100f * port.ShipyardBuild.DoneTicks / port.ShipyardBuild.TotalTicks)}%" : "Brak stoczni");
-                SetText(portWorks, WorksSummary(port));
+                var yard = port.HasShipyard ? "Stocznia" : port.ShipyardBuild != null ? $"Stocznia: budowa {Mathf.RoundToInt(100f * port.ShipyardBuild.DoneTicks / port.ShipyardBuild.TotalTicks)}%" : "Brak stoczni";
+                SetText(portYard, $"{yard} · {WorksSummary(port)}");
                 Show(portWorkshopButton, port.HasWorkshop);
             }
             else
             {
                 SetText(portBerths, "Magazyny, kolejki i stocznia wroga są nieznane.");
                 SetText(portYard, string.Empty);
+                Show(portWorkshopButton, false);
             }
-            Show(portWorksRow, own);
+            Show(portBuildButton, own);
         }
 
         /// <summary>One line: the project under way or the buildings standing, the workshop's current job and the arsenal.</summary>
@@ -1844,18 +1859,22 @@ namespace MorzaBogow.Presentation
             ClosePopover();
             popover = Element("popover", popoverLayer);
             Text(title, "popover-title", popover);
-            popover.schedule.Execute(() =>
+            var panel = popover;
+            void Place()
             {
-                if (popover == null) return;
+                if (popover != panel) return;
                 var box = anchor.worldBound;
-                var size = popover.layout.size;
+                var size = panel.layout.size;
                 var bounds = root.worldBound;
                 var x = Mathf.Clamp(box.xMin, bounds.xMin + 16f, bounds.xMax - size.x - 16f);
                 var y = box.yMax + 6f;
                 if (y + size.y > bounds.yMax - 16f) y = box.yMin - size.y - 6f;
-                popover.style.left = x;
-                popover.style.top = y;
-            }).StartingIn(0);
+                panel.style.left = x;
+                panel.style.top = y;
+            }
+            // The panel's size is known only after layout; it is placed again once its geometry settles.
+            panel.schedule.Execute(Place).StartingIn(0);
+            panel.RegisterCallback<GeometryChangedEvent>(e => { if (e.oldRect.size != e.newRect.size) Place(); });
             return popover;
         }
 
@@ -2205,6 +2224,8 @@ namespace MorzaBogow.Presentation
             element.RegisterCallback<PointerLeaveEvent>(_ => Disarm());
             element.RegisterCallback<FocusInEvent>(_ => Arm());
             element.RegisterCallback<FocusOutEvent>(_ => Disarm());
+            // An element taken away under the pointer gets no leave event; its tooltip goes with it.
+            element.RegisterCallback<DetachFromPanelEvent>(_ => Disarm());
         }
 
         void HideTooltip()

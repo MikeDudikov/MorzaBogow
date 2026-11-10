@@ -228,7 +228,7 @@ namespace MorzaBogow.Simulation
             }
         }
 
-        bool OnLand(double x, double y)
+        public bool OnLand(double x, double y)
         {
             foreach (var island in Islands)
             {

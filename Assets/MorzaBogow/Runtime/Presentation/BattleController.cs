@@ -207,9 +207,155 @@ namespace MorzaBogow.Presentation
             if (hud != null) hud.OnMatchStarted();
         }
 
+        // ---------- Showcase: staged pictures of the newest features (-morzaShowcase <prefix>) ----------
+
+        string showcasePrefix;
+        int showcaseStep, showcasePhase, showcaseSince;
+        float showcaseClock, showcaseMark;
+        Ship showcaseBoarder, showcaseCatapult;
+
+        /// <summary>One staged picture: set the scene, let game time and the camera settle, then the shot (if any).</summary>
+        sealed class ShowcaseStep
+        {
+            public Action Setup;
+            public string Shot;
+            public int Ticks;
+
+            /// <summary>A ship the camera keeps centred while the scene plays.</summary>
+            public Func<Ship> Follow;
+        }
+
+        ShowcaseStep[] showcaseSteps;
+
+        /// <summary>
+        /// A short scripted run for screenshots, not a test: the map with its hinterlands, the home port among its trees,
+        /// a boarding fought on the rails, ranged fire, the weapon choice on a ship card and the port's building menu.
+        /// Each scene waits for game time to pass and for the camera to rest at least two seconds before its picture,
+        /// and nothing moves in the frame a picture is taken. The ships are added to the running game in open water
+        /// south of the islands; the game quits afterwards.
+        /// </summary>
+        void UpdateShowcase()
+        {
+            showcaseClock += Time.unscaledDeltaTime;
+            if (showcaseSteps == null) showcaseSteps = BuildShowcase();
+            if (showcaseStep >= showcaseSteps.Length)
+            {
+                if (showcaseClock - showcaseMark > 1.5f) Application.Quit(0);
+                return;
+            }
+            var step = showcaseSteps[showcaseStep];
+            switch (showcasePhase)
+            {
+                case 0:
+                    // The first scene waits for the game to finish loading and run steadily.
+                    if (showcaseStep == 0 && (showcaseClock < 4f || World.Tick < 30)) return;
+                    step.Setup?.Invoke();
+                    showcaseSince = World.Tick;
+                    showcaseMark = showcaseClock;
+                    showcasePhase = 1;
+                    return;
+                case 1:
+                    if (step.Follow != null && step.Follow() is Ship followed && World.FindShip(followed.Id) != null) pivot = ToWorld(followed);
+                    if (World.Tick - showcaseSince < step.Ticks || showcaseClock - showcaseMark < 2.5f) return;
+                    if (step.Shot != null)
+                    {
+                        Debug.Log($"[Showcase] before {step.Shot}: popover {(hud?.PopoverBoundsForTest?.ToString() ?? "none")}");
+                        ScreenCapture.CaptureScreenshot($"{showcasePrefix}-{showcaseStep + 1:00}-{step.Shot}.png");
+                        Debug.Log($"[Showcase] {step.Shot} at {showcaseClock:0.0} s, tick {World.Tick}");
+                    }
+                    showcaseMark = showcaseClock;
+                    showcasePhase = 2;
+                    return;
+                default:
+                    // The next scene changes nothing until the picture has been written.
+                    if (showcaseClock - showcaseMark < 1f) return;
+                    showcaseStep++;
+                    showcasePhase = 0;
+                    return;
+            }
+        }
+
+        /// <summary>
+        /// The south-most open water inside the camera's reach where both staged fights fit: every point of a grid
+        /// spanning 220 by 180 m around the scene is sea.
+        /// </summary>
+        Vector3 ShowcaseWater(float spread)
+        {
+            for (var z = -400f * spread; z <= 300f * spread; z += 20f)
+            for (var x = -350f * spread; x <= 250f * spread; x += 20f)
+            {
+                var open = true;
+                for (var dz = -30f; dz <= 150f && open; dz += 20f)
+                for (var dx = -60f; dx <= 160f && open; dx += 20f)
+                    open = !World.OnLand(x + dx, z + dz);
+                if (open) return new Vector3(x, 0f, z);
+            }
+            return new Vector3(0f, 0f, -400f * spread);
+        }
+
+        ShowcaseStep[] BuildShowcase()
+        {
+            var home = World.SettlementOf(PlayerFaction);
+            var spread = (float)World.Profile.Spread;
+            var area = ShowcaseWater(spread);
+            return new[]
+            {
+                new ShowcaseStep { Shot = "mapa", Ticks = 30, Setup = () =>
+                {
+                    pivot = Vector3.zero; height = 300f * Mathf.Max(1f, spread * 0.85f); yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                new ShowcaseStep { Shot = "port-i-drzewa", Ticks = 30, Setup = () =>
+                {
+                    var landX = (float)Rules.SettlementLandX(home);
+                    pivot = new Vector3((landX + (float)home.X) * 0.5f, 0f, (float)home.Y); height = 75f; yaw = -35f; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                // A boarder grapples an enemy ram; the hooks hold after 3 s and the decks fight.
+                new ShowcaseStep { Shot = "abordaz", Ticks = 6 * Rules.TickRate, Follow = () => showcaseBoarder, Setup = () =>
+                {
+                    showcaseBoarder = World.SpawnShip(PlayerFaction, ShipClass.Boarder, area.x - 20, area.z);
+                    var prey = World.SpawnShip(1 - PlayerFaction, ShipClass.Ram, area.x - 20 + 25, area.z);
+                    showcaseBoarder.Heading = prey.Heading = 0;
+                    World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Board, ShipIds = new[] { showcaseBoarder.Id }, TargetId = prey.Id });
+                    pivot = area + new Vector3(-8f, 0f, 0f); height = 45f; yaw = -30f; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                // Archers and a stone catapult against an enemy crew destroyer that shoots back.
+                new ShowcaseStep { Shot = "ostrzal", Ticks = 4 * Rules.TickRate, Setup = () =>
+                {
+                    World.SpawnShip(PlayerFaction, ShipClass.CrewDestroyer, area.x + 60, area.z + 80);
+                    showcaseCatapult = World.SpawnShip(PlayerFaction, ShipClass.Ram, area.x - 30, area.z + 100);
+                    showcaseCatapult.Mounts[1] = WeaponType.StoneCatapult;
+                    showcaseCatapult.Loadout[1] = WeaponType.StoneCatapult;
+                    showcaseCatapult.Heading = 0;
+                    var enemy = World.SpawnShip(1 - PlayerFaction, ShipClass.CrewDestroyer, area.x + 130, area.z + 120);
+                    enemy.Hull = enemy.Definition.Hull * 3;
+                    pivot = area + new Vector3(50f, 0f, 100f); height = 80f; yaw = -20f; tilt = ObliqueCamera.DefaultTilt;
+                } },
+                new ShowcaseStep { Ticks = 15, Setup = () =>
+                {
+                    selected.Clear();
+                    if (showcaseCatapult != null && World.FindShip(showcaseCatapult.Id) != null) { selected.Add(showcaseCatapult.Id); pivot = ToWorld(showcaseCatapult); height = 55f; }
+                } },
+                new ShowcaseStep { Shot = "karta-okretu-bron", Ticks = 1, Setup = () =>
+                {
+                    var options = hud != null ? hud.OpenWeaponsForTest() : -1;
+                    Debug.Log($"[Showcase] weapon choice opened with {options} options, selected {string.Join(",", selected)}");
+                } },
+                new ShowcaseStep { Ticks = 15, Setup = () =>
+                {
+                    hud?.ClosePopoverForTest();
+                    selected.Clear();
+                    inspectedSettlementId = home.Id;
+                    pivot = new Vector3((float)home.X, 0f, (float)home.Y); height = 90f; yaw = ObliqueCamera.DefaultYaw;
+                } },
+                new ShowcaseStep { Shot = "karta-portu-rozbudowa", Ticks = 1, Setup = () => hud?.OpenBuildForTest() },
+            };
+        }
+
         void ReadSmokeArguments()
         {
             var arguments = Environment.GetCommandLineArgs();
+            var showcase = Array.IndexOf(arguments, "-morzaShowcase");
+            if (showcase >= 0 && showcase + 1 < arguments.Length) showcasePrefix = arguments[showcase + 1];
             var index = Array.IndexOf(arguments, "-morzaSmokeReport");
             if (index < 0 || index + 2 >= arguments.Length) return;
             smokeReport = arguments[index + 1];
@@ -237,6 +383,7 @@ namespace MorzaBogow.Presentation
                 if (!paused) Advance(Time.unscaledDeltaTime * Speed);
                 PresentFrame();
                 UpdateCamera();
+                if (showcasePrefix != null) UpdateShowcase();
                 return;
             }
 
@@ -1472,7 +1619,7 @@ namespace MorzaBogow.Presentation
             var mouse = Input.mousePosition;
             // A dialog holds the input: the view stays put, the world keeps running.
             var free = !InputHeldByInterface;
-            var edgeScroll = free && Application.isFocused && autoPlayer == null
+            var edgeScroll = free && Application.isFocused && autoPlayer == null && showcasePrefix == null
                              && mouse.x >= 0f && mouse.y >= 0f && mouse.x <= Screen.width && mouse.y <= Screen.height;
             if (free && KeyBindings.Held(GameAction.CameraUp) || (edgeScroll && mouse.y >= Screen.height - 4)) move += Vector3.forward;
             if (free && KeyBindings.Held(GameAction.CameraDown) || (edgeScroll && mouse.y <= 4)) move += Vector3.back;
