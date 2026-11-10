@@ -153,6 +153,25 @@ Wyniki pochodzą z edytora, więc mają charakter informacyjny.
 
 **Pomiar wyjściowy przed zmianami:** 23 renderery na okręt, 6 materiałów, 6314 draw calls, SetPass 35, 11,4 ms. Inny przebieg edytora, a pas burty nie był jeszcze osobnym rendererem.
 
+### A/B w buildzie (2026-11-10)
+
+**Warunki:**
+- `Builds/M1/MorzaBogow.exe -morzaSmokeReport … 90`, z flagą `-morzaPlainShips` i bez niej;
+- ten sam build i ta sama mapa, profil Ultra, 1920×1080, pełny ekran w oknie;
+- RTX 3050 Ti Laptop;
+- w trakcie działały edytory Unity innych sesji: 1 przy przebiegu z wariantami, 2 bez wariantów.
+
+| Przebieg | Okręty | Renderery wyglądu | Materiały wyglądu | Średnia klatka | Najgorsza klatka | CPU główny | CPU renderowanie | GPU | Prezentacja |
+|---|---|---|---|---|---|---|---|---|---|
+| z wariantami | 16 | 53 | 32 | 42,7 ms | 7850 ms | 13,75 ms | 6,78 ms | 37,49 ms | 1,44 ms |
+| bez wariantów | 16 | 16 (sam pas burty) | 0 | 39,1 ms | 2600 ms | 10,63 ms | 7,02 ms | 36,65 ms | 1,44 ms |
+
+**Wnioski:**
+- **GPU** z wariantami: +0,84 ms (+2,3%).
+- **Prezentacja** (praca na klatkę po stronie gry): bez różnicy, bo wygląd niczego nie liczy co klatkę.
+- **Średnia klatka i CPU** nie nadają się do porównania. W przebiegu z wariantami była jednorazowa przerwa 7,8 s, a obciążenie tłem przez inne edytory było różne.
+- **Wymagane dalej:** czysty pomiar bez innych procesów oraz w późniejszej fazie meczu, przy większej liczbie okrętów w kadrze. Ten przebieg trwał 90 s, kadr pokazywał 16 okrętów, nie było jeszcze walki.
+
 ## Cykl życia i pula
 
 **Pula:** widoki okrętów nie są pulowane, bo powstają rzadko: przy budowie, przejęciu i wczytaniu. Warstwa wyglądu jest gotowa na pulę.
