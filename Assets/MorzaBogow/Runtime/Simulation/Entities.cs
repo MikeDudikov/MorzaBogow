@@ -278,6 +278,9 @@ namespace MorzaBogow.Simulation
         public int Sailors, Swordsmen, Javelins, Archers;
         public CrewPreset Preset;
         public int Total => Sailors + Swordsmen + Javelins + Archers;
+
+        /// <summary>The fighters the plan wants, every trade counted as Ship.Soldiers counts those aboard.</summary>
+        public int Soldiers => Swordsmen + Javelins + Archers;
     }
 
     /// <summary>A shot in the air: it lands where it was aimed (scatter already drawn) when its flight is done.</summary>

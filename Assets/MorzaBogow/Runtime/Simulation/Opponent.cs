@@ -325,10 +325,10 @@ namespace MorzaBogow.Simulation
             foreach (var ship in warships)
             {
                 // A badly holed hull goes to the dock when the side has one (only a dock mends); a crew with half its
-                // fighters gone goes home to regroup, only when the home port can pay the muster now: a ship waiting in
-                // port for silver is lost to the fleet.
+                // fighters gone (swordsmen, javelin men and archers alike, as aboard so in the plan) goes home to regroup,
+                // only when the home port can pay the muster now: a ship waiting in port for silver is lost to the fleet.
                 var holed = ship.Hull < ship.Definition.Hull * 0.3 && world.HasDock(faction);
-                var crewSpent = ship.Plan.Swordsmen + ship.Plan.Archers > 0 && ship.Soldiers * 2 < ship.Plan.Swordsmen + ship.Plan.Archers
+                var crewSpent = ship.Plan.Soldiers > 0 && ship.Soldiers * 2 < ship.Plan.Soldiers
                                 && home.Available(ResourceType.Silver) >= World.MusterCost(ship) + Rules.ReserveSilver;
                 if (holed || crewSpent)
                 {

@@ -1341,6 +1341,39 @@ namespace MorzaBogow.Tests
             Assert.That(silver - port.Silver, Is.EqualTo(moved * Rules.RetrainSilver), "Archers retrained for the boarding crew.");
         }
 
+        [Test]
+        public void Opponent_RegroupsWhenHalfOfAllItsFightersAreGoneJavelinMenIncluded()
+        {
+            // The opponent weighs every trade of fighter alike, in the plan as aboard (A04): a boarder's javelin men count
+            // toward the half it must keep, and a crew of javelin men alone regroups too.
+            bool Regroups(int swordsmen, int javelins, int archers, CrewPlan? plan = null, long silver = 1500 * Rules.Centi)
+            {
+                var world = Empty();
+                world.SettlementOf(0).Silver = silver;
+                var ship = world.SpawnShip(0, ShipClass.Boarder, -400, 0);
+                if (plan.HasValue) ship.Plan = plan.Value;
+                ship.Swordsmen = swordsmen;
+                ship.Javelins = javelins;
+                ship.Archers = archers;
+                new Opponent(0).Think(world);
+                return world.Pending.Any(command => command.Kind == CommandKind.Repair && command.ShipIds.Contains(ship.Id));
+            }
+
+            var definition = ShipCatalog.Get(ShipClass.Boarder);
+            var planned = definition.PlanFor(definition.DefaultPreset);
+            Assert.That(planned.Javelins, Is.GreaterThan(0), "The boarder's own plan carries javelin men.");
+            var belowHalf = (planned.Soldiers - 1) / 2;
+            Assert.That(belowHalf * 2, Is.GreaterThanOrEqualTo(planned.Swordsmen + planned.Archers), "Without the javelin men this crew would not count as spent.");
+            Assert.That(Regroups(belowHalf, 0, 0), Is.True, "Fewer than half of all its fighters left: home to regroup.");
+            Assert.That(Regroups(belowHalf + 1, 0, 0), Is.False, "Half or more still aboard: it fights on.");
+
+            var javelinMen = new CrewPlan { Sailors = planned.Sailors, Javelins = 40, Preset = CrewPreset.Custom };
+            Assert.That(Regroups(0, 19, 0, javelinMen), Is.True, "A crew of javelin men alone regroups as any other.");
+            Assert.That(Regroups(0, 20, 0, javelinMen), Is.False);
+
+            Assert.That(Regroups(belowHalf, 0, 0, silver: 0), Is.False, "Without the silver for the muster it stays with the fleet.");
+        }
+
         // ---------- Fog of war ----------
 
         [Test]
