@@ -243,6 +243,7 @@
         "MorzaBogow.Tests.LandscapeTests.Landscape_TheSortedOreHeapFollowsTheStockAndNeverTouchesIt",
         "MorzaBogow.Tests.LandscapeTests.Landscape_DustFliesWhenThePickMeetsTheRockOfSilverOnly",
         "MorzaBogow.Tests.LandscapeTests.Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt",
+        "MorzaBogow.Tests.LandscapeTests.Landscape_PhryganaGrowsOnTheSilverIsletClearOfTheWorkings",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AllPullTogetherAndDriveAftInTheWater",
         "MorzaBogow.Tests.CrewPresentationTests.Oars_AnOarWithoutARowerIsDrawnInOnItsOwn",
         "MorzaBogow.Tests.CrewPresentationTests.Helm_SteeringOarsTurnWithTheHullAndCarryTheTillers",

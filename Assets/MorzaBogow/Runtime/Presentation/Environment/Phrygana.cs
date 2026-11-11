@@ -108,6 +108,23 @@ namespace MorzaBogow.Presentation.Landscape
             return false;
         }
 
+        /// <summary>
+        /// Plants an islet's phrygana under a parent whose islet is centred at an offset (a resource site's model), the
+        /// cushions in the islet's own space as Make places them. Nothing while the old plain olives are drawn (the A/B
+        /// measurement compares without it) or before the editor has built the material. Returns how many it planted.
+        /// </summary>
+        public static int Plant(Transform parent, Vector3 isletCentre, float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, bool settled = true)
+        {
+            if (parent == null || Vegetation.PlainOlives || Material == null) return 0;
+            var made = Make(outline, lift, seed, blocked, null, null, settled);
+            if (made.Cushions.Count == 0) return 0;
+            var islet = new GameObject("Phrygana islet").transform;
+            islet.SetParent(parent, false);
+            islet.localPosition = isletCentre;
+            Attach(islet, made);
+            return made.Cushions.Count;
+        }
+
         /// <summary>Draws the cushions under an islet with the built material; nothing before the editor has built it.</summary>
         public static void Attach(Transform parent, Result result)
         {

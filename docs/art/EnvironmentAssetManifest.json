@@ -167,8 +167,8 @@
       "animations": ["bez ruchu na wietrze: niskie, sztywne, cierniste poduchy (uproszczenie)"],
       "physics": "bez colliderów i cieni; tylko prezentacja",
       "lod": ["jedna siatka kart na wysepkę (3 karty na poduchę), bez LOD"],
-      "integration": "Phrygana z Maquis.Plant (BattleController.PlantGrove): do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza",
-      "tests": ["ShrubTests.Phrygana_GrowsInPatchesOnDryGroundClearOfTreesBushesAndBuildings", "ShrubTests.Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose", "LandscapeTests.Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt"],
+      "integration": "Phrygana z Maquis.Plant (BattleController.PlantGrove): do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza, poza stroną portu; Phrygana.Plant w ResourceSiteVisual: wysepka srebra, poza kopalnią, nabrzeżem, płuczką i oliwkami",
+      "tests": ["ShrubTests.Phrygana_GrowsInPatchesOnDryGroundClearOfTreesBushesAndBuildings", "ShrubTests.Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose", "ShrubTests.Maquis_AndPhryganaKeepOffThePortSideAsTheOlivesDo", "LandscapeTests.Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt", "LandscapeTests.Landscape_PhryganaGrowsOnTheSilverIsletClearOfTheWorkings"],
       "sources": ["2.15: AUTh/EUNIS F7.31", "9.1–9.18: Cretan Flora; MaltaWildPlants; FloraVeg.eu; Pfeiffelmann 2019 (stan obecny)", "9.21: Elhag i in. 2017 (udziały gatunków)"],
       "confidence": "Interpretation"
     },

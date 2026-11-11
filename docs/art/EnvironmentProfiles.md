@@ -63,7 +63,8 @@ Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.jso
 - **Frygana** (`Phrygana`, raport 2.15 i 9.1–9.24):
   - niskie, kuliste poduchy poterium (*Sarcopoterium spinosum*), tymianku (*Thymbra capitata*) i czystka (*Cistus*), w płatach z gołą ziemią między nimi;
   - w lecie gry: poterium szarobrązowe i suche, tymianek kwitnący na różowo, czystek szarozielony, już bez kwiatów;
-  - do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza, z dala od drzew, makii i budowli;
+  - do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza, z dala od drzew, makii, budowli i strony portu (makia też jej nie zajmuje);
+  - na wysepce srebra na suchych bokach, z przodu przy brzegu i za skałą, poza kopalnią, nabrzeżem, płuczką z cysterną i oliwkami;
   - jedna siatka kart na wysepkę, bez cieni i bez ruchu na wietrze (uproszczenie);
   - średnic poduch nie podaje żadne przeczytane źródło: szerokość wynika z kulistego pokroju (interpretacja).
 - **Wybrzeże** (`CoastFeatures`): warga notchu w sektorach klifów, mokry pas oraz płyty beachrocku na łagodnych brzegach.

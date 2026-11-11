@@ -150,6 +150,29 @@ namespace MorzaBogow.Tests
         }
 
         [UnityTest]
+        public IEnumerator Landscape_PhryganaGrowsOnTheSilverIsletClearOfTheWorkings()
+        {
+            yield return null;
+            var node = new ResourceNode { Id = 8, Type = ResourceType.Silver, X = 220, Y = -60, Stock = 1000, Capacity = 1000 };
+            var silver = ResourceSiteVisual.Create(node, null);
+            try
+            {
+                var model = silver.transform.Find("Model");
+                var islet = model.Find("Phrygana islet");
+                Assert.That(islet, Is.Not.Null, "The silver islet carries its phrygana.");
+                var mesh = islet.GetComponentInChildren<MeshFilter>().sharedMesh;
+                Assert.That(mesh.vertexCount, Is.GreaterThan(12 * 5), "Cushions on its dry ground.");
+                var inWork = mesh.vertices.Select(v => model.InverseTransformPoint(islet.TransformPoint(v))).Count(p => Mathf.Abs(p.x) < 10.8f && p.z > -7.8f && p.z < 13.3f);
+                Assert.That(inWork, Is.Zero, "None on the mine, its faces and rock, the quay, the washery or the miners' way.");
+                Assert.That(node.Stock, Is.EqualTo(1000), "The picture never changes the stock.");
+            }
+            finally
+            {
+                Object.Destroy(silver.gameObject);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Landscape_TreesReadTheWindAndLeaveTheMatchAsItWas()
         {
             yield return null;

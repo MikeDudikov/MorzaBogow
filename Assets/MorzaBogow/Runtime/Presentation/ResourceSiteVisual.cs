@@ -259,6 +259,11 @@ namespace MorzaBogow.Presentation
             if (!Landscape.Vegetation.PlainOlives) grove.Build(model, "Olives", Landscape.LandscapeArt.OliveBark ?? materials?.Timber, Landscape.LandscapeArt.OliveLeaves ?? materials?.OliveFoliage);
             else PlainOlives(model, materials);
             BuildWashery(model, materials);
+            // Phrygana on the dry ground round the workings (Presentation.Landscape, in the islet's space centred at IsletZ):
+            // clear of the mine, its faces and the rock behind, the quay, the washery and cistern, the olives' flanks.
+            Landscape.Phrygana.Plant(model, new Vector3(0f, 0f, IsletZ), outline, lift, siteId ^ 0xF27Au, (x, z) =>
+                (Mathf.Abs(x) < 11.5f && z + IsletZ > -8.5f && z + IsletZ < 14f) || (z + IsletZ > 8.5f && z + IsletZ < 14f)
+                || (Mathf.Abs(x) > 12f && Mathf.Abs(x) < 17.5f && z + IsletZ > -2.5f && z + IsletZ < 7.5f));
             // Baskets of ore by the heap and the mortars, on their way to the washery.
             var basket = art != null ? art.Prop("prop_basket_") : null;
             if (basket != null)
