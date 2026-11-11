@@ -76,6 +76,10 @@ namespace MorzaBogow.Tests
                 Assert.That(leaves, Is.SameAs(LandscapeArt.KermesLeaves).Or.SameAs(LandscapeArt.LentiskLeaves), "Each bush wears its own leaves.");
             }
 
+            var phrygana = Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(item => item.name == "Phrygana").ToArray();
+            Assert.That(phrygana.Length, Is.GreaterThan(0), "Phrygana cushions on the islets.");
+            Assert.That(phrygana.All(item => item.sharedMaterial == Phrygana.Material && item.GetComponent<MeshFilter>().sharedMesh.vertexCount > 0), Is.True);
+
             var bush = maquis.OrderByDescending(item => item.Count).First();
             var still = Rotations(bush);
             for (var i = 0; i < 60; i++) bush.Advance(1f / 30f, true);

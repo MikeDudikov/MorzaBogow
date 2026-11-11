@@ -118,5 +118,70 @@ namespace MorzaBogow.Tests
             Assert.That(lentisksNearShore, Is.GreaterThanOrEqualTo(lentisks / 2), "Lentisks keep mostly to the band above the shore.");
             Assert.That(Maquis.Places(outline, lift, 4242u, Blocked, trees, true).Count, Is.LessThanOrEqualTo(wooded.Count), "Fewer bushes where people live.");
         }
+
+        [Test]
+        public void Phrygana_GrowsInPatchesOnDryGroundClearOfTreesBushesAndBuildings()
+        {
+            var outline = ShoreShape.Ellipse(60f, 45f);
+            var lift = ShoreShape.Cliffs(0f, 60f, 110f, 1.3f);
+            var trees = new List<Vector2> { new Vector2(10f, 5f), new Vector2(-12f, 8f) };
+            var bushes = new List<Vector2> { new Vector2(20f, -10f), new Vector2(-25f, -5f) };
+            bool Blocked(float x, float z) => x > -8f && x < 8f && z > -8f && z < 8f;
+            var settled = Phrygana.Make(outline, lift, 4242u, Blocked, trees, bushes, true);
+            var wooded = Phrygana.Make(outline, lift, 4242u, Blocked, trees, bushes, false);
+            Assert.That(settled.Cushions.Count, Is.InRange(40, Phrygana.MostSettled), "Where people and goats live the phrygana spreads...");
+            Assert.That(wooded.Cushions.Count, Is.InRange(1, Phrygana.MostWooded), "...and keeps to the clearings of a wood.");
+            Assert.That(settled.Cushions.Count, Is.GreaterThan(wooded.Cushions.Count));
+            foreach (var kind in new[] { Phrygana.Kind.ThornyBurnet, Phrygana.Kind.Thyme, Phrygana.Kind.Rockrose })
+                Assert.That(settled.Cushions.Count(c => c.Kind == kind), Is.GreaterThan(0), $"{kind} grows in it.");
+            Assert.That(settled.Cushions.Count(c => c.Kind != Phrygana.Kind.Thyme), Is.GreaterThan(settled.Cushions.Count / 2), "Burnet and rockrose make most of it (report 9.21).");
+            foreach (var cushion in settled.Cushions)
+            {
+                var spot = new Vector2(cushion.Position.x, cushion.Position.z);
+                Assert.That(cushion.Position.y, Is.EqualTo(ShoreShape.GroundAt(outline, lift, spot.x, spot.y)).Within(1e-4f), "Standing on the ground.");
+                Assert.That(cushion.Position.y, Is.GreaterThanOrEqualTo(Phrygana.LowestGround), "Never on the beach.");
+                Assert.That(Blocked(spot.x, spot.y), Is.False, "Never on a building's ground.");
+                Assert.That(Phrygana.InPatch(4242u, spot), Is.True, "In its patches, bare ground between them.");
+                Assert.That(trees.All(t => (t - spot).magnitude >= Phrygana.ClearOfTrees) && bushes.All(b => (b - spot).magnitude >= Phrygana.ClearOfShrubs), Is.True, "Clear of the trees and the maquis.");
+                Assert.That(settled.Cushions.Count(o => (new Vector2(o.Position.x, o.Position.z) - spot).magnitude < Phrygana.Spacing), Is.EqualTo(1));
+                Assert.That(cushion.Size, Is.InRange(Phrygana.SizeMin(cushion.Kind), Phrygana.SizeMax(cushion.Kind)));
+                Assert.That(cushion.Size * Phrygana.Profile(cushion.Kind), Is.LessThanOrEqualTo(cushion.Kind == Phrygana.Kind.Rockrose ? 1f : 0.6f), "Low: burnet and thyme under 60 cm, rockrose under a metre (report 9.1, 9.9, 9.13).");
+            }
+            Assert.That(settled.Mesh.vertexCount, Is.EqualTo(settled.Cushions.Count * 12), "Three cards a cushion.");
+            Assert.That(Phrygana.Make(outline, lift, 4242u, Blocked, trees, bushes, true).Cushions.Select(c => c.Position), Is.EqualTo(settled.Cushions.Select(c => c.Position)), "The same islet, the same phrygana.");
+        }
+
+        [Test]
+        public void Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose()
+        {
+            var atlas = PhryganaAtlas.Bake(256);
+            var half = atlas.Size / 2;
+            for (var cell = 0; cell < 4; cell++) Assert.That(atlas.Coverage(cell), Is.InRange(0.15f, 0.9f), $"Quarter {cell} holds its cushions with air around them.");
+            (float r, float g, float b, int pink) Mean(int cell)
+            {
+                var corner = TreeGenerator.AtlasCells[cell];
+                int x0 = (int)(corner.x * atlas.Size), y0 = (int)(corner.y * atlas.Size), count = 0, pink = 0;
+                float r = 0f, g = 0f, b = 0f;
+                for (var y = 0; y < half; y++)
+                {
+                    for (var x = 0; x < half; x++)
+                    {
+                        var c = atlas.Colour[(y0 + y) * atlas.Size + x0 + x];
+                        if (c.a <= 127) continue;
+                        r += c.r; g += c.g; b += c.b; count++;
+                        if (c.r > c.g + 30 && c.b > c.g + 10) pink++;
+                    }
+                }
+                return (r / count, g / count, b / count, pink);
+            }
+            var burnet = Mean(Phrygana.BurnetSide);
+            Assert.That(burnet.r, Is.GreaterThan(burnet.b).And.GreaterThanOrEqualTo(burnet.g - 6f), "Burnet in summer: grey-brown, dry (report 9.6).");
+            Assert.That(Mean(Phrygana.ThymeSide).pink, Is.GreaterThan(20), "Thyme in flower, purple-pink (report 9.10).");
+            var rockrose = Mean(Phrygana.RockroseSide);
+            Assert.That(rockrose.g, Is.GreaterThan(rockrose.r).And.GreaterThan(rockrose.b), "Rockrose: grey-green leaves.");
+            Assert.That(Mean(Phrygana.RockroseSide).pink, Is.Zero, "Its pink flowers are over by summer (report 9.13).");
+            Assert.That(atlas.Colour.Count(c => c.r == 0 && c.g == 0 && c.b == 0), Is.Zero, "No empty black texels.");
+            Assert.That(PhryganaAtlas.Bake(256).Colour, Is.EqualTo(atlas.Colour), "The same pixels every time.");
+        }
     }
 }

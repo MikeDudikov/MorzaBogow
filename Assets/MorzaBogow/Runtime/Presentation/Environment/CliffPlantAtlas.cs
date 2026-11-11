@@ -186,7 +186,7 @@ namespace MorzaBogow.Presentation.Landscape
             }
         }
 
-        static void Path(LeafAtlas.Canvas canvas, Vector2[] path, float foot, float tip, Color colour, float smooth)
+        internal static void Path(LeafAtlas.Canvas canvas, Vector2[] path, float foot, float tip, Color colour, float smooth)
         {
             for (var i = 1; i < path.Length; i++)
             {
@@ -196,7 +196,7 @@ namespace MorzaBogow.Presentation.Landscape
         }
 
         /// <summary>A round-ended stroke, rounded across (its normal leans to either side).</summary>
-        static void Capsule(LeafAtlas.Canvas canvas, Vector2 a, Vector2 b, float halfWidth, Color colour, float smooth, float occlusion)
+        internal static void Capsule(LeafAtlas.Canvas canvas, Vector2 a, Vector2 b, float halfWidth, Color colour, float smooth, float occlusion)
         {
             var size = canvas.Size;
             a *= size;
@@ -225,7 +225,7 @@ namespace MorzaBogow.Presentation.Landscape
         }
 
         /// <summary>A small round flower or bud, domed.</summary>
-        static void Dot(LeafAtlas.Canvas canvas, Vector2 centre, float radius, Color colour, float smooth, float occlusion)
+        internal static void Dot(LeafAtlas.Canvas canvas, Vector2 centre, float radius, Color colour, float smooth, float occlusion)
         {
             var size = canvas.Size;
             var c = centre * size;
@@ -247,7 +247,7 @@ namespace MorzaBogow.Presentation.Landscape
         }
 
         /// <summary>A narrow leaf widest toward its rounded tip (spatulate), with a pale midrib.</summary>
-        static void Blade(LeafAtlas.Canvas canvas, Vector2 basePoint, Vector2 direction, float length, float width, Color colour, float smooth)
+        internal static void Blade(LeafAtlas.Canvas canvas, Vector2 basePoint, Vector2 direction, float length, float width, Color colour, float smooth)
         {
             var size = canvas.Size;
             var origin = basePoint * size;

@@ -70,13 +70,17 @@ namespace MorzaBogow.Presentation.Landscape
         {
             if (parent == null || Vegetation.PlainOlives || LandscapeArt.OliveBark == null) return 0;
             var leeward = parent.InverseTransformDirection(Vegetation.Leeward);
+            var places = Places(outline, lift, seed, blocked, trees, settled);
+            // The phrygana in patches between the trees and the bushes (most where people and their goats live).
+            var bushes = places.ConvertAll(place => new Vector2(place.position.x, place.position.z));
+            Phrygana.Attach(parent, Phrygana.Make(outline, lift, seed, blocked, trees, bushes, settled));
             var planted = 0;
             foreach (var species in TreeSpecies.Shrubs)
             {
                 var leaves = LandscapeArt.LeavesFor(species);
                 if (leaves == null) continue;
                 var builder = new TreeGroveBuilder();
-                foreach (var place in Places(outline, lift, seed, blocked, trees, settled))
+                foreach (var place in places)
                 {
                     if (place.species != species) continue;
                     var angle = Mathf.Atan2(place.position.z, place.position.x);

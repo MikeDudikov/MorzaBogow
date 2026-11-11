@@ -37,6 +37,8 @@ namespace MorzaBogow.Editor
             Leaves("LentiskLeaves", TreeSpecies.Lentisk);
             // Rock samphire and sea lavender on the cliffs (CliffPlants), on the same translucent foliage material.
             var cliffPlants = FoliageMaterial("CliffPlants", CliffPlantAtlas.Bake(1024));
+            // The phrygana's cushions: thorny burnet, thyme and rockrose (Phrygana).
+            FoliageMaterial("Phrygana", PhryganaAtlas.Bake(1024));
             AssetDatabase.SaveAssets();
             ExportManifest();
             Debug.Log($"[Environment] trial set: bark {(bark != null ? AssetDatabase.GetAssetPath(bark) : "MISSING SOURCE")}, leaves {(leaves != null ? AssetDatabase.GetAssetPath(leaves) : "FAILED")}, cliff plants {AssetDatabase.GetAssetPath(cliffPlants)}");
@@ -67,6 +69,32 @@ namespace MorzaBogow.Editor
             Shot(ShrubScene(0, true), Path.Combine(folder, "env-shrubs-close-wind.png"), 18f, 30f, false);
             Shot(ShrubScene(1, false), Path.Combine(folder, "env-shrubs-lod1.png"), 45f, 30f, true);
             Shot(ShrubScene(2, false), Path.Combine(folder, "env-shrubs-lod2.png"), 45f, 30f, true);
+        }
+
+        /// <summary>
+        /// The phrygana on a small islet of a port (the settled count), close up and from the strategic camera.
+        /// Batch mode with a graphics device: -executeMethod MorzaBogow.Editor.EnvironmentArt.PreviewPhrygana
+        /// </summary>
+        public static void PreviewPhrygana()
+        {
+            var folder = Path.Combine(Application.dataPath, "..", "artifacts-log");
+            Shot(PhryganaIslet(), Path.Combine(folder, "env-phrygana-close.png"), 28f, 30f, false);
+            Shot(PhryganaIslet(), Path.Combine(folder, "env-phrygana-strategic.png"), 45f, 30f, true);
+        }
+
+        static GameObject PhryganaIslet()
+        {
+            var meadow = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Meadow.mat");
+            var rock = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Shore/Shore_Limestone.mat");
+            var root = new GameObject("Phrygana preview");
+            var outline = MorzaBogow.Presentation.ShoreShape.Ellipse(22f, 16f);
+            var lift = new float[outline.Length];
+            var islet = new GameObject("Islet");
+            islet.transform.SetParent(root.transform, false);
+            islet.AddComponent<MeshFilter>().sharedMesh = MorzaBogow.Presentation.ShoreShape.Mound(outline, lift);
+            islet.AddComponent<MeshRenderer>().sharedMaterials = new[] { rock, meadow };
+            Phrygana.Attach(islet.transform, Phrygana.Make(outline, lift, 7u, null, null, null, true));
+            return root;
         }
 
         static GameObject ShrubScene(int lod, bool wind)

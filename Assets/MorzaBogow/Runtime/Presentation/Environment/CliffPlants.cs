@@ -168,7 +168,7 @@ namespace MorzaBogow.Presentation.Landscape
         /// <summary>A point of an atlas cell, in the quarters the trees' leaf atlases use (TreeGenerator.AtlasCells).</summary>
         static Vector2 Cell(int cell, float u, float v) => TreeGenerator.AtlasCells[cell] + new Vector2(u, v) * 0.5f;
 
-        static void Upright(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 centre, float yaw, float width, float height, float bottom, Vector3 normal, int cell)
+        internal static void Upright(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 centre, float yaw, float width, float height, float bottom, Vector3 normal, int cell)
         {
             var across = Quaternion.Euler(0f, yaw, 0f) * Vector3.right * (0.5f * width);
             var start = vertices.Count;
@@ -181,7 +181,11 @@ namespace MorzaBogow.Presentation.Landscape
             Quad(triangles, start);
         }
 
-        static void Flat(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 centre, float yaw, float width, int cell)
+        internal static void Flat(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 centre, float yaw, float width, int cell) =>
+            Flat(vertices, normals, uvs, triangles, centre, yaw, width, TreeGenerator.AtlasCells[cell], 0.5f);
+
+        /// <summary>A level card over any square of the atlas: its lower-left corner and side, in texture coordinates.</summary>
+        internal static void Flat(List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles, Vector3 centre, float yaw, float width, Vector2 corner, float extent)
         {
             var turn = Quaternion.Euler(0f, yaw, 0f);
             var right = turn * Vector3.right * (0.5f * width);
@@ -192,7 +196,8 @@ namespace MorzaBogow.Presentation.Landscape
             vertices.Add(centre + right + forward);
             vertices.Add(centre - right + forward);
             for (var k = 0; k < 4; k++) normals.Add(Vector3.up);
-            uvs.Add(Cell(cell, 0f, 0f)); uvs.Add(Cell(cell, 1f, 0f)); uvs.Add(Cell(cell, 1f, 1f)); uvs.Add(Cell(cell, 0f, 1f));
+            uvs.Add(corner + new Vector2(0f, 0f) * extent); uvs.Add(corner + new Vector2(1f, 0f) * extent);
+            uvs.Add(corner + new Vector2(1f, 1f) * extent); uvs.Add(corner + new Vector2(0f, 1f) * extent);
             Quad(triangles, start);
         }
 

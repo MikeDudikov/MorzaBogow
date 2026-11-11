@@ -356,3 +356,37 @@ Badanie wykonał osobny agent. Wszystkie źródła opisują stan współczesny, 
 - zmierzone częstotliwości kołysania, tłumienie, Cd i wykładnik Vogla krzewów 1–3 m.
 
 Rośliny klifów (`CliffPlants`, `CliffPlantAtlas`) korzystają z 8.15–8.21: wymiary kęp, sinozielone mięsiste odcinki samphire z baldachami, rozety i liliowe kłosy zatrwianu, kwitnienie latem.
+
+## 9. Frygana: morfologia i struktura (czwarte badanie, 2026-11-11)
+
+Badanie wykonał osobny agent. Wszystkie źródła opisują roślinność współczesną. Opisy z cretanflora.com i maltawildplants.com są do siebie bardzo podobne i prawdopodobnie pochodzą z jednej flory, więc nie są niezależnymi potwierdzeniami.
+
+| # | Twierdzenie | Źródło [dostęp] | Miejsce | Pewn. | Zastosowanie |
+|---|---|---|---|---|---|
+| 9.1 | *Sarcopoterium spinosum*: gęsty, silnie rozgałęziony, ciernisty krzew do 60 cm; gałęzie splątane, boczne bezlistne, zakończone cierniem | Cretan Flora [R] | sarcopoterium_spinosum_text | U | wysokość, plątanina cierni |
+| 9.2 | Liście z 4–6 par listków 2–5 mm | Cretan Flora [R] | jw. | U | liście tylko jako tekstura |
+| 9.3 | Kwiatostan do 30 mm bez płatków, owoc jasnoczerwony; kwitnie III–V; często dominuje na wybrzeżach i porzuconych tarasach | Cretan Flora [R] | jw. | U | latem bez barwnych kwiatów |
+| 9.4 | Do ok. 75 cm, pokrój kulisty; dymorfizm sezonowy liści | Pfeiffelmann 2019, Univ. Hohenheim [R] | slajdy 13.09–13.10 | U (niska ranga) | kulisty kształt |
+| 9.5 | Wysokość 0,45 m; dominant siedliska S72 (frygana) | FloraVeg.eu, karta gatunku [R] | Habitus | U | typowa wysokość |
+| 9.6 | Latem wygląda na suchy i martwy | Wikipedia „Sarcopoterium” [R] | opis | I (źródło wtórne) | szarobrązowy kolor latem |
+| 9.7 | Liście letnie i zimowe różnią się budową (dymorfizm sezonowy) | Christodoulakis i in. 1990, Ann. Bot. 65: 291–296 [A] | abstrakt | U | – |
+| 9.8 | Latem małe liście zastępują większe zimowe; *Euphorbia acanthothamnos* latem bezlistna | literatura o fryganie [S] | – | I | – |
+| 9.9 | *Thymbra capitata*: krzewinka 20–50(–150) cm; liście 6–10 × 1–1,2 mm; w porze suchej często tylko pęczki liści | Mifsud, MaltaWildPlants [R] | Thymbra_capitata | U | wysokość, rzadkie ulistnienie latem |
+| 9.10 | Kwiatostan podłużny, przysadki zielonkawe, korona do 10 mm, purpurowo-różowa; na Malcie kwitnie V–VII | Mifsud [R] | jw. | U | różowe główki latem |
+| 9.11 | Na Krecie 20–50 cm, kwitnie od końca IV do początku VIII, często dominuje w suchych zaroślach | Cretan Flora [R] | thymbra_capitata_text | U | jw. |
+| 9.12 | Często w kształcie kuli; frygana z jego dominacją zwykle 20–50 cm | Pfeiffelmann 2019 [R] | slajd 13.13 | U (niska ranga) | kulisty kształt |
+| 9.13 | *Cistus creticus*: krzew do 1 m, często niższy; liście 15–25 × 8–15 mm, faliste, zielone lub szarawe, owłosione; kwiaty 4–6 cm, purpurowo-różowe, III–VI | Cretan Flora [R] | cistus_creticus_text | U | szarozielony, latem bez kwiatów |
+| 9.14 | *C. salviifolius*: do 80 cm wysokości i podobnej szerokości; kwiaty białe, III–VI | Cretan Flora [R] | cistus_salviifolius_text | U | proporcja ok. 1:1 |
+| 9.15–9.16 | Cistus: dwie kohorty liści w roku; liczb zmiany wielkości nie podano | Pfeiffelmann 2019 [R]; Puglielli 2019, Front. Plant Sci. 10: 696 [R] | slajd 13.15; tekst | U | – |
+| 9.17 | *Euphorbia acanthothamnos*: 10–30 cm, latem bezlistna, cierniste końce gałęzi | Cretan Flora [R] | strona gatunku | U | nieużyte |
+| 9.18 | *Genista acanthoclada*: 40–100 cm, ciernie, żółte kwiaty IV–VI | Cretan Flora [R] | strona gatunku | U | nieużyte |
+| 9.19 | Frygana ma 30 cm–1 m; zwykle dominują 1–2 gatunki; na wschodzie więcej luk w pokryciu | Pfeiffelmann 2019 [R] | slajdy 13.03–13.08 | U/I | płaty z lukami |
+| 9.20 | Mykonos: krzewinki pokrywają ok. 50–85% gruntu na polach porzuconych ≥ 25 lat | Grabner, Heiselmayer 2000, Acta Bot. Croat. 59 [S] | – | I | nieużyte (gra ma rzadsze płaty) |
+| 9.21 | Kreta, frygana niewypasana: *S. spinosum* i *C. creticus* dają ok. 2/3 pokrycia roślinnego | Elhag i in. 2017, CEST2017 [R] | Results | U | udziały gatunków |
+| 9.22 | Bez wypasu i ognia niejadalne krzewinki zarastają teren | Elhag i in. 2017 [R] | Conclusions | U | – |
+| 9.23 | Pastwiska (Negew): mozaika krzewów, ścieżek zwierząt i przestrzeni między krzewami | Pariente 2014, EGU2014-3294 [R] | całość | U (Izrael) | płaty z gołą ziemią |
+| 9.24 | Pozorne pojedyncze krzewy *S. spinosum* to często skupiska rametów | Seligman, Henkin 2002/2003, Plant Ecology [A] | abstrakt | U | poduchy zrastają się w skupiska |
+
+**Bez odpowiedzi:** średnica poduch żadnego gatunku; bezwzględne pokrycie i odstępy w greckiej fryganie; liczby zmiany liści czystka latem; dokładna barwa *S. spinosum* latem.
+
+Frygana w grze (`Phrygana`, `PhryganaAtlas`) korzysta z 9.1–9.14, 9.19, 9.21 i 9.24. Szerokość poduch wynika z kulistego pokroju (9.4, 9.12, 9.14) i jest interpretacją, bo żadne źródło nie podaje średnicy.

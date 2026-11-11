@@ -149,7 +149,24 @@ namespace MorzaBogow.Presentation.Landscape
                 Planned("veg.cypress.columnar", "vegetation", "Cyprys kolumnowy (uprawny)", all, eras, "do ustalenia", "tylko sanktuaria i ogrody", Confidence.Interpretation, "2.x: JRC Atlas s. 88–89"),
                 Shrub(TreeSpecies.KermesOak, "veg.quercus.coccifera", "KermesLeaves", "kształt z hasza id: 3–6 pni, gęsta kopuła do ziemi, liście 1,5–3,5 cm z 4–8 kolcami"),
                 Shrub(TreeSpecies.Lentisk, "veg.pistacia.lentiscus", "LentiskLeaves", "kształt z hasza id: 2–5 pni, kopuła do ziemi, 3–5 par listków na liściu"),
-                Planned("veg.phrygana", "vegetation", "Poduszki frygany (Sarcopoterium spinosum, Thymbra capitata, Cistus)", all, eras, "poduszki 0,3–0,8 m", "suche wierzchowiny wysepek", Confidence.Established, "2.x: EUNIS F7.31"),
+                new ManifestEntry
+                {
+                    Id = "veg.phrygana",
+                    Category = "vegetation",
+                    Name = "Poduszki frygany (Sarcopoterium spinosum, Thymbra capitata, Cistus)",
+                    Status = AssetStatus.Trial,
+                    Regions = all,
+                    Eras = eras,
+                    Dimensions = "poterium 0,3–0,6 m wysokości, tymianek 0,2–0,47 m, czystek 0,4–0,86 m; szerokość z kulistego pokroju (średnic poduch nie znaleziono); płaty z gołą ziemią między nimi",
+                    Materials = new[] { "Environment/Phrygana (HDRP/Lit Translucent, profil Foliage, alpha clip, atlas z PhryganaAtlas: lato, poterium szarobrązowe, tymianek kwitnący, czystek bez kwiatów)" },
+                    Animations = new[] { "bez ruchu na wietrze: niskie, sztywne, cierniste poduchy (uproszczenie)" },
+                    Physics = "bez colliderów i cieni; tylko prezentacja",
+                    Lods = new[] { "jedna siatka kart na wysepkę (3 karty na poduchę), bez LOD" },
+                    Integration = "Phrygana z Maquis.Plant (BattleController.PlantGrove): do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza",
+                    Tests = new[] { "ShrubTests.Phrygana_GrowsInPatchesOnDryGroundClearOfTreesBushesAndBuildings", "ShrubTests.Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose", "LandscapeTests.Landscape_TheMaquisGrowsOnTheIsletsAndTheMatchWindBendsIt" },
+                    Confidence = Confidence.Interpretation,
+                    Sources = new[] { "2.15: AUTh/EUNIS F7.31", "9.1–9.18: Cretan Flora; MaltaWildPlants; FloraVeg.eu; Pfeiffelmann 2019 (stan obecny)", "9.21: Elhag i in. 2017 (udziały gatunków)" },
+                },
                 new ManifestEntry
                 {
                     Id = "veg.halophytes",

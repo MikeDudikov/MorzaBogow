@@ -60,6 +60,12 @@ Pełna lista jest w [EnvironmentAssetManifest.json](EnvironmentAssetManifest.jso
   - nigdy na plaży, na krawędzi klifu, na gruncie budowli ani przy pniu drzewa; flaga `-morzaPlainOlives` wyłącza też makię;
   - częstotliwości kołysania krzewów nie zmierzono w żadnym przeczytanym źródle: model wahadła drzew przeniesiony na krzew to spekulacja;
   - z kamery strategicznej najdalszy poziom szczegółu rysuje mało kart, a kermes z góry wygląda jak pierścień (ograniczenie przy ok. 14 px na krzew).
+- **Frygana** (`Phrygana`, raport 2.15 i 9.1–9.24):
+  - niskie, kuliste poduchy poterium (*Sarcopoterium spinosum*), tymianku (*Thymbra capitata*) i czystka (*Cistus*), w płatach z gołą ziemią między nimi;
+  - w lecie gry: poterium szarobrązowe i suche, tymianek kwitnący na różowo, czystek szarozielony, już bez kwiatów;
+  - do 140 poduch na wysepkach portów i wolnych brzegów, do 70 w prześwitach wysepek zaplecza, z dala od drzew, makii i budowli;
+  - jedna siatka kart na wysepkę, bez cieni i bez ruchu na wietrze (uproszczenie);
+  - średnic poduch nie podaje żadne przeczytane źródło: szerokość wynika z kulistego pokroju (interpretacja).
 - **Wybrzeże** (`CoastFeatures`): warga notchu w sektorach klifów, mokry pas oraz płyty beachrocku na łagodnych brzegach.
 - **Plaża żwirowa** (`Shingle`):
   - odcinki na łagodnych brzegach, od 0,35 m pod wodą do 0,7 m nad nią, mokre i ciemne do 0,22 m, wyżej suche;
@@ -92,7 +98,7 @@ Builds/M1/MorzaBogow.exe -force-device-index 0 -morzaLandscapeShowcase <prefiks>
 - Pełnej klatki nie rozstrzygnięto: czas symulacji wahał się między przebiegami od 3 do 12 ms.
 
 **Jeszcze nie zrobione:**
-- frygana (oddana przez sesję potoku assetów, jeszcze niezrobiona);
+
 - sosny i cyprysy na generatorze (dziś modele Meshy bez wiatru, sesja potoku assetów);
 - przodek E5 i płuczka;
 - animacja pracy szkutników.
