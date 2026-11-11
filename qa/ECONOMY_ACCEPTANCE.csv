@@ -2,13 +2,16 @@ requirement_id,criterion,verification,evidence,status
 E01,Exactly two spendable resources and no recurring fleet tax,EditMode schema review and ledger,REQUIRED,NOT_RUN
 E02,End of node gives a partial load and cannot be taken twice,EditMode and PlayMode contention,REQUIRED,NOT_RUN
 E02,Work berths queue FIFO and shared work cap is respected,EditMode parameterized limits,REQUIRED,NOT_RUN
-E02,Both resources are finite and never refill,EditMode long run and save-load,REQUIRED,NOT_RUN
+E02,Deposits renew only when left alone up to their start stock and the ledger counts regrowth (user decision 2026-11-10),EditMode regrowth run plus save-load continuation,M1-32050a1300614634b45d24d04fd011ce: SimulationTests.Deposits_RenewWhenLeftAloneSoTheyNeverEndTheGame; SimulationTests.Save_RoundTripContinuesIdenticallyDuringTransfers,PASS
 E03,Global HUD cannot spend remote local stores,EditMode reservations plus PlayMode two-island orders,REQUIRED,NOT_RUN
 E03,Concurrent orders cannot reserve the same resource twice,EditMode competing transaction tests,REQUIRED,NOT_RUN
 E03,Full store leaves cargo on the ship and frees the berth,EditMode and PlayMode,REQUIRED,NOT_RUN
 E03,Port serves three ships at 60 per second and keeps a fair queue,PlayMode queue and blocked approach,REQUIRED,NOT_RUN
 E03,Transport decisions use only observed enemy knowledge,Paired fog-of-war scenarios,REQUIRED,NOT_RUN
 E03,Convoy escort does not abandon transports for unlimited chase,PlayMode naval interception scenario,REQUIRED,NOT_RUN
+E03,Automatic convoy and transfer without amounts never take a source below its minimum,EditMode ConvoyTests,M1-32050a1300614634b45d24d04fd011ce: ConvoyTests.Convoy_NeverTakesASourceBelowItsMinimum; ConvoyTests.Transfer_WithoutAmountsKeepsTheSourcesMinimum,PASS
+E03,Convoy stocks the priority port to the price of its costliest buildable template then waits,EditMode ConvoyTests,M1-32050a1300614634b45d24d04fd011ce: ConvoyTests.Convoy_StocksThePriorityPortWithThePriceOfItsCostliestShip; ConvoyTests.Convoy_ThePriorityPortCanBeNamedAndFallsBackHome; ConvoyTests.Convoy_LoadsAtThePortWithTheMostSurplus,PASS
+E03,Up to three merchants load at one source and depart together,EditMode ConvoyTests,M1-32050a1300614634b45d24d04fd011ce: ConvoyTests.Convoy_MerchantsLoadTogetherAndSailTogether; ConvoyTests.Convoy_AGroupTakesThreeMerchantsAtMost,PASS
 E04,Template price covers hull equipment and crew exactly once,EditMode split against template-costs.csv,REQUIRED,NOT_RUN
 E04,Production consumes with progress and refunds only correct unused cost,EditMode refund and destroyed-source tests,REQUIRED,NOT_RUN
 E04,War line and port queue are independent,EditMode parallel production,REQUIRED,NOT_RUN
@@ -19,12 +22,18 @@ E06,Sunk transport leaves half its cargo as one salvageable wreck,EditMode and P
 E06,Captured ship keeps cargo paid cost and identity,PlayMode boarding during transport,REQUIRED,NOT_RUN
 E06,Wreck cannot duplicate equipment or reroll loot on load,PlayMode deterministic wreck recovery,REQUIRED,NOT_RUN
 E06,Destroyed port keeps settlement stock and settlement loot is 30 percent,PlayMode destruction during unload,REQUIRED,NOT_RUN
+E06,Dock repair costs 25 percent of the full ship price in silver only,EditMode SimulationTests,M1-32050a1300614634b45d24d04fd011ce: SimulationTests.Repair_AtADockChargesAQuarterOfThePriceInSilverOnly; SimulationTests.Repair_TheWholePriceCountsTheItemsFittedNow,PASS
+E06,Settlement fall settles reservations first then leaves 30 percent of its stores and surviving arsenal items as a wreck,EditMode LootTests,M1-32050a1300614634b45d24d04fd011ce: LootTests.Fall_SettlesTheReservationsThenLeavesAThirdOfTheStoresAtThePort; LootTests.Fall_TheArsenalsItemsSurviveTheirDrawIntoTheWreck; LootTests.Fall_GoodsAtSeaStayOnTheShipsAndTheirBookingsEnd,PASS
+E06,Each machine aboard a sunk hull survives at 30 percent drawn once and the wreck keeps it through save-load,EditMode LootTests,M1-32050a1300614634b45d24d04fd011ce: LootTests.Wreck_MachinesAboardASunkHullSurviveAThirdOfTheTime; LootTests.Save_KeepsTheWrecksItemsAndWhatAHullCarries,PASS
+E06,Salvaged items reach the arsenal of the port the cutter unloads or is scrapped at,EditMode LootTests,M1-32050a1300614634b45d24d04fd011ce: LootTests.Salvage_ACutterLiftsTheItemsAndBringsThemToItsPortsArsenal; LootTests.Salvage_AWreckOfItemsAloneIsWorthTheTrip; LootTests.Scrap_AHullCarryingMachinesLeavesThemInTheArsenal,PASS
 E07,Spell cost is local and charged once with a shared cooldown,EditMode and PlayMode,REQUIRED,NOT_RUN
 E08,Finite budget and start symmetry validated on real routes,Generated-map audit plus paired pathfinding,REQUIRED,NOT_RUN
 E09,AI pays identical local costs queues and carries real cargo,Paired AI-human command traces,REQUIRED,NOT_RUN
 E09,Economy automation preserves attention for naval combat,Human playtest with intervention counts,REQUIRED,NOT_RUN
+E09,AI salvages a visible wreck near its ports and leaves one with a seen enemy beside it,EditMode LootTests,M1-32050a1300614634b45d24d04fd011ce: LootTests.Opponent_SendsAFreeCutterForAWreckNearItsPort; LootTests.Opponent_LeavesAWreckWithAnEnemyBesideItOrFarFromItsPorts,PASS
 E10,World ledger conserves resources in stores nodes cargo wrecks and spending,EditMode property-based sequences,REQUIRED,NOT_RUN
 E10,Save and load preserve all transfers and do not charge twice,EditMode serialization plus PlayMode,REQUIRED,NOT_RUN
+E10,Save and load keep convoys and port minimums and continue identically,EditMode ConvoyTests,M1-32050a1300614634b45d24d04fd011ce: ConvoyTests.Save_MidConvoyContinuesIdentically,PASS
 E11,Raid escort-expansion and defense all have counterplay,Paired-seed naval matches plus human review,REQUIRED,NOT_RUN
 E11,Timing targets and uncertainty reported honestly,Match telemetry and statistical report,REQUIRED,NOT_RUN
 E11,First playable battle does not wait for full optional economy,Playable milestone review,REQUIRED,NOT_RUN

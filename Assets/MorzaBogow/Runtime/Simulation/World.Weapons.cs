@@ -229,6 +229,7 @@ namespace MorzaBogow.Simulation
                     settlement.Hull -= weapon.Hull * weapon.BuildingMultiplier;
                     Emit("projectile_hit_settlement", settlement.Id, shot.ShooterId, shot.ToX, shot.ToY, (int)shot.Weapon);
                     struck = true;
+                    if (settlement.Destroyed) FallSettlement(settlement, shot.ShooterId);
                 }
                 if (!struck) Emit("projectile_miss", shot.Id, shot.ShooterId, shot.ToX, shot.ToY, (int)shot.Weapon);
             }

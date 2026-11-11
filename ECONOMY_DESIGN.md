@@ -40,7 +40,7 @@ Handlowiec służy do dostaw między magazynami, wypraw budowlanych i transportu
 
 Każdy punkt ma dwa stanowiska pracy. Przy składzie drewna wspólny limit wynosi 12 D/s, przy srebrze 4 S/s. Aktywni zbieracze dzielą limit proporcjonalnie do swojego tempa. Pozostali czekają w kolejce, zamiast jednocześnie spowalniać wszystkich pracowników. Stanowisko zajmuje się podczas pracy, nie na cały rejs. Kolejność FIFO z rozstrzyganiem remisu przez stabilny identyfikator. Przy opróżnieniu punktu statek zabiera pozostały częściowy ładunek.
 
-Oba zasoby są skończone. Nie odnawiają się po zniszczeniu budynku, zmianie właściciela, zapisie ani wczytaniu. Nie istnieje dochód za samo posiadanie portu. Nadmierna liczba zbieraczy zwiększa kolejkę; automat proponuje przeniesienie części pracy na inne odkryte wybrzeże.
+Złoża się odnawiają (decyzja użytkownika z 2026-11-10, [BALANS_I_SKALA.md](docs/BALANS_I_SKALA.md#korekta-2026-11-10-złoża-nie-decydują-o-końcu-rozgrywki)). Punkt nieeksploatowany przez 60 s odrasta do stanu początkowego w tempie 15% swojej największej wydajności. Intensywna eksploatacja wyczerpuje go tylko na pewien czas. Odrost nie zależy od budynków, właściciela, zapisu ani wczytania i niczego nie wypłaca bez pracy kutra; księga liczy go jako nowe zasoby. Nie istnieje dochód za samo posiadanie portu. Nadmierna liczba zbieraczy zwiększa kolejkę; automat proponuje przeniesienie części pracy na inne odkryte wybrzeże.
 
 ## E03. Lokalne magazyny i automatyczne konwoje
 
@@ -53,6 +53,13 @@ Port ma trzy stanowiska przeładunku, po 60 jednostek/s. Zwykły cykl zbioru zak
 Gracz ustawia trzy rzeczy: obszar pracy, port priorytetowy i poziom ryzyka tras. Gotowe tryby: stocznia, naprawy, rozbudowa. Domyślny zapas stoczni to cena jednego wybranego szablonu, a nie bezlimitowe gromadzenie. Konwój może obejmować do trzech handlowców. Eskorta pozostaje z transportem i nie ściga przeciwnika poza wyznaczoną strefę.
 
 Tryb ostrożny czeka na osłonę albo wraca; standardowy korzysta z odkrytej drogi; ryzykowny akceptuje oznaczone zagrożenie. Automat korzysta wyłącznie z rozpoznania i pamięci gracza. Nie zna niewidocznych flot. Nowa dostawa nie może obniżyć zapasu źródła poniżej wskazanego minimum bez jawnego rozkazu.
+
+Stan wdrożenia (2026-11-11, `World.Convoy`, [BALANS_I_SKALA.md](docs/BALANS_I_SKALA.md#gospodarka-luki-obowiązujących-reguł-2026-11-11)):
+- **Konwój.** Handlowiec w konwoju sam bierze nadwyżkę ponad minimum z portu, który pokryje najwięcej braków. Wiezie ją do portu priorytetowego swojej strony, aż ten ma wolną cenę najdroższego okrętu, jaki może zbudować (tryb stoczni). Potem czeka.
+- **Grupa.** Do trzech handlowców ładuje się w jednym porcie i wypływa razem.
+- **Port priorytetowy** domyślnie jest portem macierzystym. Utracony ustępuje macierzystemu.
+- **Minimum portu** domyślnie wynosi 60 D / 20 S, czyli rezerwę kutra. Obowiązuje konwoje i przewóz bez podanych ilości. Rozkaz z ilościami może zejść niżej.
+- **Jeszcze bez:** poziomu ryzyka tras oraz trybów naprawy i rozbudowy.
 
 ## E04. Start i produkcja floty
 
@@ -108,25 +115,43 @@ Podstawowy port wspiera jedną wieżę, arsenał odblokowuje drugą. Zakres 110 
 
 ## E06. Naprawy, zdobycze i odcięcie dostaw
 
-Remont pełnej utraconej wytrzymałości kosztuje 25% konstrukcyjnej części ceny kadłuba w D/S. Remont częściowy rozlicza faktycznie odtworzony odsetek HP. Jedno stanowisko stoczni naprawia 12 HP/s, osobno od produkcji oraz rozładunku. Stanowisko może obsługiwać jeden okręt. Brak środków wstrzymuje remont. Ludzie i przedmioty wymagają osobnego uzupełnienia. Nie przywracaj wyposażenia przez samo podniesienie HP.
+Kadłub naprawia tylko dok (ulepszenie stoczni Miasta) i tylko za srebro (decyzja użytkownika z 2026-11-10, [BALANS_I_SKALA.md](docs/BALANS_I_SKALA.md#naprawa-w-doku-uzgodnienie-paczki-2026-11-10)). Remont pełnej utraconej wytrzymałości kosztuje 25% pełnej ceny okrętu (decyzja z 2026-11-11). Pełna cena to opłacona konstrukcja, obsada szablonu i bieżąca wartość wyposażenia z taranem, drewno i srebro liczone razem (`World.FullPrice`). Remont częściowy rozlicza faktycznie odtworzony odsetek HP. Jedno stanowisko doku naprawia 12 HP/s, osobno od produkcji oraz rozładunku. Stanowisko może obsługiwać jeden okręt. Brak środków wstrzymuje remont. Ludzie i przedmioty wymagają osobnego uzupełnienia. Nie przywracaj wyposażenia przez samo podniesienie HP.
 
 Złomowanie poza walką trwa 20 s i oddaje 15% rzeczywiście opłaconej konstrukcji × odsetek bieżących HP. Zdemontowane wyposażenie pozostaje przedmiotem i nie dostaje dodatkowego zwrotu. Naprawa wyłącznie dla podniesienia odzysku daje stratę: koszt remontu 25% przewyższa przyrost złomu 15%. Odzysk nie liczy drugi raz wartości ludzi ani broni. Zniżki scenariusza zapisują faktycznie opłaconą cenę, nie wartość cennikową.
 
 Zatopiony transport pozostawia 50% rzeczywistego ładunku jako zbieralny wrak, druga połowa przepada. Zatopienie pustego kadłuba nie wypłaca surowców. Każdy istniejący przedmiot wyposażenia ma 30% szans przetrwania, losowane raz i zapisywane. Przedmioty niezbędne misji podlegają jej jawnym regułom odzyskania. Nie ma gotówki za ostatnie trafienie.
 
+Stan wdrożenia (2026-11-11):
+- **Przedmiot** to machina. Stanowiska łuczników i oszczepników należą do załogi, więc nie trafiają też do arsenału.
+- **Los** wyznacza skrót identyfikatora okrętu, stanowiska i chwili zatonięcia, bez generatora losowego meczu (`World.ItemSurvives`). Wynik zapisuje się we wraku.
+- **Wrak z samymi przedmiotami** też powstaje i trwa 300 s.
+- **Kuter** zabiera przedmioty bez miejsca w ładowni i oddaje je do arsenału portu, w którym się rozładowuje albo jest złomowany.
+- **SI** wysyła wolny kuter po widoczny wrak do 400 m od swojego portu, gdy w promieniu 200 m od wraku nie widzi wroga (E09).
+
 Abordaż przekazuje prawdziwy okręt, obsadę i pozostały ładunek. Nie zwraca jednocześnie transportu dawnemu właścicielowi. Zdobyty okręt zachowuje konstrukcyjny koszt i identyfikatory przedmiotów. Przekazanie między graczami nie odświeża zwrotów.
 
 Blokada wynika z fizycznej obecności floty. Okręt, który dotrze pod ostrzałem, może się rozładować. Port nie rzuca zaklęcia zatrzymującego gospodarkę z promienia. Zniszczenie portu usuwa przeładunek; magazyn osady i opłacone prace w innych budynkach pozostają, jeśli mają działające wyjście. Zniszczenie osady pozostawia do odzyskania 30% jej niewydanych zapasów, reszta przepada. Rozlicz rezerwacje przed wyznaczeniem łupu. Towar na morzu pozostaje na statkach.
+
+Stan wdrożenia (2026-11-11, `World.FallSettlement`):
+- W grze port i osada są jedną budowlą, więc upadek portu to zniszczenie osady.
+- **Upadek** kończy kolejki okrętów, budowę, zamówienia Warsztatu i budowę stoczni. Zwalnia rezerwacje, także ładunki zamówione przez transporty z tego portu.
+- **Łup:** 30% całego niewydanego zapasu i machiny arsenału, które przetrwały los 30%. Leży jako wrak w punkcie portu przez 300 s.
 
 ## E07. Magia i cele specjalne
 
 Zaklęcia zużywają przeważnie S, a efekty wymagające materiałów także D. Koszt jest lokalny i naliczany raz. Przykładowe koszty do strojenia: Sprzyjający wiatr 0 D/70 S, Zew odwagi 0/80, Płomień Aresa 60/100, Naprawa Hefajstosa 120/120. Koszt nie definiuje siły efektu; zasięg, czas działania, odnowienie i możliwość przerwania wymagają testów taktycznych. Większa liczba sanktuariów nie resetuje wspólnego odnowienia zaklęcia.
 
-Bazowa potyczka nie wymaga rynku ani polowań dla otwarcia floty. Konwoje między własnymi portami nie tworzą zysku. Neutralne kontrakty, ładunki zbożowe i skarby występują jako jawne, skończone cele scenariusza. Ich budżet musi być doliczony do mapy. Nie wprowadzaj odnawialnego źródła srebra za powtarzanie tej samej czynności. Potwór może zmieniać sytuację taktyczną bez wypłaty pieniędzy za zabicie.
+Bazowa potyczka nie wymaga rynku ani polowań dla otwarcia floty. Konwoje między własnymi portami nie tworzą zysku. Neutralne kontrakty, ładunki zbożowe i skarby występują jako jawne, skończone cele scenariusza. Ich budżet musi być doliczony do mapy.
+
+Odnawialne źródła i nagrody za potwory ustalają decyzje użytkownika ([BALANS_I_SKALA.md](docs/BALANS_I_SKALA.md)), zastępujące dawny zakaz:
+- złoża odrastają;
+- etap 5 doda ławice ryb i bursztyn, które dają od razu D albo S w punkcie;
+- etap 5 doda też wraki po sztormach, ze sztormem w meczu poprzedzonym zapowiedzią, oraz neutralne konwoje;
+- polowanie na lewiatany i Ketosa wypłaca nagrodę w D/S, z własnymi liczbami.
 
 ## E08. Mapa i tempo
 
-Wzorzec mapy 1 na 1: dla każdego gracza startowy punkt 3000 D/1000 S; cztery dalsze pary punktów po 4000 D/1600 S, rozmieszczone symetrycznie; dwie centralne pary po 6000 D/2000 S. Złoża zawierają łącznie 34000 D/12400 S, a początkowe magazyny obu stron kolejne 720 D/320 S. To budżet jednego wariantu mapy, nie każdej misji.
+Budżet i skalę mapy 1 na 1 wyznacza profil długości: Krótka, Standardowa albo Długa (`MatchProfile`, decyzja użytkownika z 2026-11-09/10, [BALANS_I_SKALA.md](docs/BALANS_I_SKALA.md#etap-1--wdrożony)). Złoża odrastają. Dawny wzorzec 34000 D/12400 S w złożach (startowy punkt 3000 D/1000 S na gracza, cztery pary po 4000 D/1600 S, dwie centralne pary po 6000 D/2000 S) nie jest już jedynym wzorcem. Kampania ustala budżet każdej misji osobno.
 
 Naturalna ekspansja ma podejście 250–350 m. Droga między bazami wynosi 650–850 m dla lekkiego okrętu. Ustal odległości według rzeczywistej nawigacji i zanurzenia, nie odcinka przez wyspy. Do co najmniej jednego spornego obszaru prowadzą dwie drogi. Główna flota nie powinna jednym ustawieniem zamykać wszystkich kierunków gospodarki.
 

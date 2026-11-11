@@ -339,7 +339,7 @@ namespace MorzaBogow.Presentation
         {
             var size = ship.Class == ShipClass.Merchant ? 6 : 4;
             if (ship.Order == OrderKind.Harvest && (ship.Harvest == HarvestPhase.Working || ship.Harvest == HarvestPhase.Landing || ship.Harvest == HarvestPhase.Embarking)) return size;
-            if ((ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition) && (ship.Transport == TransportPhase.Loading || ship.Transport == TransportPhase.Unloading)) return size;
+            if (World.Carries(ship) && (ship.Transport == TransportPhase.Loading || ship.Transport == TransportPhase.Unloading)) return size;
             return 0;
         }
 

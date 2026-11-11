@@ -61,9 +61,11 @@ namespace MorzaBogow.Simulation
             var wanted = settlement.Silver * 2 < settlement.Wood ? ResourceType.Silver : ResourceType.Wood;
             var cutters = world.Ships.Where(ship => ship.Owner == faction && ship.Class == ShipClass.Cutter).OrderBy(ship => ship.Id).ToList();
             var onWanted = cutters.Count(ship => ship.Order == OrderKind.Harvest && world.FindNode(ship.NodeId)?.Type == wanted);
+            var salvaging = ManageSalvage(world, cutters);
 
             foreach (var cutter in cutters)
             {
+                if (salvaging.Contains(cutter.Id)) continue;
                 // Rebalance only ships that just unloaded, keeping at most half on one side of the shortage.
                 var rebalance = cutter.Order == OrderKind.Harvest && cutter.Harvest == HarvestPhase.ToNode && cutter.Cargo == 0
                                 && world.FindNode(cutter.NodeId)?.Type != wanted && onWanted * 2 < cutters.Count;
@@ -77,6 +79,38 @@ namespace MorzaBogow.Simulation
                 }
                 else if (cutter.Order == OrderKind.Idle) Explore(world, cutter);
             }
+        }
+
+        /// <summary>A wreck this close to one of the opponent's ports is worth a cutter's trip, with no enemy seen this close to it.</summary>
+        const double SalvageReach = 400, SalvageThreat = 200;
+
+        /// <summary>
+        /// E06, E09: a wreck the opponent sees near one of its ports, with no enemy seen beside it, gets the nearest free
+        /// cutter: idle, or harvesting and just unloaded. One cutter a wreck; the others keep harvesting. Returns the
+        /// cutters sent, so the harvest orders of this pass leave them alone.
+        /// </summary>
+        HashSet<int> ManageSalvage(World world, List<Ship> cutters)
+        {
+            var sent = new HashSet<int>();
+            var ports = world.PortsOf(faction).ToList();
+            var enemies = world.Ships.Where(ship => ship.Owner != faction && world.CanSee(faction, ship)).ToList();
+            foreach (var wreck in world.Wrecks.OrderBy(item => item.Id))
+            {
+                if (wreck.Empty || !world.CanSee(faction, wreck.X, wreck.Y)) continue;
+                if (!ports.Any(port => World.Distance(port.X, port.Y, wreck.X, wreck.Y) <= SalvageReach)) continue;
+                if (enemies.Any(enemy => World.Distance(enemy.X, enemy.Y, wreck.X, wreck.Y) <= SalvageThreat)) continue;
+                if (cutters.Any(ship => ship.WreckId == wreck.Id)) continue;
+
+                var free = cutters
+                    .Where(ship => !sent.Contains(ship.Id) && (ship.Order == OrderKind.Idle
+                        || (ship.Order == OrderKind.Harvest && ship.Harvest == HarvestPhase.ToNode && ship.Cargo == 0 && ship.WreckId < 0)))
+                    .OrderBy(ship => World.Distance(ship.X, ship.Y, wreck.X, wreck.Y)).ThenBy(ship => ship.Id)
+                    .FirstOrDefault();
+                if (free == null) break;
+                world.Issue(new Command { Faction = faction, Kind = CommandKind.Salvage, ShipIds = new[] { free.Id }, TargetId = wreck.Id });
+                sent.Add(free.Id);
+            }
+            return sent;
         }
 
         ResourceNode FindNode(World world, Ship cutter, ResourceType wanted) =>

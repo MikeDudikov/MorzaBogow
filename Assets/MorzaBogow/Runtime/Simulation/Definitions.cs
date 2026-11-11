@@ -343,6 +343,9 @@ namespace MorzaBogow.Simulation
         public const double EscortZone = 100;
         public const double EscortStation = 30;
 
+        /// <summary>E03: merchants in one convoy at most; they load at one source and sail together.</summary>
+        public const int ConvoySize = 3;
+
         public const int WorkBerths = 2;
         public const int WoodNodeCap = 12;
         public const int SilverNodeCap = 4;
@@ -449,6 +452,12 @@ namespace MorzaBogow.Simulation
         public const double RepairFullFraction = 0.25, RepairHullPerSecond = 12;
         public const double ScrapFraction = 0.15, ScrapSeconds = 20, ScrapCombatLockSeconds = 10;
         public const double WreckCargoFraction = 0.5, WreckLifeSeconds = 300, WreckRange = 20;
+
+        /// <summary>
+        /// E06: a fallen settlement leaves this share of its unspent stores to be salvaged at its port point, the rest is
+        /// lost; every item of equipment in a sinking hull or a fallen port's arsenal survives with this chance, drawn once.
+        /// </summary>
+        public const double SettlementLootFraction = 0.3, ItemSurvivalChance = 0.3;
     }
 
     /// <summary>Small deterministic generator with a saved state.</summary>

@@ -160,6 +160,44 @@ namespace MorzaBogow.Presentation
                 Debug.Log($"[Showcase] order menu with {items} items");
             } };
             yield return new ShowcaseStep { Ticks = 1, Setup = () => hud?.ClosePopoverForTest() };
+
+            // E03 convoys (docs/BALANS_I_SKALA.md): the port card's menu with the priority port, the minimums and the idle merchants.
+            Ship merchant = null;
+            yield return new ShowcaseStep { Ticks = 15, Setup = () =>
+            {
+                selected.Clear();
+                inspectedSettlementId = home.Id;
+                merchant = World.SpawnShip(PlayerFaction, ShipClass.Merchant, area.x + 40, area.z + 60);
+                FramePort(home, 90f);
+            } };
+            yield return new ShowcaseStep { Shot = "konwoje", Ticks = 1, Setup = () =>
+            {
+                var items = hud != null ? hud.OpenConvoysForTest() : -1;
+                Debug.Log($"[Showcase] convoy menu with {items} items");
+            } };
+            yield return new ShowcaseStep { Ticks = 1, Setup = () => hud?.ClosePopoverForTest() };
+
+            // The merchant put on convoy duty: its card shows the switch on.
+            yield return new ShowcaseStep { Shot = "handlowiec-konwoj", Ticks = 15, Setup = () =>
+            {
+                World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Convoy, ShipIds = new[] { merchant.Id } });
+                inspectedSettlementId = -1;
+                selected.Clear();
+                selected.Add(merchant.Id);
+                pivot = new Vector3((float)merchant.X, 0f, (float)merchant.Y); height = 70f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+            } };
+            yield return new ShowcaseStep { Ticks = 1, Setup = () => Debug.Log($"[Showcase] handlowiec-konwoj: {DescribeOrder(merchant)}") };
+
+            // E06: a wreck holding goods and two ballistas that survived their draw, on the wreck card.
+            yield return new ShowcaseStep { Shot = "wrak-machiny", Ticks = 15, Setup = () =>
+            {
+                selected.Clear();
+                var wreck = new Wreck { Id = World.NextId++, X = merchant.X - 70, Y = merchant.Y + 10, Wood = 30 * Rules.Centi, ExpiresTick = World.Tick + 200 * Rules.TickRate };
+                wreck.Items[(int)WeaponType.DeckBallista] = 2;
+                World.Wrecks.Add(wreck);
+                InspectedWreckId = wreck.Id;
+                pivot = new Vector3((float)wreck.X, 0f, (float)wreck.Y); height = 60f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
+            } };
         }
     }
 }

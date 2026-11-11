@@ -1130,7 +1130,7 @@ namespace MorzaBogow.Presentation
                 var node = World.FindNode(ship.NodeId);
                 if (node != null) return (node.Type == ResourceType.Wood ? CrewJob.Wood : CrewJob.Silver, SiteWorkplace(node));
             }
-            if (ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition)
+            if (World.Carries(ship))
             {
                 if (ship.Transport == TransportPhase.Loading)
                 {
@@ -1156,7 +1156,7 @@ namespace MorzaBogow.Presentation
         double SecondsUntilDeparture(Ship ship)
         {
             var handling = Rules.HandlingPerSecond * Rules.Centi;
-            if (ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition)
+            if (World.Carries(ship))
             {
                 if (ship.Transport == TransportPhase.Loading) return (ship.WantWood + ship.WantSilver) / handling;
                 if (ship.Transport == TransportPhase.Unloading) return (ship.HoldWood + ship.HoldSilver) / handling;
@@ -1987,6 +1987,7 @@ namespace MorzaBogow.Presentation
                     return true;
                 case OrderKind.Transfer:
                 case OrderKind.Expedition:
+                case OrderKind.Convoy:
                     if (ship.Transport <= TransportPhase.Loading)
                     {
                         var source = World.FindSettlement(ship.SourceId);
@@ -3027,6 +3028,7 @@ namespace MorzaBogow.Presentation
                         case TransportPhase.Unloading: return "Rozkaz: dostawa, rozładunek.";
                         default: return $"Rozkaz: buduje przyczółek, {100 * ship.BuildTicks / (int)(Rules.OutpostBuildSeconds * Rules.TickRate)}%.";
                     }
+                case OrderKind.Convoy: return DescribeConvoy(ship);
                 case OrderKind.Escort: return "Rozkaz: eskorta handlowca.";
                 case OrderKind.Salvage: return "Rozkaz: zbiera wrak.";
                 case OrderKind.Repair: return World.RepairYard(ship)?.HasDock == true ? "Rozkaz: remont w doku." : "Rozkaz: przegrupowanie w porcie.";

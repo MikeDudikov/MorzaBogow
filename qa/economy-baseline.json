@@ -34,7 +34,12 @@
     "immortals": {"cost": {"D": 280, "S": 220}, "seconds": 45},
     "strait_serpent": {"cost": {"D": 260, "S": 200}, "seconds": 40}
   },
-  "repair": {"costFullFraction": 0.25, "scrapFraction": 0.15, "scrapSeconds": 20, "maxConcurrent": 1, "hpPerSecond": 12},
+  "repair": {"costFullFraction": 0.25, "costBase": "fullShipPrice: paid construction + template crew + current item worth incl. ram (user decision 2026-11-11)", "currency": "S", "dockOnly": true, "scrapFraction": 0.15, "scrapBase": "paidConstruction", "scrapSeconds": 20, "maxConcurrent": 1, "hpPerSecond": 12},
+  "deposits": {"renew": true, "regrowDelaySeconds": 60, "regrowShareOfNodeCap": 0.15},
+  "wreck": {"cargoFraction": 0.5, "lifeSeconds": 300, "salvageRange": 20, "itemSurvival": 0.3, "items": "machines only; drawn once from a hash, saved in the wreck"},
+  "settlementFall": {"lootFraction": 0.3, "lootAt": "port point, as a wreck", "arsenalItemSurvival": 0.3, "reservationsSettledFirst": true},
+  "convoy": {"maxMerchants": 3, "priorityPortDefault": "home", "goal": "free stock = price of the costliest ship the priority port may build", "portMinimumDefault": {"D": 60, "S": 20}, "portMinimumChoices": [[0, 0], [60, 20], [200, 80], [500, 200]], "riskModes": "NOT_IMPLEMENTED"},
+  "aiSalvage": {"wreckWithinMetresOfOwnPort": 400, "noSeenEnemyWithinMetres": 200, "cuttersPerWreck": 1},
   "map": {"startResourceDistance": [70, 110], "enemyBasePath": [650, 850], "outpostPath": [250, 350], "outpostDeposits": {"D": 4000, "S": 1600}, "contestedDeposits": {"D": 6000, "S": 2000}, "symmetricOutposts": 4, "contestedSites": 2},
   "targets": {"firstDirectContactSeconds": [105, 180], "largerBattleSeconds": [240, 420], "matchMinutes": [15, 25]},
   "gameplayValidation": "NOT_RUN"

@@ -65,7 +65,7 @@ namespace MorzaBogow.Presentation
         VisualElement shipPortrait, shipBadge, shipCargoRow, moraleGlyph, shipBoardingRow;
         Label shipName, shipTag, shipHull, shipSailors, shipSoldiers, shipJavelins, shipArchers, shipWounded, shipMorale, shipCargo, shipPhase, shipBoarding;
         MeterBar shipHullMeter, shipCargoMeter, shipBoardingOurs, shipBoardingTheirs;
-        Button shipCrewButton;
+        Button shipCrewButton, shipConvoyButton;
         int shipShownId = -1;
         readonly List<(Button card, VisualElement portrait, Label name, MeterBar meter)> unitCards = new List<(Button, VisualElement, Label, MeterBar)>();
         Button moreCard;
@@ -464,6 +464,12 @@ namespace MorzaBogow.Presentation
             shipWeaponsButton.style.marginLeft = 6;
             crewMore.Add(shipWeaponsButton);
             Tip(shipWeaponsButton, () => WeaponsSummaryTip());
+            // E03: a merchant goes on convoy duty, or comes off it, with one click (World.Convoy).
+            shipConvoyButton = new Button(() => { battle.ToggleConvoySelected(); Refresh(); }) { text = "Konwój", focusable = true };
+            shipConvoyButton.AddToClassList("card-button");
+            shipConvoyButton.style.marginLeft = 6;
+            crewMore.Add(shipConvoyButton);
+            Tip(shipConvoyButton, () => new TipInfo { Title = "Konwój", Body = "Handlowiec sam wozi nadwyżki innych portów (ponad ich minimum) do portu priorytetowego, aż ten ma cenę najdroższego okrętu, jaki może zbudować; potem czeka. Do trzech handlowców ładuje się w jednym porcie i płynie razem. Port priorytetowy i minimum ustawia się na karcie portu (Konwoje). Ponowne kliknięcie zdejmuje z konwoju." });
             Tip(shipCrewButton, () => new TipInfo { Title = "Skład załogi", Body = "Wybierz, do jakiego składu port wyszkoli załogę. Zmiana następuje przy przegrupowaniu w porcie ze stocznią: okręt bez rozkazu w pobliżu portu sam wchodzi na stanowisko, leczy rannych i uzupełnia ludzi; kadłub i moduły broni naprawia tylko dok, za srebro.", Key = Keys(GameAction.Repair) + ": do portu teraz" });
 
             shipBoardingRow = Element("card-row", card);
@@ -551,6 +557,21 @@ namespace MorzaBogow.Presentation
             }
             Text("Plan zmienia się od razu; broń wymienia port przy przegrupowaniu (zdjęcie 3 s, montaż 5 s / ciężka 10 s). Brakującą port zamawia w Warsztacie.", "popover-note", panel);
         }
+
+        readonly List<Action> convoyActions = new List<Action>();
+
+        /// <summary>Opens the active port's convoy menu and returns how many items it lists (showcase, tests).</summary>
+        public int OpenConvoysForTest()
+        {
+            OpenConvoys();
+            return convoyActions.Count;
+        }
+
+        /// <summary>Chooses an item of the open convoy menu as a click would (tests).</summary>
+        public void PickConvoyForTest(int index) => convoyActions[index]();
+
+        /// <summary>The convoy switch on the shown ship's card, or null when the card offers none (tests).</summary>
+        public string ConvoySwitchForTest => shipConvoyButton != null && shipConvoyButton.resolvedStyle.display != DisplayStyle.None && shipView.resolvedStyle.display != DisplayStyle.None ? shipConvoyButton.text : null;
 
         /// <summary>Opens the active port's building menu and returns how many projects it lists (showcase, tests).</summary>
         public int OpenBuildForTest()
@@ -731,11 +752,55 @@ namespace MorzaBogow.Presentation
             portWorkshopButton.style.marginLeft = 6;
             portWorksRow.Add(portWorkshopButton);
             Tip(portWorkshopButton, () => new TipInfo { Title = "Warsztat", Body = "Wytwarza machiny do arsenału portu. Okręty dostają je przy przegrupowaniu w porcie według planu uzbrojenia; brakujące port zamawia sam." });
+            portConvoyButton = new Button(OpenConvoys) { text = "Konwoje", focusable = true };
+            portConvoyButton.AddToClassList("card-button");
+            portConvoyButton.style.marginLeft = 6;
+            portWorksRow.Add(portConvoyButton);
+            Tip(portConvoyButton, () => new TipInfo { Title = "Konwoje", Body = "Port priorytetowy, do którego handlowce w konwoju wiozą nadwyżki; minimum, poniżej którego automat nie bierze z tego portu; wolne handlowce do konwoju." });
         }
 
         VisualElement portWorksRow;
         Label portWorks;
-        Button portBuildButton, portWorkshopButton;
+        Button portBuildButton, portWorkshopButton, portConvoyButton;
+
+        /// <summary>
+        /// E03 convoys at this port (World.Convoy): make it the side's priority port, choose what it keeps against
+        /// automatic loads, put the idle merchants on convoy duty. Each click is an ordinary command.
+        /// </summary>
+        void OpenConvoys()
+        {
+            var port = battle.ActivePort;
+            if (port == null) return;
+            var world = battle.World;
+            var player = BattleController.PlayerFaction;
+            var panel = OpenPopover(portConvoyButton, $"Konwoje – {battle.PortName(port)}");
+            convoyActions.Clear();
+            Button Item(string icon, string label, string value, Action click)
+            {
+                convoyActions.Add(click);
+                return MenuItem(panel, icon, label, value, click);
+            }
+            var priority = world.PriorityPort(player);
+            var (goalWood, goalSilver) = world.ConvoyGoal(port);
+            var isPriority = priority == port;
+            var named = Item(isPriority ? "check" : "port", "Port priorytetowy",
+                isPriority ? "ten port" : $"teraz: {(priority != null ? battle.PortName(priority) : "brak")}", () => { battle.SetPriorityPort(port); ClosePopover(); });
+            named.EnableInClassList("disabled", isPriority);
+            Tip(named, () => new TipInfo { Title = "Port priorytetowy", Body = $"Handlowce w konwoju wiozą tu nadwyżki innych portów, aż wolny zapas osiągnie cenę najdroższego okrętu, jaki ten port może zbudować: teraz {goalWood / Rules.Centi} D · {goalSilver / Rules.Centi} S. Bez wskazania – port macierzysty." });
+            foreach (var (wood, silver) in BattleController.PortMinimums)
+            {
+                var chosenWood = wood;
+                var chosenSilver = silver;
+                var current = port.KeepWood == wood * Rules.Centi && port.KeepSilver == silver * Rules.Centi;
+                var row = Item(current ? "check" : "cargo", "Minimum w tym porcie", $"{wood} D · {silver} S", () => { battle.SetPortMinimum(port, chosenWood, chosenSilver); ClosePopover(); });
+                row.EnableInClassList("disabled", current);
+            }
+            var idle = world.Ships.Count(ship => ship.Owner == player && ship.Class == ShipClass.Merchant && ship.Order == OrderKind.Idle);
+            var onDuty = world.Ships.Count(ship => ship.Owner == player && ship.Order == OrderKind.Convoy);
+            var send = Item("deliver", "Wolne handlowce do konwoju", $"{idle} wolne · {onDuty} w konwojach", () => { battle.ConvoyIdleMerchants(); ClosePopover(); });
+            send.EnableInClassList("disabled", idle == 0);
+            Text("Automat nie bierze ze źródła poniżej jego minimum (rozkaz z ilościami może). Do trzech handlowców ładuje się w jednym porcie i płynie razem. Stop zdejmuje handlowca z konwoju.", "popover-note", panel);
+        }
 
         /// <summary>The projects with their price, state or what they still need; one click starts one.</summary>
         void OpenBuild()
@@ -833,7 +898,7 @@ namespace MorzaBogow.Presentation
             Glyph(time, "time", "glyph-small");
             wreckTime = Text(string.Empty, "small", time);
             wreckTime.style.marginLeft = 6;
-            Text("Kuter z rozkazem zbioru zabiera ładunek wraku.", "help-line", card);
+            Text("Kuter z rozkazem zbioru zabiera ładunek wraku i ocalałe machiny (do arsenału portu).", "help-line", card);
         }
 
         QueueRow QueueRowOf(VisualElement section, bool war)
@@ -1254,7 +1319,7 @@ namespace MorzaBogow.Presentation
             }
             else if (wreck != null)
             {
-                SetText(wreckCargo, $"{wreck.Wood / Rules.Centi} D · {wreck.Silver / Rules.Centi} S");
+                SetText(wreckCargo, $"{wreck.Wood / Rules.Centi} D · {wreck.Silver / Rules.Centi} S" + (wreck.ItemCount > 0 ? $" · machiny {wreck.ItemCount}" : string.Empty));
                 SetText(wreckTime, $"Zatonie za {Mathf.Max(0, (wreck.ExpiresTick - world.Tick) / Rules.TickRate)} s");
                 SetText(selectionTitle, "Rozpoznany wrak");
                 SetText(selectionNote, string.Empty);
@@ -1290,6 +1355,8 @@ namespace MorzaBogow.Presentation
             Show(shipCrewButton, !enemy && !definition.IsEconomic);
             Show(shipWeaponsButton, !enemy && ship.Mounts.Length > 0);
             if (!enemy && !definition.IsEconomic) shipCrewButton.text = $"Skład: {BattleController.PresetName(ship.Plan.Preset)}";
+            Show(shipConvoyButton, !enemy && ship.Class == ShipClass.Merchant);
+            shipConvoyButton.text = ship.Order == OrderKind.Convoy ? "Konwój: tak" : "Konwój";
 
             var link = battle.BoardingOf(ship.Id);
             Show(shipBoardingRow, link != null);
@@ -1426,6 +1493,7 @@ namespace MorzaBogow.Presentation
                 Show(portWorkshopButton, false);
             }
             Show(portBuildButton, own);
+            Show(portConvoyButton, own);
         }
 
         /// <summary>One line: the project under way or the buildings standing, the workshop's current job and the arsenal.</summary>

@@ -8,7 +8,25 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 17;
+        public const int Version = 18;
+
+        /// <summary>Items counted by weapon type: an arsenal, a wreck's survivors, what a hull carries from a wreck.</summary>
+        static void WriteCounts(BinaryWriter writer, int[] counts)
+        {
+            writer.Write(counts.Length);
+            foreach (var count in counts) writer.Write(count);
+        }
+
+        static void ReadCounts(BinaryReader reader, int[] counts, string what)
+        {
+            var length = reader.ReadInt32();
+            if (length != counts.Length) throw new InvalidDataException($"Damaged {what}.");
+            for (var i = 0; i < length; i++)
+            {
+                counts[i] = reader.ReadInt32();
+                if (counts[i] < 0) throw new InvalidDataException($"Damaged {what}.");
+            }
+        }
 
         /// <summary>Weapon posts: type, cycle progress, module hit points and item worth; the ram's worth last.</summary>
         static void WriteArms(BinaryWriter writer, Ship ship)
@@ -99,6 +117,8 @@ namespace MorzaBogow.Simulation
                 writer.Write(world.GrownWood); writer.Write(world.GrownSilver);
                 writer.Write(world.Explored);
                 writer.Write((int)world.Length);
+                writer.Write(world.PriorityPorts.Length);
+                foreach (var port in world.PriorityPorts) writer.Write(port);
 
                 writer.Write(world.Islands.Count);
                 foreach (var island in world.Islands)
@@ -141,6 +161,7 @@ namespace MorzaBogow.Simulation
                     WriteQueue(writer, settlement.WorkshopQueue);
                     writer.Write(settlement.Arsenal.Length);
                     foreach (var count in settlement.Arsenal) writer.Write(count);
+                    writer.Write(settlement.KeepWood); writer.Write(settlement.KeepSilver);
                 }
 
                 writer.Write(world.Ships.Count);
@@ -170,6 +191,8 @@ namespace MorzaBogow.Simulation
                     WriteArms(writer, ship);
                     writer.Write(ship.Loadout.Length);
                     foreach (var weapon in ship.Loadout) writer.Write((int)weapon);
+                    WriteCounts(writer, ship.CarriedItems);
+                    writer.Write(ship.ConvoyGroup);
                 }
 
                 writer.Write(world.Wrecks.Count);
@@ -177,6 +200,7 @@ namespace MorzaBogow.Simulation
                 {
                     writer.Write(wreck.Id); writer.Write(wreck.X); writer.Write(wreck.Y);
                     writer.Write(wreck.Wood); writer.Write(wreck.Silver); writer.Write(wreck.ExpiresTick);
+                    WriteCounts(writer, wreck.Items);
                 }
 
                 writer.Write(world.Boardings.Count);
@@ -248,6 +272,8 @@ namespace MorzaBogow.Simulation
                 if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
                 world.Length = (MatchLength)reader.ReadInt32();
                 if (world.Length < MatchLength.Short || world.Length > MatchLength.Long) throw new InvalidDataException("Damaged match length.");
+                if (reader.ReadInt32() != world.PriorityPorts.Length) throw new InvalidDataException("Damaged priority ports.");
+                for (var p = 0; p < world.PriorityPorts.Length; p++) world.PriorityPorts[p] = reader.ReadInt32();
 
                 var count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
@@ -306,6 +332,8 @@ namespace MorzaBogow.Simulation
                     var arsenal = reader.ReadInt32();
                     if (arsenal != settlement.Arsenal.Length) throw new InvalidDataException("Damaged arsenal.");
                     for (var a = 0; a < arsenal; a++) settlement.Arsenal[a] = reader.ReadInt32();
+                    settlement.KeepWood = reader.ReadInt64(); settlement.KeepSilver = reader.ReadInt64();
+                    if (settlement.KeepWood < 0 || settlement.KeepSilver < 0) throw new InvalidDataException("Damaged port minimum.");
                     world.Settlements.Add(settlement);
                 }
 
@@ -346,17 +374,21 @@ namespace MorzaBogow.Simulation
                     ship.Loadout = new WeaponType[planned];
                     for (var p = 0; p < planned; p++) ship.Loadout[p] = (WeaponType)reader.ReadInt32();
                     if (ship.Mounts.Length != ship.Definition.Slots.Length) throw new InvalidDataException("Weapon posts do not match the class.");
+                    ReadCounts(reader, ship.CarriedItems, "carried items");
+                    ship.ConvoyGroup = reader.ReadInt32();
                     world.Ships.Add(ship);
                 }
 
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
                 {
-                    world.Wrecks.Add(new Wreck
+                    var wreck = new Wreck
                     {
                         Id = reader.ReadInt32(), X = reader.ReadDouble(), Y = reader.ReadDouble(),
                         Wood = reader.ReadInt64(), Silver = reader.ReadInt64(), ExpiresTick = reader.ReadInt32(),
-                    });
+                    };
+                    ReadCounts(reader, wreck.Items, "wreck items");
+                    world.Wrecks.Add(wreck);
                 }
 
                 count = reader.ReadInt32();

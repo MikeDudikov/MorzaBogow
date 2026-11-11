@@ -88,9 +88,9 @@ namespace MorzaBogow.Simulation
             }
             else
             {
-                // E03: an automatic load keeps the reserve that protects rebuilding a cutter.
-                var spareWood = Math.Max(0, source.Available(ResourceType.Wood) - Rules.ReserveWood);
-                var spareSilver = Math.Max(0, source.Available(ResourceType.Silver) - Rules.ReserveSilver);
+                // E03: an automatic load keeps the source's minimum, by default the reserve that protects rebuilding a cutter.
+                var spareWood = Math.Max(0, source.Available(ResourceType.Wood) - source.KeepWood);
+                var spareSilver = Math.Max(0, source.Available(ResourceType.Silver) - source.KeepSilver);
                 wood = Math.Min(capacity * 2 / 3, spareWood);
                 silver = Math.Min(capacity - wood, spareSilver);
                 wood = Math.Min(capacity - silver, spareWood);
@@ -169,9 +169,9 @@ namespace MorzaBogow.Simulation
                 source.ReservedSilver -= ship.WantSilver;
             }
             foreach (var site in Sites) if (site.BuilderShipId == ship.Id) site.BuilderShipId = -1;
-            if (ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition) ship.UnloadRemainder = 0;
+            if (Carries(ship)) ship.UnloadRemainder = 0;
             ship.WantWood = ship.WantSilver = 0;
-            ship.SourceId = ship.DestinationId = ship.SiteId = ship.EscortId = -1;
+            ship.SourceId = ship.DestinationId = ship.SiteId = ship.EscortId = ship.ConvoyGroup = -1;
             ship.BuildTicks = 0;
             ship.BuildUsedWood = ship.BuildUsedSilver = 0;
         }
@@ -193,6 +193,7 @@ namespace MorzaBogow.Simulation
 
                 case TransportPhase.ToDestination:
                     if (ship.Order == OrderKind.Expedition) { StepToSite(ship); return; }
+                    if (ship.Order == OrderKind.Convoy && ConvoyStillLoading(ship)) { StopShip(ship); return; }
                     var target = FindSettlement(ship.DestinationId);
                     if (target == null || target.Destroyed) { ClearOrder(ship); return; }
                     if (Distance(ship.X, ship.Y, target.X, target.Y) <= PortReach(ship))

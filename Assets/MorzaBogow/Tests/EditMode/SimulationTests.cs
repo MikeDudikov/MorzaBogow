@@ -430,7 +430,9 @@ namespace MorzaBogow.Tests
             settlement.HasDock = true;
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = 380;
-            var price = (ship.PaidConstructionWood + ship.PaidConstructionSilver) / 100.0;
+            // The whole price, not its construction part (user decision of 2026-11-11): 240 D + 100 S for a ram.
+            Assert.That(World.FullPrice(ship), Is.EqualTo((ship.Definition.CostWood + ship.Definition.CostSilver) * Rules.Centi));
+            var price = World.FullPrice(ship) / 100.0;
             var wood = settlement.Wood;
             var silver = settlement.Silver;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
@@ -438,6 +440,30 @@ namespace MorzaBogow.Tests
             Assert.That(ship.Hull, Is.EqualTo(760).Within(0.01));
             Assert.That(settlement.Wood, Is.EqualTo(wood), "Repairs take no wood.");
             Assert.That((silver - settlement.Silver) / 100.0, Is.EqualTo(price * Rules.RepairFullFraction * 0.5).Within(0.05), "A quarter of the whole price in silver for a full repair; half the hull here.");
+        }
+
+        [Test]
+        public void Repair_TheWholePriceCountsTheItemsFittedNow()
+        {
+            var world = Empty();
+            var settlement = world.SettlementOf(0);
+            settlement.HasDock = true;
+            var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
+            var armed = World.FullPrice(ship);
+            // The archer bank taken off and out of the plan: the construction, the crew and the ram stay in the price.
+            var bank = ship.ItemWood[0] + ship.ItemSilver[0];
+            ship.Mounts[0] = ship.Loadout[0] = WeaponType.None;
+            ship.ItemWood[0] = ship.ItemSilver[0] = 0;
+            Assert.That(bank, Is.GreaterThan(0));
+            Assert.That(World.FullPrice(ship), Is.EqualTo(armed - bank));
+            Assert.That(World.FullPrice(ship), Is.GreaterThan(ship.PaidConstructionWood + ship.PaidConstructionSilver), "More than the construction part.");
+
+            ship.Hull = 380;
+            var silver = settlement.Silver;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
+            Run(world, 40);
+            Assert.That(ship.Hull, Is.EqualTo(760).Within(0.01));
+            Assert.That((silver - settlement.Silver) / 100.0, Is.EqualTo((armed - bank) / 100.0 * Rules.RepairFullFraction * 0.5).Within(0.05));
         }
 
         [Test]
@@ -523,7 +549,9 @@ namespace MorzaBogow.Tests
             var settlement = world.SettlementOf(0);
             var ship = world.SpawnShip(0, ShipClass.Ram, settlement.X, 0);
             ship.Hull = ship.Definition.Hull * condition;
+            // Scrapping returns a share of the construction paid; a repair costs a share of the whole price.
             var price = (ship.PaidConstructionWood + ship.PaidConstructionSilver) / 100.0;
+            var whole = World.FullPrice(ship) / 100.0;
             var startWood = settlement.Wood;
             var startSilver = settlement.Silver;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Scrap, ShipIds = new[] { ship.Id } });
@@ -532,7 +560,7 @@ namespace MorzaBogow.Tests
             // Repairs cost silver only and scrapping returns both stores, so the comparison counts wood and silver together.
             var refund = (settlement.Wood - startWood + settlement.Silver - startSilver) / 100.0;
             Assert.That(refund, Is.EqualTo(price * Rules.ScrapFraction * condition).Within(0.02));
-            var viaRepair = price * Rules.ScrapFraction - price * Rules.RepairFullFraction * (1 - condition);
+            var viaRepair = price * Rules.ScrapFraction - whole * Rules.RepairFullFraction * (1 - condition);
             Assert.That(viaRepair, Is.LessThanOrEqualTo(refund + 0.02), "Repairing first never pays better.");
             Assert.That(world.Wrecks, Is.Empty);
         }

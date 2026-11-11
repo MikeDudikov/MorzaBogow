@@ -196,7 +196,7 @@ Nowy port powstaje jako przyczółek za 300 D/100 S w 35 s, po dowiezieniu ładu
 
 Stocznia produkuje okręty i ma jedną linię wojenną. Kolejna stocznia daje dodatkową linię za 200 D/100 S i 40 s, z własnym wolnym podejściem. Budowana jednostka ma wizualną reprezentację na pochylni: żebra, poszycie, maszt i wyposażenie.
 
-Stocznia ma jedno odrębne stanowisko remontowe, 12 HP/s. Remont pełnej utraconej wytrzymałości kosztuje 25% konstrukcyjnej części ceny kadłuba; częściowy rozlicza faktycznie odtworzony odsetek HP. Naprawa kadłuba nie przywraca automatycznie żołnierzy ani uzbrojenia. Złomowanie poza walką trwa 20 s i oddaje 15% opłaconej konstrukcji × odsetek bieżących HP.
+Kadłub naprawia tylko dok (ulepszona stocznia Miasta), na jednym odrębnym stanowisku, 12 HP/s, wyłącznie za srebro. Remont pełnej utraconej wytrzymałości kosztuje 25% pełnej ceny okrętu: konstrukcji, obsady szablonu i bieżącego wyposażenia ([ECONOMY_DESIGN.md](ECONOMY_DESIGN.md) E06). Częściowy rozlicza faktycznie odtworzony odsetek HP. Naprawa kadłuba nie przywraca automatycznie żołnierzy ani uzbrojenia. Złomowanie poza walką trwa 20 s i oddaje 15% opłaconej konstrukcji × odsetek bieżących HP.
 
 ### 6.3. Inwestycje
 

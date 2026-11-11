@@ -1,10 +1,29 @@
 {
   "taskId": "M1",
   "sessionId": "manual-m1",
-  "requirements": ["C01-M1", "C02", "C04", "C05", "C08", "C12-save", "E01", "E02", "E03", "E04", "E06", "E10", "V10-profiles", "V13"],
+  "requirements": ["C01-M1", "C02", "C04", "C05", "C08", "C12-save", "E01", "E02", "E03", "E04", "E06", "E09", "E10", "V10-profiles", "V13"],
   "profiles": {
     "EditMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.SimulationTests.Repair_TheWholePriceCountsTheItemsFittedNow",
+        "MorzaBogow.Tests.LootTests.Fall_SettlesTheReservationsThenLeavesAThirdOfTheStoresAtThePort",
+        "MorzaBogow.Tests.LootTests.Fall_TheArsenalsItemsSurviveTheirDrawIntoTheWreck",
+        "MorzaBogow.Tests.LootTests.Fall_GoodsAtSeaStayOnTheShipsAndTheirBookingsEnd",
+        "MorzaBogow.Tests.LootTests.Wreck_MachinesAboardASunkHullSurviveAThirdOfTheTime",
+        "MorzaBogow.Tests.LootTests.Salvage_ACutterLiftsTheItemsAndBringsThemToItsPortsArsenal",
+        "MorzaBogow.Tests.LootTests.Salvage_AWreckOfItemsAloneIsWorthTheTrip",
+        "MorzaBogow.Tests.LootTests.Scrap_AHullCarryingMachinesLeavesThemInTheArsenal",
+        "MorzaBogow.Tests.LootTests.Opponent_SendsAFreeCutterForAWreckNearItsPort",
+        "MorzaBogow.Tests.LootTests.Opponent_LeavesAWreckWithAnEnemyBesideItOrFarFromItsPorts",
+        "MorzaBogow.Tests.LootTests.Save_KeepsTheWrecksItemsAndWhatAHullCarries",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_StocksThePriorityPortWithThePriceOfItsCostliestShip",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_NeverTakesASourceBelowItsMinimum",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_LoadsAtThePortWithTheMostSurplus",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_ThePriorityPortCanBeNamedAndFallsBackHome",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_MerchantsLoadTogetherAndSailTogether",
+        "MorzaBogow.Tests.ConvoyTests.Convoy_AGroupTakesThreeMerchantsAtMost",
+        "MorzaBogow.Tests.ConvoyTests.Transfer_WithoutAmountsKeepsTheSourcesMinimum",
+        "MorzaBogow.Tests.ConvoyTests.Save_MidConvoyContinuesIdentically",
         "MorzaBogow.Tests.HarbourBuildingTests.Dock_TheShipShedStandsBesideTheSlipwayAndTheJettyNeverOverThem",
         "MorzaBogow.Tests.HarbourBuildingTests.Buildings_RiseByAssemblyAndNothingIsScaled",
         "MorzaBogow.Tests.HarbourBuildingTests.Dock_BreaksElementByElementLikeTheRest",
@@ -229,6 +248,7 @@
     },
     "PlayMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.ConvoyPresentationTests.Hud_ConvoysAreSetFromThePortCardAndTheMerchantsCard",
         "MorzaBogow.Tests.PortPresentationTests.PortBuildings_FollowTheSettlementsBuildings",
         "MorzaBogow.Tests.PortPresentationTests.PortBuildings_KeepClearOfTheJettySlipwaysAndStoreDoor",
         "MorzaBogow.Tests.PortPresentationTests.PortBuildings_AProjectRisesWithItsProgress",

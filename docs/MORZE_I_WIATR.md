@@ -7,7 +7,7 @@ Decyzje użytkownika:
 - **Ruch po mapie.** Wpływ na prędkość, dryf i skręt jest w symulacji z testami, ale za przełącznikiem `WindAffectsMovement`. Przełącznik jest domyślnie wyłączony w meczach (balans i AI w etapie 8).
 - **Klimat.** Parametry odpowiadają klimatowi Morza Egejskiego i są potwierdzone źródłami.
 
-Obowiązuje wcześniejsza decyzja: w meczu nie ma sztormu (średni wiatr ≤ 15 m/s, Beaufort 7).
+Obowiązuje wcześniejsza decyzja: w meczu nie ma sztormu (średni wiatr ≤ 15 m/s, Beaufort 7). Decyzja użytkownika z 2026-11-11 zmienia ją od etapu 5: sztorm w meczu, poprzedzony zapowiedzią, jako źródło wraków po sztormach ([BALANS_I_SKALA.md](BALANS_I_SKALA.md#gospodarka-luki-obowiązujących-reguł-2026-11-11)). Do tego czasu klimat meczu pozostaje bez sztormu.
 
 Oznaczenia:
 - **[Ź]** — wartość wprost ze źródła;

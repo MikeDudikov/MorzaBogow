@@ -89,7 +89,7 @@ Zakłócenie tworzy okno przewagi, ale nie odbiera istniejącym okrętom zdolno�
 - Zatrzymanie rozładunku przy pełnym magazynie; pozostałość pozostaje na statkach.
 - Kroki 1/60, 1/30 i 1/15 s: drugi okręt różni się o mniej niż sekundę, a dostawy w 5:00 o mniej niż 1%. To kontrola zbieżności tych prób, nie dowód niezależności każdego możliwego stanu od kroku.
 - Rozdział ceny wszystkich 12 kompletnych szablonów na konstrukcję, przedmioty i ludzi bez ujemnych składników lub drugiego naliczenia; template-costs.csv.
-- Remont i złom: dla kosztu konstrukcji C oraz stanu h, remont do pełna i złom daje 0,15C−0,25C(1−h), co nie przewyższa 0,15Ch za złom od razu. Test punktów h=0;0,25;0,5;0,75;1 oraz nierówność algebraiczna.
+- Remont i złom: dla kosztu konstrukcji C oraz stanu h, remont do pełna i złom daje 0,15C−0,25C(1−h), co nie przewyższa 0,15Ch za złom od razu. Test punktów h=0;0,25;0,5;0,75;1 oraz nierówność algebraiczna. Od 2026-11-11 remont kosztuje 25% pełnej ceny P ≥ C (E06), więc 0,15C−0,25P(1−h) ≤ 0,15Ch tym bardziej. Grę sprawdza test `Scrap_RepairingFirstNeverPaysBetter`.
 
 ## 8. Ryzyka wymagające prototypu
 

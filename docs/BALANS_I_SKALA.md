@@ -44,7 +44,7 @@ Decyzja użytkownika z uzgodnienia paczki specyfikacji ([UZGODNIENIE_SPECYFIKACJ
   - Koszt 200 D / 300 S, czas 45 s (`Rules.DockWood`, `DockSilver`, `DockSeconds`). Wartości własne, dobrane względem Miasta (300/400, 60 s) i Szkoły (200/500, 60 s).
   - Płatny jak inne budowy portu: rezerwacja, zużycie w trakcie, anulowanie jak przy zamówieniach.
 - **Naprawa kadłuba** tylko w doku:
-  - 25% pełnej ceny okrętu (zapłacone drewno i srebro razem) w srebrze za pełną naprawę, płatne według odbudowanego kadłuba;
+  - 25% pełnej ceny okrętu (konstrukcja, obsada szablonu i bieżące wyposażenie z taranem, drewno i srebro razem) w srebrze za pełną naprawę, płatne według odbudowanego kadłuba. Do 2026-11-11 kod liczył tylko część konstrukcyjną; sekcja [Gospodarka: luki obowiązujących reguł](#gospodarka-luki-obowiązujących-reguł-2026-11-11);
   - 12 HP/s, jedno stanowisko na port, jak dawniej;
   - bez srebra naprawa czeka.
 - **Naprawa modułów broni** tylko w doku: 25% wartości przedmiotu (drewno i srebro razem) razy brakująca część, w srebrze.
@@ -111,6 +111,60 @@ Przyczyny ustalono na wariantach AI w kopii symulacji, poza projektem.
 - **Miernik czasu walki w narzędziu jest zaniżony.** Liczy tylko salwy łuków i oszczepów, taran i abordaż, więc nie widzi walki z balistami.
 
 **Stan:** wartości klas i AI bez zmian. Decyzja o długości meczów AI czeka na użytkownika (etap 7 albo niszczyciel okrętów poza cyklem AI do etapu 7). To pomiar AI kontra AI, nie playtest.
+
+## Gospodarka: luki obowiązujących reguł (2026-11-11)
+
+Polecenie użytkownika z 2026-11-11: „zajmij się gospodarką”. Użytkownik wybrał zakres: luki w regułach, które już obowiązują (E03, E06, E09), bez nowych surowców ([ECONOMY_DESIGN.md](../ECONOMY_DESIGN.md)).
+
+- **Naprawa od pełnej ceny** (decyzja użytkownika z 2026-11-11). Pełna naprawa kosztuje 25% pełnej ceny okrętu w srebrze (`World.FullPrice`).
+  - Pełna cena to opłacona konstrukcja, obsada szablonu i bieżąca wartość wyposażenia z taranem.
+  - Dla okrętu z domyślną bronią to cena szablonu: taranowiec 240 D + 100 S daje 85 S za pełną naprawę.
+  - Wcześniej kod liczył tylko część konstrukcyjną (192 D + 27,40 S, czyli 54,85 S), wbrew tej sekcji dokumentu.
+  - Kadłub bez broni kosztuje tyle, ile za niego zapłacono, dopóki nie dostanie broni.
+- **Upadek osady (E06, `World.FallSettlement`).** Gdy pocisk zbije mury do zera:
+  - kończą się kolejki okrętów, budowa, zamówienia Warsztatu i budowa stoczni;
+  - zwalniane są rezerwacje, także ładunki zamówione przez transporty z tego portu; towar już na statkach zostaje na nich;
+  - 30% całego niewydanego zapasu leży jako wrak w punkcie portu przez 300 s, reszta przepada w księdze;
+  - do wraku trafiają też machiny z arsenału, każda z szansą 30%;
+  - zdarzenie `settlement_fallen`.
+- **Wyposażenie we wraku (E06).**
+  - Każda machina na tonącym okręcie i każda przewożona przetrwa z szansą 30%. Banki łuczników i oszczepników należą do załogi.
+  - Los wyznacza skrót identyfikatora okrętu, stanowiska i chwili zatonięcia (`World.ItemSurvives`), bez generatora losowego meczu, więc inne losowania się nie przesuwają. Wynik zapisuje się we wraku.
+  - Wrak z samymi przedmiotami też powstaje.
+  - Kuter zabiera przedmioty bez miejsca w ładowni i oddaje je do arsenału portu przy rozładunku albo przed złomowaniem.
+- **SI zbiera wraki (E09, `Opponent.ManageSalvage`).** Wolny kuter (bez rozkazu albo tuż po rozładunku) płynie po widoczny wrak. Warunki: wrak leży do 400 m od portu SI, a w promieniu 200 m od niego SI nie widzi wroga. Jeden kuter na wrak.
+- **Automatyczne konwoje (E03, `World.Convoy`).**
+  - **Rozkaz Konwój** dla handlowców: przycisk „Konwój” na karcie handlowca, a na karcie portu „Konwoje” → „Wolne handlowce do konwoju”. Stop zdejmuje z konwoju.
+  - **Port priorytetowy** (`World.PriorityPorts`, karta portu → Konwoje) domyślnie jest portem macierzystym. Utracony ustępuje macierzystemu.
+  - **Cel** to wolny zapas portu priorytetowego równy cenie najdroższego okrętu, jaki ten port może zbudować. Przykłady: abordażowiec 200 D / 180 S przy samej stoczni, bombowiec 400/260 z Warsztatem i badaniem, handlowiec 140/60 na przyczółku bez stoczni. Liczą się także towary już w drodze.
+  - **Źródło** to port, którego nadwyżka ponad minimum pokrywa najwięcej braków; przy remisie bliższy. Srebro ładuje się pierwsze.
+  - **Minimum portu** (`Settlement.KeepWood/KeepSilver`) do wyboru na karcie portu: 0/0, 60/20 (domyślne, rezerwa kutra), 200/80, 500/200. Obowiązuje konwoje i przewóz bez podanych ilości. Rozkaz z ilościami może zejść niżej.
+  - **Grupa** liczy najwyżej 3 handlowce. Ładują się w jednym źródle, a załadowany czeka przy porcie na resztę, potem płyną razem. Ładownia handlowca (480) mieści cel do 480 jednostek, więc przy obecnych cenach grupa ma 1–2 handlowce.
+  - **Jeszcze bez:** poziomu ryzyka tras oraz trybów naprawy i rozbudowy.
+- **Zapis gry** ma wersję 18. Nowe dane: przedmioty wraku, przedmioty na okręcie, grupa konwoju, porty priorytetowe i minimum portów. Nowe wartości enumów dopisano na końcu (`OrderKind.Convoy`, `TransportPhase.Standby`, trzy rozkazy).
+- **Testy EditMode:**
+  - `LootTests` (10): upadek z rezerwacjami i księgą, przedmioty arsenału, towar na morzu, machiny we wraku, odzysk do arsenału, wrak z samymi przedmiotami, złomowany kuter oddaje machiny do arsenału, SI zbiera wrak i omija wrak przy wrogu, zapis;
+  - `ConvoyTests` (8): cel i port priorytetowy, minimum źródła, wybór źródła, grupa razem, limit 3, przewóz bez ilości, zapis w połowie konwoju;
+  - `SimulationTests.Repair_TheWholePriceCountsTheItemsFittedNow`, a dotychczasowe testy naprawy na pełnej cenie.
+- **Test PlayMode:** `ConvoyPresentationTests` (HUD portu i handlowca).
+
+**Pomiar** (simprof, AI kontra AI, 130 min, ziarna 9 i 23). „Przed” to symulacja z HEAD 1670901, zbudowana tym samym narzędziem.
+
+| Profil | Zwycięstwo po: przed → po | Wraki w meczu (towar, machiny) | Kursy SI po wraki (strona 0 / 1) |
+|---|---|---|---|
+| Krótka | 13,4 / 18,1 → 13,4 / 30,0 min | 12–13 (280–781 j., 0–3) | 0/0 i 3/16 |
+| Standardowa | 35,8 / 37,5 → 35,2 / 34,1 min | 9–12 (222 j., 1–2) | 0/1 i 8/1 |
+| Długa | 31,1 / 30,9 → 30,9 / 30,9 min | 11–12 (228–249 j., 1) | 1/7 i 1/6 |
+
+- Wyniki „przed” odtwarzają pomiar po 3c, część 1.
+- Pięć meczów zmienia się o 0–3,4 min.
+- Krótka, ziarno 23, trwa dłużej (18,1 → 30,0 min). Strona 1 zrobiła 16 kursów po wraki, a strona 0 zbudowała 19 okrętów wojennych zamiast 8 i 10 kutrów zamiast 19. Mecz potoczył się inaczej od pierwszych wraków, a nie przez jedną regułę.
+- Konwoje nie biorą udziału w tych meczach, bo SI ich nie używa. SI nadal płaci te same koszty i wozi prawdziwe ładunki (E09).
+- To model AI kontra AI, nie playtest.
+
+**Decyzje użytkownika na etap 5 (2026-11-11), zapisane, jeszcze niewdrożone:**
+- **Ławice ryb i bursztyn** dają od razu D albo S w punkcie, bez osobnego licznika i bez zamiany w porcie.
+- **Wraki po sztormach:** sztorm w meczu, poprzedzony zapowiedzią. Zmienia to dawną decyzję „w meczu nie ma sztormu” ([MORZE_I_WIATR.md](MORZE_I_WIATR.md)). Do etapu 5 klimat meczu pozostaje bez sztormu.
 
 ## Etap 1 — wdrożony
 
@@ -203,7 +257,7 @@ Mecze AI kontra AI z walką kończą się wcześniej: Krótka 11–31 min, Stand
 Decyzje użytkownika z 2026-11-10:
 
 - ludzie tylko jako obsada okrętów: żeglarze, szermierze, oszczepnicy, łucznicy (plus bohaterowie);
-- surowce w pełni odnawialne (ławice ryb, wraki po sztormach, neutralne konwoje), a ryby, bursztyn i szczątki zamieniane na D/S;
+- surowce w pełni odnawialne (ławice ryb, wraki po sztormach, neutralne konwoje), a ryby, bursztyn i szczątki zamieniane na D/S; uściślenie z 2026-11-11: ławica i bursztyn dają od razu D albo S w punkcie, a wraki po sztormach wymagają sztormu w meczu z zapowiedzią;
 - przejęcie okrętu razem z uzbrojeniem.
 
 Decyzje z uzgodnienia paczki specyfikacji (2026-11-10, [UZGODNIENIE_SPECYFIKACJI.md](UZGODNIENIE_SPECYFIKACJI.md)):
@@ -219,7 +273,7 @@ Gdy wejdzie etap 5, długość gry wyznaczają cele scenariusza, a złoża z eta
 | 2 | Cztery klasy załogi (z oszczepnikami od 3a), składy wybierane w porcie, walka na burtach, ranni, przejęcie w całości, automatyczne przegrupowanie w porcie ([ZALOGA_I_ABORDAZ.md](ZALOGA_I_ABORDAZ.md)); porażka abordażu i bezbronność bez wojowników według uzgodnienia paczki | wdrożony |
 | 3 | **3a:** stanowiska broni z obsługą, pociski z lotem i rozrzutem, moduły, pancerz, taran z zapowiedzią. **3b:** Warsztat (arsenał), Miasto, Szkoła Mędrców, badanie broni ciężkiej, wymiana broni w porcie, szablony floty. **3c:** niszczyciel okrętów i bombowiec, broń widoczna w 3D, pociski i stożki ostrzału, budynki na wyspie portu, budowa bez domyślnego uzbrojenia ([UZBROJENIE.md](UZBROJENIE.md)) | 3a, 3b wdrożone; 3c: symulacja wdrożona (klasy, budowa bez broni, AI), prezentacja po partiach A–C |
 | 4 | Pełny zestaw klas: taranowiec, łowca ludzi, niszczyciel okrętów, bombowiec, abordażowiec, okręt królewski, podpalacz, okręt z wapnem; łodzie rybackie i kupcy; unikalne okręty drugiej cywilizacji i warianty barbarzyńskie (własne nazwy) | plan |
-| 5 | Żywa ekonomia: migrujące ławice, bursztyn, wraki po sztormach, neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan |
+| 5 | Żywa ekonomia: migrujące ławice, bursztyn (oba dają od razu D albo S w punkcie), wraki po sztormach (sztorm w meczu z zapowiedzią), neutralne konwoje, szczątki potworów, polowania na lewiatany i Ketosa (nagroda w D/S, własne liczby); zagrożenia: wiry, rafy, harpie, meduzy; wrogie stwory morskie, potwory lądowe z siedzibami, chaty czarowników | plan; luki E03/E06/E09 domknięte 2026-11-11 (konwoje, łup osady, wyposażenie wraków, SI zbiera wraki) |
 | 6 | Osady: forty przybrzeżne z limitem siły na osadę, Kuźnia (pancerze i tarany: zwykłe, srebrne, złote), badania pancerza, taranu i prędkości, transport sprzętu handlowcem, sprzedaż obiektów, rozbudowa portu (dok wdrożony przy uzgodnieniu paczki) | plan |
 | 7 | Bohaterowie (aury, zdolności, ratunek z wraku), skarby i artefakty; programowanie zachowania okrętów (straż, taran, abordaż, ogień na napastnika, konwój, zwiad, patrol, strefy straży i ataku), szyk eskadry, aktywna pauza, wskaźniki taktyczne; AI z falami, odbudową i obroną przed ostrzałem z dystansu, które przywróci długość meczów AI (Krótka 30, Standardowa 60, Długa 90 min; po 3c 13–18, 36–38 i 31 min); druga cywilizacja i barbarzyńcy jako strony AI (abordaż okrętu barbarzyńców go topi) | plan |
 | 8 | Wiatr, prądy, żagle i wiosła; nieliniowa kampania z zachowaniem floty, weteranów i artefaktów (fabuła i misje własne) | plan |

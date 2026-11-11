@@ -358,6 +358,7 @@ namespace MorzaBogow.Simulation
         {
             StopShip(ship);
             if (settlement == null || settlement.Destroyed) { ReleaseDock(ship); ship.Order = OrderKind.Idle; return; }
+            UnloadItems(ship, settlement);
 
             var free = settlement.Capacity(ship.CargoType) - settlement.Stock(ship.CargoType);
             if (free <= 0 && ship.Cargo > 0)
@@ -485,17 +486,107 @@ namespace MorzaBogow.Simulation
         {
             var carriedWood = ship.HoldWood + (ship.CargoType == ResourceType.Wood ? ship.Cargo : 0);
             var carriedSilver = ship.HoldSilver + (ship.CargoType == ResourceType.Silver ? ship.Cargo : 0);
-            if (carriedWood + carriedSilver <= 0) return;
-
             var keptWood = (long)(carriedWood * Rules.WreckCargoFraction);
             var keptSilver = (long)(carriedSilver * Rules.WreckCargoFraction);
             LostWood += carriedWood - keptWood;
             LostSilver += carriedSilver - keptSilver;
             ship.Cargo = ship.HoldWood = ship.HoldSilver = 0;
-            if (keptWood + keptSilver <= 0) return;
+
+            // E06: an empty hull pays out no goods, but the items aboard that survive their draw lie in its wreck too.
+            var items = SurvivingItems(ship);
+            if (keptWood + keptSilver <= 0 && items.All(count => count == 0)) return;
             Wrecks.Add(new Wreck
             {
-                Id = NextId++, X = ship.X, Y = ship.Y, Wood = keptWood, Silver = keptSilver,
+                Id = NextId++, X = ship.X, Y = ship.Y, Wood = keptWood, Silver = keptSilver, Items = items,
+                ExpiresTick = Tick + (int)(Rules.WreckLifeSeconds * Rules.TickRate),
+            });
+        }
+
+        /// <summary>
+        /// The items of a sinking hull that survive (E06): every fitted machine and every item it carried has a 30%
+        /// chance, drawn once (ItemSurvives). Archer and javelin banks are the crews' posts, not items: a dismounted bank
+        /// never goes to an arsenal either. What the hull carried is taken off it.
+        /// </summary>
+        int[] SurvivingItems(Ship ship)
+        {
+            var items = new int[ship.CarriedItems.Length];
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                var weapon = ship.Mounts[i];
+                if (weapon != WeaponType.None && WeaponCatalog.Get(weapon).IsMachine && ItemSurvives(ship.Id, i, Tick)) items[(int)weapon]++;
+            }
+            for (var type = 0; type < ship.CarriedItems.Length; type++)
+            {
+                for (var k = 0; k < ship.CarriedItems[type]; k++)
+                    if (ItemSurvives(ship.Id, CarriedItemSalt + type * ItemSaltStride + k, Tick)) items[type]++;
+                ship.CarriedItems[type] = 0;
+            }
+            return items;
+        }
+
+        const int CarriedItemSalt = 1 << 16, ArsenalItemSalt = 1 << 20, ItemSaltStride = 1 << 10;
+
+        /// <summary>
+        /// One item's single draw (E06): Rules.ItemSurvivalChance from a hash of its holder, the item and the tick, so
+        /// the draw is fixed once made and no other draw of the match (World.Random) shifts.
+        /// </summary>
+        static bool ItemSurvives(int holder, int item, int tick)
+        {
+            unchecked
+            {
+                var hash = (ulong)(uint)holder * 0x9E3779B97F4A7C15UL;
+                hash ^= (ulong)(uint)item * 0xC2B2AE3D27D4EB4FUL;
+                hash ^= (ulong)(uint)tick * 0x165667B19E3779F9UL;
+                hash ^= hash >> 33;
+                hash *= 0xFF51AFD7ED558CCDUL;
+                hash ^= hash >> 33;
+                hash *= 0xC4CEB9FE1A85EC53UL;
+                hash ^= hash >> 33;
+                return hash % 1000 < (ulong)Math.Round(Rules.ItemSurvivalChance * 1000);
+            }
+        }
+
+        /// <summary>
+        /// A settlement falls (E06): its ship orders, project, workshop orders and shipyard build end, and every
+        /// reservation on its store is settled first, loads booked by transports included; then 30% of the unspent
+        /// stores and the arsenal's items that survive their draw lie at its port point as a wreck anyone may salvage,
+        /// and the rest of the stores is lost. Goods already at sea stay on the ships.
+        /// </summary>
+        void FallSettlement(Settlement settlement, int by)
+        {
+            settlement.WarQueue.Clear();
+            settlement.PortQueue.Clear();
+            settlement.WorkshopQueue.Clear();
+            settlement.Project = null;
+            settlement.ProjectKind = ProjectKind.None;
+            settlement.ShipyardBuild = null;
+            foreach (var ship in Ships)
+            {
+                if (ship.SourceId != settlement.Id) continue;
+                ship.WantWood = ship.WantSilver = 0;
+            }
+            settlement.ReservedWood = settlement.ReservedSilver = 0;
+            settlement.RepairShipId = -1;
+
+            var lootWood = (long)(settlement.Wood * Rules.SettlementLootFraction);
+            var lootSilver = (long)(settlement.Silver * Rules.SettlementLootFraction);
+            LostWood += settlement.Wood - lootWood;
+            LostSilver += settlement.Silver - lootSilver;
+            settlement.Wood = settlement.Silver = 0;
+
+            var items = new int[settlement.Arsenal.Length];
+            for (var type = 0; type < settlement.Arsenal.Length; type++)
+            {
+                for (var k = 0; k < settlement.Arsenal[type]; k++)
+                    if (ItemSurvives(settlement.Id, ArsenalItemSalt + type * ItemSaltStride + k, Tick)) items[type]++;
+                settlement.Arsenal[type] = 0;
+            }
+
+            Emit("settlement_fallen", settlement.Id, by, settlement.X, settlement.Y, lootWood + lootSilver);
+            if (lootWood + lootSilver <= 0 && items.All(count => count == 0)) return;
+            Wrecks.Add(new Wreck
+            {
+                Id = NextId++, X = settlement.X, Y = settlement.Y, Wood = lootWood, Silver = lootSilver, Items = items,
                 ExpiresTick = Tick + (int)(Rules.WreckLifeSeconds * Rules.TickRate),
             });
         }
@@ -505,7 +596,7 @@ namespace MorzaBogow.Simulation
             for (var i = Wrecks.Count - 1; i >= 0; i--)
             {
                 var wreck = Wrecks[i];
-                if (wreck.Wood > 0 || wreck.Silver > 0)
+                if (!wreck.Empty)
                 {
                     if (Tick < wreck.ExpiresTick) continue;
                     LostWood += wreck.Wood;
@@ -518,15 +609,13 @@ namespace MorzaBogow.Simulation
         void StepSalvage(Ship ship)
         {
             var wreck = Wrecks.FirstOrDefault(item => item.Id == ship.WreckId);
-            var capacity = ship.Definition.Capacity * Rules.Centi;
-            if (wreck == null || ship.Cargo >= capacity)
-            {
-                FinishSalvage(ship);
-                return;
-            }
+            if (wreck == null) { FinishSalvage(ship); return; }
 
+            // Goods go only into a hold with room, empty or of the same kind; the items need no hold space.
+            var capacity = ship.Definition.Capacity * Rules.Centi;
             var type = wreck.Wood > 0 ? ResourceType.Wood : ResourceType.Silver;
-            if (ship.Cargo > 0 && ship.CargoType != type) { FinishSalvage(ship); return; }
+            var takesGoods = wreck.Wood + wreck.Silver > 0 && ship.Cargo < capacity && (ship.Cargo <= 0 || ship.CargoType == type);
+            if (!takesGoods && wreck.ItemCount == 0) { FinishSalvage(ship); return; }
             if (Distance(ship.X, ship.Y, wreck.X, wreck.Y) > Rules.WreckRange)
             {
                 Steer(ship, wreck.X, wreck.Y, ship.Definition.Speed, Rules.WreckRange * 0.8);
@@ -534,6 +623,17 @@ namespace MorzaBogow.Simulation
             }
 
             StopShip(ship);
+            // E06: the items are lifted aboard at once and go to the arsenal of the port the hull unloads at.
+            if (wreck.ItemCount > 0)
+            {
+                for (var i = 0; i < wreck.Items.Length; i++)
+                {
+                    ship.CarriedItems[i] += wreck.Items[i];
+                    wreck.Items[i] = 0;
+                }
+                Emit("items_salvaged", ship.Id, wreck.Id, wreck.X, wreck.Y, ship.CarriedItemCount);
+            }
+            if (!takesGoods) { FinishSalvage(ship); return; }
             ship.CargoType = type;
             ship.UnloadRemainder += Rules.HandlingPerSecond * Rules.Dt * Rules.Centi;
             var moved = (long)ship.UnloadRemainder;
@@ -548,9 +648,22 @@ namespace MorzaBogow.Simulation
         void FinishSalvage(Ship ship)
         {
             ship.UnloadRemainder = 0;
-            if (ship.Cargo <= 0) { ship.Order = OrderKind.Idle; ship.WreckId = -1; return; }
+            if (ship.Cargo <= 0 && ship.CarriedItemCount == 0) { ship.Order = OrderKind.Idle; ship.WreckId = -1; return; }
             ship.Order = OrderKind.Harvest;
             ship.Harvest = HarvestPhase.ToPort;
+        }
+
+        /// <summary>Items lifted from a wreck go into the arsenal of the port the hull unloads at, ready to be fitted (E06).</summary>
+        void UnloadItems(Ship ship, Settlement port)
+        {
+            var count = ship.CarriedItemCount;
+            if (count == 0) return;
+            for (var i = 0; i < ship.CarriedItems.Length; i++)
+            {
+                port.Arsenal[i] += ship.CarriedItems[i];
+                ship.CarriedItems[i] = 0;
+            }
+            Emit("items_unloaded", ship.Id, port.Id, ship.X, ship.Y, count);
         }
 
         // ---------- Repair and scrap at the shipyard station ----------
@@ -560,6 +673,19 @@ namespace MorzaBogow.Simulation
 
         /// <summary>The hull or a fitted module needs mending.</summary>
         public static bool NeedsMending(Ship ship) => ship.Hull < ship.Definition.Hull || ModulesDamaged(ship);
+
+        /// <summary>
+        /// A ship's whole price as it stands, wood and silver counted together, in 0.01 units (user decision of
+        /// 2026-11-11, docs/BALANS_I_SKALA.md): the construction it was paid for, the template's crew and the worth of
+        /// the items fitted now, the ram included. For a hull with its default weapons this is the template price; a
+        /// hull launched unarmed is worth its order price until it is fitted.
+        /// </summary>
+        public static long FullPrice(Ship ship)
+        {
+            var price = ship.PaidConstructionWood + ship.PaidConstructionSilver + TemplatePricing.CrewSilver(ship.Definition);
+            for (var i = 0; i < ship.ItemWood.Length; i++) price += ship.ItemWood[i] + ship.ItemSilver[i];
+            return price;
+        }
 
         /// <summary>
         /// Where a ship goes on a repair order (docs/UZGODNIENIE_SPECYFIKACJI.md): the station it already holds; else,
@@ -617,11 +743,11 @@ namespace MorzaBogow.Simulation
             }
 
             // At a dock, for silver only (docs/UZGODNIENIE_SPECYFIKACJI.md, replacing E06's wood and silver): a full
-            // repair costs 25% of the whole price the hull was built for, wood and silver counted together, charged by
+            // repair costs 25% of the ship's whole price (FullPrice), wood and silver counted together, charged by
             // restored hull.
             var hull = Math.Min(Rules.RepairHullPerSecond * Rules.Dt, definition.Hull - ship.Hull);
             var share = hull / definition.Hull * Rules.RepairFullFraction;
-            var silver = ship.RepairSilverRemainder + (ship.PaidConstructionWood + ship.PaidConstructionSilver) * share;
+            var silver = ship.RepairSilverRemainder + FullPrice(ship) * share;
             var wholeSilver = (long)silver;
             if (settlement.Available(ResourceType.Silver) < wholeSilver) return;
 
@@ -831,6 +957,8 @@ namespace MorzaBogow.Simulation
             }
 
             StopShip(ship);
+            // E06: machines lifted from a wreck stay items; the port takes them into its arsenal before the hull is taken apart.
+            UnloadItems(ship, settlement);
             if (Tick - ship.LastDamagedTick < Rules.ScrapCombatLockSeconds * Rules.TickRate) { ship.ScrapTicks = 0; return; }
             if (++ship.ScrapTicks < Rules.ScrapSeconds * Rules.TickRate) return;
 

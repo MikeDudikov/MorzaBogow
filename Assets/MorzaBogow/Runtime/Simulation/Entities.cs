@@ -2,8 +2,11 @@ using System.Collections.Generic;
 
 namespace MorzaBogow.Simulation
 {
-    public enum OrderKind { Idle, Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Salvage, Repair, Scrap, Transfer, Expedition, Escort }
-    public enum TransportPhase { ToSource, WaitSourceBerth, Loading, ToDestination, WaitDestinationBerth, Unloading, Building }
+    /// <summary>Saved by number: new orders go last. Convoy: a merchant on convoy duty (E03, World.Convoy).</summary>
+    public enum OrderKind { Idle, Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Salvage, Repair, Scrap, Transfer, Expedition, Escort, Convoy }
+
+    /// <summary>Saved by number: new phases go last. Standby: on convoy duty with no load chosen.</summary>
+    public enum TransportPhase { ToSource, WaitSourceBerth, Loading, ToDestination, WaitDestinationBerth, Unloading, Building, Standby }
     /// <summary>Landing: the crew goes ashore before work starts. Embarking: the crew is back aboard before the cutter casts off.</summary>
     public enum HarvestPhase { ToNode, WaitingBerth, Working, ToPort, WaitingPort, Docked, Landing, Embarking }
     /// <summary>Approach, then the called charge (Telegraph, at least 1.2 s before contact), the strike, recoil and cooldown.</summary>
@@ -112,6 +115,12 @@ namespace MorzaBogow.Simulation
         public double X, Y, Hull = Rules.SettlementHull;
         public long Wood, Silver, ReservedWood, ReservedSilver;
         public int RepairShipId = -1;
+
+        /// <summary>
+        /// E03: what the port keeps of each store against automatic loads (convoys, a transfer without amounts); by
+        /// default the reserve that protects rebuilding a cutter. An order with explicit amounts may go below it.
+        /// </summary>
+        public long KeepWood = Rules.ReserveWood, KeepSilver = Rules.ReserveSilver;
         public readonly List<BuildOrder> WarQueue = new List<BuildOrder>();
         public readonly List<BuildOrder> PortQueue = new List<BuildOrder>();
         public readonly List<int> DockedShips = new List<int>();
@@ -211,6 +220,10 @@ namespace MorzaBogow.Simulation
         public double WorkRemainder, UnloadRemainder;
         public int PortId = -1;
 
+        /// <summary>Items of equipment lifted from a wreck, by weapon type, on their way to a port's arsenal (E06). No hold space.</summary>
+        public int[] CarriedItems = new int[System.Enum.GetValues(typeof(WeaponType)).Length];
+        public int CarriedItemCount { get { var count = 0; foreach (var item in CarriedItems) count += item; return count; } }
+
         // The next point of a route around land, and the target it was planned for.
         public bool HasWaypoint;
         public double WaypointX, WaypointY, RouteX, RouteY;
@@ -221,6 +234,9 @@ namespace MorzaBogow.Simulation
         public long WantWood, WantSilver;
         public TransportPhase Transport;
         public int SourceId = -1, DestinationId = -1, SiteId = -1, EscortId = -1;
+
+        /// <summary>E03: the convoy a merchant on convoy duty loads and sails with, named by its first member's id; -1 none.</summary>
+        public int ConvoyGroup = -1;
         public int BuildTicks;
         public long BuildUsedWood, BuildUsedSilver;
 
@@ -239,13 +255,21 @@ namespace MorzaBogow.Simulation
         public ShipDefinition Definition => ShipCatalog.Get(Class);
     }
 
-    /// <summary>Half of a sunk transport's real cargo, collectable until it expires (E06).</summary>
+    /// <summary>
+    /// What can be salvaged where a hull sank or a settlement fell, until it expires (E06): half of a sunk transport's
+    /// real cargo or 30% of a fallen settlement's unspent stores, and the items of equipment that survived their one
+    /// draw, counted by weapon type like an arsenal.
+    /// </summary>
     public sealed class Wreck
     {
         public int Id;
         public double X, Y;
         public long Wood, Silver;
         public int ExpiresTick;
+        public int[] Items = new int[System.Enum.GetValues(typeof(WeaponType)).Length];
+
+        public int ItemCount { get { var count = 0; foreach (var item in Items) count += item; return count; } }
+        public bool Empty => Wood <= 0 && Silver <= 0 && ItemCount == 0;
     }
 
     /// <summary>The crew a ship should carry: its port recruits, heals and retrains toward it.</summary>
@@ -296,7 +320,11 @@ namespace MorzaBogow.Simulation
         public BoardingPhase Phase => Hooked ? BoardingPhase.Melee : BoardingPhase.Hooks;
     }
 
-    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan, BuildProject, CancelProject, QueueWeapon, CancelWeapon, SetLoadout, SaveBlueprint }
+    /// <summary>
+    /// Convoy puts merchants on convoy duty; SetPriorityPort names the port the side's convoys supply (TargetId, -1 the
+    /// home port); SetPortMinimum sets what a port keeps against automatic loads (TargetId, Wood, Silver).
+    /// </summary>
+    public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan, BuildProject, CancelProject, QueueWeapon, CancelWeapon, SetLoadout, SaveBlueprint, Convoy, SetPriorityPort, SetPortMinimum }
 
     public sealed class Command
     {

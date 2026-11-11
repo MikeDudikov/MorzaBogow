@@ -147,6 +147,8 @@ namespace MorzaBogow.Simulation
                 case CommandKind.SaveBlueprint: SaveBlueprint(command); return;
                 case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue, command.TargetId); return;
                 case CommandKind.BuildShipyard: BeginShipyard(command.Faction, command.TargetId); return;
+                case CommandKind.SetPriorityPort: SetPriorityPort(command.Faction, command.TargetId); return;
+                case CommandKind.SetPortMinimum: SetPortMinimum(command.Faction, command.TargetId, command.Wood, command.Silver); return;
             }
 
             foreach (var id in command.ShipIds.OrderBy(value => value))
@@ -221,6 +223,7 @@ namespace MorzaBogow.Simulation
                     ship.ScrapTicks = 0;
                     break;
                 case CommandKind.Transfer: BeginTransfer(ship, command); break;
+                case CommandKind.Convoy: BeginConvoy(ship); break;
                 case CommandKind.FoundOutpost: BeginExpedition(ship, command); break;
                 case CommandKind.Escort: BeginEscort(ship, command); break;
                 case CommandKind.AttackSettlement:
@@ -269,6 +272,7 @@ namespace MorzaBogow.Simulation
                     case OrderKind.Scrap: StepScrap(ship); break;
                     case OrderKind.Transfer:
                     case OrderKind.Expedition: StepTransport(ship); break;
+                    case OrderKind.Convoy: StepConvoy(ship); break;
                     case OrderKind.Escort: StepEscort(ship); break;
                     case OrderKind.AttackShip:
                         var target = FindShip(ship.TargetId);
