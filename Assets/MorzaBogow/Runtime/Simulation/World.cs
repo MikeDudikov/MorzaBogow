@@ -29,9 +29,16 @@ namespace MorzaBogow.Simulation
         public readonly List<BoardingLink> Boardings = new List<BoardingLink>();
         public readonly List<Wreck> Wrecks = new List<Wreck>();
 
-        /// <summary>Not saved: pending commands are applied on the next step and events are transient.</summary>
+        /// <summary>
+        /// Orders given since the last step, in the order given; the next step applies them first. They are saved with
+        /// their numbers, so a save in a pause keeps them and the loaded game applies them at the same step as the
+        /// continued one (docs/GRYWALNOSC_I_ODBIOR.md, J02/J10). Events are transient and not saved.
+        /// </summary>
         public readonly List<Command> Pending = new List<Command>();
         public readonly List<SimEvent> Events = new List<SimEvent>();
+
+        /// <summary>The number the next order gets (CommandId).</summary>
+        public int NextCommandId = 1;
 
         public World(ulong seed)
         {
@@ -48,7 +55,16 @@ namespace MorzaBogow.Simulation
 
         /// <summary>The faction's main settlement. Its loss ends the match; a bridgehead's loss does not.</summary>
         public Settlement SettlementOf(int faction) => Settlements.FirstOrDefault(item => item.Owner == faction && !item.IsOutpost);
-        public void Issue(Command command) => Pending.Add(command);
+        /// <summary>
+        /// Takes an order for the next step and numbers it. Taking it costs nothing: validation and payment happen when
+        /// the step applies it (J02), so orders given in a pause wait without effect.
+        /// </summary>
+        public int Issue(Command command)
+        {
+            command.Id = NextCommandId++;
+            Pending.Add(command);
+            return command.Id;
+        }
 
         public Ship SpawnShip(int owner, ShipClass shipClass, double x, double y, bool fullCrew = true)
         {

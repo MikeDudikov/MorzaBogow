@@ -615,6 +615,33 @@ namespace MorzaBogow.Tests
             File.Delete(path);
         }
 
+        [UnityTest]
+        public IEnumerator Save_InAPauseKeepsTheOrdersAndLoadingReturnsControlPaused()
+        {
+            // J02/J10: orders given in a pause wait; saving takes no step; a loaded game comes back paused with the orders
+            // still pending, and nothing runs before the player resumes.
+            yield return null;
+            var path = Path.Combine(Application.temporaryCachePath, "battle-pause.mbsave");
+            battle.RunTicks(60);
+            var world = battle.World;
+            var ship = world.Ships.First(item => item.Owner == BattleController.PlayerFaction);
+            var id = world.Issue(new Command { Faction = BattleController.PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X + 60, Y = ship.Y });
+            var tick = world.Tick;
+            battle.QuickSave(path);
+            Assert.That(world.Tick, Is.EqualTo(tick), "Saving in a pause takes no step.");
+            Assert.That(world.Pending.Select(command => command.Id), Does.Contain(id), "The order still waits.");
+
+            battle.Paused = false;
+            Assert.That(battle.QuickLoad(path), Is.True);
+            Assert.That(battle.Paused, Is.True, "Control comes back in a pause.");
+            for (var frame = 0; frame < 5; frame++) yield return null;
+            Assert.That(battle.World.Tick, Is.EqualTo(tick), "Nothing runs before the player resumes.");
+            Assert.That(battle.World.Pending.Select(command => command.Id), Does.Contain(id), "The order waits for the next step.");
+            battle.RunTicks(1);
+            Assert.That(battle.World.FindShip(ship.Id).Order, Is.EqualTo(OrderKind.Move), "Resumed, the order applies at the next step.");
+            File.Delete(path);
+        }
+
         Ship HiddenEnemy() => battle.World.Ships.First(ship => ship.Owner == 1);
 
         [UnityTest]

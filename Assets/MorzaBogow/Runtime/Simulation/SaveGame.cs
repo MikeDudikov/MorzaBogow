@@ -8,7 +8,12 @@ namespace MorzaBogow.Simulation
     public static class SaveGame
     {
         const uint Magic = 0x4D42474D;
-        public const int Version = 18;
+
+        /// <summary>
+        /// 19: orders given since the last step (Pending) and the next order number are saved. Older files are refused
+        /// with "Unsupported save version"; the game shows that and keeps the match it has.
+        /// </summary>
+        public const int Version = 19;
 
         /// <summary>Items counted by weapon type: an arsenal, a wreck's survivors, what a hull carries from a wreck.</summary>
         static void WriteCounts(BinaryWriter writer, int[] counts)
@@ -95,6 +100,59 @@ namespace MorzaBogow.Simulation
                     Weapon = (WeaponType)reader.ReadInt32(), BlueprintId = reader.ReadInt32(), Unarmed = reader.ReadBoolean(),
                 });
             }
+        }
+
+        /// <summary>One order as given: every field, so the loaded game applies exactly what the continued one would.</summary>
+        static void WriteCommand(BinaryWriter writer, Command command)
+        {
+            writer.Write(command.Id); writer.Write(command.Faction); writer.Write((int)command.Kind);
+            var ships = command.ShipIds ?? Array.Empty<int>();
+            writer.Write(ships.Length);
+            foreach (var id in ships) writer.Write(id);
+            writer.Write(command.X); writer.Write(command.Y); writer.Write(command.TargetId);
+            writer.Write((int)command.Class); writer.Write(command.QueueIndex); writer.Write(command.PortQueue);
+            writer.Write(command.SourceId); writer.Write(command.Wood); writer.Write(command.Silver);
+            writer.Write((int)command.Preset);
+            writer.Write(command.Plan.Sailors); writer.Write(command.Plan.Swordsmen); writer.Write(command.Plan.Javelins); writer.Write(command.Plan.Archers);
+            writer.Write((int)command.Plan.Preset);
+            writer.Write((int)command.Project); writer.Write((int)command.Weapon);
+            writer.Write(command.Loadout != null);
+            if (command.Loadout != null)
+            {
+                writer.Write(command.Loadout.Length);
+                foreach (var weapon in command.Loadout) writer.Write((int)weapon);
+            }
+            writer.Write(command.BlueprintId);
+            writer.Write(command.Name != null);
+            if (command.Name != null) writer.Write(command.Name);
+            writer.Write(command.Unarmed);
+        }
+
+        static Command ReadCommand(BinaryReader reader)
+        {
+            var command = new Command { Id = reader.ReadInt32(), Faction = reader.ReadInt32(), Kind = (CommandKind)reader.ReadInt32() };
+            if (!Enum.IsDefined(typeof(CommandKind), command.Kind)) throw new InvalidDataException("Damaged pending order.");
+            var ships = reader.ReadInt32();
+            if (ships < 0 || ships > 4096) throw new InvalidDataException("Damaged pending order.");
+            command.ShipIds = new int[ships];
+            for (var i = 0; i < ships; i++) command.ShipIds[i] = reader.ReadInt32();
+            command.X = reader.ReadDouble(); command.Y = reader.ReadDouble(); command.TargetId = reader.ReadInt32();
+            command.Class = (ShipClass)reader.ReadInt32(); command.QueueIndex = reader.ReadInt32(); command.PortQueue = reader.ReadBoolean();
+            command.SourceId = reader.ReadInt32(); command.Wood = reader.ReadInt64(); command.Silver = reader.ReadInt64();
+            command.Preset = (CrewPreset)reader.ReadInt32();
+            command.Plan = new CrewPlan { Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Javelins = reader.ReadInt32(), Archers = reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32() };
+            command.Project = (ProjectKind)reader.ReadInt32(); command.Weapon = (WeaponType)reader.ReadInt32();
+            if (reader.ReadBoolean())
+            {
+                var slots = reader.ReadInt32();
+                if (slots < 0 || slots > 16) throw new InvalidDataException("Damaged pending order.");
+                command.Loadout = new WeaponType[slots];
+                for (var i = 0; i < slots; i++) command.Loadout[i] = (WeaponType)reader.ReadInt32();
+            }
+            command.BlueprintId = reader.ReadInt32();
+            if (reader.ReadBoolean()) command.Name = reader.ReadString();
+            command.Unarmed = reader.ReadBoolean();
+            return command;
         }
 
         public static byte[] Serialize(World world, int opponentBuildIndex = 0)
@@ -242,6 +300,12 @@ namespace MorzaBogow.Simulation
                 // Wind and sea (docs/MORZE_I_WIATR.md): what evolves; grids and the surface are rebuilt from the map.
                 writer.Write(world.Marine != null);
                 world.Marine?.Write(writer);
+
+                // Orders given since the last step, in the order given (J02/J10): a save in a pause keeps them, and the
+                // loaded game applies them at its next step as the continued one would. No step is taken to save.
+                writer.Write(world.NextCommandId);
+                writer.Write(world.Pending.Count);
+                foreach (var command in world.Pending) WriteCommand(writer, command);
 
                 writer.Flush();
                 return stream.ToArray();
@@ -441,6 +505,16 @@ namespace MorzaBogow.Simulation
                     });
                 }
                 if (reader.ReadBoolean()) world.Marine = MarineState.Read(reader, world);
+
+                world.NextCommandId = reader.ReadInt32();
+                count = reader.ReadInt32();
+                if (count < 0 || count > 100000) throw new InvalidDataException("Damaged pending orders.");
+                for (var i = 0; i < count; i++)
+                {
+                    var command = ReadCommand(reader);
+                    if (command.Id < 0 || command.Id >= world.NextCommandId) throw new InvalidDataException("Damaged pending order.");
+                    world.Pending.Add(command);
+                }
                 return world;
             }
         }

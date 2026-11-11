@@ -1609,6 +1609,68 @@ namespace MorzaBogow.Tests
             data[4] = 99;
             Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(data, out _));
             Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(new byte[32], out _));
+            // A file of the format before pending orders were saved is refused, not read as if it had none.
+            var old = SaveGame.Serialize(MapFactory.CreateSkirmish(1));
+            old[4] = 18;
+            var refused = Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(old, out _));
+            Assert.That(refused.Message, Does.Contain("18"));
+        }
+
+        [Test]
+        public void Save_InAPauseKeepsThePendingOrdersAndContinuesIdentically()
+        {
+            // Orders given in a pause wait in Pending; saving takes no step (J02/J10). The loaded game applies them at the
+            // same step as the continued one, so both go on identically, the AI's later orders included.
+            var (world, first, second) = Match(5);
+            Advance(world, first, second, 1500);
+            var home = world.SettlementOf(0);
+            var own = world.Ships.Where(ship => ship.Owner == 0).OrderBy(ship => ship.Id).ToList();
+            Assert.That(own.Count, Is.GreaterThanOrEqualTo(2));
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { own[0].Id }, X = home.X + 120, Y = home.Y + 80 });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Stop, ShipIds = new[] { own[1].Id } });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram, TargetId = home.Id });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SetPortMinimum, TargetId = home.Id, Wood = 100 * Rules.Centi, Silver = 50 * Rules.Centi });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SetPriorityPort, TargetId = home.Id });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SetCrewPlan, ShipIds = new[] { own[1].Id }, Preset = CrewPreset.Custom, Plan = new CrewPlan { Sailors = 4, Swordsmen = 2, Javelins = 1, Archers = 1 } });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SaveBlueprint, Class = ShipClass.Ram, Name = "Wzór", Loadout = new[] { WeaponType.ArcherBank, WeaponType.Scorpion } });
+            var tick = world.Tick;
+            var pending = world.Pending.Select(command => (command.Id, command.Kind)).ToList();
+
+            var data = SaveGame.Serialize(world, second.BuildIndex);
+            Assert.That(world.Tick, Is.EqualTo(tick), "Saving takes no step.");
+            Assert.That(world.Pending.Select(command => (command.Id, command.Kind)), Is.EqualTo(pending), "The orders still wait.");
+            var loaded = SaveGame.Deserialize(data, out var build);
+            Assert.That(loaded.Pending.Select(command => (command.Id, command.Kind)), Is.EqualTo(pending), "Loaded in the order given, with their numbers.");
+            Assert.That(SaveGame.Serialize(loaded, build), Is.EqualTo(data), "Every field of every order comes back.");
+
+            var loadedFirst = new Opponent(0) { BuildIndex = first.BuildIndex };
+            var loadedSecond = new Opponent(1) { BuildIndex = build };
+            Advance(world, first, second, 3000);
+            Advance(loaded, loadedFirst, loadedSecond, 3000);
+            Assert.That(SaveGame.Hash(SaveGame.Serialize(loaded)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(world))));
+            Assert.That(loaded.LedgerTotal(ResourceType.Silver), Is.EqualTo(world.LedgerTotal(ResourceType.Silver)));
+            Assert.That(loaded.SettlementOf(0).KeepWood, Is.EqualTo(100 * Rules.Centi), "The pending minimum took effect after loading.");
+        }
+
+        [Test]
+        public void Save_KeepsTheOrderOfConflictingPendingOrdersAndTheirNumbers()
+        {
+            Ship AfterLoad(CommandKind firstKind, CommandKind secondKind, out World loaded, out int lastId)
+            {
+                var world = Empty();
+                var ship = world.SpawnShip(0, ShipClass.Cutter, -400, 0);
+                Command Order(CommandKind kind) => new Command { Faction = 0, Kind = kind, ShipIds = new[] { ship.Id }, X = -300, Y = 120 };
+                var firstId = world.Issue(Order(firstKind));
+                lastId = world.Issue(Order(secondKind));
+                Assert.That(lastId, Is.EqualTo(firstId + 1), "Each order gets the next number.");
+                loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+                loaded.Step();
+                return loaded.FindShip(ship.Id);
+            }
+
+            Assert.That(AfterLoad(CommandKind.Move, CommandKind.Stop, out var a, out var aLast).Order, Is.EqualTo(OrderKind.Idle), "Move then Stop: the ship stops.");
+            Assert.That(AfterLoad(CommandKind.Stop, CommandKind.Move, out _, out _).Order, Is.EqualTo(OrderKind.Move), "Stop then Move: the ship sails.");
+            Assert.That(a.Issue(new Command { Faction = 0, Kind = CommandKind.Stop }), Is.EqualTo(aLast + 1), "Numbering goes on after loading.");
         }
 
         [Test]

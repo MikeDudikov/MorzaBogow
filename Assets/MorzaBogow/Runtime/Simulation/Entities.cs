@@ -331,6 +331,9 @@ namespace MorzaBogow.Simulation
 
     public sealed class Command
     {
+        /// <summary>The order's number (CommandId, J02): World.Issue gives each order the next one; saved with Pending.</summary>
+        public int Id;
+
         public int Faction;
         public CommandKind Kind;
         public int[] ShipIds = System.Array.Empty<int>();

@@ -2668,6 +2668,8 @@ namespace MorzaBogow.Presentation
                 var data = File.ReadAllBytes(path);
                 var world = SaveGame.Deserialize(data, out var build);
                 StartMatch(world, build, ShipLookBook.ReadBeside(path, data), DestructionBook.ReadBeside(path, data));
+                // Control comes back in a pause (J02): orders saved as pending wait for the player to resume.
+                paused = true;
                 Notify("Wczytano grę.");
                 return true;
             }
