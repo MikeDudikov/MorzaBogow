@@ -69,7 +69,7 @@ namespace MorzaBogow.Tests
             yield return null;
             var maquis = Object.FindObjectsByType<TreeGrove>(FindObjectsSortMode.None).Where(grove => grove.name.StartsWith("Maquis")).ToArray();
             Assert.That(maquis.Length, Is.GreaterThan(0), "Kermes oaks and lentisks grow on the islets.");
-            Assert.That(maquis.Sum(grove => grove.Count), Is.GreaterThan(5));
+            Assert.That(maquis.Sum(grove => grove.Count), Is.GreaterThanOrEqualTo(3), "A few on every islet, off the port's side.");
             foreach (var grove in maquis)
             {
                 var leaves = grove.Renderers[0].sharedMaterials[1];

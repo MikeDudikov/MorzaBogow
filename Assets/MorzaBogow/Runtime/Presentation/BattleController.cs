@@ -1652,7 +1652,7 @@ namespace MorzaBogow.Presentation
                 TreesPlanted += olive.Count;
             }
             // The maquis around the trees: fewer bushes where people live, the pines' undergrowth on the wooded islets.
-            Landscape.Maquis.Plant(parent, outline, lift, groveId, blocked, planted, settled: olives);
+            Landscape.Maquis.Plant(parent, outline, lift, groveId, blocked, planted, olives, shelteredAngle, minAway);
             return (planted.Count, pines);
         }
 

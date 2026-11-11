@@ -152,6 +152,23 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Maquis_AndPhryganaKeepOffThePortSideAsTheOlivesDo()
+        {
+            var outline = ShoreShape.Ellipse(30f, 24f);
+            var lift = ShoreShape.Cliffs(0f, 60f, 110f, 1.3f);
+            // The port lies toward +x (angle 0): jetty, porters and slipways; the olives keep 115° away from it.
+            const float port = 0f, away = 115f;
+            float Bearing(Vector3 p) => Mathf.Abs(Mathf.DeltaAngle(Mathf.Atan2(p.z, p.x) * Mathf.Rad2Deg, port * Mathf.Rad2Deg));
+            var bushes = Maquis.Places(outline, lift, 99u, null, null, true, port, away);
+            var cushions = Phrygana.Make(outline, lift, 99u, null, null, null, true, port, away).Cushions;
+            Assert.That(bushes.Count + cushions.Count, Is.GreaterThan(0), "The far side still has its scrub.");
+            Assert.That(bushes.All(b => Bearing(b.position) >= away), Is.True, "No bush by the jetty or on the porters' way.");
+            Assert.That(cushions.All(c => Bearing(c.Position) >= away), Is.True, "No phrygana there either.");
+            var free = Phrygana.Make(outline, lift, 99u, null, null, null, true).Cushions;
+            Assert.That(free.Any(c => Bearing(c.Position) < away), Is.True, "Without a port, the whole islet may carry it.");
+        }
+
+        [Test]
         public void Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose()
         {
             var atlas = PhryganaAtlas.Bake(256);

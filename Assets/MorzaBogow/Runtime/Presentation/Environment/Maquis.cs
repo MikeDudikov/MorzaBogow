@@ -26,7 +26,7 @@ namespace MorzaBogow.Presentation.Landscape
         public const float ShoreBandInner = 0.7f, ShoreBandOuter = 0.88f, InlandInner = 0.3f;
 
         /// <summary>Where the bushes of one islet stand: species, stable id and place in the islet's space.</summary>
-        public static List<(TreeSpecies species, uint id, Vector3 position, float yaw)> Places(float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, bool settled)
+        public static List<(TreeSpecies species, uint id, Vector3 position, float yaw)> Places(float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, bool settled, float shelteredAngle = 0f, float minAway = 0f)
         {
             var places = new List<(TreeSpecies species, uint id, Vector3 position, float yaw)>();
             var most = settled ? MostSettled : MostWooded;
@@ -38,6 +38,8 @@ namespace MorzaBogow.Presentation.Landscape
                 var fraction = near ? random.Range(ShoreBandInner, ShoreBandOuter) : random.Range(InlandInner, ShoreBandInner);
                 var yaw = random.Range(0f, 360f);
                 var mixed = random.Next();
+                // Not on the port's side, where the jetty, the porters and the slipways are (the olives keep off it too).
+                if (Mathf.Abs(Mathf.DeltaAngle(angle * Mathf.Rad2Deg, shelteredAngle * Mathf.Rad2Deg)) < minAway) continue;
                 var radius = ShoreShape.At(outline, angle) * fraction;
                 var spot = new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
                 // Not on a cliff's rim: the face drops away from fraction 0.93.
@@ -66,14 +68,14 @@ namespace MorzaBogow.Presentation.Landscape
         /// while the old plain olives are drawn (the A/B measurement compares without it), or before the editor has
         /// built the leaf materials. Returns how many bushes it planted.
         /// </summary>
-        public static int Plant(Transform parent, float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, bool settled)
+        public static int Plant(Transform parent, float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, bool settled, float shelteredAngle = 0f, float minAway = 0f)
         {
             if (parent == null || Vegetation.PlainOlives || LandscapeArt.OliveBark == null) return 0;
             var leeward = parent.InverseTransformDirection(Vegetation.Leeward);
-            var places = Places(outline, lift, seed, blocked, trees, settled);
+            var places = Places(outline, lift, seed, blocked, trees, settled, shelteredAngle, minAway);
             // The phrygana in patches between the trees and the bushes (most where people and their goats live).
             var bushes = places.ConvertAll(place => new Vector2(place.position.x, place.position.z));
-            Phrygana.Attach(parent, Phrygana.Make(outline, lift, seed, blocked, trees, bushes, settled));
+            Phrygana.Attach(parent, Phrygana.Make(outline, lift, seed, blocked, trees, bushes, settled, shelteredAngle, minAway));
             var planted = 0;
             foreach (var species in TreeSpecies.Shrubs)
             {

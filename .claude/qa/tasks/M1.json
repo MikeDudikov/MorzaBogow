@@ -36,6 +36,7 @@
         "MorzaBogow.Tests.ShrubTests.Shrubs_AtlasesDrawTheirOwnLeaves",
         "MorzaBogow.Tests.ShrubTests.Maquis_KeepsOffBeachesCliffRimsTreesAndBuildings",
         "MorzaBogow.Tests.ShrubTests.Phrygana_GrowsInPatchesOnDryGroundClearOfTreesBushesAndBuildings",
+        "MorzaBogow.Tests.ShrubTests.Maquis_AndPhryganaKeepOffThePortSideAsTheOlivesDo",
         "MorzaBogow.Tests.ShrubTests.Phrygana_AtlasShowsGreyBrownBurnetPinkThymeAndGreyGreenRockrose",
         "MorzaBogow.Tests.SiteTests.Ore_EachBlowThrowsDustAndChipsFromTheFaceWithoutTheGamesRandom",
         "MorzaBogow.Tests.SiteTests.Ore_MarbleUnderSchistWithTheOreInTheContactBetween",

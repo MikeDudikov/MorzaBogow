@@ -56,7 +56,7 @@ namespace MorzaBogow.Presentation.Landscape
         /// <summary>The built material, or null before the editor has made it (then nothing is drawn).</summary>
         public static Material Material => material != null ? material : material = Resources.Load<Material>("Environment/Phrygana");
 
-        public static Result Make(float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, IReadOnlyList<Vector2> shrubs, bool settled)
+        public static Result Make(float[] outline, float[] lift, uint seed, System.Func<float, float, bool> blocked, IReadOnlyList<Vector2> trees, IReadOnlyList<Vector2> shrubs, bool settled, float shelteredAngle = 0f, float minAway = 0f)
         {
             var result = new Result();
             var most = settled ? MostSettled : MostWooded;
@@ -68,6 +68,8 @@ namespace MorzaBogow.Presentation.Landscape
                 var pick = random.Next();
                 var size = random.Next();
                 var yaw = random.Range(0f, 360f);
+                // Not on the port's side, where the jetty, the porters and the slipways are (the olives keep off it too).
+                if (Mathf.Abs(Mathf.DeltaAngle(angle * Mathf.Rad2Deg, shelteredAngle * Mathf.Rad2Deg)) < minAway) continue;
                 var radius = ShoreShape.At(outline, angle) * fraction;
                 var spot = new Vector2(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius);
                 if (!InPatch(seed, spot)) continue;
