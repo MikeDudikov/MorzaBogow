@@ -347,20 +347,21 @@ Budowle portu buduje kod (`Runtime/Presentation/PortBuildings.cs`). Podglądy z 
 - **Mury miasta:** kurtyna z regularnych ciosów z blankami; kwadratowe baszty ze strzelnicami w górnej izbie i dachem dwuspadowym (R-MESSENE). Blanki i dachówki na basztach to interpretacja.
 - **Przed magazynem:** pithoi wkopane do ramion, amfory oparte o ścianę, dwie kotwice jednoramienne z drewnianym poprzecznikiem wypełnionym ołowiem (R-ANCHORS). Nie są częścią obrysu budynku (`Footprint`).
 - **Budowa:** kolejne warstwy (kolumny jednej strony, warstwa muru, architraw, fryz z gzymsem) pojawiają się według postępu projektu, bez skalowania. Stojący budynek to jedna scalona siatka zamiast kilkunastu rendererów.
-- **Ruina Szkoły:** kikuty kolumn z nierównym wierzchem, leżące bębny, zwęglone belki, gruz.
-- **Zawalenie przy upadku osady** (budynki, które stały w zasięgu wzroku; inne od razu leżą w ruinie), 2,6 s czasu gry, pauza je zatrzymuje:
-  - ściany osiadają w gruz i przechylają się, dach zapada się pierwszy i szybciej;
-  - pierwszy obłok pyłu przy pęknięciu, drugi, gdy dach uderza: wtedy przez pył wyłania się ruina i lecą dachówki;
-  - na końcu elementy wracają, ukryte, na swoje miejsca, więc odbudowa stawia budynek tam, gdzie stał.
-
-  Pył to kopia materiału rozbryzgu sceny z własnym kolorem wapiennego pyłu; chroniony materiał wody zostaje nietknięty. Test `Port_AFallenTownCrumblesIntoItsRuinsInGameTime`.
+- **Dok, przyczółek, pomost, warsztat** (2026-11-11):
+  - dok to hangar okrętowy typu Zea (R-ZEA: typ, nie wymiar) obok pochylni i pomostu oraz kozioł na pomoście;
+  - przyczółek to obóz polowy z częstokołem, namiotami i łodzią na kozłach;
+  - pomost jest drewniany na smołowanych palach (`PortJetty`);
+  - warsztat to ergasterion z paleniskiem, miechem, kowadłem i korytem;
+  - opis: [UZBROJENIE.md](UZBROJENIE.md), budowa bez skalowania i zniszczenia: [art/DESTRUCTION.md](art/DESTRUCTION.md).
+- **Ruina:** każda budowla pęka element po elemencie i leży w ruinie z własnych elementów, bez ognia (art/DESTRUCTION.md).
+- **Zawalenie przy upadku osady:** budynki, które stały w zasięgu wzroku, rozpadają się element po elemencie w czasie gry (pauza je zatrzymuje), a reszta od razu leży w ruinie. Pył to kopia materiału rozbryzgu sceny z własnym kolorem wapiennego pyłu; chroniony materiał wody zostaje nietknięty. Szczegóły w art/DESTRUCTION.md, test `Port_AFallenTownCrumblesIntoItsRuinsInGameTime`.
 - **Materiały:** `Editor/BuildingTextureBaker.cs` wypieka deterministycznie, bez pobierania:
   - ciosy wapienne 2,4 × 1,6 m (warstwy 0,4 m, bloki 1,2 m, co druga warstwa przesunięta o pół bloku; gładka obwódka wokół szpicowanego lica jako interpretacja);
   - tynk 2 × 2 m.
 
   Każda tekstura ma mapy koloru, normalnych i maski HDRP. Materiały `Ashlar.mat` i `Stucco.mat` leżą w `Assets/MorzaBogow/Art/Buildings/Resources/Buildings`, z tymi samymi słowami kluczowymi co głazy i kora oliwki. Tynk barwią farby: biel, błękit egipski, czerwona ochra. Na pionowych ścianach UV biegną poziomo i w górę (`MeshBuilder.Level`), więc warstwy ciosów schodzą się między blokami.
 - **Podgląd** (batch z urządzeniem graficznym, bez okna gry): `-executeMethod MorzaBogow.Editor.BuildingPreview.PreviewPort`, obrazy w `artifacts-log/buildings/`.
-- **Testy:** `PortMasonryTests` (4, EditMode) i dotychczasowe `PortPresentationTests`.
+- **Testy:** `PortMasonryTests` (5) i `HarbourBuildingTests` (7) w EditMode oraz `PortPresentationTests` w PlayMode.
 
 ## Gotowe modele w grze: zestaw `AegeanArt`
 

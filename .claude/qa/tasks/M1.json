@@ -5,6 +5,13 @@
   "profiles": {
     "EditMode": {
       "expectedTests": [
+        "MorzaBogow.Tests.HarbourBuildingTests.Dock_TheShipShedStandsBesideTheSlipwayAndTheJettyNeverOverThem",
+        "MorzaBogow.Tests.HarbourBuildingTests.Buildings_RiseByAssemblyAndNothingIsScaled",
+        "MorzaBogow.Tests.HarbourBuildingTests.Dock_BreaksElementByElementLikeTheRest",
+        "MorzaBogow.Tests.HarbourBuildingTests.Camp_ABridgeheadIsAFieldCampThatBreaksToo",
+        "MorzaBogow.Tests.HarbourBuildingTests.Workshop_IsAnErgasterionWithItsForge",
+        "MorzaBogow.Tests.HarbourBuildingTests.Rubble_IsTheSameOnEverySystem",
+        "MorzaBogow.Tests.HarbourBuildingTests.Jetty_TakesTheOldJettysPlaceAndKeepsThePortersPath",
         "MorzaBogow.Tests.TreeTests.Trees_SameIdGivesTheSameTreeAndAnotherIdAnother",
         "MorzaBogow.Tests.TreeTests.Trees_StayWithinTheirSpecies",
         "MorzaBogow.Tests.TreeTests.Trees_LevelsShareOneSkeletonWithinTheirBudgets",

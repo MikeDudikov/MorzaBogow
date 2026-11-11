@@ -935,7 +935,7 @@
     "break-up into modules, falling tiles, dust; follows the game's state"
    ],
    "covers": [],
-   "status": "done for the School (vertical slice) and every building of a port but the dock (docs/art/DESTRUCTION.md): stages from the settlement's hull, shared out to the buildings by where the shots fell and never put back but by a rising hull; support graphs; columns and posts topple, blocks drop, brick and stone slump, roof bays break into tile heaps; pooled pieces within budgets, the School first; buildings taken apart a frame at a time; kept beside a quick save (BuildingDestructionTests 15/15, DestructionPresentationTests 1/1)"
+   "status": "done for the School (vertical slice) and every building of a port, the dock's ship shed and shear legs and a bridgehead's camp included (docs/art/DESTRUCTION.md): stages from the settlement's hull, shared out to the buildings by where the shots fell and never put back but by a rising hull; support graphs; columns and posts topple, blocks drop, brick and stone slump, roof bays break into tile heaps; pooled pieces within budgets, the School first; buildings taken apart a frame at a time; kept beside a quick save (BuildingDestructionTests 15/15, HarbourBuildingTests 7/7, DestructionPresentationTests 1/1)"
   },
   {
    "assetId": "fx.ship-damage",
@@ -1055,7 +1055,7 @@
    "covers": [
     "Workshop"
    ],
-   "status": "in progress: tiled roof with antefixes; breaks element by element (six posts go over, the back wall and the chimney slump, the roof bays slide off)"
+   "status": "in progress: an ergasterion: open shed on posts, the forge under its chimney (stone hearth, a pair of leather bellows, an anvil with an iron face, a quenching trough), a catapult's frame on trestles; put up course by course (no scaling); breaks element by element (six posts go over, the back wall and the chimney slump, the roof bays slide off), the forge stays on the floor (HarbourBuildingTests); no animation, LOD missing"
   },
   {
    "assetId": "building.town",
@@ -1086,7 +1086,7 @@
    "covers": [
     "Town"
    ],
-   "status": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE); its four houses and the wall break element by element (curtain stretches, towers, their caps)"
+   "status": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE), put up stretch by stretch, the towers last (no scaling); its four houses and the wall break element by element (curtain stretches, towers, their caps); LOD missing"
   },
   {
    "assetId": "building.school",
@@ -1134,7 +1134,8 @@
    "materials": [],
    "animations": [],
    "links": [
-    "PortBuildings.cs"
+    "PortBuildings.cs",
+    "PortBuildings.Harbour.cs"
    ],
    "lod": "",
    "criteria": [
@@ -1148,7 +1149,7 @@
    "covers": [
     "Dock"
    ],
-   "status": "planned"
+   "status": "in progress: a ship shed of Zea's kind (R-ZEA: the type, not the size; 5.81 m inside, narrower than the game's ships): a stone ramp with timber ways down into the sea between two limestone colonnades, a low tiled roof, a wall at its head; beside the war line's slipway and the jetty, never over a hull; the shear legs on the jetty over the repair berth; put up by assembly; breaks element by element (HarbourBuildingTests); LOD missing"
   },
   {
    "assetId": "building.shipyard",
@@ -1195,7 +1196,8 @@
    "materials": [],
    "animations": [],
    "links": [
-    "BattleController.cs"
+    "BattleController.cs",
+    "PortBuildings.Harbour.cs"
    ],
    "lod": "",
    "criteria": [
@@ -1207,7 +1209,7 @@
     "field camp: palisade, tents, beached boats"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "in progress: a field camp: a palisade of pointed stakes round the plot with its gate toward the harbour, two linen ridge tents, a boat drawn up keel up on trestles, a hearth, crates, amphorae and sacks; the palisade goes over stretch by stretch and the tents come down (HarbourBuildingTests); LOD missing"
   },
   {
    "assetId": "building.jetty",
@@ -1225,7 +1227,8 @@
    "animations": [],
    "links": [
     "ResourceSiteVisual.cs",
-    "BattleController.cs"
+    "BattleController.cs",
+    "PortJetty.cs"
    ],
    "lod": "",
    "criteria": [
@@ -1237,7 +1240,7 @@
     "timber jetty or stone quay"
    ],
    "covers": [],
-   "status": "planned"
+   "status": "in progress: a timber jetty for every port and free shore (PortJetty): plank deck on three stringers, bents of tarred piles with cap beams and braces, kerbs, two bollards; the old place and height kept; the resource sites' jetties (ResourceSiteVisual.cs) not yet"
   },
   {
    "assetId": "site.silver",

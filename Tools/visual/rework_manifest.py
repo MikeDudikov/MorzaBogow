@@ -149,13 +149,13 @@ entry("building.town", "home port town", "procedural terraces, walls, towers", [
 entry("building.school", "School of Sages (research)", "colonnade, pediment, emissive flame", ["replace"],
       BUILD_CRIT + ["gymnasion with a Doric peristyle (Academy, Lyceum)"], links=["PortBuildings.cs"], region=ATTICA, covers=["SageSchool"])
 entry("building.dock", "dock (repairs for silver)", "shear legs and windlass", ["replace"],
-      BUILD_CRIT + ["ship shed (neosoikos) after Zea: ramp, colonnade, roof"], links=["PortBuildings.cs"], region=ATTICA, covers=["Dock"])
+      BUILD_CRIT + ["ship shed (neosoikos) after Zea: ramp, colonnade, roof"], links=["PortBuildings.cs", "PortBuildings.Harbour.cs"], region=ATTICA, covers=["Dock"])
 entry("building.shipyard", "settlement shipyard and slipways", "ramp and posts from primitives", ["replace"],
       BUILD_CRIT + ["ship sheds and slipway of the 4th c."], links=["ShipyardVisual.cs", "Environment/ShipyardProps.cs"], region=ATTICA)
 entry("building.outpost", "outpost / bridgehead", "placeholder", ["replace"], BUILD_CRIT + ["field camp: palisade, tents, beached boats"],
-      links=["BattleController.cs"])
+      links=["BattleController.cs", "PortBuildings.Harbour.cs"])
 entry("building.jetty", "jetties at sites and settlements", "[PLACEHOLDER] primitive jetty", ["replace"],
-      BUILD_CRIT + ["timber jetty or stone quay"], links=["ResourceSiteVisual.cs", "BattleController.cs"])
+      BUILD_CRIT + ["timber jetty or stone quay"], links=["ResourceSiteVisual.cs", "BattleController.cs", "PortJetty.cs"])
 
 SITE_CRIT = ["animations never change stock or production speed", "state follows Stock and Capacity", "no glowing silver"]
 entry("site.silver", "silver mine site", "mine primitives; glossy ore", ["replace", "animation"],
@@ -228,10 +228,23 @@ STATUS = {
     "building.store": "in progress: ashlar store and plastered house on stone socles rising in courses, tiled roofs with antefixes; "
                       "yard of pithoi, amphorae and one-armed anchors with lead-filled stocks; both break element by element "
                       "(walls by the door and over it, gable ends, door, roof bays; the store's stone into rubble and blocks)",
-    "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE); "
-                     "its four houses and the wall break element by element (curtain stretches, towers, their caps)",
-    "building.workshop": "in progress: tiled roof with antefixes; breaks element by element (six posts go over, the back wall and the "
-                         "chimney slump, the roof bays slide off)",
+    "building.town": "in progress: regular ashlar curtain with a parapet, square towers with loopholes and gabled tiled roofs (R-MESSENE), "
+                     "put up stretch by stretch, the towers last (no scaling); its four houses and the wall break element by "
+                     "element (curtain stretches, towers, their caps); LOD missing",
+    "building.workshop": "in progress: an ergasterion: open shed on posts, the forge under its chimney (stone hearth, a pair of leather "
+                         "bellows, an anvil with an iron face, a quenching trough), a catapult's frame on trestles; put up course by "
+                         "course (no scaling); breaks element by element (six posts go over, the back wall and the chimney slump, "
+                         "the roof bays slide off), the forge stays on the floor (HarbourBuildingTests); no animation, LOD missing",
+    "building.dock": "in progress: a ship shed of Zea's kind (R-ZEA: the type, not the size; 5.81 m inside, narrower than the game's "
+                     "ships): a stone ramp with timber ways down into the sea between two limestone colonnades, a low tiled roof, "
+                     "a wall at its head; beside the war line's slipway and the jetty, never over a hull; the shear legs on the "
+                     "jetty over the repair berth; put up by assembly; breaks element by element (HarbourBuildingTests); LOD missing",
+    "building.outpost": "in progress: a field camp: a palisade of pointed stakes round the plot with its gate toward the harbour, two "
+                        "linen ridge tents, a boat drawn up keel up on trestles, a hearth, crates, amphorae and sacks; the palisade "
+                        "goes over stretch by stretch and the tents come down (HarbourBuildingTests); LOD missing",
+    "building.jetty": "in progress: a timber jetty for every port and free shore (PortJetty): plank deck on three stringers, bents of "
+                      "tarred piles with cap beams and braces, kerbs, two bollards; the old place and height kept; the resource "
+                      "sites' jetties (ResourceSiteVisual.cs) not yet",
     "prop.pithos": "procedural (Lathe): egg-shaped jar, rope bands, rolled rim; the Meshy preview (a barrel) rejected",
     "prop.anchor": "procedural: one-armed oak anchor, iron-shod tip, lead-filled wooden stock (R-ANCHORS); the Meshy preview "
                    "(an admiralty anchor) rejected",
@@ -244,13 +257,14 @@ STATUS = {
     "veg.cypress.columnar": "Meshy model (veg_cupressus_sempervirens) in the timber yards and the coastal woods, merged per island; "
                             "no wind sway",
     "building.ruin": "a port's ruin is its buildings' own fallen elements (column stumps, rows of drums, entablature blocks, tile "
-                     "heaps, brick mounds, wall and tower stumps in ashlar rubble); only the dock still sinks into its seeded ruin",
-    "fx.building-destruction": "done for the School (vertical slice) and every building of a port but the dock "
-                               "(docs/art/DESTRUCTION.md): stages from the settlement's hull, shared out to the buildings by where "
-                               "the shots fell and never put back but by a rising hull; support graphs; columns and posts topple, "
-                               "blocks drop, brick and stone slump, roof bays break into tile heaps; pooled pieces within budgets, "
-                               "the School first; buildings taken apart a frame at a time; kept beside a quick save "
-                               "(BuildingDestructionTests 15/15, DestructionPresentationTests 1/1)",
+                     "heaps, brick mounds, wall and tower stumps in ashlar rubble, fallen shed columns and shear legs, flattened "
+                     "palisade and tents); no building sinks into a seeded, charred ruin any more; the same rubble on every system",
+    "fx.building-destruction": "done for the School (vertical slice) and every building of a port, the dock's ship shed and shear legs "
+                               "and a bridgehead's camp included (docs/art/DESTRUCTION.md): stages from the settlement's hull, shared "
+                               "out to the buildings by where the shots fell and never put back but by a rising hull; support graphs; "
+                               "columns and posts topple, blocks drop, brick and stone slump, roof bays break into tile heaps; pooled "
+                               "pieces within budgets, the School first; buildings taken apart a frame at a time; kept beside a quick "
+                               "save (BuildingDestructionTests 15/15, HarbourBuildingTests 7/7, DestructionPresentationTests 1/1)",
     "fx.ship-damage": "vertical slice done for the mast (docs/art/DESTRUCTION.md): below 40% of the hull it snaps above the deck "
                       "and goes over the listing side with yard and sail, two lines hold it alongside, splinters and a water "
                       "column (ShipDestructionTests 4/4); oars and planks not yet broken afloat",

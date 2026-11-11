@@ -447,11 +447,11 @@ namespace MorzaBogow.Tests
             Assert.That(buildings.BreakablePieces(PortBuilding.Store), Is.EqualTo(2), "the store and its house");
             Assert.That(buildings.BreakablePieces(PortBuilding.Town), Is.EqualTo(5), "four houses and the wall");
             Assert.That(buildings.BreakablePieces(PortBuilding.Workshop), Is.EqualTo(1));
-            Assert.That(buildings.BreakablePieces(PortBuilding.Dock), Is.Zero, "the dock still falls as one piece");
+            Assert.That(buildings.BreakablePieces(PortBuilding.Dock), Is.EqualTo(2), "the dock's ship shed and its shear legs (HarbourBuildingTests)");
             Damage(settlement, 0.7f);
             buildings.Update(settlement, false, 0f);
             Settle(buildings, settlement);
-            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool })
+            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool, PortBuilding.Dock })
             {
                 var views = buildings.DamagesOf(kind);
                 Assert.That(views.Count, Is.EqualTo(buildings.BreakablePieces(kind)), $"{kind}: every piece shows the damage");
@@ -478,14 +478,13 @@ namespace MorzaBogow.Tests
             // Brought down whole, every building lies in the ruin of its own pieces.
             buildings.Update(settlement, true, 0f);
             Settle(buildings, settlement, true);
-            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool })
+            foreach (var kind in new[] { PortBuilding.Store, PortBuilding.Town, PortBuilding.Workshop, PortBuilding.SageSchool, PortBuilding.Dock })
             {
                 Assert.That(buildings.ShowsRuin(kind), Is.True, $"{kind} lies in its ruin");
                 Assert.That(buildings.Root.Find(kind.ToString()).gameObject.activeSelf, Is.False, $"{kind}: what stood is gone");
                 foreach (var view in buildings.DamagesOf(kind))
                     Assert.That(view.SettledPieces, Is.EqualTo(view.FailedCount), $"{view.Frame.name}: all at rest");
             }
-            Assert.That(buildings.ShowsRuin(PortBuilding.Dock), Is.True, "the dock in its old ruin");
         }
 
         [Test]
@@ -516,14 +515,14 @@ namespace MorzaBogow.Tests
             Assert.That(Made(), Is.EqualTo(1), "one building a frame, ahead of need");
             Assert.That(buildings.DamageOf(PortBuilding.SageSchool), Is.Not.Null, "the one the shots struck, which shows damage first, comes first");
             for (var i = 0; i < 12; i++) buildings.Update(settlement, false, 0f);
-            Assert.That(Made(), Is.EqualTo(9), "within a few frames every building is ready to break");
+            Assert.That(Made(), Is.EqualTo(11), "within a few frames every building is ready to break, the dock's shed and shear legs too");
             // A port first seen (or seen again) is taken apart at once.
             var other = Town(6);
             var seen = Port(other);
             Damage(other, 0.5f);
             seen.Unseen();
             seen.Update(other, false, 0f);
-            Assert.That(System.Enum.GetValues(typeof(PortBuilding)).Cast<PortBuilding>().Sum(kind => seen.DamagesOf(kind).Count), Is.EqualTo(9));
+            Assert.That(System.Enum.GetValues(typeof(PortBuilding)).Cast<PortBuilding>().Sum(kind => seen.DamagesOf(kind).Count), Is.EqualTo(11));
         }
 
         [Test]

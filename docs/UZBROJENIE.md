@@ -196,35 +196,42 @@ W nawiasie: kadłub zwycięzcy na końcu.
 
 Prezentacja tylko czyta symulację; w `Runtime/Simulation` nic się nie zmieniło. Kadłuby, broń na stanowiskach, załogi, pociski i pochylnie były już wcześniej (GreekShips, ShipVisual, Crew/*, BattleEffects, ShipyardVisual) i nie są dublowane.
 
-### Budynki portu (`Runtime/Presentation/PortBuildings.cs`)
+### Budynki portu (`Runtime/Presentation/PortBuildings*.cs`)
 
-Budynki stoją na lądowej połowie wyspy portu (x w stronę portu od −14,5 do 1 m, |z| < 9,5 m), tarasami na zboczu: każdy ma stopę na najniższym gruncie pod sobą. Pomost, pochylnie, punkt magazynu tragarzy i oś pomostu zostają wolne (test).
+Stan z 2026-11-11: budowle IV w. p.n.e. (decyzja użytkownika). Budynki stoją na lądowej połowie wyspy portu (x w stronę portu od −14,5 do 1 m, |z| < 9,5 m), tarasami na zboczu: każdy ma stopę na najniższym gruncie pod sobą. Dok stoi nad wodą. Pomost, pochylnie, punkt magazynu tragarzy i oś pomostu zostają wolne (testy).
 
 | Stan osady | Wygląd |
 |---|---|
-| zawsze | kamienny magazyn z dachem z dachówki i dom (przyczółek: mniejszy magazyn i chata) |
-| `HasWorkshop` | otwarta wiata na słupach od strony linii wojennej, komin kuźni, belki, rama katapulty na kozłach |
-| `IsTown` | cztery domy na tarasach i mur z basztami wokół działki, z bramą od portu |
-| `HasSageSchool` | bielona kolumnada z frontonem na najwyższym tarasie |
-| `HasDock` | kozioł (dźwig z dwóch nóg) na końcu pomostu, z boku jego osi, z talią i kołowrotem: tu leżą okręty w naprawie |
+| port macierzysty, zawsze | ciosowy magazyn i tynkowany dom na kamiennych cokołach, dachy z dachówką i antefiksami; przed nimi pithoi, amfory i kotwice |
+| przyczółek, zawsze | obóz polowy: częstokół z bramą od portu, dwa namioty z lnu, łódź wyciągnięta na brzeg i położona dnem do góry na kozłach, palenisko, skrzynie, amfory i worki |
+| `HasWorkshop` | ergasterion: otwarta wiata na słupach od strony linii wojennej, palenisko pod kominem, miech z dwóch skórzanych worków, kowadło, koryto do hartowania, rama katapulty na kozłach |
+| `IsTown` | cztery domy na tarasach i mur z ciosów z basztami wokół działki, z bramą od portu |
+| `HasSageSchool` | hala w doryckim perystylu 4 × 6 na najwyższym tarasie |
+| `HasDock` | hangar okrętowy typu Zea (R-ZEA: typ, nie wymiar) obok pochylni linii wojennej i pomostu: kamienna rampa z drewnianymi płozami schodzi do morza między dwiema kolumnadami z wapienia, niski dach z dachówki, ściana od lądu; do tego kozioł na końcu pomostu nad miejscem naprawy |
 
-- **Budowa w toku** (`Settlement.Project`, `ProjectKind`, postęp `DoneTicks/TotalTicks`), według progów pochylni:
+- **Hangar** nie mieści okrętów gry. Światło hangarów w Zei miało 5,81 m, a okręty gry mają do 10,9 m szerokości, więc naprawa odbywa się przy nabrzeżu, pod kozłem. Hangar stoi od u = 12 m, z dala od kadłuba na pochylni z rusztowaniem (do u ≈ 10,8 m), i od z = −2,7 m, poza pomostem. Nie przykrywa pochylni ani okrętów.
+- **Pomost** jest drewniany (`PortJetty`): pokład z desek na trzech podłużnicach, pale ze smołowanego drewna z oczepami i zastrzałami, krawężniki i dwa polery na głowicy. Leży w miejscu dawnego (u 14–23,5, |z| ≤ 2, wierzch 1,375 m) na każdej osadzie i wolnym brzegu.
+- **Rekwizyty stoczni** (`ShipyardProps`) omijają pola z `PortBuildings.Reserved`: miejsce hangaru, front muru z bramą i stos tragarzy.
+- **Budowa w toku** (`Settlement.Project`, `ProjectKind`, postęp `DoneTicks/TotalTicks`) przebiega bez skalowania (test), według progów pochylni:
   - do 15%: fundament i paliki;
-  - 15–80%: ściany rosną wśród rusztowań;
+  - 15–80%: warstwy murów, kolumny, odcinki muru i nogi kozła stawiane po kolei wśród rusztowań;
   - od 80%: dach;
-  - rusztowanie znika przy 97%.
+  - rusztowanie znika przy 97%;
+  - stojący budynek to jedna scalona siatka.
 
-  `PortBuildings.WorkSpots` podaje miejsca dla przyszłych budowniczych i naprawiających (ShoreMan w CrewAshore, osobne zadanie).
+  `PortBuildings.WorkSpots` podaje miejsca dla przyszłych budowniczych (hangar od strony lądu) i naprawiających. Postacie dodaje osobne zadanie (ShoreMan w CrewAshore).
 - **Badanie broni ciężkiej** nie stawia budynku: przed Szkołą płonie trójnóg z ogniem.
-- **Ruiny.** Zniszczona osada nie znika z wyspą. Każdy budynek, który stał, zostaje jako ruina:
-  - ściany urwane do 25–50% wysokości;
-  - bez dachów, z opalonymi belkami i gruzem;
-  - kolumny jako kikuty;
-  - kozioł przewrócony na pomost.
+- **Zniszczenia.** Każda budowla, także dok i obóz, pęka element po elemencie z kadłubem osady ([art/DESTRUCTION.md](art/DESTRUCTION.md)):
+  - kolumny hangaru i nogi kozła padają;
+  - ściana od lądu osuwa się w gruz;
+  - belki i przęsła dachu spadają;
+  - odcinki częstokołu przewracają się na zewnątrz;
+  - płótno namiotów opada.
 
-  Kształt ruin wynika z numeru osady. Widoczność jak przy osadzie: własna zawsze, wroga w zasięgu wzroku. Wolny brzeg w tym miejscu jest ukryty, dopóki stoją ruiny; ruiny znikają, gdy na tym brzegu stanie nowa osada.
-- **Materiały** to kopie materiałów sceny: wapień brzegu na kamień, jego bielona kopia na tynk, dachówka, drewno, opalone drewno.
-- **Siatki** składa generator okrętów (`GreekShips.MeshBuilder`): jedna siatka z podsiatkami na budynek.
+  Zniszczona osada zostaje z wyspą i ruinami swoich elementów. Kształt gruzu wynika z numeru osady i jest taki sam na każdym systemie, niezależnie od przecinka dziesiętnego (test). Widoczność jak przy osadzie: własna zawsze, wroga w zasięgu wzroku. Wolny brzeg w tym miejscu jest ukryty, dopóki stoją ruiny, a ruiny znikają, gdy na tym brzegu stanie nowa osada.
+- **Materiały:** ciosy i tynk wypalone w kodzie (`Buildings/Ashlar`, `Buildings/Stucco`), farby palety okrętów, drewno sceny.
+- **Siatki** składa generator okrętów (`GreekShips.MeshBuilder`). Siatki elementów zwalniają się razem z widokiem osady.
+- **Do zrobienia:** LOD budowli, dom z dziedzińcem i stoa, stocznia i pochylnie IV w. (ShipyardVisual).
 
 ### Zapowiedź taranu (`RamTelegraphView.cs`)
 

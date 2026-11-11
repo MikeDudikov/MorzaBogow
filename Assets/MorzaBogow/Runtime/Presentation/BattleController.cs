@@ -1420,7 +1420,9 @@ namespace MorzaBogow.Presentation
             var slipX = toward * (float)Rules.SlipAlong;
             Landscape.ShipyardProps.Build(root.transform, (uint)Mathf.RoundToInt((float)(settlement.X * 7 + settlement.Y * 3)), toward,
                 (x, z) => ShoreShape.GroundAt(shape.outline, shape.lift, x, z),
-                (x, z) => Mathf.Abs(x - slipX) > 3.5f && Mathf.Abs(z) > 2.5f && !(Mathf.Abs(x - centreX) < width * 0.5f + 1.5f && Mathf.Abs(z) < depth * 0.5f + 1.5f),
+                (x, z) => Mathf.Abs(x - slipX) > 3.5f && Mathf.Abs(z) > 2.5f && !(Mathf.Abs(x - centreX) < width * 0.5f + 1.5f && Mathf.Abs(z) < depth * 0.5f + 1.5f)
+                          // Nor where the dock's ship shed may rise, before the town wall's gate or on the porters' pile.
+                          && !MorzaBogow.Presentation.PortBuildings.Reserved(x * toward, z),
                 Landscape.EnvironmentProfile.Default.IronTools, materials?.Timber, materials?.Ground(materials.Foliage), materials?.ShoreRock, materials?.Pitch != null ? materials.Pitch : materials?.Timber);
             return root;
         }
@@ -1467,15 +1469,8 @@ namespace MorzaBogow.Presentation
             // The jetty runs from the beach toward the port, ending beside a moored hull.
             var towardPort = Mathf.Sign((float)portX - landX);
             const float Start = 14f;
-            AddViewPart(root, PrimitiveType.Cube, "Jetty", materials?.Timber, new Vector3(towardPort * (Start + JettyReach) * 0.5f, 1.2f, 0f), new Vector3(JettyReach - Start, 0.35f, 4f));
-            for (var side = -1; side <= 1; side += 2)
-            {
-                for (var post = 0; post < 3; post++)
-                {
-                    var along = Mathf.Lerp(Start + 2f, JettyReach - 0.5f, post / 2f);
-                    AddViewPart(root, PrimitiveType.Cylinder, "Jetty post", materials?.Timber, new Vector3(towardPort * along, 0f, side * 1.9f), new Vector3(0.4f, 1.6f, 0.4f));
-                }
-            }
+            // Of timber on tarred piles, in the old jetty's place and at its height (PortJetty).
+            PortJetty.Build(root.transform, towardPort, Start, JettyReach, materials);
             return root;
         }
 

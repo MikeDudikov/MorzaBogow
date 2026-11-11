@@ -6,11 +6,12 @@ using UnityEngine;
 namespace MorzaBogow.Presentation
 {
     /// <summary>
-    /// Every building of a port that breaks element by element (docs/art/DESTRUCTION.md): the School, the store and its
-    /// houses, the workshop, the town's houses and its wall. Each piece has its own structure of elements, built the first
-    /// time it is damaged. The settlement's hull gives the damage of the whole; the shots that struck it share it out:
-    /// where they fell the buildings break more, elsewhere less, and with no shots all alike. A building's damage never
-    /// goes back unless the hull rises (walls raised). The dock still falls as one piece into its seeded ruin.
+    /// Every building of a port breaks element by element (docs/art/DESTRUCTION.md): the School, the store and its houses
+    /// (a bridgehead's palisade and tents), the workshop, the town's houses and its wall, the dock's ship shed and shear
+    /// legs (PortBuildings.Harbour). Each piece has its own structure of elements, built the first time it is damaged. The
+    /// settlement's hull gives the damage of the whole; the shots that struck it share it out: where they fell the
+    /// buildings break more, elsewhere less, and with no shots all alike. A building's damage never goes back unless the
+    /// hull rises (walls raised).
     /// </summary>
     public sealed partial class PortBuildings
     {
@@ -46,7 +47,7 @@ namespace MorzaBogow.Presentation
             return list;
         }
 
-        /// <summary>The building's pieces that break element by element (all but the dock's).</summary>
+        /// <summary>The building's pieces that break element by element (every piece but the gear lying in a yard or camp).</summary>
         public int BreakablePieces(PortBuilding kind) => breakables.FindAll(item => item.Kind == kind).Count;
 
         bool Breaks(PortBuilding kind) => breakables.Exists(item => item.Kind == kind);
@@ -323,7 +324,8 @@ namespace MorzaBogow.Presentation
                     var z1 = line + Mathf.Sign(line) * t * 0.5f;
                     Gable3(wall, walls, w, h, rise, z0, z1);
                 }
-                var hash = DestructionHash.Mix((uint)seed, (int)DestructionHash.Of(id + "." + w + "." + d));
+                // Written the same on every system (the decimal point never a comma), so the rubble is the same everywhere.
+                var hash = DestructionHash.Mix((uint)seed, (int)DestructionHash.Of(FormattableString.Invariant($"{id}.{w}.{d}")));
                 var foot = new Vector3(centre.x, y0, centre.z);
                 var shape = new ElementShape { Centre = centre, Size = half * 2f, Base = foot };
                 if (stump)
@@ -375,7 +377,7 @@ namespace MorzaBogow.Presentation
                     var zc = (z0 + z1) * 0.5f;
                     var bay = Builder();
                     RoofBay(bay, w, d, h, overhang, pitch, side, z0, z1, side > 0f, k == bays - 1);
-                    var hash = DestructionHash.Mix((uint)seed, (int)DestructionHash.Of($"roof.{side}.{k}.{w}.{d}"));
+                    var hash = DestructionHash.Mix((uint)seed, (int)DestructionHash.Of(FormattableString.Invariant($"roof.{side}.{k}.{w}.{d}")));
                     var shape = new ElementShape
                     {
                         EaveEnd = new Vector3(side * run, TopAt(run), zc),
@@ -418,18 +420,13 @@ namespace MorzaBogow.Presentation
             int Add(string id, ElementRole role, BuildMaterial material, DetachMethod detach, GreekMesh mesh, Vector3 outward, string joint, ElementShape shape, params int[] supports) =>
                 AddElement(graph, shapes, id, role, material, detach, mesh, outward, joint, shape, supports);
 
+            // The floor, the forge and the gear on it stay where they stand (PortBuildings.WorkshopGear).
             var gear = Builder();
-            foreach (var pz in new[] { -0.8f, 0.8f })
-                gear.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.45f, pz), new Vector3(1.2f, 0.12f, 0.12f), Quaternion.identity);
-            gear.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.62f, 0f), new Vector3(1.1f, 0.1f, 0.75f), Quaternion.identity);
-            foreach (var pz in new[] { -0.45f, 0.45f })
-                gear.Box(GreekMaterial.Wood, new Vector3(0.9f, 1.3f, pz), new Vector3(0.1f, 0.65f, 0.1f), Quaternion.identity);
-            gear.Box(GreekMaterial.Wood, new Vector3(0.2f, 1.25f, 0f), new Vector3(1.0f, 0.08f, 0.08f), Quaternion.Euler(0f, 0f, 28f));
-            gear.Box(GreekMaterial.Rope, new Vector3(0.9f, 1.1f, 0f), new Vector3(0.12f, 0.12f, 0.42f), Quaternion.identity);
-            for (var i = 0; i < 4; i++)
-                gear.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.7f, 0.18f + (i / 2) * 0.32f, d * 0.5f - 0.6f - (i % 2) * 0.36f), new Vector3(0.16f, 0.16f, 1.2f), Quaternion.Euler(0f, 90f, 0f));
-            var ground = Add("gear", ElementRole.Foundation, BuildMaterial.Timber, DetachMethod.Fixed, gear.Build(GreekMaterial.Wood, GreekMaterial.Rope), Vector3.zero,
-                "standing on the ground", new ElementShape());
+            gear.Box(GreekMaterial.Mudbrick, new Vector3(0f, -0.15f, 0f), new Vector3(w * 0.5f, 0.2f, d * 0.5f), Quaternion.identity);
+            WorkshopGear(gear);
+            var ground = Add("gear", ElementRole.Foundation, BuildMaterial.Timber, DetachMethod.Fixed,
+                gear.Build(GreekMaterial.Wood, GreekMaterial.Stone, GreekMaterial.Pitch, GreekMaterial.Lead, GreekMaterial.Rope, GreekMaterial.Mudbrick), Vector3.zero,
+                "the floor, the forge and the trestles on the ground", new ElementShape());
 
             var posts = new List<(int index, float x, float z)>();
             var column = 0;
@@ -670,9 +667,15 @@ namespace MorzaBogow.Presentation
             }
         }
 
-        static int AddElement(StructureGraph graph, List<ElementShape> shapes, string id, ElementRole role, BuildMaterial material, DetachMethod detach, GreekMesh mesh,
-                              Vector3 outward, string joint, ElementShape shape, int[] supports)
+        /// <summary>
+        /// Adds an element to a structure's graph with its shape; its meshes (as built, its stump, its heaps) go with the
+        /// settlement's view (owned), as the School's do.
+        /// </summary>
+        int AddElement(StructureGraph graph, List<ElementShape> shapes, string id, ElementRole role, BuildMaterial material, DetachMethod detach, GreekMesh mesh,
+                       Vector3 outward, string joint, ElementShape shape, int[] supports)
         {
+            foreach (var part in new[] { mesh, shape.Stump, shape.Heap, shape.HeapOut })
+                if (part != null && part.Mesh != null && !owned.Contains(part.Mesh)) owned.Add(part.Mesh);
             shape.Whole = mesh;
             var box = mesh != null ? mesh.Mesh.bounds : new Bounds(shape.Centre, shape.Size);
             if (shape.Centre == Vector3.zero) shape.Centre = box.center;

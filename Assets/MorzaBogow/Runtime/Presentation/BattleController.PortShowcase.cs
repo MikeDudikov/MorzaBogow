@@ -46,12 +46,35 @@ namespace MorzaBogow.Presentation
             } };
             yield return new ShowcaseStep { Ticks = 1, Setup = () => LogPort("port-miasto", portBuildings.TryGetValue(home.Id, out var b) ? b : null) };
 
+            // The dock up close: the ship shed of Zea's kind beside the war line's slipway and the jetty, the shear legs on its head.
+            yield return new ShowcaseStep { Shot = "dok-hangar", Ticks = 30, Setup = () =>
+            {
+                var landX = (float)Rules.SettlementLandX(home);
+                var toward = Mathf.Sign((float)home.X - landX);
+                pivot = new Vector3(landX + toward * 17f, 0f, (float)home.Y + MorzaBogow.Presentation.PortBuildings.ShedZ * 0.6f);
+                height = 36f; yaw = home.X > landX ? -35f : 145f; tilt = ObliqueCamera.DefaultTilt;
+            } };
+
+            // A bridgehead on the free shore nearest home: its field camp, with a cutter of ours in sight of it.
+            yield return new ShowcaseStep { Shot = "przyczolek-oboz", Ticks = 30, Setup = () =>
+            {
+                var site = World.Sites.Where(World.IsSiteFree).OrderBy(item => World.Distance(item.X, item.Y, home.X, home.Y)).FirstOrDefault();
+                if (site == null) return;
+                var camp = new Settlement { Id = World.NextId++, Owner = PlayerFaction, X = site.X, Y = site.Y, IsOutpost = true, HasShipyard = true };
+                camp.Hull = camp.MaxHull;
+                World.Settlements.Add(camp);
+                site.SettlementId = camp.Id;
+                World.SpawnShip(PlayerFaction, ShipClass.Cutter, site.X + (site.X < 0 ? 30 : -30), site.Y - 25);
+                FramePort(camp, 48f);
+            } };
+
             // The town rising: walls and houses half up among scaffolding, the workshop already standing.
             yield return new ShowcaseStep { Shot = "port-budowa", Ticks = 30, Setup = () =>
             {
                 home.IsTown = home.HasSageSchool = home.HasDock = false;
                 home.Project = new BuildOrder { TotalTicks = 100000, DoneTicks = 52000 };
                 home.ProjectKind = ProjectKind.Town;
+                FramePort(home, 55f);
             } };
             yield return new ShowcaseStep { Ticks = 1, Setup = () =>
             {

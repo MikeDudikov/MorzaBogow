@@ -15,22 +15,27 @@ namespace MorzaBogow.Presentation
     }
 
     /// <summary>
-    /// The buildings on a settlement's land, read from the simulation each frame and never feeding back:
+    /// The buildings on a settlement's land, of the 4th century BC, read from the simulation each frame and never feeding back:
     /// <list type="bullet">
-    /// <item>always a stone store with a house or two (a bridgehead: a smaller store and a hut);</item>
-    /// <item>the workshop (HasWorkshop): an open shed on posts by the war line, a forge chimney, timber and a machine frame;</item>
-    /// <item>the town (IsTown): houses on terraces up the hill and a wall with towers round the land, its gate toward the harbour;</item>
-    /// <item>the Sages' School (HasSageSchool): a whitewashed colonnade under a pediment on the highest terrace;</item>
-    /// <item>the dock (HasDock): shear legs at the end of the jetty, where ships lie for repair, and a windlass.</item>
+    /// <item>always: at a home port a stone store and a plastered house with the yard before them; at a bridgehead a field
+    /// camp of a palisade, tents and a boat drawn up (PortBuildings.Harbour);</item>
+    /// <item>the workshop (HasWorkshop): an ergasterion, an open shed on posts by the war line with its forge, bellows, anvil
+    /// and a machine's frame on trestles;</item>
+    /// <item>the town (IsTown): houses on terraces up the hill and an ashlar wall with towers round the land, its gate toward
+    /// the harbour;</item>
+    /// <item>the Sages' School (HasSageSchool): a hall in a Doric peristyle on the highest terrace;</item>
+    /// <item>the dock (HasDock): a ship shed of Zea's kind beside the war line's slipway and the jetty, and shear legs on the
+    /// jetty's end over the berth where ships lie for repair (PortBuildings.Harbour).</item>
     /// </list>
     /// A project rising (Settlement.Project) shows its building at the stage reached, by the slipway's thresholds: footing
-    /// and stakes, walls growing among scaffolding, the roof from 80%, the scaffolding down at 97%. Research raises nothing:
-    /// a fire burns on a tripod before the School. A destroyed settlement keeps its land and shows the ruins of what stood:
-    /// broken walls, charred beams, rubble, the shear legs fallen.
+    /// and stakes, then courses, columns and stretches put up one after another among scaffolding (nothing scaled), the
+    /// roof from 80%, the scaffolding down at 97%. Research raises nothing: a fire burns on a tripod before the School. Every
+    /// building breaks element by element as the settlement's hull goes, and a destroyed settlement keeps its land with the
+    /// ruins of what stood (PortBuildings.Breakables, docs/art/DESTRUCTION.md).
     ///
-    /// Everything stands on the land's landward half (x toward the port between -14.5 and 1 m, |z| below 9.5 m, the plot the
-    /// trees keep clear of), stepping up the hill in terraces, except the dock's gear by the jetty, off its middle where the
-    /// port's men walk. The slipways, the jetty and the store door the dock gangs use stay clear.
+    /// The buildings stand on the land's landward half (x toward the port between -14.5 and 1 m, |z| below 9.5 m, the plot the
+    /// trees keep clear of), stepping up the hill in terraces; the dock's works stand by the water, off the jetty's middle where
+    /// the port's men walk. The slipways, the jetty and the store door the dock gangs use stay clear.
     /// </summary>
     public sealed partial class PortBuildings
     {
@@ -57,7 +62,6 @@ namespace MorzaBogow.Presentation
             public PortBuilding Kind;
             public GameObject Root;
             public readonly List<Piece> Pieces = new List<Piece>();
-            public GameObject Ruin;
         }
 
         readonly Transform root;
@@ -107,16 +111,11 @@ namespace MorzaBogow.Presentation
 
         public bool ShowsRuin(PortBuilding kind)
         {
-            // A building that breaks element by element lies in the ruin of its own fallen pieces, shown once the first
-            // of them is at rest.
-            if (Breaks(kind))
-            {
-                if (!Ruined) return false;
-                foreach (var view in DamagesOf(kind))
-                    if (view.Broken && view.Frame.gameObject.activeSelf && view.SettledPieces > 0) return true;
-                return false;
-            }
-            return structures.TryGetValue(kind, out var item) && item.Ruin != null && item.Ruin.activeSelf;
+            // Every building lies in the ruin of its own fallen pieces, shown once the first of them is at rest.
+            if (!Ruined) return false;
+            foreach (var view in DamagesOf(kind))
+                if (view.Broken && view.Frame.gameObject.activeSelf && view.SettledPieces > 0) return true;
+            return false;
         }
 
         /// <summary>
@@ -149,8 +148,7 @@ namespace MorzaBogow.Presentation
                 state = key;
                 Apply(settlement, ruined, project, progress);
             }
-            if (falling.Count > 0) Fall(delta);
-            // The School shows the hull the settlement has left (PortBuildings.School).
+            // Every building shows the hull the settlement has left (PortBuildings.Breakables).
             UpdateDamage(settlement, ruined, delta);
 
             // The research fire flickers in game time.
@@ -185,8 +183,6 @@ namespace MorzaBogow.Presentation
             // lies in ruins at once.
             var stoodBefore = applied && !Ruined && continuous;
             applied = true;
-            // A port raised again stands at once, whatever was still falling.
-            if (!ruined) StopFalling();
             Ruined = ruined;
             Rising = rising;
             RisingProgress = rising != null ? progress : 0f;
@@ -203,26 +199,19 @@ namespace MorzaBogow.Presentation
                 var item = Get(kind);
                 if (ruined)
                 {
-                    if (whole && Breaks(kind))
-                    {
-                        // It comes down element by element into the ruin of its own fallen pieces (PortBuildings.Breakables).
-                        falls.Add((item, stoodBefore && item.Root.activeSelf));
-                        continue;
-                    }
-                    if (whole && item.Ruin == null) item.Ruin = BuildRuin(item);
-                    // What stood in sight falls into its ruin; what never stood here, or fell before, lies in it at once.
-                    if (whole && stoodBefore && item.Root.activeSelf && StartFalling(item)) continue;
-                    item.Root.SetActive(false);
-                    if (item.Ruin != null) item.Ruin.SetActive(whole);
+                    // Every building comes down element by element into the ruin of its own fallen pieces
+                    // (PortBuildings.Breakables): seen falling if it stood in sight a moment ago, else lying at rest at once.
+                    // What was still rising is gone with the settlement.
+                    if (whole) falls.Add((item, stoodBefore && item.Root.activeSelf));
+                    else item.Root.SetActive(false);
                     continue;
                 }
-                if (item.Ruin != null) item.Ruin.SetActive(false);
                 item.Root.SetActive(whole || building);
                 if (whole) foreach (var piece in item.Pieces) Stage(piece, 1f);
                 else if (building)
                 {
                     foreach (var piece in item.Pieces) Stage(piece, progress);
-                    Scaffolded = progress < ScaffoldUntil && item.Kind != PortBuilding.Dock;
+                    Scaffolded = progress < ScaffoldUntil;
                     RoofOn = progress >= RoofFrom;
                     AddWorkSpots(item);
                 }
@@ -244,12 +233,8 @@ namespace MorzaBogow.Presentation
         {
             var whole = progress >= 1f;
             var walls = whole ? 1f : Mathf.Clamp01((progress - WallsFrom) / (RoofFrom - WallsFrom));
-            if (piece.Body != null)
-            {
-                piece.Body.gameObject.SetActive(whole || progress >= WallsFrom);
-                // A building of courses is put together, one course or column after another; others still grow as a whole.
-                if (piece.Courses.Count == 0) piece.Body.localScale = new Vector3(1f, Mathf.Lerp(0.15f, 1f, walls), 1f);
-            }
+            // A building is put together, one course, column or stretch after another; nothing is scaled up from the ground.
+            if (piece.Body != null) piece.Body.gameObject.SetActive(whole || progress >= WallsFrom);
             var laid = whole && piece.Whole == null ? piece.Courses.Count : !whole && progress >= WallsFrom ? Mathf.CeilToInt(walls * piece.Courses.Count) : 0;
             for (var i = 0; i < piece.Courses.Count; i++) piece.Courses[i].gameObject.SetActive(i < laid);
             if (piece.Whole != null) piece.Whole.gameObject.SetActive(whole);
@@ -263,11 +248,16 @@ namespace MorzaBogow.Presentation
             foreach (var piece in item.Pieces)
             {
                 if (workSpots.Count >= 6) return;
+                // The shear legs are raised from the jetty by the dock's own men (AddDockSpots).
+                if (piece.Root.name == "Shear legs") continue;
                 var centre = Local(piece.U, piece.Z, piece.Root.localPosition.y);
-                foreach (var side in new[] { -0.3f, 0.3f })
+                // The ship shed is worked on from the shore at its head and along its landward side, never from the sea.
+                var spots = piece.Root.name == "Ship shed"
+                    ? new[] { (ShedFrom - 1.2f, ShedZ - 1.5f), (ShedFrom - 1.2f, ShedZ + 1.5f), (ShedFrom + 2.5f, ShedZ - ShedWidth * 0.5f - 1.2f) }
+                    : new[] { (piece.U + piece.W * 0.5f + 1.2f, piece.Z - 0.3f * piece.D), (piece.U + piece.W * 0.5f + 1.2f, piece.Z + 0.3f * piece.D) };
+                foreach (var (u, z) in spots)
                 {
-                    var at = Local(piece.U + piece.W * 0.5f + 1.2f, piece.Z + side * piece.D, 0f);
-                    at.y = Ground(piece.U + piece.W * 0.5f + 1.2f, piece.Z + side * piece.D);
+                    var at = Local(u, z, Ground(u, z));
                     workSpots.Add(new PortWorkSpot { Position = root.TransformPoint(at), Facing = root.TransformPoint(centre) });
                 }
             }
@@ -287,17 +277,14 @@ namespace MorzaBogow.Presentation
             switch (kind)
             {
                 case PortBuilding.Store:
-                    if (outpost)
-                    {
-                        AddHouse(item, "Store", -3.8f, 4.9f, 4.4f, 6f, 2.9f, GreekMaterial.Stone);
-                        AddHouse(item, "Hut", -3.6f, -1.6f, 3.2f, 3.6f, 2.4f, GreekMaterial.Paint);
-                    }
+                    // A bridgehead is a field camp (PortBuildings.Harbour); a home port has its store and house.
+                    if (outpost) AddCamp(item);
                     else
                     {
                         AddHouse(item, "Store", -3.8f, 4.9f, 5f, 7f, 3.2f, GreekMaterial.Stone);
                         AddHouse(item, "House", -3.6f, -1.6f, 4f, 4.4f, 2.8f, GreekMaterial.Paint);
+                        AddStoreYard(item, false);
                     }
-                    AddStoreYard(item, outpost);
                     break;
                 case PortBuilding.Workshop:
                     AddWorkshop(item);
@@ -313,7 +300,8 @@ namespace MorzaBogow.Presentation
                     AddSchool(item);
                     break;
                 case PortBuilding.Dock:
-                    AddDock(item);
+                    AddShipShed(item);
+                    AddShearLegs(item);
                     break;
             }
             item.Root.SetActive(false);
@@ -599,33 +587,42 @@ namespace MorzaBogow.Presentation
         }
 
         /// <summary>
-        /// The workshop: an open shed on posts with a stone back wall, a forge chimney at one end, timber stacked by it and
-        /// the frame of a catapult on the trestles: the machines it makes are built here.
+        /// The workshop, an ergasterion of the 4th century BC: an open shed on posts with a stone back wall uphill, the forge
+        /// in its corner (a hearth of stone under the chimney, a pair of leather bellows feeding it, an anvil and a quenching
+        /// trough), the frame of a catapult on trestles (the machines it makes are built here) and timber stacked outside.
+        /// It is put up in order: the floor and footings, the back wall and the chimney, the posts, then the gear goes in.
         /// </summary>
         void AddWorkshop(Structure item)
         {
-            const float w = 5.6f, d = 4f, h = 3.3f;
+            const float w = WorkshopWidth, d = WorkshopDepth, h = WorkshopHeight;
             var piece = NewPiece(item, "Shed", -6f, -6.6f, w, d, h + 1.6f);
-            var body = Builder();
-            foreach (var px in new[] { -w * 0.5f + 0.2f, w * 0.5f - 0.2f })
-            foreach (var pz in new[] { -d * 0.5f + 0.2f, 0f, d * 0.5f - 0.2f })
-                body.Box(GreekMaterial.Wood, new Vector3(px, (h - Sink) * 0.5f, pz), new Vector3(0.14f, (h + Sink) * 0.5f, 0.14f), Quaternion.identity);
-            // The back wall uphill and the forge chimney.
-            body.Box(GreekMaterial.Stone, new Vector3(-w * 0.5f + 0.2f, (h - Sink) * 0.5f, 0f), new Vector3(0.3f, (h + Sink) * 0.5f, d * 0.5f), Quaternion.identity);
-            body.Box(GreekMaterial.Stone, new Vector3(-w * 0.5f + 0.7f, (h + 2.2f - Sink) * 0.5f, -d * 0.5f + 0.7f), new Vector3(0.55f, (h + 2.2f + Sink) * 0.5f, 0.55f), Quaternion.identity);
-            body.Box(GreekMaterial.Pitch, new Vector3(-w * 0.5f + 0.7f, h + 2.2f, -d * 0.5f + 0.7f), new Vector3(0.35f, 0.02f, 0.35f), Quaternion.identity);
-            // Trestles and a catapult frame on them: base beams, two uprights, the arm cocked back.
-            foreach (var pz in new[] { -0.8f, 0.8f })
-                body.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.45f, pz), new Vector3(1.2f, 0.12f, 0.12f), Quaternion.identity);
-            body.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.62f, 0f), new Vector3(1.1f, 0.1f, 0.75f), Quaternion.identity);
-            foreach (var pz in new[] { -0.45f, 0.45f })
-                body.Box(GreekMaterial.Wood, new Vector3(0.9f, 1.3f, pz), new Vector3(0.1f, 0.65f, 0.1f), Quaternion.identity);
-            body.Box(GreekMaterial.Wood, new Vector3(0.2f, 1.25f, 0f), new Vector3(1.0f, 0.08f, 0.08f), Quaternion.Euler(0f, 0f, 28f));
-            body.Box(GreekMaterial.Rope, new Vector3(0.9f, 1.1f, 0f), new Vector3(0.12f, 0.12f, 0.42f), Quaternion.identity);
-            // Timber stacked outside the downhill end.
-            for (var i = 0; i < 4; i++)
-                body.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.7f, 0.18f + (i / 2) * 0.32f, d * 0.5f - 0.6f - (i % 2) * 0.36f), new Vector3(0.16f, 0.16f, 1.2f), Quaternion.Euler(0f, 90f, 0f));
-            piece.Body = Attach(piece.Root, "Shed", body.Build(GreekMaterial.Wood, GreekMaterial.Stone, GreekMaterial.Rope, GreekMaterial.Pitch));
+            var floor = Builder();
+            floor.Box(GreekMaterial.Mudbrick, new Vector3(0f, (0.05f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f, (0.05f + Sink) * 0.5f, d * 0.5f), Quaternion.identity);
+            foreach (var (px, pz) in WorkshopPosts())
+                floor.Box(GreekMaterial.Stone, new Vector3(px, 0.08f, pz), new Vector3(0.24f, 0.1f, 0.24f), Quaternion.identity);
+            piece.Body = Attach(piece.Root, "Floor", floor.Build(GreekMaterial.Mudbrick, GreekMaterial.Stone));
+
+            var all = Builder();
+            var chimneyAt = new Vector3(-w * 0.5f + 0.7f, 0f, -d * 0.5f + 0.7f);
+            var lower = Builder();
+            var upper = Builder();
+            foreach (var (target, from, to) in new[] { (lower, -Sink, h * 0.5f), (upper, h * 0.5f, h), (all, -Sink, h) })
+                target.Box(GreekMaterial.Stone, new Vector3(-w * 0.5f + 0.2f, (from + to) * 0.5f, 0f), new Vector3(0.3f, (to - from) * 0.5f, d * 0.5f), Quaternion.identity);
+            foreach (var (target, from, to) in new[] { (lower, -Sink, h * 0.5f), (upper, h * 0.5f, h + 2.2f), (all, -Sink, h + 2.2f) })
+                target.Box(GreekMaterial.Stone, chimneyAt + Vector3.up * ((from + to) * 0.5f), new Vector3(0.55f, (to - from) * 0.5f, 0.55f), Quaternion.identity);
+            foreach (var target in new[] { upper, all })
+                target.Box(GreekMaterial.Pitch, chimneyAt + Vector3.up * (h + 2.2f), new Vector3(0.35f, 0.02f, 0.35f), Quaternion.identity);
+            piece.Courses.Add(Attach(piece.Body, "Back wall and chimney, lower", lower.Build(GreekMaterial.Stone)));
+            piece.Courses.Add(Attach(piece.Body, "Back wall and chimney, upper", upper.Build(GreekMaterial.Stone, GreekMaterial.Pitch)));
+            var posts = Builder();
+            foreach (var target in new[] { posts, all })
+                foreach (var (px, pz) in WorkshopPosts())
+                    target.Box(GreekMaterial.Wood, new Vector3(px, (h - Sink) * 0.5f, pz), new Vector3(0.14f, (h + Sink) * 0.5f, 0.14f), Quaternion.identity);
+            piece.Courses.Add(Attach(piece.Body, "Posts", posts.Build(GreekMaterial.Wood)));
+            var gear = Builder();
+            foreach (var target in new[] { gear, all }) WorkshopGear(target);
+            piece.Courses.Add(Attach(piece.Body, "Forge and gear", gear.Build(GreekMaterial.Wood, GreekMaterial.Stone, GreekMaterial.Pitch, GreekMaterial.Lead, GreekMaterial.Rope)));
+            piece.Whole = Attach(piece.Body, "Shed", all.Build(GreekMaterial.Wood, GreekMaterial.Stone, GreekMaterial.Rope, GreekMaterial.Pitch, GreekMaterial.Lead));
 
             var roof = Builder();
             TiledGable(roof, w, d, h, GreekMaterial.Wood, 0.3f);
@@ -633,6 +630,62 @@ namespace MorzaBogow.Presentation
             AddScaffold(piece, w, d, h);
             var rest = PieceRest(piece, 0f, w, d);
             AddBreakable(item, piece, "Workshop.Shed/", () => BuildShedModel(w, d, h, rest), rest, FootprintDistance(piece));
+        }
+
+        /// <summary>The workshop's shed: across the land, along the shore, up to the eaves.</summary>
+        const float WorkshopWidth = 5.6f, WorkshopDepth = 4f, WorkshopHeight = 3.3f;
+
+        /// <summary>The shed's six posts: three a side, the uphill row in the back wall.</summary>
+        static IEnumerable<(float x, float z)> WorkshopPosts()
+        {
+            foreach (var px in new[] { -WorkshopWidth * 0.5f + 0.2f, WorkshopWidth * 0.5f - 0.2f })
+            foreach (var pz in new[] { -WorkshopDepth * 0.5f + 0.2f, 0f, WorkshopDepth * 0.5f - 0.2f })
+                yield return (px, pz);
+        }
+
+        /// <summary>
+        /// What stands on the workshop's floor: the forge under the chimney (a stone hearth with its embers, two leather
+        /// bags of bellows feeding it, an anvil of stone with its iron face, a quenching trough, the smith's tongs and
+        /// hammers), the trestles with a catapult's frame on them, the arm cocked back, and timber stacked outside.
+        /// </summary>
+        static void WorkshopGear(GreekShips.MeshBuilder b)
+        {
+            const float w = WorkshopWidth, d = WorkshopDepth;
+            // The hearth before the chimney's foot, waist-high, its embers dark under the ash.
+            var hearth = new Vector3(-w * 0.5f + 1.8f, 0f, -d * 0.5f + 0.7f);
+            b.Box(GreekMaterial.Stone, hearth + Vector3.up * 0.375f, new Vector3(0.45f, 0.375f, 0.45f), Quaternion.identity);
+            b.Box(GreekMaterial.Pitch, hearth + Vector3.up * 0.76f, new Vector3(0.3f, 0.015f, 0.3f), Quaternion.identity);
+            // Two bellows of leather lying side by side, their nozzles at the hearth; a handle on each.
+            var bag = Builder();
+            bag.Lathe(GreekMaterial.Pitch, new[] { (0f, 0.05f), (0.08f, 0.2f), (0.35f, 0.24f), (0.6f, 0.15f), (0.72f, 0.04f) }, 10);
+            var bagMesh = bag.Build(GreekMaterial.Pitch);
+            foreach (var side in new[] { -0.25f, 0.25f })
+            {
+                var at = hearth + new Vector3(side, 0.3f, 0.95f);
+                b.Append(bagMesh, at, Quaternion.Euler(-90f, 0f, 0f));
+                b.Box(GreekMaterial.Wood, at + new Vector3(0f, 0.26f, -0.25f), new Vector3(0.03f, 0.03f, 0.22f), Quaternion.identity);
+            }
+            Discard(bagMesh.Mesh);
+            // The anvil: a block of stone with an iron face; the trough of water to quench in.
+            var anvil = new Vector3(-0.35f, 0f, -d * 0.5f + 0.55f);
+            b.Box(GreekMaterial.Stone, anvil + Vector3.up * 0.3f, new Vector3(0.2f, 0.3f, 0.2f), Quaternion.identity);
+            b.Box(GreekMaterial.Lead, anvil + Vector3.up * 0.65f, new Vector3(0.22f, 0.05f, 0.12f), Quaternion.identity);
+            b.Box(GreekMaterial.Lead, anvil + new Vector3(0.3f, 0.06f, 0.1f), new Vector3(0.12f, 0.02f, 0.02f), Quaternion.Euler(0f, 25f, 0f));
+            b.Box(GreekMaterial.Lead, anvil + new Vector3(0.28f, 0.06f, -0.12f), new Vector3(0.09f, 0.03f, 0.03f), Quaternion.Euler(0f, -10f, 0f));
+            var trough = new Vector3(-w * 0.5f + 1.2f, 0f, d * 0.5f - 0.65f);
+            b.Box(GreekMaterial.Stone, trough + Vector3.up * 0.25f, new Vector3(0.5f, 0.25f, 0.25f), Quaternion.identity);
+            b.Box(GreekMaterial.Pitch, trough + Vector3.up * 0.505f, new Vector3(0.42f, 0.01f, 0.17f), Quaternion.identity);
+            // Trestles and a catapult frame on them: base beams, two uprights, the arm cocked back.
+            foreach (var pz in new[] { -0.8f, 0.8f })
+                b.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.45f, pz), new Vector3(1.2f, 0.12f, 0.12f), Quaternion.identity);
+            b.Box(GreekMaterial.Wood, new Vector3(0.6f, 0.62f, 0f), new Vector3(1.1f, 0.1f, 0.75f), Quaternion.identity);
+            foreach (var pz in new[] { -0.45f, 0.45f })
+                b.Box(GreekMaterial.Wood, new Vector3(0.9f, 1.3f, pz), new Vector3(0.1f, 0.65f, 0.1f), Quaternion.identity);
+            b.Box(GreekMaterial.Wood, new Vector3(0.2f, 1.25f, 0f), new Vector3(1.0f, 0.08f, 0.08f), Quaternion.Euler(0f, 0f, 28f));
+            b.Box(GreekMaterial.Rope, new Vector3(0.9f, 1.1f, 0f), new Vector3(0.12f, 0.12f, 0.42f), Quaternion.identity);
+            // Timber stacked outside the downhill end.
+            for (var i = 0; i < 4; i++)
+                b.Box(GreekMaterial.Wood, new Vector3(w * 0.5f + 0.7f, 0.18f + (i / 2) * 0.32f, d * 0.5f - 0.6f - (i % 2) * 0.36f), new Vector3(0.16f, 0.16f, 1.2f), Quaternion.Euler(0f, 90f, 0f));
         }
 
         /// <summary>A storage jar 1.4 m tall, from its foot up (height, radius): egg-shaped, two raised rope bands, a rolled rim.</summary>
@@ -857,10 +910,10 @@ namespace MorzaBogow.Presentation
             piece.Root.SetParent(item.Root.transform, false);
             item.Pieces.Add(piece);
             const float back = -14.6f, front = 0.6f, side = 9.2f, gate = 3.6f;
-            var body = Builder();
+            var all = Builder();
             var roofs = Builder();
             // A curtain of regular ashlar (Messene's walls, R-MESSENE); its crenellated parapet is an interpretation.
-            void Stretch(float u0, float z0, float u1, float z1)
+            void Stretch(GreekShips.MeshBuilder body, float u0, float z0, float u1, float z1)
             {
                 var length = Mathf.Sqrt((u1 - u0) * (u1 - u0) + (z1 - z0) * (z1 - z0));
                 var count = Mathf.Max(1, Mathf.CeilToInt(length / 2.4f));
@@ -880,7 +933,7 @@ namespace MorzaBogow.Presentation
             }
             // Square towers rising a storey over the wall-walk, loopholes in the upper room, a gabled roof (R-MESSENE;
             // its tiles are an interpretation).
-            void Tower(float u, float z)
+            void Tower(GreekShips.MeshBuilder body, float u, float z, bool cap)
             {
                 var ground = Ground(u, z) - 0.6f;
                 var top = ground + WallHeight + 1.4f;
@@ -892,19 +945,33 @@ namespace MorzaBogow.Presentation
                     body.Box(GreekMaterial.Pitch, slit + new Vector3(face * 1.11f, 0f, across), new Vector3(0.02f, 0.32f, 0.07f), Quaternion.identity);
                     body.Box(GreekMaterial.Pitch, slit + new Vector3(across, 0f, face * 1.11f), new Vector3(0.07f, 0.32f, 0.02f), Quaternion.identity);
                 }
-                var cap = Builder();
-                TiledGable(cap, 2.2f, 2.2f, 0f, GreekMaterial.Stone, 0.18f);
-                var mesh = cap.Build(GreekMaterial.Terracotta, GreekMaterial.Stone, GreekMaterial.Wood);
+                if (!cap) return;
+                var tiles = Builder();
+                TiledGable(tiles, 2.2f, 2.2f, 0f, GreekMaterial.Stone, 0.18f);
+                var mesh = tiles.Build(GreekMaterial.Terracotta, GreekMaterial.Stone, GreekMaterial.Wood);
                 roofs.Append(mesh, Local(u, z, top), Quaternion.identity);
                 Discard(mesh.Mesh);
             }
-            Stretch(back, -side, back, side);
-            Stretch(back, -side, front, -side);
-            Stretch(back, side, front, side);
-            Stretch(front, -side, front, -gate);
-            Stretch(front, gate, front, side);
-            foreach (var (u, z) in new[] { (back, -side), (back, side), (front, -side), (front, side), (front, -gate), (front, gate) }) Tower(u, z);
-            piece.Body = Attach(piece.Root, "Wall and towers", body.Build(GreekMaterial.Stone, GreekMaterial.Pitch));
+            // Put up stretch by stretch, the towers last; one mesh once it stands.
+            piece.Body = new GameObject("Wall courses").transform;
+            piece.Body.SetParent(piece.Root, false);
+            var lines = new[] { (back, -side, back, side), (back, -side, front, -side), (back, side, front, side), (front, -side, front, -gate), (front, gate, front, side) };
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var (u0, z0, u1, z1) = lines[i];
+                var c = Builder();
+                Stretch(c, u0, z0, u1, z1);
+                Stretch(all, u0, z0, u1, z1);
+                piece.Courses.Add(Attach(piece.Body, $"Curtain {i}", c.Build(GreekMaterial.Stone)));
+            }
+            var towers = Builder();
+            foreach (var (u, z) in new[] { (back, -side), (back, side), (front, -side), (front, side), (front, -gate), (front, gate) })
+            {
+                Tower(towers, u, z, true);
+                Tower(all, u, z, false);
+            }
+            piece.Courses.Add(Attach(piece.Body, "Towers", towers.Build(GreekMaterial.Stone, GreekMaterial.Pitch)));
+            piece.Whole = Attach(piece.Root, "Wall and towers", all.Build(GreekMaterial.Stone, GreekMaterial.Pitch));
             piece.Roof = Attach(piece.Root, "Tower roofs", roofs.Build(GreekMaterial.Terracotta, GreekMaterial.Stone, GreekMaterial.Wood));
             // A wall rises from its footing like any building: the stretches grow from the ground they stand on.
             var footing = Builder();
@@ -927,36 +994,6 @@ namespace MorzaBogow.Presentation
 
         /// <summary>Height of the jetty's deck (BattleController.CreateShore: 1.2 m centre, 0.35 m thick).</summary>
         const float JettyTop = 1.375f;
-
-        /// <summary>
-        /// The dock: shear legs standing on the jetty's end beside its middle and leaning out over the berth where ships lie
-        /// for repair, with a block and fall hauled by a windlass.
-        /// </summary>
-        void AddDock(Structure item)
-        {
-            var piece = new Piece { U = 20.7f, Z = -1.8f, W = 8.4f, D = 1.6f, H = 9.5f };
-            piece.Root = new GameObject("Shear legs").transform;
-            piece.Root.SetParent(item.Root.transform, false);
-            item.Pieces.Add(piece);
-
-            var crane = Builder();
-            var apex = Local(24.2f, -1.8f, 9.4f);
-            foreach (var u in new[] { 20.4f, 22.4f })
-                crane.Tube(GreekMaterial.Wood, new List<Vector3> { Local(u, -1.75f, JettyTop), apex }, 0.2f, 0.15f, 6);
-            crane.Box(GreekMaterial.Wood, Local(21.4f, -1.75f, JettyTop + 0.1f), new Vector3(1.4f, 0.1f, 0.18f), Quaternion.identity);
-            // The backstay to a bollard, the fall from the apex to its block.
-            var bollard = Local(17.2f, -1.75f, JettyTop);
-            crane.Tube(GreekMaterial.Rope, new List<Vector3> { apex, bollard + Vector3.up * 0.5f }, 0.045f, 0.045f, 4);
-            crane.Box(GreekMaterial.Wood, bollard + Vector3.up * 0.3f, new Vector3(0.2f, 0.35f, 0.2f), Quaternion.identity);
-            crane.Tube(GreekMaterial.Rope, new List<Vector3> { apex, apex + Vector3.down * 4.6f }, 0.04f, 0.04f, 4);
-            crane.Box(GreekMaterial.Wood, apex + Vector3.down * 4.8f, new Vector3(0.18f, 0.25f, 0.14f), Quaternion.identity);
-            // A windlass beside the bollard hauls the fall. The slipways' pitch pot and timber are ShipyardProps'.
-            var drum = Local(18.6f, -1.75f, JettyTop + 0.55f);
-            crane.Tube(GreekMaterial.Wood, new List<Vector3> { drum + Vector3.forward * 0.55f, drum - Vector3.forward * 0.55f }, 0.22f, 0.22f, 8);
-            foreach (var end in new[] { -0.6f, 0.6f })
-                crane.Box(GreekMaterial.Wood, drum + new Vector3(0f, -0.3f, end), new Vector3(0.08f, 0.32f, 0.06f), Quaternion.identity);
-            piece.Body = Attach(piece.Root, "Shear legs", crane.Build(GreekMaterial.Wood, GreekMaterial.Rope));
-        }
 
         /// <summary>A body of revolution at a point (the builder's lathe works about the origin).</summary>
         static void AppendLathe(GreekShips.MeshBuilder b, GreekMaterial paint, Vector3 at, (float, float)[] profile, int sides) => b.Lathe(paint, profile, sides, at);
@@ -992,289 +1029,17 @@ namespace MorzaBogow.Presentation
             if (glow != null) renderer.sharedMaterial = glow;
         }
 
-        // ---------- Ruins ----------
-
-        /// <summary>
-        /// What is left of a building after the settlement fell, seeded by the settlement so it is always the same:
-        /// walls broken off at a quarter to half their height, no roof, charred beams and rubble about, columns as stumps
-        /// with drums fallen, the shear legs lying across the jetty.
-        /// </summary>
-        GameObject BuildRuin(Structure item)
-        {
-            var random = new System.Random(seed + (int)item.Kind * 101);
-            float Next(float min, float max) => min + (float)random.NextDouble() * (max - min);
-            var ruin = new GameObject($"{item.Kind} (ruin)");
-            ruin.transform.SetParent(root, false);
-            foreach (var piece in item.Pieces)
-            {
-                var b = Builder();
-                var holder = new GameObject(piece.Root.name + " (ruin)").transform;
-                holder.SetParent(ruin.transform, false);
-                holder.localPosition = piece.Root.localPosition;
-                holder.localRotation = piece.Root.localRotation;
-                if (item.Kind == PortBuilding.Dock)
-                {
-                    // The legs fallen along the jetty and into the water.
-                    holder.localPosition = Vector3.zero;
-                    holder.localRotation = Quaternion.identity;
-                    foreach (var offset in new[] { -0.5f, 0.6f })
-                        b.Tube(GreekMaterial.Pitch, new List<Vector3> { Local(19.6f + offset, -1.6f + offset, JettyTop + 0.15f), Local(27f, -4.5f + offset, -0.2f) }, 0.19f, 0.14f, 6);
-                }
-                else if (item.Kind == PortBuilding.Town && piece.Root.name == "Wall")
-                {
-                    holder.localPosition = Vector3.zero;
-                    holder.localRotation = Quaternion.identity;
-                    const float back = -14.6f, front = 0.6f, side = 9.2f;
-                    foreach (var (u0, z0, u1, z1) in new[] { (back, -side, back, side), (back, -side, front, -side), (back, side, front, side) })
-                    {
-                        for (var i = 0; i < 8; i++)
-                        {
-                            var t = (i + 0.5f) / 8f;
-                            var u = Mathf.Lerp(u0, u1, t);
-                            var z = Mathf.Lerp(z0, z1, t);
-                            var tall = WallHeight * Next(0.2f, 0.6f);
-                            var along = Local(u1 - u0, z1 - z0, 0f).normalized;
-                            var length = Mathf.Sqrt((u1 - u0) * (u1 - u0) + (z1 - z0) * (z1 - z0)) / 8f;
-                            if (random.NextDouble() < 0.2) tall = 0.3f;
-                            b.Box(GreekMaterial.Stone, Local(u, z, Ground(u, z) + (tall - Sink) * 0.5f), new Vector3(0.45f, (tall + Sink) * 0.5f, length * 0.5f), Quaternion.LookRotation(along));
-                        }
-                    }
-                }
-                else
-                {
-                    var w = piece.W;
-                    var d = piece.D;
-                    var h = item.Kind == PortBuilding.SageSchool ? 3.6f : Mathf.Max(2.4f, piece.H * 0.75f);
-                    var wall = item.Kind == PortBuilding.Store && piece.Root.name == "Store" ? GreekMaterial.Stone : GreekMaterial.Paint;
-                    if (item.Kind == PortBuilding.SageSchool)
-                    {
-                        // The steps stand; of the peristyle stumps are left, some columns gone, drums fallen about.
-                        for (var i = 0; i < 3; i++)
-                        {
-                            var inset = i * 0.2f;
-                            b.Box(GreekMaterial.Stone, new Vector3(0f, (SchoolSteps * (i + 1) / 3f - Sink) * 0.5f, 0f), new Vector3(w * 0.5f - inset, (SchoolSteps * (i + 1) / 3f + Sink) * 0.5f, d * 0.5f - inset), Quaternion.identity);
-                        }
-                        const float r = SchoolColumnRadius;
-                        foreach (var at in SchoolColumns())
-                        {
-                            if (random.NextDouble() < 0.25) continue;
-                            // A stump broken off, its top a low rough cone.
-                            var tall = Next(0.4f, 1.8f);
-                            b.Lathe(GreekMaterial.Paint, new[] { (0f, r), (tall, r * 0.97f), (tall + Next(0.03f, 0.12f), 0f) }, 10, at + Vector3.up * SchoolSteps);
-                        }
-                        for (var i = 0; i < 4; i++)
-                        {
-                            // Drums fallen on the stylobate, whole bodies with their faces.
-                            var length = Next(0.6f, 1.4f);
-                            var drum = Builder();
-                            drum.Lathe(GreekMaterial.Paint, new[] { (-0.02f, 0f), (0f, r), (length, r), (length + 0.02f, 0f) }, 10);
-                            var mesh = drum.Build(GreekMaterial.Paint);
-                            var at = new Vector3(Next(-w, w) * 0.6f, SchoolSteps + r, Next(-d, d) * 0.5f);
-                            b.Append(mesh, at, Quaternion.Euler(0f, Next(0f, 360f), 0f) * Quaternion.Euler(90f, 0f, 0f));
-                            Discard(mesh.Mesh);
-                        }
-                    }
-                    else if (item.Kind == PortBuilding.Workshop)
-                    {
-                        foreach (var px in new[] { -w * 0.5f + 0.2f, w * 0.5f - 0.2f })
-                        foreach (var pz in new[] { -d * 0.5f + 0.2f, d * 0.5f - 0.2f })
-                        {
-                            var tall = Next(0.4f, 1.6f);
-                            b.Box(GreekMaterial.Pitch, new Vector3(px, (tall - Sink) * 0.5f, pz), new Vector3(0.14f, (tall + Sink) * 0.5f, 0.14f), Quaternion.identity);
-                        }
-                        b.Box(GreekMaterial.Stone, new Vector3(-w * 0.5f + 0.7f, (2.4f - Sink) * 0.5f, -d * 0.5f + 0.7f), new Vector3(0.55f, (2.4f + Sink) * 0.5f, 0.55f), Quaternion.identity);
-                        b.Box(GreekMaterial.Stone, new Vector3(-w * 0.5f + 0.2f, (1.1f - Sink) * 0.5f, 0f), new Vector3(0.3f, (1.1f + Sink) * 0.5f, d * 0.5f), Quaternion.identity);
-                    }
-                    else
-                    {
-                        // Four walls, each broken into stretches of uneven height.
-                        foreach (var (cx, cz, hx, hz) in new[] { (w * 0.5f - 0.2f, 0f, 0.2f, d * 0.5f), (-w * 0.5f + 0.2f, 0f, 0.2f, d * 0.5f), (0f, d * 0.5f - 0.2f, w * 0.5f, 0.2f), (0f, -d * 0.5f + 0.2f, w * 0.5f, 0.2f) })
-                        {
-                            const int stretches = 3;
-                            for (var i = 0; i < stretches; i++)
-                            {
-                                var t = (i + 0.5f) / stretches - 0.5f;
-                                var tall = h * Next(0.25f, 0.5f);
-                                var at = new Vector3(cx + (hz > hx ? 0f : t * 2f * hx), (tall - Sink) * 0.5f, cz + (hz > hx ? t * 2f * hz : 0f));
-                                var half = hz > hx ? new Vector3(hx, (tall + Sink) * 0.5f, hz / stretches) : new Vector3(hx / stretches, (tall + Sink) * 0.5f, hz);
-                                b.Box(wall, at, half, Quaternion.identity);
-                            }
-                        }
-                    }
-                    // Charred beams fallen across, and rubble.
-                    for (var i = 0; i < 3; i++)
-                        b.Box(GreekMaterial.Pitch, new Vector3(Next(-w, w) * 0.3f, Next(0.3f, 1.1f), Next(-d, d) * 0.3f), new Vector3(0.12f, 0.12f, Mathf.Max(w, d) * 0.45f),
-                            Quaternion.Euler(Next(-25f, 25f), Next(0f, 180f), Next(-10f, 10f)));
-                    for (var i = 0; i < 7; i++)
-                    {
-                        var size = Next(0.25f, 0.6f);
-                        b.Box(GreekMaterial.Stone, new Vector3(Next(-w, w) * 0.6f, size * 0.4f, Next(-d, d) * 0.6f), new Vector3(size, size * 0.6f, size * 0.8f), Quaternion.Euler(Next(-20f, 20f), Next(0f, 360f), Next(-20f, 20f)));
-                    }
-                }
-                Attach(holder, "Ruin", b.Build(GreekMaterial.Stone, GreekMaterial.Paint, GreekMaterial.Pitch));
-            }
-            ruin.SetActive(false);
-            return ruin;
-        }
-
         // ---------- Falling into ruin ----------
 
-        /// <summary>How long a building takes to fall into its ruin, in game seconds (a pause holds it).</summary>
+        /// <summary>How long a building's pieces take to come down, in game seconds (a pause holds them); the tools wait so long.</summary>
         public const float CollapseSeconds = 2.6f;
 
-        /// <summary>A building falling: where its pieces stood, the way each leans, the time since it gave.</summary>
-        sealed class Falling
-        {
-            public Structure Item;
-            public Vector3[] Position;
-            public Quaternion[] Rotation;
-            public Vector3[] Lean;
-            public float Time;
-            public bool Struck;
-        }
-
-        readonly List<Falling> falling = new List<Falling>();
         ParticleSystem dust, tiles;
         Mesh tileMesh;
         bool applied;
 
-        /// <summary>Some building of the settlement is still falling into its ruin.</summary>
-        public bool Collapsing => falling.Count > 0 || breakables.Exists(item => item.View != null && item.View.Busy);
-
-        /// <summary>Starts a standing building's fall: dust bursts from it as it gives; its ruin shows later, through the dust.</summary>
-        bool StartFalling(Structure item)
-        {
-            if (falling.Exists(fall => fall.Item == item)) return true;
-            var random = new System.Random(seed + (int)item.Kind * 53);
-            var count = item.Pieces.Count;
-            var started = new Falling { Item = item, Position = new Vector3[count], Rotation = new Quaternion[count], Lean = new Vector3[count] };
-            for (var i = 0; i < count; i++)
-            {
-                started.Position[i] = item.Pieces[i].Root.localPosition;
-                started.Rotation[i] = item.Pieces[i].Root.localRotation;
-                var angle = (float)random.NextDouble() * Mathf.PI * 2f;
-                started.Lean[i] = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
-            }
-            if (item.Ruin != null) item.Ruin.SetActive(false);
-            falling.Add(started);
-            Dust(item, 0.8f, random);
-            return true;
-        }
-
-        /// <summary>
-        /// The walls give at their foot and sink into their own rubble, leaning as they go; the roof falls in first and
-        /// faster. When it strikes, the ruin shows through a second cloud of dust and the roof's tiles fly.
-        /// </summary>
-        void Fall(float delta)
-        {
-            for (var k = falling.Count - 1; k >= 0; k--)
-            {
-                var fall = falling[k];
-                fall.Time += delta;
-                var p = Mathf.Clamp01(fall.Time / CollapseSeconds);
-                for (var i = 0; i < fall.Item.Pieces.Count; i++)
-                {
-                    var piece = fall.Item.Pieces[i];
-                    piece.Root.localPosition = fall.Position[i] + Vector3.down * (p * p * piece.H * 0.9f);
-                    piece.Root.localRotation = Quaternion.AngleAxis(p * 12f, fall.Lean[i]) * fall.Rotation[i];
-                    if (piece.Roof == null) continue;
-                    // It tips about its own middle, not the building's foot, and drops in between the walls.
-                    var q = Mathf.Clamp01(p * 1.7f);
-                    var tip = Quaternion.AngleAxis(q * 18f, fall.Lean[i]);
-                    var middle = Vector3.up * (piece.H * 0.85f);
-                    piece.Roof.localRotation = tip;
-                    piece.Roof.localPosition = middle - tip * middle + Vector3.down * (q * q * piece.H * 0.55f);
-                }
-                if (!fall.Struck && p >= 0.45f)
-                {
-                    fall.Struck = true;
-                    if (fall.Item.Ruin != null) fall.Item.Ruin.SetActive(true);
-                    var random = new System.Random(seed + (int)fall.Item.Kind * 59);
-                    Dust(fall.Item, 1.2f, random);
-                    Tiles(fall.Item, random);
-                }
-                if (p < 1f) continue;
-                Restore(fall);
-                fall.Item.Root.SetActive(false);
-                falling.RemoveAt(k);
-            }
-        }
-
-        /// <summary>Puts the pieces back where they stood, hidden, for the day the building is raised again.</summary>
-        static void Restore(Falling fall)
-        {
-            for (var i = 0; i < fall.Item.Pieces.Count; i++)
-            {
-                var piece = fall.Item.Pieces[i];
-                piece.Root.localPosition = fall.Position[i];
-                piece.Root.localRotation = fall.Rotation[i];
-                if (piece.Roof == null) continue;
-                piece.Roof.localPosition = Vector3.zero;
-                piece.Roof.localRotation = Quaternion.identity;
-            }
-        }
-
-        void StopFalling()
-        {
-            foreach (var fall in falling) Restore(fall);
-            falling.Clear();
-        }
-
-        /// <summary>Clouds of limestone and plaster dust rising off a falling building's pieces.</summary>
-        void Dust(Structure item, float strength, System.Random random)
-        {
-            var system = DustSystem();
-            if (system == null) return;
-            foreach (var piece in item.Pieces)
-            {
-                var count = Mathf.Clamp(Mathf.RoundToInt(piece.W * piece.D * 0.5f * strength), 8, 60);
-                for (var i = 0; i < count; i++)
-                {
-                    var local = new Vector3(((float)random.NextDouble() - 0.5f) * piece.W, (float)random.NextDouble() * piece.H * 0.6f, ((float)random.NextDouble() - 0.5f) * piece.D);
-                    var at = piece.Root.TransformPoint(local);
-                    var outward = at - piece.Root.position;
-                    outward.y = 0f;
-                    system.Emit(new ParticleSystem.EmitParams
-                    {
-                        position = at,
-                        velocity = outward.normalized * Mathf.Lerp(0.4f, 1.6f, (float)random.NextDouble()) * strength + Vector3.up * Mathf.Lerp(0.6f, 2.2f, (float)random.NextDouble()),
-                        startSize = Mathf.Lerp(1.6f, 4.2f, (float)random.NextDouble()) * strength,
-                        startLifetime = Mathf.Lerp(2.6f, 4.6f, (float)random.NextDouble()),
-                        rotation = (float)random.NextDouble() * 360f,
-                        applyShapeToPosition = false,
-                    }, 1);
-                }
-            }
-        }
-
-        /// <summary>The roof's tiles thrown off as it strikes: they tumble out and down.</summary>
-        void Tiles(Structure item, System.Random random)
-        {
-            var system = TileSystem();
-            if (system == null) return;
-            foreach (var piece in item.Pieces)
-            {
-                if (piece.Roof == null) continue;
-                var count = Mathf.Clamp(Mathf.RoundToInt(piece.W * piece.D * 0.6f), 6, 40);
-                for (var i = 0; i < count; i++)
-                {
-                    var local = new Vector3(((float)random.NextDouble() - 0.5f) * piece.W, piece.H * 0.7f, ((float)random.NextDouble() - 0.5f) * piece.D);
-                    var at = piece.Root.TransformPoint(local);
-                    var outward = at - piece.Root.position;
-                    outward.y = 0f;
-                    system.Emit(new ParticleSystem.EmitParams
-                    {
-                        position = at,
-                        velocity = outward.normalized * Mathf.Lerp(1f, 3.5f, (float)random.NextDouble()) + Vector3.up * Mathf.Lerp(0.5f, 3f, (float)random.NextDouble()),
-                        rotation3D = new Vector3((float)random.NextDouble() * 360f, (float)random.NextDouble() * 360f, (float)random.NextDouble() * 360f),
-                        angularVelocity3D = new Vector3(300f, 200f, 260f) * ((float)random.NextDouble() - 0.5f),
-                        startSize = 1f,
-                        startLifetime = Mathf.Lerp(0.8f, 1.3f, (float)random.NextDouble()),
-                        applyShapeToPosition = false,
-                    }, 1);
-                }
-            }
-        }
+        /// <summary>Some building of the settlement is still coming down: pieces of it are in the air.</summary>
+        public bool Collapsing => breakables.Exists(item => item.View != null && item.View.Busy);
 
         /// <summary>
         /// Soft billboards in the colour of limestone dust: a copy of the scene's spray material (the same shader

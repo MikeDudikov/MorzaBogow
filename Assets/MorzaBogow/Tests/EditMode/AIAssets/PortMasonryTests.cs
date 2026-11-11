@@ -77,9 +77,6 @@ namespace MorzaBogow.Tests
             var settlement = Town();
             var buildings = Port(settlement);
             var school = buildings.Root.Find("SageSchool");
-            // The dock still falls as one piece (the other buildings break element by element: BuildingDestructionTests).
-            var piece = buildings.Root.Find("Dock/Shear legs");
-            var standing = piece.localPosition;
 
             buildings.Update(settlement, true, 0f);
             Assert.That(buildings.Ruined, Is.True);
@@ -90,18 +87,19 @@ namespace MorzaBogow.Tests
             var fall = buildings.DamageOf(PortBuilding.SageSchool);
             Assert.That(fall.Busy, Is.True, "the School comes down element by element (BuildingDestructionTests)");
 
+            var settled = fall.SettledPieces;
             buildings.Update(settlement, true, 0f);
-            Assert.That(piece.localPosition, Is.EqualTo(standing), "a pause holds the fall");
+            Assert.That(fall.SettledPieces, Is.EqualTo(settled), "a pause holds the fall");
 
             buildings.Update(settlement, true, PortBuildings.CollapseSeconds * 0.5f);
-            Assert.That(piece.localPosition.y, Is.LessThan(standing.y), "the dock's shear legs sink as they fall");
+            Assert.That(buildings.DamagesOf(PortBuilding.Dock).Any(view => view.Broken), Is.True, "the dock's shed and shear legs come down element by element too");
             Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool), Is.True, "its first columns lie at rest: the ruin shows");
 
-            buildings.Update(settlement, true, PortBuildings.CollapseSeconds);
+            for (var i = 0; i < 20 && buildings.Collapsing; i++) buildings.Update(settlement, true, PortBuildings.CollapseSeconds);
             Assert.That(buildings.Collapsing, Is.False);
             Assert.That(school.gameObject.activeSelf, Is.False, "fallen");
-            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool) && buildings.ShowsRuin(PortBuilding.Store), Is.True, "what stood lies in ruins");
-            Assert.That(piece.localPosition, Is.EqualTo(standing), "put back, hidden, for the day it is raised again");
+            Assert.That(buildings.ShowsRuin(PortBuilding.SageSchool) && buildings.ShowsRuin(PortBuilding.Store) && buildings.ShowsRuin(PortBuilding.Dock), Is.True,
+                "what stood lies in ruins, the dock with the rest");
 
             buildings.Update(settlement, false, 0f);
             Assert.That(buildings.Shows(PortBuilding.SageSchool), Is.True, "raised again, it stands where it stood");
