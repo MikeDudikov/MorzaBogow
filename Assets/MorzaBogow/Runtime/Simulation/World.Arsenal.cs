@@ -39,58 +39,66 @@ namespace MorzaBogow.Simulation
         /// into a dock; the school and a workshop research heavy weapons for the whole side. One project at a time; the
         /// price must be in the local store.
         /// </summary>
-        public string ProjectProblem(Settlement port, ProjectKind kind)
+        public string ProjectProblem(Settlement port, ProjectKind kind) => ProjectCheck(port, kind).text;
+
+        /// <summary>ProjectProblem's checks with the reason a refused order reports (J02); one rule for both.</summary>
+        (CommandReason reason, string text) ProjectCheck(Settlement port, ProjectKind kind)
         {
-            if (port == null || port.Destroyed) return "Port nie istnieje.";
-            if (port.Project != null) return "Port już coś buduje.";
+            if (port == null || port.Destroyed) return (CommandReason.InvalidTarget, "Port nie istnieje.");
+            if (port.Project != null) return (CommandReason.NoSpace, "Port już coś buduje.");
             switch (kind)
             {
                 case ProjectKind.Workshop:
-                    if (port.HasWorkshop) return "Warsztat już stoi.";
-                    if (!port.HasShipyard) return "Wymaga stoczni.";
+                    if (port.HasWorkshop) return (CommandReason.NothingToDo, "Warsztat już stoi.");
+                    if (!port.HasShipyard) return (CommandReason.NotCapable, "Wymaga stoczni.");
                     break;
                 case ProjectKind.Town:
-                    if (port.IsTown) return "To już Miasto.";
-                    if (port.IsOutpost) return "Miastem może stać się tylko port macierzysty.";
-                    if (!port.HasShipyard || !port.HasWorkshop) return "Wymaga stoczni i Warsztatu.";
+                    if (port.IsTown) return (CommandReason.NothingToDo, "To już Miasto.");
+                    if (port.IsOutpost) return (CommandReason.NotCapable, "Miastem może stać się tylko port macierzysty.");
+                    if (!port.HasShipyard || !port.HasWorkshop) return (CommandReason.NotCapable, "Wymaga stoczni i Warsztatu.");
                     break;
                 case ProjectKind.SageSchool:
-                    if (port.HasSageSchool) return "Szkoła już stoi.";
-                    if (!port.IsTown) return "Wymaga Miasta.";
+                    if (port.HasSageSchool) return (CommandReason.NothingToDo, "Szkoła już stoi.");
+                    if (!port.IsTown) return (CommandReason.NotCapable, "Wymaga Miasta.");
                     break;
                 case ProjectKind.HeavyArmsResearch:
-                    if (HasHeavyArms(port.Owner)) return "Już zbadane.";
-                    if (!port.HasSageSchool || !port.HasWorkshop) return "Wymaga Szkoły Mędrców i Warsztatu.";
+                    if (HasHeavyArms(port.Owner)) return (CommandReason.NothingToDo, "Już zbadane.");
+                    if (!port.HasSageSchool || !port.HasWorkshop) return (CommandReason.NotCapable, "Wymaga Szkoły Mędrców i Warsztatu.");
                     break;
                 case ProjectKind.Dock:
-                    if (port.HasDock) return "Dok już stoi.";
-                    if (!port.IsTown || !port.HasShipyard) return "Wymaga Miasta ze stocznią.";
+                    if (port.HasDock) return (CommandReason.NothingToDo, "Dok już stoi.");
+                    if (!port.IsTown || !port.HasShipyard) return (CommandReason.NotCapable, "Wymaga Miasta ze stocznią.");
                     break;
-                default: return "Nieznany projekt.";
+                default: return (CommandReason.InvalidOrder, "Nieznany projekt.");
             }
             var (wood, silver, _) = ProjectCost(kind);
-            if (port.Available(ResourceType.Wood) < wood || port.Available(ResourceType.Silver) < silver) return "Brak środków w magazynie portu.";
-            return null;
+            if (port.Available(ResourceType.Wood) < wood || port.Available(ResourceType.Silver) < silver) return (CommandReason.NoFunds, "Brak środków w magazynie portu.");
+            return (CommandReason.None, null);
         }
 
-        void BeginProject(int faction, int settlementId, ProjectKind kind)
+        CommandReason BeginProject(int faction, int settlementId, ProjectKind kind)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction || ProjectProblem(port, kind) != null) return;
+            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            var check = ProjectCheck(port, kind).reason;
+            if (check != CommandReason.None) return check;
             var (wood, silver, seconds) = ProjectCost(kind);
             port.ReservedWood += wood;
             port.ReservedSilver += silver;
             port.Project = new BuildOrder { PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(seconds * Rules.TickRate) };
             port.ProjectKind = kind;
+            return CommandReason.None;
         }
 
-        void CancelProject(int faction, int settlementId)
+        CommandReason CancelProject(int faction, int settlementId)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction || port.Project == null) return;
+            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (port.Project == null) return CommandReason.NothingToDo;
             Settle(port, QuoteOrder(port.Project));
             port.Project = null;
             port.ProjectKind = ProjectKind.None;
+            return CommandReason.None;
         }
 
         /// <summary>The cancel rule of every order (E04): unused reservation released; after the start 80% of it comes back.</summary>
@@ -157,36 +165,43 @@ namespace MorzaBogow.Simulation
         // ---------- Workshop ----------
 
         /// <summary>Why a port cannot order this weapon, or null if it can: workshop, a machine, heavy ones after research, the price.</summary>
-        public string WeaponProblem(Settlement port, WeaponType weapon)
+        public string WeaponProblem(Settlement port, WeaponType weapon) => WeaponCheck(port, weapon).text;
+
+        /// <summary>WeaponProblem's checks with the reason a refused order reports (J02); one rule for both.</summary>
+        (CommandReason reason, string text) WeaponCheck(Settlement port, WeaponType weapon)
         {
-            if (port == null || port.Destroyed) return "Port nie istnieje.";
-            if (!port.HasWorkshop) return "Wymaga Warsztatu w tym porcie.";
+            if (port == null || port.Destroyed) return (CommandReason.InvalidTarget, "Port nie istnieje.");
+            if (!port.HasWorkshop) return (CommandReason.NotCapable, "Wymaga Warsztatu w tym porcie.");
             var definition = WeaponCatalog.Get(weapon);
-            if (!definition.IsMachine || definition.CostWood + definition.CostSilver == 0) return "Tego Warsztat nie wytwarza.";
-            if (definition.Slot == SlotSize.Heavy && !HasHeavyArms(port.Owner)) return "Broń ciężka wymaga badania w Szkole Mędrców.";
-            if (port.Available(ResourceType.Wood) < definition.CostWood * Rules.Centi || port.Available(ResourceType.Silver) < definition.CostSilver * Rules.Centi) return "Brak środków w magazynie portu.";
-            return null;
+            if (!definition.IsMachine || definition.CostWood + definition.CostSilver == 0) return (CommandReason.InvalidOrder, "Tego Warsztat nie wytwarza.");
+            if (definition.Slot == SlotSize.Heavy && !HasHeavyArms(port.Owner)) return (CommandReason.NotCapable, "Broń ciężka wymaga badania w Szkole Mędrców.");
+            if (port.Available(ResourceType.Wood) < definition.CostWood * Rules.Centi || port.Available(ResourceType.Silver) < definition.CostSilver * Rules.Centi) return (CommandReason.NoFunds, "Brak środków w magazynie portu.");
+            return (CommandReason.None, null);
         }
 
-        bool QueueWeapon(int faction, int settlementId, WeaponType weapon)
+        CommandReason QueueWeapon(int faction, int settlementId, WeaponType weapon)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction || WeaponProblem(port, weapon) != null) return false;
+            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            var check = WeaponCheck(port, weapon).reason;
+            if (check != CommandReason.None) return check;
             var definition = WeaponCatalog.Get(weapon);
             var wood = definition.CostWood * Rules.Centi;
             var silver = definition.CostSilver * Rules.Centi;
             port.ReservedWood += wood;
             port.ReservedSilver += silver;
             port.WorkshopQueue.Add(new BuildOrder { Weapon = weapon, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.WorkshopSeconds * Rules.TickRate) });
-            return true;
+            return CommandReason.None;
         }
 
-        void CancelWeapon(int faction, int settlementId, int index)
+        CommandReason CancelWeapon(int faction, int settlementId, int index)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction || index < 0 || index >= port.WorkshopQueue.Count) return;
+            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (index < 0 || index >= port.WorkshopQueue.Count) return CommandReason.InvalidOrder;
             Settle(port, QuoteOrder(port.WorkshopQueue[index]));
             port.WorkshopQueue.RemoveAt(index);
+            return CommandReason.None;
         }
 
         /// <summary>The port orders one of a weapon unless one is already lying in its arsenal or on its workshop line.</summary>
@@ -213,12 +228,13 @@ namespace MorzaBogow.Simulation
             return true;
         }
 
-        void SetLoadout(Ship ship, WeaponType[] loadout)
+        bool SetLoadout(Ship ship, WeaponType[] loadout)
         {
-            if (!LoadoutValid(ship.Owner, ship.Class, loadout)) return;
+            if (!LoadoutValid(ship.Owner, ship.Class, loadout)) return false;
             ship.Loadout = (WeaponType[])loadout.Clone();
             var port = ClosestYard(ship);
             for (var i = 0; i < loadout.Length; i++) if (loadout[i] != ship.Mounts[i]) OrderIfMissing(port, loadout[i]);
+            return true;
         }
 
         /// <summary>A post differs from the plan and the port can act on it now: take the weapon off, or fit one it holds.</summary>
@@ -275,23 +291,24 @@ namespace MorzaBogow.Simulation
 
         // ---------- Blueprints ----------
 
-        void SaveBlueprint(Command command)
+        CommandReason SaveBlueprint(Command command)
         {
-            if (string.IsNullOrWhiteSpace(command.Name) || command.Loadout == null) return;
+            if (string.IsNullOrWhiteSpace(command.Name) || command.Loadout == null) return CommandReason.InvalidOrder;
             var slots = ShipCatalog.Get(command.Class).Slots;
-            if (command.Loadout.Length != slots.Length) return;
-            for (var i = 0; i < slots.Length; i++) if (!WeaponCatalog.Fits(command.Loadout[i], slots[i])) return;
+            if (command.Loadout.Length != slots.Length) return CommandReason.InvalidOrder;
+            for (var i = 0; i < slots.Length; i++) if (!WeaponCatalog.Fits(command.Loadout[i], slots[i])) return CommandReason.InvalidOrder;
             var name = command.Name.Trim();
             var existing = Blueprints.FirstOrDefault(item => item.Owner == command.Faction && item.Name == name);
             if (existing == null)
             {
-                if (Blueprints.Count(item => item.Owner == command.Faction) >= Rules.MaxBlueprints) return;
+                if (Blueprints.Count(item => item.Owner == command.Faction) >= Rules.MaxBlueprints) return CommandReason.NoSpace;
                 existing = new Blueprint { Id = NextBlueprintId++, Owner = command.Faction, Name = name };
                 Blueprints.Add(existing);
             }
             existing.Class = command.Class;
             existing.Loadout = (WeaponType[])command.Loadout.Clone();
             existing.Preset = command.Preset == CrewPreset.Custom ? ShipCatalog.Get(command.Class).DefaultPreset : command.Preset;
+            return CommandReason.None;
         }
 
         /// <summary>A blueprint's hull is ordered at the class price; the port at once orders the weapons it lacks.</summary>

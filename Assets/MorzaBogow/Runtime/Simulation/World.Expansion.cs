@@ -58,11 +58,11 @@ namespace MorzaBogow.Simulation
 
         void Reject(Ship ship) => Emit("order_rejected", ship.Id, -1, ship.X, ship.Y, 0);
 
-        void BeginTransfer(Ship ship, Command command)
+        CommandReason BeginTransfer(Ship ship, Command command)
         {
-            if (ship.Class != ShipClass.Merchant) return;
+            if (ship.Class != ShipClass.Merchant) return CommandReason.NotCapable;
             var destination = FindSettlement(command.TargetId);
-            if (destination == null || destination.Owner != ship.Owner || destination.Destroyed) { Reject(ship); return; }
+            if (destination == null || destination.Owner != ship.Owner || destination.Destroyed) { Reject(ship); return CommandReason.InvalidTarget; }
 
             // Goods already on board go straight to the destination.
             if (ship.HoldWood + ship.HoldSilver > 0)
@@ -71,12 +71,12 @@ namespace MorzaBogow.Simulation
                 ship.Order = OrderKind.Transfer;
                 ship.DestinationId = destination.Id;
                 ship.Transport = TransportPhase.ToDestination;
-                return;
+                return CommandReason.None;
             }
 
             var source = FindSettlement(command.SourceId) ?? PortsOf(ship.Owner).Where(item => item.Id != destination.Id)
                 .OrderBy(item => Distance2(ship.X, ship.Y, item.X, item.Y)).ThenBy(item => item.Id).FirstOrDefault();
-            if (source == null || source.Owner != ship.Owner || source.Destroyed || source.Id == destination.Id) { Reject(ship); return; }
+            if (source == null || source.Owner != ship.Owner || source.Destroyed || source.Id == destination.Id) { Reject(ship); return CommandReason.InvalidTarget; }
 
             var capacity = ship.Definition.Capacity * Rules.Centi;
             long wood, silver;
@@ -95,19 +95,22 @@ namespace MorzaBogow.Simulation
                 silver = Math.Min(capacity - wood, spareSilver);
                 wood = Math.Min(capacity - silver, spareWood);
             }
-            if (wood + silver <= 0) { Reject(ship); return; }
+            if (wood + silver <= 0) { Reject(ship); return CommandReason.NoFunds; }
 
             ClearOrder(ship);
             ship.Order = OrderKind.Transfer;
             ship.DestinationId = destination.Id;
             Reserve(ship, source, wood, silver);
+            return CommandReason.None;
         }
 
-        void BeginExpedition(Ship ship, Command command)
+        CommandReason BeginExpedition(Ship ship, Command command)
         {
-            if (ship.Class != ShipClass.Merchant) return;
+            if (ship.Class != ShipClass.Merchant) return CommandReason.NotCapable;
             var site = FindSite(command.TargetId);
-            if (site == null || !IsSiteFree(site) || site.BuilderShipId >= 0 || !IsExplored(ship.Owner, site.X, site.Y)) { Reject(ship); return; }
+            if (site == null || !IsExplored(ship.Owner, site.X, site.Y)) { Reject(ship); return CommandReason.NoObservedTarget; }
+            // Known limit (J08, P03/E05): a site taken or claimed by an unseen enemy is refused too, as before.
+            if (!IsSiteFree(site) || site.BuilderShipId >= 0) { Reject(ship); return CommandReason.NoSpace; }
 
             var wood = Math.Max(0, Rules.OutpostWood - ship.HoldWood);
             var silver = Math.Max(0, Rules.OutpostSilver - ship.HoldSilver);
@@ -117,9 +120,9 @@ namespace MorzaBogow.Simulation
                 .OrderBy(item => Distance2(ship.X, ship.Y, item.X, item.Y)).ThenBy(item => item.Id).FirstOrDefault();
             if (needsLoad)
             {
-                if (source == null || source.Owner != ship.Owner || source.Destroyed) { Reject(ship); return; }
-                if (source.Available(ResourceType.Wood) < wood || source.Available(ResourceType.Silver) < silver) { Reject(ship); return; }
-                if (ship.HoldWood + ship.HoldSilver + wood + silver > ship.Definition.Capacity * Rules.Centi) { Reject(ship); return; }
+                if (source == null || source.Owner != ship.Owner || source.Destroyed) { Reject(ship); return source == null ? CommandReason.NoFunds : CommandReason.InvalidTarget; }
+                if (source.Available(ResourceType.Wood) < wood || source.Available(ResourceType.Silver) < silver) { Reject(ship); return CommandReason.NoFunds; }
+                if (ship.HoldWood + ship.HoldSilver + wood + silver > ship.Definition.Capacity * Rules.Centi) { Reject(ship); return CommandReason.NoSpace; }
             }
 
             ClearOrder(ship);
@@ -128,6 +131,7 @@ namespace MorzaBogow.Simulation
             site.BuilderShipId = ship.Id;
             if (needsLoad) Reserve(ship, source, wood, silver);
             else ship.Transport = TransportPhase.ToDestination;
+            return CommandReason.None;
         }
 
         void Reserve(Ship ship, Settlement source, long wood, long silver)
@@ -140,23 +144,27 @@ namespace MorzaBogow.Simulation
             ship.Transport = TransportPhase.ToSource;
         }
 
-        void BeginEscort(Ship ship, Command command)
+        CommandReason BeginEscort(Ship ship, Command command)
         {
+            if (ship.Definition.IsEconomic) return CommandReason.NotCapable;
             var escorted = FindShip(command.TargetId);
-            if (ship.Definition.IsEconomic || escorted == null || escorted == ship || escorted.Owner != ship.Owner) return;
+            if (escorted == null || escorted == ship || escorted.Owner != ship.Owner) return CommandReason.InvalidTarget;
             ClearOrder(ship);
             ship.Order = OrderKind.Escort;
             ship.EscortId = escorted.Id;
+            return CommandReason.None;
         }
 
-        void BeginShipyard(int faction, int settlementId)
+        CommandReason BeginShipyard(int faction, int settlementId)
         {
             var settlement = FindSettlement(settlementId);
-            if (settlement == null || settlement.Owner != faction || settlement.Destroyed || settlement.HasShipyard || settlement.ShipyardBuild != null) return;
-            if (settlement.Available(ResourceType.Wood) < Rules.ShipyardWood || settlement.Available(ResourceType.Silver) < Rules.ShipyardSilver) return;
+            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return CommandReason.InvalidTarget;
+            if (settlement.HasShipyard || settlement.ShipyardBuild != null) return CommandReason.NothingToDo;
+            if (settlement.Available(ResourceType.Wood) < Rules.ShipyardWood || settlement.Available(ResourceType.Silver) < Rules.ShipyardSilver) return CommandReason.NoFunds;
             settlement.ReservedWood += Rules.ShipyardWood;
             settlement.ReservedSilver += Rules.ShipyardSilver;
             settlement.ShipyardBuild = new BuildOrder { PaidWood = Rules.ShipyardWood, PaidSilver = Rules.ShipyardSilver, TotalTicks = (int)(Rules.ShipyardBuildSeconds * Rules.TickRate) };
+            return CommandReason.None;
         }
 
         /// <summary>Gives back what was reserved and not yet loaded. Goods already on board stay there.</summary>

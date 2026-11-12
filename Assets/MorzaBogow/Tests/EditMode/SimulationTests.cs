@@ -1374,6 +1374,150 @@ namespace MorzaBogow.Tests
             Assert.That(Regroups(belowHalf, 0, 0, silver: 0), Is.False, "Without the silver for the muster it stays with the fleet.");
         }
 
+        // ---------- Order results (J02, J08) ----------
+
+        static (CommandOutcome, CommandReason) ResultOf(World world, int commandId, int shipId = -1)
+        {
+            var result = world.CommandResults.Single(item => item.CommandId == commandId && item.ShipId == shipId);
+            return (result.Outcome, result.Reason);
+        }
+
+        [Test]
+        public void Order_EveryShipGetsAResultAndARefusalSaysWhyAndChangesNothing()
+        {
+            var world = Empty();
+            var loaded = world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+            loaded.CargoType = ResourceType.Wood;
+            loaded.Cargo = 30 * Rules.Centi;
+            loaded.Order = OrderKind.Move;
+            loaded.TargetX = -300;
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, -420, 60);
+            merchant.HoldSilver = 40 * Rules.Centi;
+            var empty = world.SpawnShip(0, ShipClass.Cutter, -420, -60);
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, -380, 0);
+            boarder.Swordsmen = 5; boarder.Javelins = 0; boarder.Archers = 0;
+            var whole = world.SpawnShip(0, ShipClass.Ram, -380, 80);
+            var holed = world.SpawnShip(0, ShipClass.Ram, -380, -80);
+            holed.Hull -= 100;
+            var enemy = world.SpawnShip(1, ShipClass.Ram, -330, 0);
+            Assert.That(world.CanSee(0, enemy), Is.True);
+            var wood = world.LedgerTotal(ResourceType.Wood);
+            var silver = world.LedgerTotal(ResourceType.Silver);
+
+            var scrap = world.Issue(new Command { Faction = 0, Kind = CommandKind.Scrap, ShipIds = new[] { loaded.Id, merchant.Id, empty.Id } });
+            var board = world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { empty.Id, boarder.Id }, TargetId = enemy.Id });
+            var foreign = world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { enemy.Id, 9999 }, X = 0, Y = 0 });
+            var repair = world.Issue(new Command { Faction = 0, Kind = CommandKind.Repair, ShipIds = new[] { whole.Id, holed.Id } });
+            world.Step();
+
+            Assert.That(ResultOf(world, scrap, loaded.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.CarriesCargo)), "A01: a cutter with cargo is not scrapped.");
+            Assert.That(ResultOf(world, scrap, merchant.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.CarriesCargo)), "Nor a merchant with goods in its hold.");
+            Assert.That(ResultOf(world, scrap, empty.Id), Is.EqualTo((CommandOutcome.Accepted, CommandReason.None)), "An empty hull in the same order is.");
+            Assert.That(loaded.Order, Is.EqualTo(OrderKind.Move), "A refused order leaves the ship's own order.");
+            Assert.That((loaded.Cargo, merchant.HoldSilver), Is.EqualTo((30 * Rules.Centi, 40 * Rules.Centi)));
+            Assert.That(ResultOf(world, board, empty.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NotCapable)));
+            Assert.That(ResultOf(world, board, boarder.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NoCrew)));
+            Assert.That(ResultOf(world, foreign, enemy.Id), Is.EqualTo(ResultOf(world, foreign, 9999)), "An enemy ship and no ship at all get the same answer.");
+            Assert.That(ResultOf(world, foreign, 9999), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NoUnit)));
+            Assert.That(ResultOf(world, repair, whole.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NothingToDo)));
+            Assert.That(ResultOf(world, repair, holed.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NoDock)), "Only a dock mends a hull, and the side has none.");
+            Assert.That(world.CommandResults.Count, Is.EqualTo(9), "One result for every ship of every order.");
+            Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(wood));
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
+
+            world.Step();
+            Assert.That(world.CommandResults, Is.Empty, "Results belong to the step that applied the orders.");
+        }
+
+        [Test]
+        public void Order_ARefusalUnderFogIsTheSameForAHiddenAMissingAndAFallenTarget()
+        {
+            var world = Empty();
+            var archer = world.SpawnShip(0, ShipClass.CrewDestroyer, -480, 400);
+            var hidden = world.SpawnShip(1, ShipClass.Cutter, 480, -400);
+            var enemyPort = world.SettlementOf(1);
+            Assert.That(world.CanSee(0, hidden), Is.False);
+            Assert.That(world.CanSee(0, enemyPort.X, enemyPort.Y), Is.False);
+            Command Attack(CommandKind kind, int target) => new Command { Faction = 0, Kind = kind, ShipIds = new[] { archer.Id }, TargetId = target };
+
+            var atHidden = world.Issue(Attack(CommandKind.AttackShip, hidden.Id));
+            var atMissing = world.Issue(Attack(CommandKind.AttackShip, 9999));
+            var atStandingPort = world.Issue(Attack(CommandKind.AttackSettlement, enemyPort.Id));
+            var atMissingPort = world.Issue(Attack(CommandKind.AttackSettlement, 9998));
+            world.Step();
+            var answer = (CommandOutcome.Rejected, CommandReason.NoObservedTarget);
+            Assert.That(ResultOf(world, atHidden, archer.Id), Is.EqualTo(answer));
+            Assert.That(ResultOf(world, atMissing, archer.Id), Is.EqualTo(answer), "A ship that is not there is refused as a hidden one.");
+            Assert.That(ResultOf(world, atStandingPort, archer.Id), Is.EqualTo(answer));
+            Assert.That(ResultOf(world, atMissingPort, archer.Id), Is.EqualTo(answer));
+
+            enemyPort.Hull = 0;
+            var atFallenPort = world.Issue(Attack(CommandKind.AttackSettlement, enemyPort.Id));
+            world.Step();
+            Assert.That(ResultOf(world, atFallenPort, archer.Id), Is.EqualTo(answer), "A hidden port's fall is not told by the refusal.");
+            Assert.That(archer.Order, Is.EqualTo(OrderKind.Idle));
+        }
+
+        [Test]
+        public void Order_PortOrdersReportWhyTheyAreRefusedAndARefusalCostsNothing()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            var enemyPort = world.SettlementOf(1);
+            // A hull on each side keeps the match going from step to step.
+            world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+            world.SpawnShip(1, ShipClass.Cutter, 420, 0);
+            home.HasShipyard = false;
+            var wood = world.LedgerTotal(ResourceType.Wood);
+            var silver = world.LedgerTotal(ResourceType.Silver);
+            Assert.That(home.HasWorkshop, Is.False, "A bare port: no shipyard, no workshop.");
+
+            var warship = world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram, TargetId = home.Id });
+            var abroad = world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter, TargetId = enemyPort.Id });
+            var noProject = world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelProject, TargetId = home.Id });
+            var noWorkshop = world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueWeapon, Weapon = WeaponType.Scorpion, TargetId = home.Id });
+            var badIndex = world.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 3, TargetId = home.Id });
+            world.Step();
+            Assert.That(ResultOf(world, warship), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NotCapable)), "A warship needs a shipyard.");
+            Assert.That(ResultOf(world, abroad), Is.EqualTo((CommandOutcome.Rejected, CommandReason.InvalidTarget)), "Not the side's port.");
+            Assert.That(ResultOf(world, noProject), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NothingToDo)));
+            Assert.That(ResultOf(world, noWorkshop), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NotCapable)));
+            Assert.That(ResultOf(world, badIndex), Is.EqualTo((CommandOutcome.Rejected, CommandReason.InvalidOrder)));
+            Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(wood));
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
+            Assert.That(home.ReservedWood + home.ReservedSilver, Is.Zero, "Nothing reserved for refused orders.");
+
+            var stock = (home.Wood, home.Silver);
+            home.Wood = 10 * Rules.Centi;
+            var poor = world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter, TargetId = home.Id });
+            world.Step();
+            Assert.That(ResultOf(world, poor), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NoFunds)));
+            Assert.That(home.PortQueue, Is.Empty);
+
+            (home.Wood, home.Silver) = stock;
+            var taken = world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter, TargetId = home.Id });
+            world.Step();
+            Assert.That(ResultOf(world, taken), Is.EqualTo((CommandOutcome.Accepted, CommandReason.None)));
+            Assert.That(home.PortQueue.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Order_AScrapRefusedForItsCargoIsRefusedAlikeAfterASaveInAPause()
+        {
+            var world = Empty();
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, -420, 0);
+            merchant.HoldWood = 50 * Rules.Centi;
+            var id = world.Issue(new Command { Faction = 0, Kind = CommandKind.Scrap, ShipIds = new[] { merchant.Id } });
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            world.Step();
+            loaded.Step();
+            var refused = (CommandOutcome.Rejected, CommandReason.CarriesCargo);
+            Assert.That(ResultOf(world, id, merchant.Id), Is.EqualTo(refused));
+            Assert.That(ResultOf(loaded, id, merchant.Id), Is.EqualTo(refused), "The saved order meets the same rule after loading.");
+            Assert.That(loaded.FindShip(merchant.Id).HoldWood, Is.EqualTo(50 * Rules.Centi));
+            Assert.That(loaded.FindShip(merchant.Id).Order, Is.Not.EqualTo(OrderKind.Scrap));
+        }
+
         // ---------- Fog of war ----------
 
         [Test]

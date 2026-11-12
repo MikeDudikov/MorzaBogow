@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MorzaBogow.Presentation;
@@ -640,6 +641,33 @@ namespace MorzaBogow.Tests
             battle.RunTicks(1);
             Assert.That(battle.World.FindShip(ship.Id).Order, Is.EqualTo(OrderKind.Move), "Resumed, the order applies at the next step.");
             File.Delete(path);
+        }
+
+        [UnityTest]
+        public IEnumerator Herald_ARefusedOrderSaysWhyOnceForTheWholeSelection()
+        {
+            // J02/J08: a refused order says why in the existing herald, one line for the whole order (A01: scrap with cargo).
+            yield return null;
+            var world = battle.World;
+            var home = world.SettlementOf(BattleController.PlayerFaction);
+            var first = world.SpawnShip(BattleController.PlayerFaction, ShipClass.Cutter, home.X + 60, home.Y + 40);
+            var second = world.SpawnShip(BattleController.PlayerFaction, ShipClass.Cutter, home.X + 60, home.Y - 40);
+            var empty = world.SpawnShip(BattleController.PlayerFaction, ShipClass.Cutter, home.X + 90, home.Y);
+            first.CargoType = second.CargoType = ResourceType.Wood;
+            first.Cargo = second.Cargo = 20 * Rules.Centi;
+            var heard = new List<HeraldMessage>();
+            battle.Herald += heard.Add;
+            try
+            {
+                world.Issue(new Command { Faction = BattleController.PlayerFaction, Kind = CommandKind.Scrap, ShipIds = new[] { first.Id, second.Id, empty.Id } });
+                battle.RunTicks(1);
+                var refusals = heard.Where(message => message.Text.Contains("rozładuj")).ToList();
+                Assert.That(refusals.Count, Is.EqualTo(1), "One line for the whole order, not one per ship.");
+                Assert.That(refusals[0].Text, Does.Contain("2 z 3"), "How many of the selection did not take it.");
+                Assert.That((first.Order, second.Order), Is.EqualTo((OrderKind.Idle, OrderKind.Idle)), "The loaded cutters keep sailing as they were.");
+                Assert.That(empty.Order, Is.EqualTo(OrderKind.Scrap), "The empty one goes to be scrapped.");
+            }
+            finally { battle.Herald -= heard.Add; }
         }
 
         Ship HiddenEnemy() => battle.World.Ships.First(ship => ship.Owner == 1);

@@ -364,6 +364,25 @@ namespace MorzaBogow.Simulation
         public bool Unarmed;
     }
 
+    /// <summary>What became of an order when its step applied it (J02). P01 records acceptance and refusal; values are only appended.</summary>
+    public enum CommandOutcome { Accepted, Rejected }
+
+    /// <summary>
+    /// Why an order was refused (J02, J08). A reason never tells more than the issuing side may know: an enemy target it
+    /// does not see is NoObservedTarget whether hidden or gone, and a unit not its own is NoUnit whether or not it exists.
+    /// Values are only appended.
+    /// </summary>
+    public enum CommandReason { None, NoUnit, NotCapable, NoCrew, NoDock, NoFunds, NoSpace, NoObservedTarget, CarriesCargo, NothingToDo, InvalidTarget, InvalidOrder }
+
+    /// <summary>One result of one order: per ship for a ship order, once (ShipId -1) for an order to a port or the side.</summary>
+    public struct CommandResult
+    {
+        public int CommandId, Faction, ShipId;
+        public CommandKind Kind;
+        public CommandOutcome Outcome;
+        public CommandReason Reason;
+    }
+
     public enum OutcomeKind { InProgress, Won, Draw }
 
     /// <summary>Presentation events; identifiers prevent duplicate effects.</summary>

@@ -803,6 +803,7 @@ namespace MorzaBogow.Presentation
             World.Step();
             StepSeakeeping();
             ProcessEvents();
+            AnnounceRefusals();
             Ticked?.Invoke(World);
             combatEvents += World.Events.Count(item => item.Type == "volley" || item.Type == "ram_hit" || item.Type == "hooks_thrown");
             World.Events.Clear();
@@ -3066,6 +3067,55 @@ namespace MorzaBogow.Presentation
         {
             if (ship.HoldWood + ship.HoldSilver > 0) return $"{ship.HoldWood / Rules.Centi} D i {ship.HoldSilver / Rules.Centi} S";
             return (ship.Cargo / Rules.Centi).ToString();
+        }
+
+        /// <summary>
+        /// One herald line for each refused order of the player (J02/J08): how many of the ships did not take it and why,
+        /// never per ship. Transfers and outposts keep the message they already give (order_rejected).
+        /// </summary>
+        void AnnounceRefusals()
+        {
+            foreach (var order in World.CommandResults.Where(item => item.Faction == PlayerFaction).GroupBy(item => item.CommandId))
+            {
+                var results = order.ToList();
+                var refused = results.Where(item => item.Outcome == CommandOutcome.Rejected
+                    && !((item.Kind == CommandKind.Transfer || item.Kind == CommandKind.FoundOutpost) && item.Reason != CommandReason.NotCapable)).ToList();
+                if (refused.Count == 0) continue;
+                var ship = refused.Select(item => World.FindShip(item.ShipId)).FirstOrDefault(item => item != null);
+                Vector3? at = ship != null ? new Vector3((float)ship.X, 0f, (float)ship.Y) : (Vector3?)null;
+                Announce(RefusalText(results.Count, refused), HeraldLevel.Important, at, HeraldTopic.General, ship?.Id ?? -1, $"order:{order.Key}");
+            }
+        }
+
+        /// <summary>The herald's line for a refused order: the reason, and for a group how many ships did not take it.</summary>
+        public static string RefusalText(int results, IReadOnlyList<CommandResult> refused)
+        {
+            var reasons = string.Join("; ", refused.GroupBy(item => item.Reason).Select(group =>
+                group.Count() > 1 && results > 1 ? $"{ReasonText(group.Key, group.First().Kind)} ({group.Count()})" : ReasonText(group.Key, group.First().Kind)));
+            if (results <= 1 || refused[0].ShipId < 0) return $"Rozkazu nie można wykonać: {reasons}.";
+            return refused.Count == results ? $"Rozkazu nie przyjął żaden z {results} okrętów: {reasons}." : $"Rozkazu nie przyjęło {refused.Count} z {results} okrętów: {reasons}.";
+        }
+
+        /// <summary>Why, in words, without telling of anything the player does not see (J08).</summary>
+        public static string ReasonText(CommandReason reason, CommandKind kind)
+        {
+            switch (reason)
+            {
+                case CommandReason.NoUnit: return "tej jednostki już nie ma albo nie jest nasza";
+                case CommandReason.NotCapable: return "ta jednostka tego nie potrafi";
+                case CommandReason.NoCrew: return "za mało wojowników na pokładzie";
+                case CommandReason.NoDock: return "kadłub naprawi tylko dok, a nie mamy go";
+                case CommandReason.NoFunds: return "brak środków lub ładunku w porcie";
+                case CommandReason.NoSpace: return "brak miejsca";
+                case CommandReason.NoObservedTarget: return "nie widać takiego celu";
+                case CommandReason.CarriesCargo: return "statek ma ładunek – najpierw go rozładuj";
+                case CommandReason.NothingToDo:
+                    return kind == CommandKind.Repair ? "nie wymaga naprawy ani uzupełnienia"
+                        : kind == CommandKind.CancelProject ? "nie ma czego anulować"
+                        : "to już jest gotowe";
+                case CommandReason.InvalidTarget: return "niewłaściwy cel";
+                default: return "rozkaz niewykonalny w tej postaci";
+            }
         }
 
         public static string ClassName(ShipClass shipClass)

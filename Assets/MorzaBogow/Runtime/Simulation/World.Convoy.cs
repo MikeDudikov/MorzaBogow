@@ -68,28 +68,31 @@ namespace MorzaBogow.Simulation
             Math.Min(needWood, Math.Max(0, port.Available(ResourceType.Wood) - port.KeepWood))
             + Math.Min(needSilver, Math.Max(0, port.Available(ResourceType.Silver) - port.KeepSilver));
 
-        void BeginConvoy(Ship ship)
+        CommandReason BeginConvoy(Ship ship)
         {
-            if (ship.Class != ShipClass.Merchant) return;
+            if (ship.Class != ShipClass.Merchant) return CommandReason.NotCapable;
             ClearOrder(ship);
             ship.Order = OrderKind.Convoy;
             ship.Transport = TransportPhase.Standby;
+            return CommandReason.None;
         }
 
-        void SetPriorityPort(int faction, int portId)
+        CommandReason SetPriorityPort(int faction, int portId)
         {
-            if (faction < 0 || faction >= PriorityPorts.Length) return;
+            if (faction < 0 || faction >= PriorityPorts.Length) return CommandReason.InvalidOrder;
             var port = FindSettlement(portId);
-            if (portId >= 0 && (port == null || port.Owner != faction || port.Destroyed)) return;
+            if (portId >= 0 && (port == null || port.Owner != faction || port.Destroyed)) return CommandReason.InvalidTarget;
             PriorityPorts[faction] = portId;
+            return CommandReason.None;
         }
 
-        void SetPortMinimum(int faction, int portId, long wood, long silver)
+        CommandReason SetPortMinimum(int faction, int portId, long wood, long silver)
         {
             var port = FindSettlement(portId);
-            if (port == null || port.Owner != faction || port.Destroyed) return;
+            if (port == null || port.Owner != faction || port.Destroyed) return CommandReason.InvalidTarget;
             port.KeepWood = Math.Max(0, Math.Min(wood, port.Capacity(ResourceType.Wood)));
             port.KeepSilver = Math.Max(0, Math.Min(silver, port.Capacity(ResourceType.Silver)));
+            return CommandReason.None;
         }
 
         void StepConvoy(Ship ship)

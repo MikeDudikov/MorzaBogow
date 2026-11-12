@@ -80,28 +80,29 @@ namespace MorzaBogow.Simulation
         }
 
         /// <summary>Orders pay from the local store of the chosen port; without a target the main settlement builds.</summary>
-        void QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1, bool unarmed = false)
+        CommandReason QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1, bool unarmed = false)
         {
             // A blueprint fixes the class; the hull is ordered at the class price, its other weapons from the workshop.
             var blueprint = blueprintId >= 0 ? Blueprints.FirstOrDefault(item => item.Id == blueprintId && item.Owner == faction) : null;
-            if (blueprintId >= 0 && blueprint == null) return;
+            if (blueprintId >= 0 && blueprint == null) return CommandReason.InvalidOrder;
             if (blueprint != null) shipClass = blueprint.Class;
             var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
-            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return;
+            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return CommandReason.InvalidTarget;
             var queued = PortsOf(faction).Sum(port => port.WarQueue.Count + port.PortQueue.Count);
-            if (Ships.Count(ship => ship.Owner == faction) + queued >= Rules.FleetLimit) return;
+            if (Ships.Count(ship => ship.Owner == faction) + queued >= Rules.FleetLimit) return CommandReason.NoSpace;
 
             var definition = ShipCatalog.Get(shipClass);
-            if (ShipProblem(settlement, shipClass) != null) return;
+            if (ShipProblem(settlement, shipClass) != null) return CommandReason.NotCapable;
             var bare = unarmed && blueprint == null && definition.Slots.Length > 0;
             var (wood, silver) = OrderPrice(definition, bare);
-            if (settlement.Available(ResourceType.Wood) < wood || settlement.Available(ResourceType.Silver) < silver) return;
+            if (settlement.Available(ResourceType.Wood) < wood || settlement.Available(ResourceType.Silver) < silver) return CommandReason.NoFunds;
 
             settlement.ReservedWood += wood;
             settlement.ReservedSilver += silver;
             var queue = definition.IsEconomic ? settlement.PortQueue : settlement.WarQueue;
             queue.Add(new BuildOrder { Class = shipClass, PaidWood = wood, PaidSilver = silver, TotalTicks = (int)(definition.BuildSeconds * Rules.TickRate), BlueprintId = blueprint?.Id ?? -1, Unarmed = bare });
             if (blueprint != null) OrderBlueprintWeapons(settlement, blueprint);
+            return CommandReason.None;
         }
 
         /// <summary>A hull launched without its default weapons: empty posts and plan, no worth in them; the ram keeps its own.</summary>
@@ -113,12 +114,12 @@ namespace MorzaBogow.Simulation
             Fit(ship, Array.Empty<WeaponType>(), kept);
         }
 
-        void CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
+        CommandReason CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
         {
             var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
-            if (settlement == null || settlement.Owner != faction) return;
+            if (settlement == null || settlement.Owner != faction) return CommandReason.InvalidTarget;
             var queue = portQueue ? settlement.PortQueue : settlement.WarQueue;
-            if (index < 0 || index >= queue.Count) return;
+            if (index < 0 || index >= queue.Count) return CommandReason.InvalidOrder;
 
             var quote = QuoteCancel(settlement, portQueue, index);
             queue.RemoveAt(index);
@@ -128,6 +129,7 @@ namespace MorzaBogow.Simulation
             settlement.Silver -= quote.LostSilver;
             LostWood += quote.LostWood;
             LostSilver += quote.LostSilver;
+            return CommandReason.None;
         }
 
         /// <summary>

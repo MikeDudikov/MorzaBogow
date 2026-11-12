@@ -40,6 +40,13 @@ namespace MorzaBogow.Simulation
         /// <summary>The number the next order gets (CommandId).</summary>
         public int NextCommandId = 1;
 
+        /// <summary>
+        /// What became of the orders the last step applied (J02): one result per ship, or one per port order, in the order
+        /// applied. For the interface: cleared at the start of each step and not saved, since a save lies between steps
+        /// after the interface has read them; the AI does not read them, so a loaded game decides as the continued one.
+        /// </summary>
+        public readonly List<CommandResult> CommandResults = new List<CommandResult>();
+
         public World(ulong seed)
         {
             Random = new DeterministicRandom(seed);
@@ -86,6 +93,7 @@ namespace MorzaBogow.Simulation
 
         public void Step()
         {
+            CommandResults.Clear();
             if (Outcome != OutcomeKind.InProgress) { Pending.Clear(); return; }
             Tick++;
             ApplyCommands();
@@ -155,101 +163,122 @@ namespace MorzaBogow.Simulation
         {
             switch (command.Kind)
             {
-                case CommandKind.QueueShip: QueueShip(command.Faction, command.Class, command.TargetId, command.BlueprintId, command.Unarmed); return;
-                case CommandKind.BuildProject: BeginProject(command.Faction, command.TargetId, command.Project); return;
-                case CommandKind.CancelProject: CancelProject(command.Faction, command.TargetId); return;
-                case CommandKind.QueueWeapon: QueueWeapon(command.Faction, command.TargetId, command.Weapon); return;
-                case CommandKind.CancelWeapon: CancelWeapon(command.Faction, command.TargetId, command.QueueIndex); return;
-                case CommandKind.SaveBlueprint: SaveBlueprint(command); return;
-                case CommandKind.CancelQueue: CancelQueue(command.Faction, command.QueueIndex, command.PortQueue, command.TargetId); return;
-                case CommandKind.BuildShipyard: BeginShipyard(command.Faction, command.TargetId); return;
-                case CommandKind.SetPriorityPort: SetPriorityPort(command.Faction, command.TargetId); return;
-                case CommandKind.SetPortMinimum: SetPortMinimum(command.Faction, command.TargetId, command.Wood, command.Silver); return;
+                case CommandKind.QueueShip: Record(command, -1, QueueShip(command.Faction, command.Class, command.TargetId, command.BlueprintId, command.Unarmed)); return;
+                case CommandKind.BuildProject: Record(command, -1, BeginProject(command.Faction, command.TargetId, command.Project)); return;
+                case CommandKind.CancelProject: Record(command, -1, CancelProject(command.Faction, command.TargetId)); return;
+                case CommandKind.QueueWeapon: Record(command, -1, QueueWeapon(command.Faction, command.TargetId, command.Weapon)); return;
+                case CommandKind.CancelWeapon: Record(command, -1, CancelWeapon(command.Faction, command.TargetId, command.QueueIndex)); return;
+                case CommandKind.SaveBlueprint: Record(command, -1, SaveBlueprint(command)); return;
+                case CommandKind.CancelQueue: Record(command, -1, CancelQueue(command.Faction, command.QueueIndex, command.PortQueue, command.TargetId)); return;
+                case CommandKind.BuildShipyard: Record(command, -1, BeginShipyard(command.Faction, command.TargetId)); return;
+                case CommandKind.SetPriorityPort: Record(command, -1, SetPriorityPort(command.Faction, command.TargetId)); return;
+                case CommandKind.SetPortMinimum: Record(command, -1, SetPortMinimum(command.Faction, command.TargetId, command.Wood, command.Silver)); return;
             }
 
             foreach (var id in command.ShipIds.OrderBy(value => value))
             {
                 var ship = FindShip(id);
-                if (ship == null || ship.Owner != command.Faction) continue;
-                ApplyToShip(ship, command);
+                // A ship not the side's own, gone or never there, gets one answer: nothing about the enemy leaks (J08).
+                Record(command, id, ship == null || ship.Owner != command.Faction ? CommandReason.NoUnit : ApplyToShip(ship, command));
             }
         }
 
-        void ApplyToShip(Ship ship, Command command)
+        void Record(Command command, int shipId, CommandReason reason) => CommandResults.Add(new CommandResult
+        {
+            CommandId = command.Id, Faction = command.Faction, ShipId = shipId, Kind = command.Kind,
+            Outcome = reason == CommandReason.None ? CommandOutcome.Accepted : CommandOutcome.Rejected, Reason = reason,
+        });
+
+        /// <summary>
+        /// Applies an order to one of the side's ships and says what became of it (J02): None when taken, otherwise the
+        /// reason, and a refusal changes nothing. Capability is checked before the target, and a target the side does not
+        /// see is refused as one that is gone, so a refusal never tells of a hidden enemy (J08).
+        /// </summary>
+        CommandReason ApplyToShip(Ship ship, Command command)
         {
             switch (command.Kind)
             {
                 case CommandKind.Stop:
                     ClearOrder(ship);
-                    break;
+                    return CommandReason.None;
                 case CommandKind.Move:
                     ClearOrder(ship);
                     ship.Order = OrderKind.Move;
                     ship.TargetX = command.X;
                     ship.TargetY = command.Y;
-                    break;
+                    return CommandReason.None;
                 case CommandKind.Harvest:
+                    if (!ship.Definition.CanHarvest) return CommandReason.NotCapable;
                     var node = FindNode(command.TargetId);
-                    if (node == null || !ship.Definition.CanHarvest) return;
+                    if (node == null) return CommandReason.NoObservedTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Harvest;
                     ship.NodeId = node.Id;
                     ship.Harvest = HarvestPhase.ToNode;
-                    break;
+                    return CommandReason.None;
                 case CommandKind.AttackShip:
                 case CommandKind.Ram:
                 case CommandKind.Board:
-                    var target = FindShip(command.TargetId);
-                    if (target == null || target.Owner == ship.Owner || !CanSee(ship.Owner, target)) return;
-                    if (command.Kind == CommandKind.AttackShip && !HasWeapons(ship)) return;
+                    if (command.Kind == CommandKind.AttackShip && !HasWeapons(ship)) return CommandReason.NotCapable;
                     // Every warship carries a ram (docs/UZBROJENIE.md); working ships do not.
-                    if (command.Kind == CommandKind.Ram && !ship.Definition.CanRam) return;
-                    if (command.Kind == CommandKind.Board && (ship.Class == ShipClass.Cutter || ship.Soldiers < Rules.BoardMinSoldiers)) return;
+                    if (command.Kind == CommandKind.Ram && !ship.Definition.CanRam) return CommandReason.NotCapable;
+                    if (command.Kind == CommandKind.Board && ship.Class == ShipClass.Cutter) return CommandReason.NotCapable;
+                    if (command.Kind == CommandKind.Board && ship.Soldiers < Rules.BoardMinSoldiers) return CommandReason.NoCrew;
+                    var target = FindShip(command.TargetId);
+                    if (target == null || !CanSee(ship.Owner, target)) return CommandReason.NoObservedTarget;
+                    if (target.Owner == ship.Owner) return CommandReason.InvalidTarget;
                     ClearOrder(ship);
                     ship.TargetId = target.Id;
                     ship.Order = command.Kind == CommandKind.AttackShip ? OrderKind.AttackShip
                         : command.Kind == CommandKind.Ram ? OrderKind.Ram : OrderKind.Board;
                     ship.RamState = RamPhase.Approach;
-                    break;
+                    return CommandReason.None;
                 case CommandKind.Salvage:
-                    if (!ship.Definition.CanHarvest || Wrecks.All(wreck => wreck.Id != command.TargetId)) return;
+                    if (!ship.Definition.CanHarvest) return CommandReason.NotCapable;
+                    if (Wrecks.All(wreck => wreck.Id != command.TargetId)) return CommandReason.NoObservedTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Salvage;
                     ship.WreckId = command.TargetId;
-                    break;
+                    return CommandReason.None;
                 case CommandKind.Repair:
                     // A sound hull still goes to port when its crew is short of the plan or has wounded, or its weapons
                     // differ from the plan; a hull or a module needs a dock on its side, the only place they are mended.
-                    if (!(NeedsMending(ship) && HasDock(ship.Owner)) && !NeedsMuster(ship) && !NeedsRefit(ship, ClosestYard(ship))) return;
+                    var mending = NeedsMending(ship);
+                    if (!(mending && HasDock(ship.Owner)) && !NeedsMuster(ship) && !NeedsRefit(ship, ClosestYard(ship)))
+                        return mending ? CommandReason.NoDock : CommandReason.NothingToDo;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Repair;
-                    break;
+                    return CommandReason.None;
                 case CommandKind.SetLoadout:
                     // Only the plan: weapons change at a port (Refit); missing ones are ordered from its workshop.
-                    SetLoadout(ship, command.Loadout);
-                    break;
+                    return SetLoadout(ship, command.Loadout) ? CommandReason.None : CommandReason.InvalidOrder;
                 case CommandKind.SetCrewPlan:
                     // Only a plan: the people change at a port (Muster), not at sea.
                     ship.Plan = command.Preset == CrewPreset.Custom ? ship.Definition.Clamp(command.Plan) : ship.Definition.PlanFor(command.Preset);
-                    break;
+                    return CommandReason.None;
                 case CommandKind.Scrap:
-                    if (ship.Cargo > 0 || ship.HoldWood + ship.HoldSilver > 0) return;
+                    // Goods aboard would be lost with the hull (A01): it must unload first, and the refusal says so.
+                    if (ship.Cargo > 0 || ship.HoldWood + ship.HoldSilver > 0) return CommandReason.CarriesCargo;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Scrap;
                     ship.ScrapTicks = 0;
-                    break;
-                case CommandKind.Transfer: BeginTransfer(ship, command); break;
-                case CommandKind.Convoy: BeginConvoy(ship); break;
-                case CommandKind.FoundOutpost: BeginExpedition(ship, command); break;
-                case CommandKind.Escort: BeginEscort(ship, command); break;
+                    return CommandReason.None;
+                case CommandKind.Transfer: return BeginTransfer(ship, command);
+                case CommandKind.Convoy: return BeginConvoy(ship);
+                case CommandKind.FoundOutpost: return BeginExpedition(ship, command);
+                case CommandKind.Escort: return BeginEscort(ship, command);
                 case CommandKind.AttackSettlement:
+                    if (!HasWeapons(ship)) return CommandReason.NotCapable;
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
-                    if (settlement == null || settlement.Owner == ship.Owner || settlement.Destroyed || !HasWeapons(ship)) return;
-                    if (!CanSee(ship.Owner, settlement.X, settlement.Y)) return;
+                    // A port the side does not see is refused alike whether it stands, fell or never was.
+                    if (settlement == null || !CanSee(ship.Owner, settlement.X, settlement.Y)) return CommandReason.NoObservedTarget;
+                    if (settlement.Owner == ship.Owner || settlement.Destroyed) return CommandReason.InvalidTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.AttackSettlement;
                     ship.TargetId = settlement.Id;
-                    break;
+                    return CommandReason.None;
+                default:
+                    return CommandReason.InvalidOrder;
             }
         }
 
