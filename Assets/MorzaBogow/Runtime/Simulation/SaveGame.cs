@@ -10,10 +10,34 @@ namespace MorzaBogow.Simulation
         const uint Magic = 0x4D42474D;
 
         /// <summary>
-        /// 19: orders given since the last step (Pending) and the next order number are saved. Older files are refused
-        /// with "Unsupported save version"; the game shows that and keeps the match it has.
+        /// 19: orders given since the last step (Pending) and the next order number are saved.
+        /// 20: three owner slots. A priority port for each, the relations between them (after the priority ports), and
+        /// every owner, mask of slots and match result checked on reading. Files of another version are refused with
+        /// "Unsupported save version" and their number, with no migration; the game shows that and keeps the match it has.
         /// </summary>
-        public const int Version = 19;
+        public const int Version = 20;
+
+        // ---------- The three owner slots (format 20) ----------
+
+        /// <summary>An owner is one of the three slots; there is no ownerless value.</summary>
+        static void CheckOwner(int owner, string what)
+        {
+            if (!Owners.IsValid(owner)) throw new InvalidDataException($"Damaged owner of a {what}: {owner}.");
+        }
+
+        /// <summary>A mask of one bit a slot holds no bit beyond the three.</summary>
+        static void CheckSlotMask(int mask, string what)
+        {
+            if ((mask & ~((1 << Owners.SlotCount) - 1)) != 0) throw new InvalidDataException($"Damaged {what}.");
+        }
+
+        /// <summary>A match won names the main side that won it; one going on, or drawn, names nobody (-1).</summary>
+        static void CheckResult(OutcomeKind outcome, int winner)
+        {
+            var sound = outcome == OutcomeKind.Won ? Owners.IsMainParticipant(winner)
+                : (outcome == OutcomeKind.InProgress || outcome == OutcomeKind.Draw) && winner == -1;
+            if (!sound) throw new InvalidDataException("Damaged match result.");
+        }
 
         /// <summary>Items counted by weapon type: an arsenal, a wreck's survivors, what a hull carries from a wreck.</summary>
         static void WriteCounts(BinaryWriter writer, int[] counts)
@@ -105,6 +129,8 @@ namespace MorzaBogow.Simulation
         /// <summary>One order as given: every field, so the loaded game applies exactly what the continued one would.</summary>
         static void WriteCommand(BinaryWriter writer, Command command)
         {
+            // An order of a slot that is not would be refused on reading: it is not written, so no save is made that cannot be read.
+            if (!Owners.IsValid(command.Faction)) throw new ArgumentOutOfRangeException(nameof(command), command.Faction, "A pending order of an owner slot that does not exist cannot be saved.");
             writer.Write(command.Id); writer.Write(command.Faction); writer.Write((int)command.Kind);
             var ships = command.ShipIds ?? Array.Empty<int>();
             writer.Write(ships.Length);
@@ -138,6 +164,7 @@ namespace MorzaBogow.Simulation
             bool Defined<T>(T value) => Enum.IsDefined(typeof(T), value);
 
             var command = new Command { Id = reader.ReadInt32(), Faction = reader.ReadInt32(), Kind = (CommandKind)reader.ReadInt32() };
+            Check(Owners.IsValid(command.Faction));
             Check(Defined(command.Kind));
             var ships = reader.ReadInt32();
             Check(ships >= 0 && ships <= 4096);
@@ -194,6 +221,7 @@ namespace MorzaBogow.Simulation
                 writer.Write((int)world.Length);
                 writer.Write(world.PriorityPorts.Length);
                 foreach (var port in world.PriorityPorts) writer.Write(port);
+                writer.Write(world.Relations.HostilePairs);
 
                 writer.Write(world.Islands.Count);
                 foreach (var island in world.Islands)
@@ -335,7 +363,7 @@ namespace MorzaBogow.Simulation
             {
                 if (reader.ReadUInt32() != Magic) throw new InvalidDataException("Not a Morza Bogów save.");
                 var version = reader.ReadInt32();
-                if (version != Version) throw new InvalidDataException($"Unsupported save version {version}.");
+                if (version != Version) throw new InvalidDataException($"Unsupported save version {version}; this build reads version {Version}.");
 
                 var world = new World(1)
                 {
@@ -344,6 +372,7 @@ namespace MorzaBogow.Simulation
                 world.Random.State = reader.ReadUInt64();
                 world.Outcome = (OutcomeKind)reader.ReadInt32();
                 world.Winner = reader.ReadInt32();
+                CheckResult(world.Outcome, world.Winner);
                 opponentBuildIndex = reader.ReadInt32();
                 world.SpentWood = reader.ReadInt64(); world.SpentSilver = reader.ReadInt64();
                 world.LostWood = reader.ReadInt64(); world.LostSilver = reader.ReadInt64();
@@ -351,10 +380,14 @@ namespace MorzaBogow.Simulation
                 world.GrownWood = reader.ReadInt64(); world.GrownSilver = reader.ReadInt64();
                 world.Explored = reader.ReadBytes(World.FogCells * World.FogCells);
                 if (world.Explored.Length != World.FogCells * World.FogCells) throw new InvalidDataException("Damaged fog data.");
+                foreach (var cell in world.Explored) CheckSlotMask(cell, "fog data");
                 world.Length = (MatchLength)reader.ReadInt32();
                 if (world.Length < MatchLength.Short || world.Length > MatchLength.Long) throw new InvalidDataException("Damaged match length.");
                 if (reader.ReadInt32() != world.PriorityPorts.Length) throw new InvalidDataException("Damaged priority ports.");
                 for (var p = 0; p < world.PriorityPorts.Length; p++) world.PriorityPorts[p] = reader.ReadInt32();
+                var relations = reader.ReadInt32();
+                if (relations != new SideRelations(relations).HostilePairs) throw new InvalidDataException("Damaged side relations.");
+                world.Relations = new SideRelations(relations);
 
                 var count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
@@ -379,6 +412,7 @@ namespace MorzaBogow.Simulation
                         Stock = reader.ReadInt64(), KnownMask = reader.ReadInt32(),
                         Capacity = reader.ReadInt64(), LastWorkedTick = reader.ReadInt32(), RegrowRemainder = reader.ReadDouble(),
                     };
+                    CheckSlotMask(node.KnownMask, "knowledge of deposits");
                     ReadIds(reader, node.Workers);
                     ReadIds(reader, node.Waiting);
                     world.Nodes.Add(node);
@@ -415,6 +449,7 @@ namespace MorzaBogow.Simulation
                     for (var a = 0; a < arsenal; a++) settlement.Arsenal[a] = reader.ReadInt32();
                     settlement.KeepWood = reader.ReadInt64(); settlement.KeepSilver = reader.ReadInt64();
                     if (settlement.KeepWood < 0 || settlement.KeepSilver < 0) throw new InvalidDataException("Damaged port minimum.");
+                    CheckOwner(settlement.Owner, "port");
                     world.Settlements.Add(settlement);
                 }
 
@@ -457,6 +492,7 @@ namespace MorzaBogow.Simulation
                     if (ship.Mounts.Length != ship.Definition.Slots.Length) throw new InvalidDataException("Weapon posts do not match the class.");
                     ReadCounts(reader, ship.CarriedItems, "carried items");
                     ship.ConvoyGroup = reader.ReadInt32();
+                    CheckOwner(ship.Owner, "ship");
                     world.Ships.Add(ship);
                 }
 
@@ -495,6 +531,7 @@ namespace MorzaBogow.Simulation
                 }
 
                 world.HeavyArmsResearched = reader.ReadInt32();
+                CheckSlotMask(world.HeavyArmsResearched, "research");
                 world.NextBlueprintId = reader.ReadInt32();
                 count = reader.ReadInt32();
                 for (var i = 0; i < count; i++)
@@ -504,6 +541,7 @@ namespace MorzaBogow.Simulation
                         Id = reader.ReadInt32(), Owner = reader.ReadInt32(), Name = reader.ReadString(),
                         Class = (ShipClass)reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32(),
                     };
+                    CheckOwner(blueprint.Owner, "blueprint");
                     var slots = reader.ReadInt32();
                     if (slots < 0 || slots > 16) throw new InvalidDataException("Damaged blueprint.");
                     blueprint.Loadout = new WeaponType[slots];
@@ -521,6 +559,7 @@ namespace MorzaBogow.Simulation
                         LaunchTick = reader.ReadInt32(), ArriveTick = reader.ReadInt32(),
                     });
                 }
+                foreach (var shot in world.Projectiles) CheckOwner(shot.OwnerId, "shot");
                 if (reader.ReadBoolean()) world.Marine = MarineState.Read(reader, world);
 
                 world.NextCommandId = reader.ReadInt32();

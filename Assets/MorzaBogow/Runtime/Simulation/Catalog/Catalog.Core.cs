@@ -20,7 +20,12 @@ namespace MorzaBogow.Simulation.Catalog
     {
         /// <summary>Undetermined until a definition says otherwise: a note that was never filled in claims nothing.</summary>
         public SourceStatus Status = SourceStatus.Undetermined;
-        public WorldLayer Layer;
+
+        /// <summary>
+        /// A rule of the game until a definition says otherwise: a note that was never filled in does not pass for a
+        /// statement about the material world.
+        /// </summary>
+        public WorldLayer Layer = WorldLayer.GameRule;
 
         /// <summary>The source and the place in it, or the project document that sets the rule.</summary>
         public string Locator;
@@ -290,7 +295,24 @@ namespace MorzaBogow.Simulation.Catalog
 
         public CanonicalWriter F(string name, long value) => Raw(name, value.ToString(CultureInfo.InvariantCulture));
         public CanonicalWriter F(string name, bool value) => Raw(name, value ? "1" : "0");
-        public CanonicalWriter F(string name, double value) => Raw(name, value.ToString("R", CultureInfo.InvariantCulture));
+        public CanonicalWriter F(string name, double value) => Raw(name, Number(value));
+
+        /// <summary>
+        /// A fraction as text that is the same on every runtime: fifteen significant digits, and only where those give
+        /// the very same number back. Runtimes differ in how they print the sixteenth and seventeenth digit, so a value
+        /// that needs them (a third, a sum that did not come out even) is refused aloud instead of being written one
+        /// way here and another way there. The catalogue's numbers are written by hand and never need more.
+        /// </summary>
+        public static string Number(double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidOperationException("Not a number the catalogue can write.");
+            // Zero has one text: runtimes differ in whether they print the sign of a negative zero.
+            if (value == 0) return "0";
+            var written = value.ToString("G15", CultureInfo.InvariantCulture);
+            if (double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                throw new InvalidOperationException("The number " + written + "… needs more than fifteen digits and would be written differently on different runtimes; give the catalogue a value that fifteen digits hold.");
+            return written;
+        }
 
         public CanonicalWriter F(string name, IEnumerable<string> values)
         {
@@ -305,7 +327,7 @@ namespace MorzaBogow.Simulation.Catalog
         {
             text.Append(name).Append("=[");
             if (values == null) text.Append('~');
-            else foreach (var value in values) { Escape(value.Name); text.Append(':').Append(value.Value.ToString("R", CultureInfo.InvariantCulture)).Append(','); }
+            else foreach (var value in values) { Escape(value.Name); text.Append(':').Append(Number(value.Value)).Append(','); }
             text.Append("];");
             return this;
         }

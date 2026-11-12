@@ -305,17 +305,25 @@ namespace MorzaBogow.Simulation.Catalog
             // The years are the first mentions in the Athenian inventories that survive (a terminus ante quem for Athens): not
             // the year a type was brought in, and nothing about fleets elsewhere.
             // Who read what: pages 37-40 the coordinator (report 0504, which says pages 41-48 were not read); page 43 note 32
-            // and Diodorus the reviewer (report 0642).
+            // and Diodorus the reviewer (report 0642). The last two stand with the fours and fives only.
             const string gabrielsen = "V. Gabrielsen, „The Piraeus and the Athenian navy: recent archaeological and historical advances”, Proceedings of the Danish Institute at Athens 7 (2014), s. 37–48: s. 39 Fig. 2, s. 40, s. 43 przyp. 32."
                 + " s. 37–40: odczyt koordynatora, " + Research0504 + "; s. 43 przyp. 32 oraz Diod. 14.41.3/14.42.2: odczyt recenzenta, " + Research0642;
             const string firstMention = " To pierwsze poświadczenie w zachowanych inwentarzach ateńskich (terminus ante quem), nie data wprowadzenia typu ani zasięg poza Atenami."
                 + " Diod. 14.41.3 i 14.42.2 podają sporną, późną tradycję syrakuzańską ok. 399 r. (Loeb 1954, LacusCurtius; odczyt recenzenta, " + Research0642 + ")."
                 + " Koniec okna to koniec epoki gry, nie świadectwo.";
             SourceNote Inventories(string what) => new SourceNote { Status = SourceStatus.ConfirmedInScope, Layer = WorldLayer.Material, Locator = gabrielsen + ". " + what };
+            // The threes lean on Fig. 2 alone, in the coordinator's reading (report 0504). Page 43 note 32 and Diodorus are
+            // about the first fours and fives and say nothing of the threes, so they are not named here. The reviewer's report is named
+            // for one thing only: its second reading of the rows of Fig. 2.
+            const string trieres = "V. Gabrielsen, „The Piraeus and the Athenian navy: recent archaeological and historical advances”, Proceedings of the Danish Institute at Athens 7 (2014), s. 37–48: s. 39 Fig. 2."
+                + " s. 37–40: odczyt koordynatora, " + Research0504 + "."
+                + " Triery w każdym roku Fig. 2 (378/7–323/2); 357/6: 283 triery; 325/4: 360 trier."
+                + " Część liczb Fig. 2 to rekonstrukcje (w nawiasach kwadratowych); 326/5 i 323/2 są niepełne (0504)."
+                + " Wiersze Fig. 2 sprawdził też recenzent: " + Research0642 + " (przegląd P02-D).";
             return new List<HullProfileReference>
             {
                 new HullProfileReference { Id = "HULL-TRIERES", Name = "Triera", Date = null,
-                    Source = Inventories("Inwentarze 378/7–323/2: triery przez cały objęty okres.") },
+                    Source = new SourceNote { Status = SourceStatus.ConfirmedInScope, Layer = WorldLayer.Material, Locator = trieres } },
                 new HullProfileReference { Id = "HULL-TETRERES", Name = "Tetrera", Date = new DateWindow { EarliestYearBc = 330, LatestYearBc = GameEpoch.LatestYearBc },
                     Source = Inventories("Tetrery w inwentarzach od 330/29." + firstMention) },
                 new HullProfileReference { Id = "HULL-PENTERES", Name = "Pentera", Date = new DateWindow { EarliestYearBc = 325, LatestYearBc = GameEpoch.LatestYearBc },

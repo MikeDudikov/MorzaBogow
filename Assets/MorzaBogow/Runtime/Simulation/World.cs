@@ -61,7 +61,7 @@ namespace MorzaBogow.Simulation
         public ResourceNode FindNode(int id) => Nodes.FirstOrDefault(node => node.Id == id);
 
         /// <summary>The faction's main settlement. Its loss ends the match; a bridgehead's loss does not.</summary>
-        public Settlement SettlementOf(int faction) => Settlements.FirstOrDefault(item => item.Owner == faction && !item.IsOutpost);
+        public Settlement SettlementOf(int faction) => Settlements.FirstOrDefault(item => CanControl(faction, item.Owner) && !item.IsOutpost);
         /// <summary>
         /// Takes an order for the next step and numbers it. Taking it costs nothing: validation and payment happen when
         /// the step applies it (J02), so orders given in a pause wait without effect.
@@ -144,7 +144,7 @@ namespace MorzaBogow.Simulation
             RefreshExplored();
             foreach (var node in Nodes)
             {
-                for (var faction = 0; faction < 2; faction++)
+                for (var faction = 0; faction < Owners.SlotCount; faction++)
                 {
                     if ((node.KnownMask & (1 << faction)) == 0 && CanSee(faction, node.X, node.Y)) node.KnownMask |= 1 << faction;
                 }

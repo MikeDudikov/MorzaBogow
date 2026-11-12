@@ -15,7 +15,7 @@ namespace MorzaBogow.Simulation
         public BuildSite FindSite(int id) => Sites.FirstOrDefault(item => item.Id == id);
 
         public System.Collections.Generic.IEnumerable<Settlement> PortsOf(int faction) =>
-            Settlements.Where(item => item.Owner == faction && !item.Destroyed);
+            Settlements.Where(item => CanControl(faction, item.Owner) && !item.Destroyed);
 
         public Settlement ClosestPort(Ship ship) => ClosestOf(ship, PortsOf(ship.Owner));
 
@@ -64,7 +64,7 @@ namespace MorzaBogow.Simulation
             // A load is never negative: it would book a negative reservation and raise what the source seems to hold.
             if (command.Wood < 0 || command.Silver < 0) return CommandReason.InvalidOrder;
             var destination = FindSettlement(command.TargetId);
-            if (destination == null || destination.Owner != ship.Owner || destination.Destroyed) { Reject(ship); return CommandReason.InvalidTarget; }
+            if (destination == null || !CanControl(ship.Owner, destination.Owner) || destination.Destroyed) { Reject(ship); return CommandReason.InvalidTarget; }
 
             // Goods already on board go straight to the destination.
             if (ship.HoldWood + ship.HoldSilver > 0)
@@ -78,7 +78,7 @@ namespace MorzaBogow.Simulation
 
             var source = FindSettlement(command.SourceId) ?? PortsOf(ship.Owner).Where(item => item.Id != destination.Id)
                 .OrderBy(item => Distance2(ship.X, ship.Y, item.X, item.Y)).ThenBy(item => item.Id).FirstOrDefault();
-            if (source == null || source.Owner != ship.Owner || source.Destroyed || source.Id == destination.Id) { Reject(ship); return CommandReason.InvalidTarget; }
+            if (source == null || !CanControl(ship.Owner, source.Owner) || source.Destroyed || source.Id == destination.Id) { Reject(ship); return CommandReason.InvalidTarget; }
 
             var capacity = ship.Definition.Capacity * Rules.Centi;
             long wood, silver;
@@ -122,7 +122,7 @@ namespace MorzaBogow.Simulation
                 .OrderBy(item => Distance2(ship.X, ship.Y, item.X, item.Y)).ThenBy(item => item.Id).FirstOrDefault();
             if (needsLoad)
             {
-                if (source == null || source.Owner != ship.Owner || source.Destroyed) { Reject(ship); return source == null ? CommandReason.NoFunds : CommandReason.InvalidTarget; }
+                if (source == null || !CanControl(ship.Owner, source.Owner) || source.Destroyed) { Reject(ship); return source == null ? CommandReason.NoFunds : CommandReason.InvalidTarget; }
                 if (source.Available(ResourceType.Wood) < wood || source.Available(ResourceType.Silver) < silver) { Reject(ship); return CommandReason.NoFunds; }
                 if (ship.HoldWood + ship.HoldSilver + wood + silver > ship.Definition.Capacity * Rules.Centi) { Reject(ship); return CommandReason.NoSpace; }
             }
@@ -150,7 +150,7 @@ namespace MorzaBogow.Simulation
         {
             if (ship.Definition.IsEconomic) return CommandReason.NotCapable;
             var escorted = FindShip(command.TargetId);
-            if (escorted == null || escorted == ship || escorted.Owner != ship.Owner) return CommandReason.InvalidTarget;
+            if (escorted == null || escorted == ship || !CanControl(ship.Owner, escorted.Owner)) return CommandReason.InvalidTarget;
             ClearOrder(ship);
             ship.Order = OrderKind.Escort;
             ship.EscortId = escorted.Id;
@@ -160,7 +160,7 @@ namespace MorzaBogow.Simulation
         CommandReason BeginShipyard(int faction, int settlementId)
         {
             var settlement = FindSettlement(settlementId);
-            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return CommandReason.InvalidTarget;
+            if (settlement == null || !CanControl(faction, settlement.Owner) || settlement.Destroyed) return CommandReason.InvalidTarget;
             if (settlement.HasShipyard || settlement.ShipyardBuild != null) return CommandReason.NothingToDo;
             if (settlement.Available(ResourceType.Wood) < Rules.ShipyardWood || settlement.Available(ResourceType.Silver) < Rules.ShipyardSilver) return CommandReason.NoFunds;
             settlement.ReservedWood += Rules.ShipyardWood;
@@ -195,7 +195,7 @@ namespace MorzaBogow.Simulation
             if (ship.Order != OrderKind.Expedition)
             {
                 var destination = FindSettlement(ship.DestinationId);
-                if (destination == null || destination.Destroyed || destination.Owner != ship.Owner) { ClearOrder(ship); return; }
+                if (destination == null || destination.Destroyed || !CanControl(ship.Owner, destination.Owner)) { ClearOrder(ship); return; }
             }
             switch (ship.Transport)
             {
@@ -203,7 +203,7 @@ namespace MorzaBogow.Simulation
                 case TransportPhase.WaitSourceBerth:
                 case TransportPhase.Loading:
                     var source = FindSettlement(ship.SourceId);
-                    if (source == null || source.Destroyed || source.Owner != ship.Owner) { ClearOrder(ship); return; }
+                    if (source == null || source.Destroyed || !CanControl(ship.Owner, source.Owner)) { ClearOrder(ship); return; }
                     StepAtSource(ship, source);
                     return;
 
@@ -357,11 +357,12 @@ namespace MorzaBogow.Simulation
         void StepEscort(Ship ship)
         {
             var escorted = FindShip(ship.EscortId);
-            if (escorted == null || escorted.Owner != ship.Owner) { ClearOrder(ship); return; }
+            if (escorted == null || !CanControl(ship.Owner, escorted.Owner)) { ClearOrder(ship); return; }
 
-            // A threat counts only inside the zone around the transport, so the escort never chases beyond it.
+            // A threat is a ship of a side at war with the escort's, and only inside the zone around the transport, so the
+            // escort never chases beyond it.
             var threat = Ships
-                .Where(item => item.Owner != ship.Owner && CanSee(ship.Owner, item) && Distance(item.X, item.Y, escorted.X, escorted.Y) <= Rules.EscortZone)
+                .Where(item => IsHostile(ship.Owner, item.Owner) && CanSee(ship.Owner, item) && Distance(item.X, item.Y, escorted.X, escorted.Y) <= Rules.EscortZone)
                 .OrderBy(item => Distance2(item.X, item.Y, escorted.X, escorted.Y)).ThenBy(item => item.Id).FirstOrDefault();
             // A threat is engaged as a ship ordered to shoot engages its target, from where the escort's working, manned
             // posts can (A13, HoldAtRange); with none it keeps its station.

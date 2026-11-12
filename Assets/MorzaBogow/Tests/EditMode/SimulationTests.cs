@@ -2298,6 +2298,12 @@ namespace MorzaBogow.Tests
             old[4] = 18;
             var refused = Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(old, out _));
             Assert.That(refused.Message, Does.Contain("18"));
+            // Nor one of the format before the three owner slots (D3): refused by its number, with no migration.
+            Assert.That(SaveGame.Version, Is.EqualTo(20));
+            var before = SaveGame.Serialize(MapFactory.CreateSkirmish(1));
+            before[4] = 19;
+            refused = Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(before, out _));
+            Assert.That(refused.Message, Does.Contain("19").And.Contain("20"), "The refusal names the file's version and the one this build reads.");
         }
 
         [Test]
@@ -2427,6 +2433,8 @@ namespace MorzaBogow.Tests
                 var world = Empty();
                 var command = new Command();
                 foreach (var field in fields) if (field.Name != nameof(Command.Id)) field.SetValue(command, Sample(field.FieldType));
+                // The side is one of the three owner slots, or the save is refused (format 20): the third, apart from the default.
+                command.Faction = Owners.Independent;
                 foreach (var type in given.Where(item => item.Value > 1 && item.Key != typeof(bool)).Select(item => item.Key))
                 {
                     var values = fields.Where(field => field.FieldType == type && field.Name != nameof(Command.Id)).Select(field => field.GetValue(command)).ToList();
@@ -2459,6 +2467,181 @@ namespace MorzaBogow.Tests
             Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.NextCommandId = 0), out _), "A broken order count.");
             var sound = SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter })), out _);
             Assert.That(sound.Pending.Count, Is.EqualTo(1), "A sound order of the same kind still loads.");
+        }
+
+        // ---------- Format 20: the three owner slots ----------
+
+        /// <summary>Where the save keeps the match's result and the side relations (format 20), checked against a save before use.</summary>
+        const int OutcomeAt = 28, WinnerAt = 32, ExploredAt = 104;
+        static readonly int RelationsAt = ExploredAt + World.FogCells * World.FogCells + 4 + 4 + 4 * Owners.SlotCount;
+
+        [Test]
+        public void Save_KeepsTheSideRelationsAndAThirdSidesPriorityPort()
+        {
+            for (var pairs = 0; pairs < 8; pairs++)
+            {
+                var world = Empty();
+                world.Relations = new SideRelations(pairs);
+                var data = SaveGame.Serialize(world);
+                Assert.That(BitConverter.ToInt32(data, RelationsAt), Is.EqualTo(pairs), "The relations are saved as the bits of the three pairs.");
+                var loaded = SaveGame.Deserialize(data, out _);
+                Assert.That(loaded.Relations, Is.EqualTo(world.Relations), $"Hostile pairs {pairs}");
+                Assert.That(SaveGame.Serialize(loaded), Is.EqualTo(data));
+            }
+            Assert.That(SaveGame.Deserialize(SaveGame.Serialize(Empty()), out _).Relations, Is.EqualTo(SideRelations.AllHostile), "A match that says nothing is at war all round.");
+
+            // A match of three sides, the human at peace with the third: after loading it goes on exactly as without the save.
+            World Match()
+            {
+                var world = Empty();
+                world.Relations = SideRelations.AllHostile.With(0, 2, false);
+                var third = new Settlement { Id = world.NextId++, Owner = 2, X = 0, Y = 400, Wood = 500 * Rules.Centi, Silver = 500 * Rules.Centi };
+                var thirdOutpost = new Settlement { Id = world.NextId++, Owner = 2, X = 0, Y = 150, IsOutpost = true, HasShipyard = false, Hull = Rules.OutpostHull };
+                world.Settlements.Add(third);
+                world.Settlements.Add(thirdOutpost);
+                world.SpawnShip(0, ShipClass.CrewDestroyer, -40, 60);
+                world.SpawnShip(1, ShipClass.CrewDestroyer, 60, 60);
+                world.SpawnShip(2, ShipClass.CrewDestroyer, 10, 110);
+                world.Issue(new Command { Faction = 2, Kind = CommandKind.SetPriorityPort, TargetId = thirdOutpost.Id });
+                return world;
+            }
+            var straight = Match();
+            var saved = Match();
+            for (var i = 0; i < 5 * Rules.TickRate; i++) { straight.Step(); saved.Step(); }
+            var middle = SaveGame.Serialize(saved);
+            saved = SaveGame.Deserialize(middle, out _);
+            Assert.That(saved.Relations, Is.EqualTo(SideRelations.AllHostile.With(0, 2, false)));
+            Assert.That(saved.PriorityPort(2)?.IsOutpost, Is.True, "The third side's named port comes back.");
+            Assert.That(saved.PriorityPorts, Is.EqualTo(straight.PriorityPorts));
+            for (var i = 0; i < 40 * Rules.TickRate; i++) { straight.Step(); saved.Step(); }
+            Assert.That(straight.Ships.Min(ship => ship.Hull), Is.LessThan(straight.Ships.Max(ship => ship.Definition.Hull)), "Shots were exchanged meanwhile.");
+            Assert.That(SaveGame.Hash(SaveGame.Serialize(saved)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(straight))));
+        }
+
+        [Test]
+        public void Save_RefusesOwnersMasksRelationsAndResultsOutsideTheThreeSlots()
+        {
+            // J10: what names a slot that is not is caught when the file is read, before the running match is replaced.
+            World Sound()
+            {
+                var world = Empty();
+                world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+                world.SpawnShip(2, ShipClass.Ram, 0, 300);
+                world.Settlements.Add(new Settlement { Id = world.NextId++, Owner = 2, X = 0, Y = 400 });
+                AddNode(world, ResourceType.Wood, -300, 100, 500).KnownMask = 0b111;
+                world.Blueprints.Add(new Blueprint { Id = world.NextBlueprintId++, Owner = 2, Name = "Wzor", Class = ShipClass.Ram, Loadout = new[] { WeaponType.None, WeaponType.None } });
+                world.Projectiles.Add(new Projectile { Id = world.NextProjectileId++, OwnerId = 2, ShooterId = -1, Weapon = WeaponType.ArcherBank, ArriveTick = 900 });
+                world.HeavyArmsResearched = 0b111;
+                world.Explored[5] = 0b111;
+                world.Issue(new Command { Faction = 2, Kind = CommandKind.Stop, ShipIds = new int[0] });
+                return world;
+            }
+            byte[] SavedWith(Action<World> damage)
+            {
+                var world = Sound();
+                damage(world);
+                return SaveGame.Serialize(world);
+            }
+            byte[] Patched(int at, int value)
+            {
+                var data = SaveGame.Serialize(Sound());
+                BitConverter.GetBytes(value).CopyTo(data, at);
+                return data;
+            }
+            void Refused(string what, byte[] data) => Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(data, out _), what);
+
+            var sound = SaveGame.Deserialize(SaveGame.Serialize(Sound()), out _);
+            Assert.That(sound.Ships.Select(ship => ship.Owner), Is.EqualTo(new[] { 0, 2 }), "All three slots, their masks and orders load.");
+            Assert.That((sound.HeavyArmsResearched, sound.Explored[5], sound.Pending.Single().Faction), Is.EqualTo((7, (byte)7, 2)));
+
+            foreach (var owner in new[] { -1, 3, 99 })
+            {
+                Refused($"A ship of slot {owner}", SavedWith(w => w.Ships[0].Owner = owner));
+                Refused($"A port of slot {owner}", SavedWith(w => w.Settlements[0].Owner = owner));
+                Refused($"A blueprint of slot {owner}", SavedWith(w => w.Blueprints[0].Owner = owner));
+                Refused($"A shot of slot {owner}", SavedWith(w => w.Projectiles[0].OwnerId = owner));
+            }
+            Refused("A deposit known to a fourth slot", SavedWith(w => w.Nodes[0].KnownMask = 0b1000));
+            Refused("Research of a fourth slot", SavedWith(w => w.HeavyArmsResearched = 0b1001));
+            Refused("Fog explored by a fourth slot", SavedWith(w => w.Explored[World.FogCells * World.FogCells - 1] = 0b1000));
+
+            // A pending order of such a slot is never written (see the test below): the file is damaged by hand, at the
+            // one place where saves of two legal sides differ.
+            var bySecond = SavedWith(w => w.Pending[0].Faction = 1);
+            var byThird = SaveGame.Serialize(Sound());
+            var factionAt = Enumerable.Range(0, byThird.Length).Where(i => bySecond[i] != byThird[i]).ToList();
+            Assert.That(factionAt.Count, Is.EqualTo(1), "Only the order's side differs.");
+            Assert.That(BitConverter.ToInt32(byThird, factionAt[0]), Is.EqualTo(2));
+            foreach (var owner in new[] { -1, 3, 99 }) Refused($"A pending order of slot {owner}", Patched(factionAt[0], owner));
+            Assert.That(SaveGame.Deserialize(Patched(factionAt[0], 1), out _).Pending.Single().Faction, Is.EqualTo(1), "A sound side in the same place loads.");
+
+            Assert.That(BitConverter.ToInt32(SaveGame.Serialize(Sound()), RelationsAt), Is.EqualTo(SideRelations.AllHostile.HostilePairs), "The patch below lands on the relations.");
+            Refused("A fourth pair at war", Patched(RelationsAt, 0b1000));
+            Refused("Relations that are no bits", Patched(RelationsAt, -1));
+            Assert.That(SaveGame.Deserialize(Patched(RelationsAt, 0b010), out _).Relations, Is.EqualTo(new SideRelations(0b010)), "A sound value in the same place loads.");
+        }
+
+        [Test]
+        public void Save_APendingOrderOfASlotThatIsNotIsNotWritten()
+        {
+            // Taking an order costs nothing and checks nothing, so one of a slot that is not can wait in a pause. Reading
+            // would refuse it: the save is not made at all, rather than made unreadable. Once the step has answered the
+            // order, the match saves and loads as ever.
+            foreach (var faction in new[] { -1, 3 })
+            {
+                var world = Empty();
+                var cutter = world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+                var sound = SaveGame.Serialize(world);
+                world.Issue(new Command { Faction = faction, Kind = CommandKind.Stop, ShipIds = new[] { cutter.Id } });
+                var refused = Assert.Throws<ArgumentOutOfRangeException>(() => SaveGame.Serialize(world), $"A pending order of slot {faction}");
+                Assert.That(refused.Message, Does.Contain(faction.ToString()));
+                Assert.That(SaveGame.Deserialize(sound, out _).Ships.Count, Is.EqualTo(1), "What was saved before is as good as it was.");
+                world.Step();
+                Assert.That(world.CommandResults.Single().Reason, Is.EqualTo(CommandReason.NoUnit), "The step answers the order as before.");
+                Assert.That(SaveGame.Deserialize(SaveGame.Serialize(world), out _).Tick, Is.EqualTo(world.Tick), "And the match saves again.");
+            }
+        }
+
+        [Test]
+        public void Save_AWonMatchNamesAMainSideAndADrawNobody()
+        {
+            // D7: -1 says nobody has won; a save where the result and the winner disagree is refused.
+            byte[] Result(OutcomeKind outcome, int winner)
+            {
+                var world = Empty();
+                world.Outcome = outcome;
+                world.Winner = winner;
+                var data = SaveGame.Serialize(world);
+                Assert.That((BitConverter.ToInt32(data, OutcomeAt), BitConverter.ToInt32(data, WinnerAt)), Is.EqualTo(((int)outcome, winner)));
+                return data;
+            }
+            foreach (var (outcome, winner) in new[] { (OutcomeKind.InProgress, -1), (OutcomeKind.Draw, -1), (OutcomeKind.Won, 0), (OutcomeKind.Won, 1) })
+            {
+                var loaded = SaveGame.Deserialize(Result(outcome, winner), out _);
+                Assert.That((loaded.Outcome, loaded.Winner), Is.EqualTo((outcome, winner)));
+            }
+            foreach (var (outcome, winner) in new[]
+                     {
+                         (OutcomeKind.Won, -1), (OutcomeKind.Won, 2), (OutcomeKind.Won, 3),
+                         (OutcomeKind.InProgress, 0), (OutcomeKind.InProgress, 2), (OutcomeKind.InProgress, -2),
+                         (OutcomeKind.Draw, 0), (OutcomeKind.Draw, 1), ((OutcomeKind)7, -1), ((OutcomeKind)(-1), -1),
+                     })
+                Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(Result(outcome, winner), out _), $"{outcome} with winner {winner}");
+
+            // What the game itself writes when a match ends is sound: a win, and a draw with the third side still afloat.
+            var won = Empty();
+            won.SpawnShip(2, ShipClass.Ram, 0, 300);
+            won.SettlementOf(1).Hull = 0;
+            won.Step();
+            var afterWin = SaveGame.Deserialize(SaveGame.Serialize(won), out _);
+            Assert.That((afterWin.Outcome, afterWin.Winner), Is.EqualTo((OutcomeKind.Won, Owners.Human)));
+            var drawn = Empty();
+            drawn.SpawnShip(2, ShipClass.Ram, 0, 300);
+            drawn.SettlementOf(0).Hull = 0;
+            drawn.SettlementOf(1).Hull = 0;
+            drawn.Step();
+            var afterDraw = SaveGame.Deserialize(SaveGame.Serialize(drawn), out _);
+            Assert.That((afterDraw.Outcome, afterDraw.Winner), Is.EqualTo((OutcomeKind.Draw, -1)));
         }
 
         [Test]

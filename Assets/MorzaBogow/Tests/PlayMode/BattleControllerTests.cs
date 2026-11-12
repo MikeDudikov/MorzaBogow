@@ -1023,5 +1023,56 @@ namespace MorzaBogow.Tests
             Assert.That(battle.World, Is.SameAs(world));
             File.Delete(path);
         }
+
+        [UnityTest]
+        public IEnumerator Load_ASaveOfTheFormatBeforeIsRefusedByItsNumberAndKeepsTheCurrentGame()
+        {
+            // D3, J10: a save of format 19 is not migrated. The refusal names its version; the match and its tick stay.
+            yield return null;
+            var path = Path.Combine(Application.temporaryCachePath, "battle-format-19.mbsave");
+            Assert.That(battle.QuickSave(path), Is.True);
+            var data = File.ReadAllBytes(path);
+            Assert.That(System.BitConverter.ToInt32(data, 4), Is.EqualTo(SaveGame.Version), "The version follows the four bytes of the mark.");
+            System.BitConverter.GetBytes(19).CopyTo(data, 4);
+            File.WriteAllBytes(path, data);
+            var world = battle.World;
+            var tick = world.Tick;
+            var ships = world.Ships.Count;
+            Assert.That(battle.QuickLoad(path), Is.False);
+            Assert.That(battle.World, Is.SameAs(world), "The running match is not replaced.");
+            Assert.That((world.Tick, world.Ships.Count), Is.EqualTo((tick, ships)));
+            Assert.That(battle.LastNotice, Does.StartWith("Nie można wczytać zapisu").And.Contain("19"), "The refusal says which version the file has.");
+            foreach (var beside in new[] { path, path + ".bak", path + ".looks.json", path + ".looks.json.bak", path + ".destruction.json", path + ".destruction.json.bak" })
+                if (File.Exists(beside)) File.Delete(beside);
+        }
+
+        [UnityTest]
+        public IEnumerator Save_ThatCannotBeMadeKeepsTheGoodFileAndSaysSo()
+        {
+            // J10: a pending order of an owner slot that does not exist would make a file the game refuses to read. The
+            // save is not made: the file saved before stays as it was, and the herald says the save failed.
+            yield return null;
+            var path = Path.Combine(Application.temporaryCachePath, "battle-unsavable.mbsave");
+            var beside = new[] { path, path + ".bak", path + ".looks.json", path + ".looks.json.bak", path + ".destruction.json", path + ".destruction.json.bak" };
+            foreach (var file in beside) if (File.Exists(file)) File.Delete(file);
+            try
+            {
+                Assert.That(battle.QuickSave(path), Is.True);
+                var good = File.ReadAllBytes(path);
+                var world = battle.World;
+                world.Issue(new Command { Faction = 3, Kind = CommandKind.Stop, ShipIds = new int[0] });
+                Assert.That(battle.QuickSave(path), Is.False, "The save is refused.");
+                Assert.That(battle.LastNotice, Does.StartWith("Nie można zapisać gry"));
+                Assert.That(File.ReadAllBytes(path), Is.EqualTo(good), "The good file is untouched.");
+                Assert.That(File.Exists(path + ".bak"), Is.False, "And nothing was swapped into its place.");
+                Assert.That(battle.World, Is.SameAs(world));
+                world.Pending.Clear();
+                Assert.That(battle.QuickLoad(path), Is.True, "The good file still loads.");
+            }
+            finally
+            {
+                foreach (var file in beside) if (File.Exists(file)) File.Delete(file);
+            }
+        }
     }
 }

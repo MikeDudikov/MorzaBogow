@@ -13,17 +13,20 @@ namespace MorzaBogow.Simulation
     /// </summary>
     public sealed partial class World
     {
-        /// <summary>Each side's priority port by id; -1, or a port lost, means its home port.</summary>
-        public readonly int[] PriorityPorts = { -1, -1 };
+        /// <summary>Each owner slot's priority port by id; -1, or a port lost, means its home port.</summary>
+        public readonly int[] PriorityPorts = { -1, -1, -1 };
 
         /// <summary>A merchant carrying goods between ports: a transfer, an expedition or convoy duty.</summary>
         public static bool Carries(Ship ship) => ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition || ship.Order == OrderKind.Convoy;
 
-        /// <summary>The port a side's convoys supply: the one it named, else its home port; null when neither stands.</summary>
+        /// <summary>
+        /// The port a side's convoys supply: the one it named, else its home port; null when neither stands. A slot that
+        /// is none of the three has no port.
+        /// </summary>
         public Settlement PriorityPort(int faction)
         {
-            var named = FindSettlement(PriorityPorts[faction]);
-            if (named != null && named.Owner == faction && !named.Destroyed) return named;
+            var named = Owners.IsValid(faction) ? FindSettlement(PriorityPorts[faction]) : null;
+            if (named != null && CanControl(faction, named.Owner) && !named.Destroyed) return named;
             var home = SettlementOf(faction);
             return home != null && !home.Destroyed ? home : null;
         }
@@ -56,7 +59,7 @@ namespace MorzaBogow.Simulation
             silver -= port.Available(ResourceType.Silver);
             foreach (var ship in Ships)
             {
-                if (ship.Owner != port.Owner || ship.DestinationId != port.Id || (ship.Order != OrderKind.Convoy && ship.Order != OrderKind.Transfer)) continue;
+                if (!CanControl(port.Owner, ship.Owner) || ship.DestinationId != port.Id || (ship.Order != OrderKind.Convoy && ship.Order != OrderKind.Transfer)) continue;
                 wood -= ship.HoldWood + ship.WantWood;
                 silver -= ship.HoldSilver + ship.WantSilver;
             }
@@ -79,9 +82,9 @@ namespace MorzaBogow.Simulation
 
         CommandReason SetPriorityPort(int faction, int portId)
         {
-            if (faction < 0 || faction >= PriorityPorts.Length) return CommandReason.InvalidOrder;
+            if (!Owners.IsValid(faction)) return CommandReason.InvalidOrder;
             var port = FindSettlement(portId);
-            if (portId >= 0 && (port == null || port.Owner != faction || port.Destroyed)) return CommandReason.InvalidTarget;
+            if (portId >= 0 && (port == null || !CanControl(faction, port.Owner) || port.Destroyed)) return CommandReason.InvalidTarget;
             PriorityPorts[faction] = portId;
             return CommandReason.None;
         }
@@ -89,7 +92,7 @@ namespace MorzaBogow.Simulation
         CommandReason SetPortMinimum(int faction, int portId, long wood, long silver)
         {
             var port = FindSettlement(portId);
-            if (port == null || port.Owner != faction || port.Destroyed) return CommandReason.InvalidTarget;
+            if (port == null || !CanControl(faction, port.Owner) || port.Destroyed) return CommandReason.InvalidTarget;
             port.KeepWood = Math.Max(0, Math.Min(wood, port.Capacity(ResourceType.Wood)));
             port.KeepSilver = Math.Max(0, Math.Min(silver, port.Capacity(ResourceType.Silver)));
             return CommandReason.None;
@@ -141,14 +144,14 @@ namespace MorzaBogow.Simulation
             Settlement source = null;
             var group = -1;
             var forming = Ships
-                .Where(other => other != ship && other.Owner == ship.Owner && other.Order == OrderKind.Convoy && other.ConvoyGroup >= 0 && other.DestinationId == target.Id)
+                .Where(other => other != ship && CanControl(ship.Owner, other.Owner) && other.Order == OrderKind.Convoy && other.ConvoyGroup >= 0 && other.DestinationId == target.Id)
                 .GroupBy(other => other.ConvoyGroup)
                 .Where(members => members.Count() < Rules.ConvoySize && members.Any(member => member.Transport <= TransportPhase.Loading))
                 .OrderBy(members => members.Key);
             foreach (var members in forming)
             {
                 var candidate = FindSettlement(members.First(member => member.Transport <= TransportPhase.Loading).SourceId);
-                if (candidate == null || candidate.Destroyed || candidate.Owner != ship.Owner || ConvoySurplus(candidate, needWood, needSilver) <= 0) continue;
+                if (candidate == null || candidate.Destroyed || !CanControl(ship.Owner, candidate.Owner) || ConvoySurplus(candidate, needWood, needSilver) <= 0) continue;
                 source = candidate;
                 group = members.Key;
                 break;
@@ -215,7 +218,7 @@ namespace MorzaBogow.Simulation
             var clearance = double.MaxValue;
             foreach (var other in Ships)
             {
-                if (other == ship || other.Owner != ship.Owner || other.Order != OrderKind.Convoy
+                if (other == ship || !CanControl(ship.Owner, other.Owner) || other.Order != OrderKind.Convoy
                     || other.ConvoyGroup != ship.ConvoyGroup || other.SourceId != source.Id
                     || other.Transport > TransportPhase.Loading) continue;
                 clearance = Math.Min(clearance, LandShape.PointSegmentDistance(x, y, other.X, other.Y, source.X, source.Y)
@@ -226,7 +229,7 @@ namespace MorzaBogow.Simulation
 
         /// <summary>A convoy sails together: a loaded member waits by the source while another of its group still loads.</summary>
         public bool ConvoyStillLoading(Ship ship) =>
-            ship.ConvoyGroup >= 0 && Ships.Any(other => other != ship && other.Owner == ship.Owner && other.Order == OrderKind.Convoy
+            ship.ConvoyGroup >= 0 && Ships.Any(other => other != ship && CanControl(ship.Owner, other.Owner) && other.Order == OrderKind.Convoy
                 && other.ConvoyGroup == ship.ConvoyGroup && other.Transport <= TransportPhase.Loading);
     }
 }

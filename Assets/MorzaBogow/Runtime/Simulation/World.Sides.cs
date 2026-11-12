@@ -77,7 +77,10 @@ namespace MorzaBogow.Simulation
     /// </summary>
     public sealed partial class World
     {
-        /// <summary>The relations between the owner slots in this match. Not yet part of the save (format 19).</summary>
+        /// <summary>
+        /// The relations between the owner slots in this match: set when the match is made and constant through it; no
+        /// order changes them. Saved since format 20.
+        /// </summary>
         public SideRelations Relations = SideRelations.AllHostile;
 
         /// <summary>The two owners are at war: each may shoot at, ram and attack the other's ships and ports.</summary>

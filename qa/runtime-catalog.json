@@ -1,0 +1,5737 @@
+{
+  "schema": "morza-bogow/runtime-catalog@1",
+  "catalogId": "morza-bogow/catalog@1",
+  "catalogHash": "3DAE32998197EBAA",
+  "units": {
+    "wood": "centi-D (hundredths of a unit of wood)",
+    "silver": "centi-S (hundredths of a unit of silver)",
+    "rate": "hundredths of a unit per second. A ship's runtime.workRate and rules.node.sharedRate are multiplied by the match profile's woodYield or silverYield before use; rules.harbour.handlingRate is not",
+    "time": "seconds",
+    "distance": "metres",
+    "share": "a fraction of one"
+  },
+  "fields": {
+    "implemented": "the running game has the thing today",
+    "enforced": "what the running game asks for today, in buildings of the port and researches of the side only; null where the thing is not implemented. Other conditions of an order are not expressed here: a settlement (B01) is founded from a ship carrying its price, a shipyard (B03) is built at a port the side holds",
+    "target": "what docs/PARAMETRY_ROBOCZE.md plans to ask for; data only until its stage brings it in",
+    "runtime": "numbers read straight from the simulation (ShipCatalog, TemplatePricing, World.ProjectCost), not from the catalogue's own copy; null where the running game has no such thing",
+    "provisional": "a first guess for trials, not given by the documents"
+  },
+  "sourceStatuses": ["POTWIERDZONE_W_ZAKRESIE", "REKONSTRUKCJA", "TRADYCJA_MITOLOGICZNA", "REGUŁA_GRY", "NIEUSTALONE", "BLOCKED_RESEARCH"],
+  "worldLayers": ["Material", "Mythic", "GameRule"],
+  "rules": {
+    "tickRate": 30,
+    "centi": 100,
+    "fleetLimit": 100,
+    "reserve": {
+      "wood": 6000,
+      "silver": 2000
+    },
+    "warehouse": {
+      "wood": 600000,
+      "silver": 300000
+    },
+    "harbour": {
+      "berths": 3,
+      "handlingRate": 6000
+    },
+    "node": {
+      "workBerths": 2,
+      "sharedRate": {
+        "wood": 1200,
+        "silver": 400
+      },
+      "landCrewSeconds": 3,
+      "embarkSeconds": 4
+    },
+    "convoySize": 3,
+    "outpost": {
+      "cost": {
+        "wood": 30000,
+        "silver": 10000
+      },
+      "seconds": 35,
+      "hull": 900
+    },
+    "shipyard": {
+      "cost": {
+        "wood": 20000,
+        "silver": 10000
+      },
+      "seconds": 40
+    },
+    "pricing": {
+      "sailorSilver": 50,
+      "fighterSilver": 100,
+      "warshipSailorShare": 0.25,
+      "constructionWoodShare": 0.8,
+      "constructionSilverShare": 0.4
+    },
+    "matchProfiles": [
+      {
+        "length": "Short",
+        "targetMinutes": 30,
+        "targetFleet": 30,
+        "start": {
+          "wood": 90000,
+          "silver": 45000
+        },
+        "woodYield": 0.7,
+        "silverYield": 0.7,
+        "deposits": {
+          "home": {
+            "wood": 300000,
+            "silver": 160000
+          },
+          "pair": {
+            "wood": 170000,
+            "silver": 85000
+          },
+          "centre": {
+            "wood": 225000,
+            "silver": 110000
+          }
+        }
+      },
+      {
+        "length": "Standard",
+        "targetMinutes": 60,
+        "targetFleet": 42,
+        "start": {
+          "wood": 36000,
+          "silver": 16000
+        },
+        "woodYield": 0.53,
+        "silverYield": 0.53,
+        "deposits": {
+          "home": {
+            "wood": 330000,
+            "silver": 165000
+          },
+          "pair": {
+            "wood": 255000,
+            "silver": 140000
+          },
+          "centre": {
+            "wood": 340000,
+            "silver": 175000
+          }
+        }
+      },
+      {
+        "length": "Long",
+        "targetMinutes": 90,
+        "targetFleet": 55,
+        "start": {
+          "wood": 36000,
+          "silver": 16000
+        },
+        "woodYield": 0.42,
+        "silverYield": 0.42,
+        "deposits": {
+          "home": {
+            "wood": 370000,
+            "silver": 175000
+          },
+          "pair": {
+            "wood": 340000,
+            "silver": 170000
+          },
+          "centre": {
+            "wood": 480000,
+            "silver": 230000
+          }
+        }
+      }
+    ]
+  },
+  "ships": [
+    {
+      "id": "N01",
+      "name": "Łódź przybrzeżna",
+      "role": "Economic",
+      "hullClass": "Cutter",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 6000,
+        "silver": 2000
+      },
+      "buildSeconds": 18,
+      "maxCrew": 8,
+      "slots": [],
+      "defaultLoadout": [],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 0,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "Cutter",
+        "cost": {
+          "wood": 6000,
+          "silver": 2000
+        },
+        "buildSeconds": 18,
+        "priceParts": {
+          "constructionWood": 4800,
+          "constructionSilver": 640,
+          "equipmentWood": 1200,
+          "equipmentSilver": 960,
+          "crewSilver": 400
+        },
+        "maxCrew": 8,
+        "sailors": 8,
+        "fighters": 0,
+        "hull": 180,
+        "speed": 10,
+        "capacity": 6000,
+        "workRate": {
+          "wood": 600,
+          "silver": 300
+        },
+        "projectileArmor": 0,
+        "ramMultiplier": 0
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": [],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Settlement", "Shipyard"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (Cutter). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N02",
+      "name": "Statek kupiecki",
+      "role": "Economic",
+      "hullClass": "Merchant",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 14000,
+        "silver": 6000
+      },
+      "buildSeconds": 28,
+      "maxCrew": 12,
+      "slots": [],
+      "defaultLoadout": [],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 0,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "Merchant",
+        "cost": {
+          "wood": 14000,
+          "silver": 6000
+        },
+        "buildSeconds": 28,
+        "priceParts": {
+          "constructionWood": 11200,
+          "constructionSilver": 2160,
+          "equipmentWood": 2800,
+          "equipmentSilver": 3240,
+          "crewSilver": 600
+        },
+        "maxCrew": 12,
+        "sailors": 12,
+        "fighters": 0,
+        "hull": 420,
+        "speed": 7,
+        "capacity": 48000,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.05,
+        "ramMultiplier": 0
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": [],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Shipyard", "Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (Merchant). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N03",
+      "name": "Okręt przełamujący",
+      "role": "Combat",
+      "hullClass": "Ram",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 24000,
+        "silver": 10000
+      },
+      "buildSeconds": 35,
+      "maxCrew": 36,
+      "slots": ["Light", "Medium"],
+      "defaultLoadout": ["ArcherBank", "None"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "Ram",
+        "cost": {
+          "wood": 24000,
+          "silver": 10000
+        },
+        "buildSeconds": 35,
+        "priceParts": {
+          "constructionWood": 19200,
+          "constructionSilver": 2740,
+          "equipmentWood": 4800,
+          "equipmentSilver": 4110,
+          "crewSilver": 3150
+        },
+        "maxCrew": 36,
+        "sailors": 9,
+        "fighters": 27,
+        "hull": 760,
+        "speed": 8.2,
+        "capacity": 0,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.15,
+        "ramMultiplier": 1.5
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Shipyard", "Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (Ram). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N04",
+      "name": "Okręt osłonowy",
+      "role": "Combat",
+      "hullClass": "CrewDestroyer",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 18000,
+        "silver": 9000
+      },
+      "buildSeconds": 30,
+      "maxCrew": 52,
+      "slots": ["Light", "Light", "Light", "Light"],
+      "defaultLoadout": ["ArcherBank", "ArcherBank", "ArcherBank", "ArcherBank"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "CrewDestroyer",
+        "cost": {
+          "wood": 18000,
+          "silver": 9000
+        },
+        "buildSeconds": 30,
+        "priceParts": {
+          "constructionWood": 14400,
+          "constructionSilver": 1780,
+          "equipmentWood": 3600,
+          "equipmentSilver": 2670,
+          "crewSilver": 4550
+        },
+        "maxCrew": 52,
+        "sailors": 13,
+        "fighters": 39,
+        "hull": 520,
+        "speed": 6.8,
+        "capacity": 0,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.1,
+        "ramMultiplier": 0.6
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Settlement", "Shipyard", "Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (CrewDestroyer). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N05",
+      "name": "Okręt dalekiego ostrzału",
+      "role": "Combat",
+      "hullClass": "ShipKiller",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 22000,
+        "silver": 14000
+      },
+      "buildSeconds": 38,
+      "maxCrew": 36,
+      "slots": ["Medium", "Medium"],
+      "defaultLoadout": ["DeckBallista", "DeckBallista"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "ShipKiller",
+        "cost": {
+          "wood": 22000,
+          "silver": 14000
+        },
+        "buildSeconds": 38,
+        "priceParts": {
+          "constructionWood": 17600,
+          "constructionSilver": 4340,
+          "equipmentWood": 4400,
+          "equipmentSilver": 6510,
+          "crewSilver": 3150
+        },
+        "maxCrew": 36,
+        "sailors": 9,
+        "fighters": 27,
+        "hull": 620,
+        "speed": 6.5,
+        "capacity": 0,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.15,
+        "ramMultiplier": 0.8
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Settlement", "Shipyard", "Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (ShipKiller). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N06",
+      "name": "Okręt oblężniczy",
+      "role": "Combat",
+      "hullClass": "Bomber",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 40000,
+        "silver": 26000
+      },
+      "buildSeconds": 60,
+      "maxCrew": 45,
+      "slots": ["Heavy", "Heavy"],
+      "defaultLoadout": ["HeavyCatapult", "HeavyCatapult"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "Bomber",
+        "cost": {
+          "wood": 40000,
+          "silver": 26000
+        },
+        "buildSeconds": 60,
+        "priceParts": {
+          "constructionWood": 32000,
+          "constructionSilver": 8840,
+          "equipmentWood": 8000,
+          "equipmentSilver": 13260,
+          "crewSilver": 3900
+        },
+        "maxCrew": 45,
+        "sailors": 12,
+        "fighters": 33,
+        "hull": 960,
+        "speed": 4.3,
+        "capacity": 0,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.2,
+        "ramMultiplier": 0.5
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard", "Workshop"],
+        "technologies": ["TECH-HEAVY-ARMS"],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Shipyard", "Workshop", "Town", "Knowledge"],
+        "technologies": ["TECH-HEAVY-ARMS", "TECH-ARMOR-2"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (Bomber). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N07",
+      "name": "Okręt szturmowy",
+      "role": "Combat",
+      "hullClass": "Boarder",
+      "isRuntimeClass": true,
+      "provisional": false,
+      "cost": {
+        "wood": 20000,
+        "silver": 18000
+      },
+      "buildSeconds": 40,
+      "maxCrew": 90,
+      "slots": ["Light", "Light", "Medium"],
+      "defaultLoadout": ["JavelinBank", "JavelinBank", "None"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": {
+        "class": "Boarder",
+        "cost": {
+          "wood": 20000,
+          "silver": 18000
+        },
+        "buildSeconds": 40,
+        "priceParts": {
+          "constructionWood": 16000,
+          "constructionSilver": 4060,
+          "equipmentWood": 4000,
+          "equipmentSilver": 6090,
+          "crewSilver": 7850
+        },
+        "maxCrew": 90,
+        "sailors": 23,
+        "fighters": 67,
+        "hull": 780,
+        "speed": 5.2,
+        "capacity": 0,
+        "workRate": {
+          "wood": 0,
+          "silver": 0
+        },
+        "projectileArmor": 0.15,
+        "ramMultiplier": 0.7
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Settlement", "Shipyard", "Workshop", "Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1; ShipCatalog (Boarder). A role of the game, not a historical hull type."
+      }
+    },
+    {
+      "id": "N08",
+      "name": "Okręt dowodzenia",
+      "role": "Combat",
+      "hullClass": "Boarder",
+      "isRuntimeClass": false,
+      "provisional": true,
+      "cost": {
+        "wood": 30000,
+        "silver": 20000
+      },
+      "buildSeconds": 50,
+      "maxCrew": 90,
+      "slots": ["Light", "Light", "Medium"],
+      "defaultLoadout": ["None", "None", "None"],
+      "builtInWeaponId": null,
+      "artifactSlots": 2,
+      "heroSlots": 1,
+      "canBeFlagship": true,
+      "capturable": true,
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement", "Shipyard", "Workshop", "Forge"],
+        "technologies": ["TECH-COMMAND"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1 (working numbers, movement profile of Boarder). Posts and crew are a first guess for trials."
+      }
+    },
+    {
+      "id": "N09",
+      "name": "Nosiciel Płomienia",
+      "role": "Specialisation",
+      "hullClass": "ShipKiller",
+      "isRuntimeClass": false,
+      "provisional": true,
+      "cost": {
+        "wood": 26000,
+        "silver": 18000
+      },
+      "buildSeconds": 45,
+      "maxCrew": 36,
+      "slots": [],
+      "defaultLoadout": [],
+      "builtInWeaponId": "C04-FIRE",
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Shipyard", "Workshop", "Town", "Knowledge"],
+        "technologies": ["TECH-SPEC-A1"]
+      },
+      "faction": "A",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1 (working numbers, movement profile of ShipKiller). Posts and crew are a first guess for trials."
+      }
+    },
+    {
+      "id": "N10",
+      "name": "Okręt Białej Mgły",
+      "role": "Specialisation",
+      "hullClass": "ShipKiller",
+      "isRuntimeClass": false,
+      "provisional": true,
+      "cost": {
+        "wood": 28000,
+        "silver": 20000
+      },
+      "buildSeconds": 45,
+      "maxCrew": 36,
+      "slots": ["Medium"],
+      "defaultLoadout": ["None"],
+      "builtInWeaponId": "C04-MIST",
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Shipyard", "Workshop", "Town", "Knowledge"],
+        "technologies": ["TECH-SPEC-A2"]
+      },
+      "faction": "A",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1 (working numbers, movement profile of ShipKiller). Posts and crew are a first guess for trials."
+      }
+    },
+    {
+      "id": "N11",
+      "name": "Okręt Echa",
+      "role": "Specialisation",
+      "hullClass": "CrewDestroyer",
+      "isRuntimeClass": false,
+      "provisional": true,
+      "cost": {
+        "wood": 24000,
+        "silver": 16000
+      },
+      "buildSeconds": 45,
+      "maxCrew": 52,
+      "slots": ["Light", "Light", "Light", "Light"],
+      "defaultLoadout": ["None", "None", "None", "None"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Shipyard", "Workshop", "Town", "Knowledge"],
+        "technologies": ["TECH-SPEC-B1"]
+      },
+      "faction": "B",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1 (working numbers, movement profile of CrewDestroyer). Posts and crew are a first guess for trials."
+      }
+    },
+    {
+      "id": "N12",
+      "name": "Okręt Żałobny",
+      "role": "Specialisation",
+      "hullClass": "Boarder",
+      "isRuntimeClass": false,
+      "provisional": true,
+      "cost": {
+        "wood": 28000,
+        "silver": 22000
+      },
+      "buildSeconds": 50,
+      "maxCrew": 90,
+      "slots": ["Light", "Light", "Medium"],
+      "defaultLoadout": ["None", "None", "None"],
+      "builtInWeaponId": null,
+      "artifactSlots": 1,
+      "heroSlots": 1,
+      "canBeFlagship": false,
+      "capturable": true,
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Shipyard", "Workshop", "Town", "Knowledge"],
+        "technologies": ["TECH-SPEC-B2"]
+      },
+      "faction": "B",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §3; docs/PARAMETRY_ROBOCZE.md §1 (working numbers, movement profile of Boarder). Posts and crew are a first guess for trials."
+      }
+    }
+  ],
+  "hullProfiles": [
+    {
+      "id": "HULL-TRIERES",
+      "name": "Triera",
+      "date": null,
+      "source": {
+        "status": "POTWIERDZONE_W_ZAKRESIE",
+        "layer": "Material",
+        "locator": "V. Gabrielsen, „The Piraeus and the Athenian navy: recent archaeological and historical advances”, Proceedings of the Danish Institute at Athens 7 (2014), s. 37–48: s. 39 Fig. 2. s. 37–40: odczyt koordynatora, docs/research/sessions/2026-11-12-0504-p02.md. Triery w każdym roku Fig. 2 (378/7–323/2); 357/6: 283 triery; 325/4: 360 trier. Część liczb Fig. 2 to rekonstrukcje (w nawiasach kwadratowych); 326/5 i 323/2 są niepełne (0504). Wiersze Fig. 2 sprawdził też recenzent: docs/research/sessions/2026-11-12-0642-p02-recenzent.md (przegląd P02-D)."
+      }
+    },
+    {
+      "id": "HULL-TETRERES",
+      "name": "Tetrera",
+      "date": {
+        "earliestYearBc": 330,
+        "latestYearBc": 301
+      },
+      "source": {
+        "status": "POTWIERDZONE_W_ZAKRESIE",
+        "layer": "Material",
+        "locator": "V. Gabrielsen, „The Piraeus and the Athenian navy: recent archaeological and historical advances”, Proceedings of the Danish Institute at Athens 7 (2014), s. 37–48: s. 39 Fig. 2, s. 40, s. 43 przyp. 32. s. 37–40: odczyt koordynatora, docs/research/sessions/2026-11-12-0504-p02.md; s. 43 przyp. 32 oraz Diod. 14.41.3/14.42.2: odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md. Tetrery w inwentarzach od 330/29. To pierwsze poświadczenie w zachowanych inwentarzach ateńskich (terminus ante quem), nie data wprowadzenia typu ani zasięg poza Atenami. Diod. 14.41.3 i 14.42.2 podają sporną, późną tradycję syrakuzańską ok. 399 r. (Loeb 1954, LacusCurtius; odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md). Koniec okna to koniec epoki gry, nie świadectwo."
+      }
+    },
+    {
+      "id": "HULL-PENTERES",
+      "name": "Pentera",
+      "date": {
+        "earliestYearBc": 325,
+        "latestYearBc": 301
+      },
+      "source": {
+        "status": "POTWIERDZONE_W_ZAKRESIE",
+        "layer": "Material",
+        "locator": "V. Gabrielsen, „The Piraeus and the Athenian navy: recent archaeological and historical advances”, Proceedings of the Danish Institute at Athens 7 (2014), s. 37–48: s. 39 Fig. 2, s. 40, s. 43 przyp. 32. s. 37–40: odczyt koordynatora, docs/research/sessions/2026-11-12-0504-p02.md; s. 43 przyp. 32 oraz Diod. 14.41.3/14.42.2: odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md. Pentery w inwentarzach od 325/4. To pierwsze poświadczenie w zachowanych inwentarzach ateńskich (terminus ante quem), nie data wprowadzenia typu ani zasięg poza Atenami. Diod. 14.41.3 i 14.42.2 podają sporną, późną tradycję syrakuzańską ok. 399 r. (Loeb 1954, LacusCurtius; odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md). Koniec okna to koniec epoki gry, nie świadectwo."
+      }
+    }
+  ],
+  "weaponFamilies": [
+    {
+      "id": "C03-1",
+      "name": "Lekki miotacz bełtów",
+      "runtimeTypes": ["Scorpion"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    },
+    {
+      "id": "C03-2",
+      "name": "Łuk mechaniczny",
+      "runtimeTypes": ["Gastraphetes"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    },
+    {
+      "id": "C03-3",
+      "name": "Miotacz kamieni",
+      "runtimeTypes": ["StoneCatapult"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    },
+    {
+      "id": "C03-4",
+      "name": "Ciężki miotacz bełtów",
+      "runtimeTypes": ["DeckBallista", "LeadBallista"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    },
+    {
+      "id": "C03-5",
+      "name": "Ciężki miotacz jednoramienny",
+      "runtimeTypes": ["Onager"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    },
+    {
+      "id": "C03-6",
+      "name": "Ciężki miotacz pocisków",
+      "runtimeTypes": ["HeavyCatapult"],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §4 C03. Machina pokładowa: REGUŁA_GRY; daty rodzin NIEUSTALONE (docs/research/sessions/2026-11-12-0504-p02.md: Arrian, Anabaza II.21.1–2 i II.21.8 tylko jako kontekst oblężenia Tyru)."
+      }
+    }
+  ],
+  "specialWeapons": [
+    {
+      "id": "C04-FIRE",
+      "name": "Stanowisko ognia",
+      "carrierVariantId": "N09",
+      "effectRefs": ["C04-FIRE"],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §3 N09, §4 C04: fikcja mitologiczna, niewyjmowalne."
+      }
+    },
+    {
+      "id": "C04-MIST",
+      "name": "Obezwładniająca mgła",
+      "carrierVariantId": "N10",
+      "effectRefs": ["C04-MIST"],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §3 N10, §4 C04: fikcja mitologiczna, niewyjmowalne."
+      }
+    }
+  ],
+  "upgradeLevels": [
+    {
+      "id": "C06-1",
+      "name": "Osłona I",
+      "kind": "Armor",
+      "level": 1,
+      "value": 0,
+      "technologyId": null,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    },
+    {
+      "id": "C06-2",
+      "name": "Osłona II",
+      "kind": "Armor",
+      "level": 2,
+      "value": 0.1,
+      "technologyId": "TECH-ARMOR-2",
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    },
+    {
+      "id": "C06-3",
+      "name": "Osłona III",
+      "kind": "Armor",
+      "level": 3,
+      "value": 0.2,
+      "technologyId": "TECH-ARMOR-3",
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    },
+    {
+      "id": "C05-1",
+      "name": "Taran I",
+      "kind": "Ram",
+      "level": 1,
+      "value": 1,
+      "technologyId": null,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    },
+    {
+      "id": "C05-2",
+      "name": "Taran II",
+      "kind": "Ram",
+      "level": 2,
+      "value": 1.15,
+      "technologyId": "TECH-RAM-2",
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    },
+    {
+      "id": "C05-3",
+      "name": "Taran III",
+      "kind": "Ram",
+      "level": 3,
+      "value": 1.3,
+      "technologyId": "TECH-RAM-3",
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §2 (kuźnia)"
+      }
+    }
+  ],
+  "technologies": [
+    {
+      "id": "B01",
+      "name": "Osada portowa",
+      "scope": "PortBuilding",
+      "grants": ["Settlement"],
+      "cost": {
+        "wood": 30000,
+        "silver": 10000
+      },
+      "seconds": 35,
+      "parameters": [],
+      "runtime": null,
+      "implemented": true,
+      "enforced": {
+        "buildings": [],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B02",
+      "name": "Przystań",
+      "scope": "PortBuilding",
+      "grants": ["Harbour"],
+      "cost": {
+        "wood": 0,
+        "silver": 0
+      },
+      "seconds": 0,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B03",
+      "name": "Stocznia",
+      "scope": "PortBuilding",
+      "grants": ["Shipyard"],
+      "cost": {
+        "wood": 20000,
+        "silver": 10000
+      },
+      "seconds": 40,
+      "parameters": [],
+      "runtime": null,
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Settlement"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Settlement"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B04",
+      "name": "Warsztat",
+      "scope": "PortBuilding",
+      "grants": ["Workshop"],
+      "cost": {
+        "wood": 15000,
+        "silver": 10000
+      },
+      "seconds": 40,
+      "parameters": [],
+      "runtime": {
+        "project": "Workshop",
+        "cost": {
+          "wood": 15000,
+          "silver": 10000
+        },
+        "seconds": 40
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Shipyard"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B05",
+      "name": "Kuźnia",
+      "scope": "PortBuilding",
+      "grants": ["Forge"],
+      "cost": {
+        "wood": 16000,
+        "silver": 14000
+      },
+      "seconds": 45,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement", "Shipyard"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B06",
+      "name": "Ośrodek miejski",
+      "scope": "PortBuilding",
+      "grants": ["Town"],
+      "cost": {
+        "wood": 30000,
+        "silver": 40000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": {
+        "project": "Town",
+        "cost": {
+          "wood": 30000,
+          "silver": 40000
+        },
+        "seconds": 60
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard", "Workshop"],
+        "technologies": [],
+        "homePortOnly": true
+      },
+      "target": {
+        "buildings": ["Harbour", "Shipyard", "Workshop", "Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B07",
+      "name": "Dok",
+      "scope": "PortBuilding",
+      "grants": ["Dock"],
+      "cost": {
+        "wood": 20000,
+        "silver": 30000
+      },
+      "seconds": 45,
+      "parameters": [],
+      "runtime": {
+        "project": "Dock",
+        "cost": {
+          "wood": 20000,
+          "silver": 30000
+        },
+        "seconds": 45
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Shipyard", "Town"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Shipyard", "Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B08",
+      "name": "Ośrodek wiedzy",
+      "scope": "PortBuilding",
+      "grants": ["Knowledge"],
+      "cost": {
+        "wood": 20000,
+        "silver": 50000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": {
+        "project": "SageSchool",
+        "cost": {
+          "wood": 20000,
+          "silver": 50000
+        },
+        "seconds": 60
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Town"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B09",
+      "name": "Sanktuarium Morza",
+      "scope": "PortBuilding",
+      "grants": ["SeaSanctuary"],
+      "cost": {
+        "wood": 18000,
+        "silver": 30000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "B10",
+      "name": "Sanktuarium Wojny",
+      "scope": "PortBuilding",
+      "grants": ["WarSanctuary"],
+      "cost": {
+        "wood": 18000,
+        "silver": 30000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Town"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-HEAVY-ARMS",
+      "name": "Ciężkie uzbrojenie",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 15000,
+        "silver": 30000
+      },
+      "seconds": 90,
+      "parameters": [],
+      "runtime": {
+        "project": "HeavyArmsResearch",
+        "cost": {
+          "wood": 15000,
+          "silver": 30000
+        },
+        "seconds": 90
+      },
+      "implemented": true,
+      "enforced": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": [],
+        "homePortOnly": false
+      },
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-COMMAND",
+      "name": "Organizacja dowodzenia",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 45,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-SPEC-A1",
+      "name": "Specjalizacja A1",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 10000,
+        "silver": 18000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": []
+      },
+      "faction": "A",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-SPEC-A2",
+      "name": "Specjalizacja A2",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 10000,
+        "silver": 18000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": []
+      },
+      "faction": "A",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-SPEC-B1",
+      "name": "Specjalizacja B1",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 10000,
+        "silver": 18000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": []
+      },
+      "faction": "B",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-SPEC-B2",
+      "name": "Specjalizacja B2",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 10000,
+        "silver": 18000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": []
+      },
+      "faction": "B",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-ARMOR-2",
+      "name": "Osłona II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 6000,
+        "silver": 10000
+      },
+      "seconds": 45,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-ARMOR-3",
+      "name": "Osłona III",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 9000,
+        "silver": 16000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Forge", "Knowledge"],
+        "technologies": ["TECH-ARMOR-2"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-RAM-2",
+      "name": "Taran II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 6000,
+        "silver": 10000
+      },
+      "seconds": 45,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-RAM-3",
+      "name": "Taran III",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 9000,
+        "silver": 16000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Forge", "Knowledge"],
+        "technologies": ["TECH-RAM-2"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-DRIVE-1",
+      "name": "Napęd I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 6000,
+        "silver": 10000
+      },
+      "seconds": 45,
+      "parameters": [
+        {
+          "name": "SpeedFactor",
+          "value": 1.05
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Knowledge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-DRIVE-2",
+      "name": "Napęd II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 9000,
+        "silver": 15000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "SpeedFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Knowledge"],
+        "technologies": ["TECH-DRIVE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-POWER-1",
+      "name": "Warsztat: siła, obsada lekka I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-POWER-2",
+      "name": "Warsztat: siła, obsada lekka II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.2
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-LIGHT-POWER-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-RANGE-1",
+      "name": "Warsztat: zasięg, obsada lekka I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.05
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-RANGE-2",
+      "name": "Warsztat: zasięg, obsada lekka II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-LIGHT-RANGE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-CYCLE-1",
+      "name": "Warsztat: cykl, obsada lekka I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.95
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-LIGHT-CYCLE-2",
+      "name": "Warsztat: cykl, obsada lekka II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.9
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-LIGHT-CYCLE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-POWER-1",
+      "name": "Warsztat: siła, machiny średnie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-POWER-2",
+      "name": "Warsztat: siła, machiny średnie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.2
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-MEDIUM-POWER-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-RANGE-1",
+      "name": "Warsztat: zasięg, machiny średnie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.05
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-RANGE-2",
+      "name": "Warsztat: zasięg, machiny średnie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-MEDIUM-RANGE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-CYCLE-1",
+      "name": "Warsztat: cykl, machiny średnie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.95
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-MEDIUM-CYCLE-2",
+      "name": "Warsztat: cykl, machiny średnie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.9
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-MEDIUM-CYCLE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-POWER-1",
+      "name": "Warsztat: siła, machiny ciężkie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-POWER-2",
+      "name": "Warsztat: siła, machiny ciężkie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.2
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-HEAVY-POWER-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-RANGE-1",
+      "name": "Warsztat: zasięg, machiny ciężkie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.05
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-RANGE-2",
+      "name": "Warsztat: zasięg, machiny ciężkie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "RangeFactor",
+          "value": 1.1
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-HEAVY-RANGE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-CYCLE-1",
+      "name": "Warsztat: cykl, machiny ciężkie I",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 8000
+      },
+      "seconds": 40,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.95
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-WS-HEAVY-CYCLE-2",
+      "name": "Warsztat: cykl, machiny ciężkie II",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 8000,
+        "silver": 12000
+      },
+      "seconds": 60,
+      "parameters": [
+        {
+          "name": "CycleFactor",
+          "value": 0.9
+        }
+      ],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Workshop", "Knowledge"],
+        "technologies": ["TECH-WS-HEAVY-CYCLE-1"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M01",
+      "name": "Nauka mocy: Wir Posejdona",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M02",
+      "name": "Nauka mocy: Zęby Morza",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M03",
+      "name": "Nauka mocy: Oddech Boreasza",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M04",
+      "name": "Nauka mocy: Kolumna Nereusa",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M05",
+      "name": "Nauka mocy: Spojrzenie Ateny",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M06",
+      "name": "Nauka mocy: Strażnik Głębin",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M07",
+      "name": "Nauka mocy: Żar Aresa",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M08",
+      "name": "Nauka mocy: Grom Zeusa",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M09",
+      "name": "Nauka mocy: Deszcz Hefajstosa",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M10",
+      "name": "Nauka mocy: Zasłona Hekate",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M11",
+      "name": "Nauka mocy: Aigida",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    },
+    {
+      "id": "TECH-LEARN-M12",
+      "name": "Nauka mocy: Pieczęć Hermesa",
+      "scope": "SideResearch",
+      "grants": [],
+      "cost": {
+        "wood": 5000,
+        "silver": 10000
+      },
+      "seconds": 60,
+      "parameters": [],
+      "runtime": null,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2; docs/PARAMETRY_ROBOCZE.md §2"
+      }
+    }
+  ],
+  "forts": [
+    {
+      "id": "F01",
+      "name": "Mały posterunek",
+      "poolCost": 1,
+      "settlementPool": 15,
+      "cost": {
+        "wood": 18000,
+        "silver": 10000
+      },
+      "buildSeconds": 45,
+      "hull": 1200,
+      "slots": ["Light", "Light", "Medium", "Medium"],
+      "artifactSlots": 1,
+      "heroSlots": 0,
+      "canBeRammed": false,
+      "canBeBoarded": false,
+      "expeditionFortSellable": false,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2 (forty); docs/PARAMETRY_ROBOCZE.md §3"
+      }
+    },
+    {
+      "id": "F02",
+      "name": "Bateria przybrzeżna",
+      "poolCost": 2,
+      "settlementPool": 15,
+      "cost": {
+        "wood": 30000,
+        "silver": 18000
+      },
+      "buildSeconds": 60,
+      "hull": 2200,
+      "slots": ["Light", "Light", "Medium", "Medium", "Medium", "Heavy"],
+      "artifactSlots": 1,
+      "heroSlots": 0,
+      "canBeRammed": false,
+      "canBeBoarded": false,
+      "expeditionFortSellable": false,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement", "Workshop", "Forge"],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2 (forty); docs/PARAMETRY_ROBOCZE.md §3"
+      }
+    },
+    {
+      "id": "F03",
+      "name": "Twierdza portowa",
+      "poolCost": 3,
+      "settlementPool": 15,
+      "cost": {
+        "wood": 46000,
+        "silver": 28000
+      },
+      "buildSeconds": 90,
+      "hull": 3600,
+      "slots": ["Light", "Light", "Medium", "Medium", "Medium", "Heavy", "Heavy", "Heavy"],
+      "artifactSlots": 1,
+      "heroSlots": 0,
+      "canBeRammed": false,
+      "canBeBoarded": false,
+      "expeditionFortSellable": false,
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["Settlement", "Workshop", "Forge", "Knowledge"],
+        "technologies": ["TECH-HEAVY-ARMS"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §2 (forty); docs/PARAMETRY_ROBOCZE.md §3"
+      }
+    }
+  ],
+  "abilities": [
+    {
+      "id": "M01",
+      "name": "Wir Posejdona",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 18000,
+        "silver": 30000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 300,
+      "reach": "Area",
+      "radiusMeters": 35,
+      "duration": "Timed",
+      "durationSeconds": 60,
+      "cooldownSeconds": 120,
+      "warningSeconds": 3,
+      "effectRefs": ["M01.ZONE", "M01.PULL"],
+      "parameters": [
+        {
+          "name": "CoreRadiusMeters",
+          "value": 10
+        },
+        {
+          "name": "HullSharePerSecond",
+          "value": 0.03
+        },
+        {
+          "name": "MaxActiveOwn",
+          "value": 2
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M01",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M01"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M02",
+      "name": "Zęby Morza",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 18000,
+        "silver": 30000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 300,
+      "reach": "Area",
+      "radiusMeters": 25,
+      "duration": "Match",
+      "durationSeconds": 0,
+      "cooldownSeconds": 120,
+      "warningSeconds": 3,
+      "effectRefs": ["M02.BARRIER", "M02.IMPACT"],
+      "parameters": [
+        {
+          "name": "HullShareOnEntry",
+          "value": 0.15
+        },
+        {
+          "name": "RecontactSeconds",
+          "value": 5
+        },
+        {
+          "name": "ExposedSeconds",
+          "value": 5
+        },
+        {
+          "name": "SubmergedSeconds",
+          "value": 5
+        },
+        {
+          "name": "MaxOwnPermanent",
+          "value": 3
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M02",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M02"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M03",
+      "name": "Oddech Boreasza",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 2000,
+        "silver": 4000
+      },
+      "wholeMapRange": true,
+      "rangeMeters": 0,
+      "reach": "WholeMap",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 45,
+      "cooldownSeconds": 60,
+      "warningSeconds": 3,
+      "effectRefs": ["M03"],
+      "parameters": [],
+      "learnTechnologyId": "TECH-LEARN-M03",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M03"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M04",
+      "name": "Kolumna Nereusa",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 8000,
+        "silver": 14000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 375,
+      "reach": "Area",
+      "radiusMeters": 25,
+      "duration": "Timed",
+      "durationSeconds": 30,
+      "cooldownSeconds": 90,
+      "warningSeconds": 3,
+      "effectRefs": ["M04.DAMAGE", "M04.COURSE"],
+      "parameters": [
+        {
+          "name": "HullSharePerSecond",
+          "value": 0.02
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M04",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M04"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M05",
+      "name": "Spojrzenie Ateny",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 0,
+        "silver": 3000
+      },
+      "wholeMapRange": true,
+      "rangeMeters": 0,
+      "reach": "Area",
+      "radiusMeters": 150,
+      "duration": "Timed",
+      "durationSeconds": 30,
+      "cooldownSeconds": 45,
+      "warningSeconds": 3,
+      "effectRefs": ["M05"],
+      "parameters": [],
+      "learnTechnologyId": "TECH-LEARN-M05",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M05"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M06",
+      "name": "Strażnik Głębin",
+      "sanctuary": "Sea",
+      "cost": {
+        "wood": 18000,
+        "silver": 26000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 300,
+      "reach": "SummonPoint",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 90,
+      "cooldownSeconds": 120,
+      "warningSeconds": 3,
+      "effectRefs": ["M06"],
+      "parameters": [],
+      "learnTechnologyId": "TECH-LEARN-M06",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["SeaSanctuary"],
+        "technologies": ["TECH-LEARN-M06"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M07",
+      "name": "Żar Aresa",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 22000,
+        "silver": 35000
+      },
+      "wholeMapRange": true,
+      "rangeMeters": 0,
+      "reach": "OwnSide",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 30,
+      "cooldownSeconds": 120,
+      "warningSeconds": 3,
+      "effectRefs": ["M07"],
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.5
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M07",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M07"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M08",
+      "name": "Grom Zeusa",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 30000,
+        "silver": 80000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 300,
+      "reach": "Area",
+      "radiusMeters": 60,
+      "duration": "Strike",
+      "durationSeconds": 0,
+      "cooldownSeconds": 180,
+      "warningSeconds": 3,
+      "effectRefs": ["M08"],
+      "parameters": [],
+      "learnTechnologyId": "TECH-LEARN-M08",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M08"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M09",
+      "name": "Deszcz Hefajstosa",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 10000,
+        "silver": 18000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 300,
+      "reach": "Area",
+      "radiusMeters": 60,
+      "duration": "Timed",
+      "durationSeconds": 20,
+      "cooldownSeconds": 90,
+      "warningSeconds": 3,
+      "effectRefs": ["M09"],
+      "parameters": [
+        {
+          "name": "HullPerSecond",
+          "value": 35
+        },
+        {
+          "name": "MenPerSecond",
+          "value": 5
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M09",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M09"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M10",
+      "name": "Zasłona Hekate",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 3000,
+        "silver": 8000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 375,
+      "reach": "SingleObject",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 45,
+      "cooldownSeconds": 90,
+      "warningSeconds": 0.5,
+      "effectRefs": ["M10"],
+      "parameters": [],
+      "learnTechnologyId": "TECH-LEARN-M10",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M10"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Pseudo-Apollodoros, Biblioteka 2.4.2 (przekł. J. G. Frazer, 1921); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw niewidzialności (czapka Hadesa); przypisanie Hekate i liczby: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M11",
+      "name": "Aigida",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 3000,
+        "silver": 8000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 375,
+      "reach": "SingleObject",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 45,
+      "cooldownSeconds": 60,
+      "warningSeconds": 0.5,
+      "effectRefs": ["M11"],
+      "parameters": [
+        {
+          "name": "OrdinaryWeaponReduction",
+          "value": 0.8
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M11",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M11"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "M12",
+      "name": "Pieczęć Hermesa",
+      "sanctuary": "War",
+      "cost": {
+        "wood": 3000,
+        "silver": 8000
+      },
+      "wholeMapRange": false,
+      "rangeMeters": 375,
+      "reach": "SingleObject",
+      "radiusMeters": 0,
+      "duration": "Timed",
+      "durationSeconds": 45,
+      "cooldownSeconds": 60,
+      "warningSeconds": 0.5,
+      "effectRefs": ["M12"],
+      "parameters": [
+        {
+          "name": "SummonedFireWaterspoutReduction",
+          "value": 0.8
+        }
+      ],
+      "learnTechnologyId": "TECH-LEARN-M12",
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": ["WarSanctuary"],
+        "technologies": ["TECH-LEARN-M12"]
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §6; docs/PARAMETRY_ROBOCZE.md §4. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    }
+  ],
+  "heroes": [
+    {
+      "id": "H01",
+      "name": "Pilot Przesmyków",
+      "recruitSignId": "R01",
+      "effectRefs": ["H01"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H02",
+      "name": "Strateg Ateny",
+      "recruitSignId": "R02",
+      "effectRefs": ["H02"],
+      "parameters": [
+        {
+          "name": "PowerFactor",
+          "value": 1.2
+        },
+        {
+          "name": "RangeFactor",
+          "value": 1.1
+        }
+      ],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H03",
+      "name": "Pieśniarz Delfinów",
+      "recruitSignId": "R03",
+      "effectRefs": ["H03"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H04",
+      "name": "Posłaniec Boreasza",
+      "recruitSignId": "R04",
+      "effectRefs": ["H04.WIND", "H04.WARD"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H05",
+      "name": "Heraklida",
+      "recruitSignId": "R05",
+      "effectRefs": ["H05"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H06",
+      "name": "Cieśla Hefajstosa",
+      "recruitSignId": "R06",
+      "effectRefs": ["H06.RENEW", "H06.WARD"],
+      "parameters": [
+        {
+          "name": "HullSharePerSecond",
+          "value": 0.02
+        },
+        {
+          "name": "CreatureDamageReduction",
+          "value": 0.5
+        }
+      ],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H07",
+      "name": "Łuczniczka Artemidy",
+      "recruitSignId": "R07",
+      "effectRefs": ["H07"],
+      "parameters": [
+        {
+          "name": "DispersionFactor",
+          "value": 0.75
+        },
+        {
+          "name": "CycleFactor",
+          "value": 0.8
+        }
+      ],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §7; docs/PARAMETRY_ROBOCZE.md §5. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H08",
+      "name": "Tłumacz Pieśni",
+      "recruitSignId": "R08",
+      "effectRefs": ["H08"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Homer, Odyseja XII, rada Kirke (przekł. S. Butler); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw ochrony przed śpiewem syren; harpie i liczby: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "H09",
+      "name": "Nosiciel Lustra",
+      "recruitSignId": "R09",
+      "effectRefs": ["H09"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Pseudo-Apollodoros, Biblioteka 2.4.2 (przekł. J. G. Frazer, 1921); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw odbicia w tarczy; postać i skutek w grze: REGUŁA_GRY."
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "T01",
+      "name": "Znak Odnowy",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T01.HULL", "T01.MODULES", "T01.CREW"],
+      "parameters": [
+        {
+          "name": "HullSharePerSecond",
+          "value": 0.03
+        },
+        {
+          "name": "ModulePointsPerSecond",
+          "value": 4
+        },
+        {
+          "name": "SecondsPerWarrior",
+          "value": 3
+        }
+      ],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T02",
+      "name": "Depozyt towarowy",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T02"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T03",
+      "name": "Skrzynia uzbrojenia",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T03"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T04",
+      "name": "Naczynie mocy",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T04"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T05",
+      "name": "Pieczęć płomienia",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T05"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T06",
+      "name": "Znak osłony",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T06"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T07",
+      "name": "Znak szlaku",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T07.SPEED", "T07.RAM"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T08",
+      "name": "Więzy pokładu",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T08"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T09",
+      "name": "Maska strażnicza",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T09.FIRE", "T09.GAZE"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Pseudo-Apollodoros, Biblioteka 2.4.2 (przekł. J. G. Frazer, 1921); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw ochrony przed gorgoną; przedmiot i skutek w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "T10",
+      "name": "Czara życia",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T10"],
+      "parameters": [
+        {
+          "name": "FightingCrewShare",
+          "value": 0.25
+        },
+        {
+          "name": "Charges",
+          "value": 1
+        }
+      ],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "T11",
+      "name": "Dokument warsztatowy",
+      "kind": "Utility",
+      "heroId": null,
+      "effectRefs": ["T11"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R01",
+      "name": "Znak rekrutacyjny: Pilot Przesmyków",
+      "kind": "RecruitSign",
+      "heroId": "H01",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R02",
+      "name": "Znak rekrutacyjny: Strateg Ateny",
+      "kind": "RecruitSign",
+      "heroId": "H02",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R03",
+      "name": "Znak rekrutacyjny: Pieśniarz Delfinów",
+      "kind": "RecruitSign",
+      "heroId": "H03",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R04",
+      "name": "Znak rekrutacyjny: Posłaniec Boreasza",
+      "kind": "RecruitSign",
+      "heroId": "H04",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R05",
+      "name": "Znak rekrutacyjny: Heraklida",
+      "kind": "RecruitSign",
+      "heroId": "H05",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R06",
+      "name": "Znak rekrutacyjny: Cieśla Hefajstosa",
+      "kind": "RecruitSign",
+      "heroId": "H06",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R07",
+      "name": "Znak rekrutacyjny: Łuczniczka Artemidy",
+      "kind": "RecruitSign",
+      "heroId": "H07",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R08",
+      "name": "Znak rekrutacyjny: Tłumacz Pieśni",
+      "kind": "RecruitSign",
+      "heroId": "H08",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    },
+    {
+      "id": "R09",
+      "name": "Znak rekrutacyjny: Nosiciel Lustra",
+      "kind": "RecruitSign",
+      "heroId": "H09",
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1, 2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §8; docs/PARAMETRY_ROBOCZE.md §5"
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "Z01",
+      "name": "Amazonka-strażniczka",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z01"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z02",
+      "name": "Cyklop",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": true,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z02"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z03",
+      "name": "Byczy eidolon",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": true,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z03"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z04",
+      "name": "Syrena",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z04.PULL", "Z04.DAMAGE"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Homer, Odyseja XII, rada Kirke (przekł. S. Butler); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw wabienia śpiewem; skutek i liczby w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z05",
+      "name": "Gorgona",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z05"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Pseudo-Apollodoros, Biblioteka 2.4.2 (przekł. J. G. Frazer, 1921); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Motyw spojrzenia gorgony; unieruchomienie zamiast skamienienia i budżet: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z06",
+      "name": "Harpia",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": true,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z06"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z07",
+      "name": "Drakon",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": true,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z07"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z08",
+      "name": "Krokodyl mityczny",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z08"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z09",
+      "name": "Wielki miecznik",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z09"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z10",
+      "name": "Rekin-strażnik",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z10"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z11",
+      "name": "Wąż morski",
+      "kind": "Threat",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z11"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z-WIND",
+      "name": "Przybytek Wiatru",
+      "kind": "Shrine",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": "Wind",
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z-WIND.WIND", "Z-WIND.SPOUT"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "Z-FIRE",
+      "name": "Przybytek Ognia",
+      "kind": "Shrine",
+      "provisional": false,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": "FireZone",
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": ["Z-FIRE"],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/KATALOG_MECHANIK.md §9. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "E05",
+      "name": "Neutralne stworzenie morskie",
+      "kind": "EconomicTarget",
+      "provisional": false,
+      "unowned": true,
+      "ownerSlot": null,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": false,
+      "variantId": null,
+      "reward": {
+        "wood": 96000,
+        "silver": 80000
+      },
+      "workSeconds": 60,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [0, 1],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §1 E05; docs/PARAMETRY_ROBOCZE.md §6"
+      }
+    },
+    {
+      "id": "FL1",
+      "name": "Wolna flotylla, konfiguracja 1",
+      "kind": "FlotillaConfiguration",
+      "provisional": true,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": true,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §9 (wolne flotylle); docs/PARAMETRY_ROBOCZE.md §3. Skład konfiguracji nieokreślony w dokumentach."
+      }
+    },
+    {
+      "id": "FL2",
+      "name": "Wolna flotylla, konfiguracja 2",
+      "kind": "FlotillaConfiguration",
+      "provisional": true,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": true,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §9 (wolne flotylle); docs/PARAMETRY_ROBOCZE.md §3. Skład konfiguracji nieokreślony w dokumentach."
+      }
+    },
+    {
+      "id": "FL3",
+      "name": "Wolna flotylla, konfiguracja 3",
+      "kind": "FlotillaConfiguration",
+      "provisional": true,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": true,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §9 (wolne flotylle); docs/PARAMETRY_ROBOCZE.md §3. Skład konfiguracji nieokreślony w dokumentach."
+      }
+    },
+    {
+      "id": "FL4",
+      "name": "Wolna flotylla, konfiguracja 4",
+      "kind": "FlotillaConfiguration",
+      "provisional": true,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": true,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §9 (wolne flotylle); docs/PARAMETRY_ROBOCZE.md §3. Skład konfiguracji nieokreślony w dokumentach."
+      }
+    },
+    {
+      "id": "FL5",
+      "name": "Wolna flotylla, konfiguracja 5",
+      "kind": "FlotillaConfiguration",
+      "provisional": true,
+      "unowned": false,
+      "ownerSlot": 2,
+      "respawnsFromSource": false,
+      "immuneChannel": null,
+      "scuttlesWhenBoardingLost": true,
+      "variantId": null,
+      "reward": {
+        "wood": 0,
+        "silver": 0
+      },
+      "workSeconds": 0,
+      "effectRefs": [],
+      "parameters": [],
+      "implemented": false,
+      "enforced": null,
+      "target": {
+        "buildings": [],
+        "technologies": []
+      },
+      "faction": "Any",
+      "ownerSlots": [2],
+      "date": null,
+      "rulesets": [],
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §9 (wolne flotylle); docs/PARAMETRY_ROBOCZE.md §3. Skład konfiguracji nieokreślony w dokumentach."
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "K01",
+      "name": "Pireus",
+      "kind": "Campaign",
+      "ruleset": "campaign-material",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 1600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Delivered(DostawaT1, ManifestT1, PortOdbioru) AND Delivered(DostawaT2, ManifestT2, PortOdbioru))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K01. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K02",
+      "name": "Laurion",
+      "kind": "Campaign",
+      "ruleset": "campaign-material",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Delivered(DostawaPartii, WymaganyProdukt, PortPrzeładunku) AND Exited(BudżetWyjścia, Strefa))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K02. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K03",
+      "name": "Zea",
+      "kind": "Campaign",
+      "ruleset": "campaign-material",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 1600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(InfrastructureReady(Wymagane) AND LoadoutsReady(Eskadra) AND Resolved(W1))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K03. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K04",
+      "name": "Salamina",
+      "kind": "Campaign",
+      "ruleset": "campaign-material",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "Delivered(DostawaDokumentu, DokumentId, OsadaOdbiorcza)",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K04. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K05",
+      "name": "Eleusis",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "Delivered(DostawaKonwoju, DarId, PortSanktuarium)",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K05. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K06",
+      "name": "Sunion",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 2600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Exited(Flagowiec, Strefa) AND Exited(MinimumFloty, Strefa))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K06. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K07",
+      "name": "Brauron",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 1600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Delivered(DostawaDaru, DarId, PortId) AND ProtectedObjectsIntact(ZbiórId))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K07. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K08",
+      "name": "Egina",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Geographic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(SourcesDisabled(S1, S2) AND OutpostOperational(P1))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K08. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K09",
+      "name": "Delos",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(RouteObserved(R1) AND Delivered(DostawaPoselstwa, PoselstwoId, PortId))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Material",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4–§5, K09. Miejsce rzeczywiste, przebieg fikcyjny; lokalna karta źródłowa do odczytania przed danymi misji (P10)."
+      }
+    },
+    {
+      "id": "K10",
+      "name": "Zatoka Powracających",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Mythic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "Delivered(DostawaPrzedmiotu, PrzedmiotId, PortWyjścia)",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Homer, Odyseja XII, rada Kirke (przekł. S. Butler); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Akwen fikcyjny; docs/MAPY_I_SCENARIUSZE.md §4 K10."
+      }
+    },
+    {
+      "id": "K11",
+      "name": "Lustrzana Skała",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Mythic",
+      "sectorMeters": 1600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "Delivered(DostawaZnaku, ZnakR09, PortWyjścia)",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "TRADYCJA_MITOLOGICZNA",
+        "layer": "Mythic",
+        "locator": "Pseudo-Apollodoros, Biblioteka 2.4.2 (przekł. J. G. Frazer, 1921); odczyt: docs/research/sessions/2026-11-12-0504-p02.md. Akwen fikcyjny; docs/MAPY_I_SCENARIUSZE.md §4 K11."
+      }
+    },
+    {
+      "id": "K12",
+      "name": "Wyspy Kowala",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Mythic",
+      "sectorMeters": 2600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Destroyed(PrzybytekOgniaId) AND Delivered(DostawaWyposażenia, Wyposażenie, PortOdbioru))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4 K12. Akwen fikcyjny. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "K13",
+      "name": "Przejście Boreasza",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Mythic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(Exited(CelRuchomyId, Strefa) AND Exited(Artefakty, Strefa) AND BeforeDeadline(Deadline))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "NIEUSTALONE",
+        "layer": "Mythic",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4 K13. Akwen fikcyjny. Motyw bez odczytanej karty źródłowej; działanie w grze: REGUŁA_GRY."
+      }
+    },
+    {
+      "id": "K14",
+      "name": "Podejście do Attyki",
+      "kind": "Campaign",
+      "ruleset": "campaign-mythic",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 2600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "(FlagshipAlive() AND ((Delivered(DostawaKonwojów, Manifest, PortOdbioru) AND Exited(Ewakuowani, Strefa)) OR Destroyed(GłównyPortCelu)))",
+      "carry": {
+        "flagship": true,
+        "flagshipArtifacts": true,
+        "heroes": true,
+        "evacuatedStore": true,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §4 K14. Nie jest rekonstrukcją nazwanej bitwy."
+      }
+    },
+    {
+      "id": "S00",
+      "name": "Potyczka: dwa porty i cztery pary złóż",
+      "kind": "Skirmish",
+      "ruleset": "skirmish",
+      "implemented": true,
+      "parametersBound": true,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 2600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "MainSideDefeated(1)",
+      "carry": {
+        "flagship": false,
+        "flagshipArtifacts": false,
+        "heroes": false,
+        "evacuatedStore": false,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §6; MapFactory.CreateSkirmish"
+      }
+    },
+    {
+      "id": "S01",
+      "name": "Zatoka i dwa wyjścia",
+      "kind": "Skirmish",
+      "ruleset": "skirmish",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 1600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "MainSideDefeated(1)",
+      "carry": {
+        "flagship": false,
+        "flagshipArtifacts": false,
+        "heroes": false,
+        "evacuatedStore": false,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §6"
+      }
+    },
+    {
+      "id": "S02",
+      "name": "Archipelag trzech szlaków",
+      "kind": "Skirmish",
+      "ruleset": "skirmish",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 2200,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "MainSideDefeated(1)",
+      "carry": {
+        "flagship": false,
+        "flagshipArtifacts": false,
+        "heroes": false,
+        "evacuatedStore": false,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §6"
+      }
+    },
+    {
+      "id": "S03",
+      "name": "Pierścień strażników",
+      "kind": "Skirmish",
+      "ruleset": "skirmish",
+      "implemented": false,
+      "parametersBound": false,
+      "yearBc": null,
+      "sector": "Schematic",
+      "sectorMeters": 2600,
+      "sides": [
+        {
+          "slot": 0,
+          "faction": "Any",
+          "controller": "Human"
+        },
+        {
+          "slot": 1,
+          "faction": "Any",
+          "controller": "MainAi"
+        },
+        {
+          "slot": 2,
+          "faction": "Any",
+          "controller": "Encounters"
+        }
+      ],
+      "hostilePairs": [
+        [0, 1],
+        [0, 2],
+        [1, 2]
+      ],
+      "success": "MainSideDefeated(1)",
+      "carry": {
+        "flagship": false,
+        "flagshipArtifacts": false,
+        "heroes": false,
+        "evacuatedStore": false,
+        "extraManifest": []
+      },
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/MAPY_I_SCENARIUSZE.md §6"
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "id": "A01",
+      "name": "Eskorta grupy",
+      "kind": "EscortGroup",
+      "needsEscorted": true,
+      "needsRoute": false,
+      "needsArea": false,
+      "needsReturn": false,
+      "leastRoutePoints": 0,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §5"
+      }
+    },
+    {
+      "id": "A02",
+      "name": "Zwiad z powrotem",
+      "kind": "ScoutAndReturn",
+      "needsEscorted": false,
+      "needsRoute": true,
+      "needsArea": false,
+      "needsReturn": true,
+      "leastRoutePoints": 1,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §5"
+      }
+    },
+    {
+      "id": "A03",
+      "name": "Patrol",
+      "kind": "Patrol",
+      "needsEscorted": false,
+      "needsRoute": true,
+      "needsArea": false,
+      "needsReturn": false,
+      "leastRoutePoints": 2,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §5"
+      }
+    },
+    {
+      "id": "A04",
+      "name": "Obrona obszaru",
+      "kind": "DefendArea",
+      "needsEscorted": false,
+      "needsRoute": false,
+      "needsArea": true,
+      "needsReturn": false,
+      "leastRoutePoints": 0,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §5"
+      }
+    },
+    {
+      "id": "A05",
+      "name": "Atak w obszarze",
+      "kind": "AttackInArea",
+      "needsEscorted": false,
+      "needsRoute": false,
+      "needsArea": true,
+      "needsReturn": false,
+      "leastRoutePoints": 0,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/KATALOG_MECHANIK.md §5"
+      }
+    }
+  ],
+  "aiProfiles": [
+    {
+      "id": "AI-NAUKA",
+      "name": "Nauka",
+      "isRunningBehaviour": false,
+      "reactionTicks": 90,
+      "strategyTicks": 90,
+      "attackGroupOffset": 0,
+      "regroupCrewShare": 0.5,
+      "boardingOddsAbove": 1.2,
+      "holedHullShare": 0.3,
+      "homeThreatMeters": 250,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §7; docs/GRYWALNOSC_I_ODBIOR.md J03"
+      }
+    },
+    {
+      "id": "AI-STANDARD",
+      "name": "Standard",
+      "isRunningBehaviour": true,
+      "reactionTicks": 30,
+      "strategyTicks": 90,
+      "attackGroupOffset": 0,
+      "regroupCrewShare": 0.5,
+      "boardingOddsAbove": 1.2,
+      "holedHullShare": 0.3,
+      "homeThreatMeters": 250,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §7; docs/GRYWALNOSC_I_ODBIOR.md J03"
+      }
+    },
+    {
+      "id": "AI-WETERAN",
+      "name": "Weteran",
+      "isRunningBehaviour": false,
+      "reactionTicks": 15,
+      "strategyTicks": 90,
+      "attackGroupOffset": 0,
+      "regroupCrewShare": 0.5,
+      "boardingOddsAbove": 1.2,
+      "holedHullShare": 0.3,
+      "homeThreatMeters": 250,
+      "source": {
+        "status": "REGUŁA_GRY",
+        "layer": "GameRule",
+        "locator": "docs/PARAMETRY_ROBOCZE.md §7; docs/GRYWALNOSC_I_ODBIOR.md J03"
+      }
+    }
+  ],
+  "reinforcements": [],
+  "effects": {
+    "divisionStatus": "WORKING_UNTIL_P07",
+    "refs": [
+      {
+        "ownerId": "C04-FIRE",
+        "effectId": "C04-FIRE"
+      },
+      {
+        "ownerId": "C04-MIST",
+        "effectId": "C04-MIST"
+      },
+      {
+        "ownerId": "M01",
+        "effectId": "M01.ZONE"
+      },
+      {
+        "ownerId": "M01",
+        "effectId": "M01.PULL"
+      },
+      {
+        "ownerId": "M02",
+        "effectId": "M02.BARRIER"
+      },
+      {
+        "ownerId": "M02",
+        "effectId": "M02.IMPACT"
+      },
+      {
+        "ownerId": "M03",
+        "effectId": "M03"
+      },
+      {
+        "ownerId": "M04",
+        "effectId": "M04.DAMAGE"
+      },
+      {
+        "ownerId": "M04",
+        "effectId": "M04.COURSE"
+      },
+      {
+        "ownerId": "M05",
+        "effectId": "M05"
+      },
+      {
+        "ownerId": "M06",
+        "effectId": "M06"
+      },
+      {
+        "ownerId": "M07",
+        "effectId": "M07"
+      },
+      {
+        "ownerId": "M08",
+        "effectId": "M08"
+      },
+      {
+        "ownerId": "M09",
+        "effectId": "M09"
+      },
+      {
+        "ownerId": "M10",
+        "effectId": "M10"
+      },
+      {
+        "ownerId": "M11",
+        "effectId": "M11"
+      },
+      {
+        "ownerId": "M12",
+        "effectId": "M12"
+      },
+      {
+        "ownerId": "H01",
+        "effectId": "H01"
+      },
+      {
+        "ownerId": "H02",
+        "effectId": "H02"
+      },
+      {
+        "ownerId": "H03",
+        "effectId": "H03"
+      },
+      {
+        "ownerId": "H04",
+        "effectId": "H04.WIND"
+      },
+      {
+        "ownerId": "H04",
+        "effectId": "H04.WARD"
+      },
+      {
+        "ownerId": "H05",
+        "effectId": "H05"
+      },
+      {
+        "ownerId": "H06",
+        "effectId": "H06.RENEW"
+      },
+      {
+        "ownerId": "H06",
+        "effectId": "H06.WARD"
+      },
+      {
+        "ownerId": "H07",
+        "effectId": "H07"
+      },
+      {
+        "ownerId": "H08",
+        "effectId": "H08"
+      },
+      {
+        "ownerId": "H09",
+        "effectId": "H09"
+      },
+      {
+        "ownerId": "T01",
+        "effectId": "T01.HULL"
+      },
+      {
+        "ownerId": "T01",
+        "effectId": "T01.MODULES"
+      },
+      {
+        "ownerId": "T01",
+        "effectId": "T01.CREW"
+      },
+      {
+        "ownerId": "T02",
+        "effectId": "T02"
+      },
+      {
+        "ownerId": "T03",
+        "effectId": "T03"
+      },
+      {
+        "ownerId": "T04",
+        "effectId": "T04"
+      },
+      {
+        "ownerId": "T05",
+        "effectId": "T05"
+      },
+      {
+        "ownerId": "T06",
+        "effectId": "T06"
+      },
+      {
+        "ownerId": "T07",
+        "effectId": "T07.SPEED"
+      },
+      {
+        "ownerId": "T07",
+        "effectId": "T07.RAM"
+      },
+      {
+        "ownerId": "T08",
+        "effectId": "T08"
+      },
+      {
+        "ownerId": "T09",
+        "effectId": "T09.FIRE"
+      },
+      {
+        "ownerId": "T09",
+        "effectId": "T09.GAZE"
+      },
+      {
+        "ownerId": "T10",
+        "effectId": "T10"
+      },
+      {
+        "ownerId": "T11",
+        "effectId": "T11"
+      },
+      {
+        "ownerId": "Z01",
+        "effectId": "Z01"
+      },
+      {
+        "ownerId": "Z02",
+        "effectId": "Z02"
+      },
+      {
+        "ownerId": "Z03",
+        "effectId": "Z03"
+      },
+      {
+        "ownerId": "Z04",
+        "effectId": "Z04.PULL"
+      },
+      {
+        "ownerId": "Z04",
+        "effectId": "Z04.DAMAGE"
+      },
+      {
+        "ownerId": "Z05",
+        "effectId": "Z05"
+      },
+      {
+        "ownerId": "Z06",
+        "effectId": "Z06"
+      },
+      {
+        "ownerId": "Z07",
+        "effectId": "Z07"
+      },
+      {
+        "ownerId": "Z08",
+        "effectId": "Z08"
+      },
+      {
+        "ownerId": "Z09",
+        "effectId": "Z09"
+      },
+      {
+        "ownerId": "Z10",
+        "effectId": "Z10"
+      },
+      {
+        "ownerId": "Z11",
+        "effectId": "Z11"
+      },
+      {
+        "ownerId": "Z-WIND",
+        "effectId": "Z-WIND.WIND"
+      },
+      {
+        "ownerId": "Z-WIND",
+        "effectId": "Z-WIND.SPOUT"
+      },
+      {
+        "ownerId": "Z-FIRE",
+        "effectId": "Z-FIRE"
+      }
+    ]
+  }
+}

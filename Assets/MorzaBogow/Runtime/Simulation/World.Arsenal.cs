@@ -293,15 +293,17 @@ namespace MorzaBogow.Simulation
 
         CommandReason SaveBlueprint(Command command)
         {
+            // A blueprint is kept, and saved, under its owner: only one of the three slots may have one.
+            if (!Owners.IsValid(command.Faction)) return CommandReason.InvalidOrder;
             if (string.IsNullOrWhiteSpace(command.Name) || command.Loadout == null) return CommandReason.InvalidOrder;
             var slots = ShipCatalog.Get(command.Class).Slots;
             if (command.Loadout.Length != slots.Length) return CommandReason.InvalidOrder;
             for (var i = 0; i < slots.Length; i++) if (!WeaponCatalog.Fits(command.Loadout[i], slots[i])) return CommandReason.InvalidOrder;
             var name = command.Name.Trim();
-            var existing = Blueprints.FirstOrDefault(item => item.Owner == command.Faction && item.Name == name);
+            var existing = Blueprints.FirstOrDefault(item => CanControl(command.Faction, item.Owner) && item.Name == name);
             if (existing == null)
             {
-                if (Blueprints.Count(item => item.Owner == command.Faction) >= Rules.MaxBlueprints) return CommandReason.NoSpace;
+                if (Blueprints.Count(item => CanControl(command.Faction, item.Owner)) >= Rules.MaxBlueprints) return CommandReason.NoSpace;
                 existing = new Blueprint { Id = NextBlueprintId++, Owner = command.Faction, Name = name };
                 Blueprints.Add(existing);
             }

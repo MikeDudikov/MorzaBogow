@@ -163,6 +163,9 @@ namespace MorzaBogow.Tests
             // A note that was never filled in claims nothing.
             Assert.That(new SourceNote().Status, Is.EqualTo(SourceStatus.Undetermined));
             Assert.That(new ReinforcementManifest().Source.Status, Is.EqualTo(SourceStatus.Undetermined));
+            // Nor does it pass for a statement about the material world: its layer is a rule of the game until said otherwise.
+            Assert.That(new SourceNote().Layer, Is.EqualTo(WorldLayer.GameRule));
+            Assert.That(new ReinforcementManifest().Source.Layer, Is.EqualTo(WorldLayer.GameRule));
         }
 
         [Test]
@@ -518,6 +521,51 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Sources_EveryDefinitionHasThePinnedStatusAndLayer()
+        {
+            // The whole map of status and layer, written here by hand: a definition added, dropped, or moved to another
+            // status or layer (also by a default it was never meant to have) fails here until the map is changed on purpose.
+            IEnumerable<string> Numbered(string prefix, int from, int to, string format = "00") => Enumerable.Range(from, to - from + 1).Select(number => prefix + number.ToString(format));
+            var workshopAxes = new[] { "LIGHT", "MEDIUM", "HEAVY" }.SelectMany(group => new[] { "POWER", "RANGE", "CYCLE" }.SelectMany(axis => new[] { 1, 2 }.Select(grade => $"TECH-WS-{group}-{axis}-{grade}")));
+            var pinned = new List<(SourceStatus status, WorldLayer layer, string[] ids)>
+            {
+                // What the inventories attest: the three hull types and nothing else.
+                (SourceStatus.ConfirmedInScope, WorldLayer.Material, new[] { "HULL-TRIERES", "HULL-TETRERES", "HULL-PENTERES" }),
+                // Real places whose own source cards are still to be read (P10).
+                (SourceStatus.Undetermined, WorldLayer.Material, Numbered("K", 1, 9).ToArray()),
+                // Motifs read in a source.
+                (SourceStatus.MythTradition, WorldLayer.Mythic, new[] { "M10", "H08", "H09", "T09", "Z04", "Z05", "K10", "K11" }),
+                // Motifs named by the project and not read in a source.
+                (SourceStatus.Undetermined, WorldLayer.Mythic,
+                    Numbered("M", 1, 9).Concat(new[] { "M11", "M12" }).Concat(Numbered("H", 1, 7)).Concat(Numbered("Z", 1, 3)).Concat(Numbered("Z", 6, 11))
+                        .Concat(new[] { "Z-WIND", "Z-FIRE", "K12", "K13" }).ToArray()),
+                // Fiction of the myths whose working is a rule of the game.
+                (SourceStatus.GameRule, WorldLayer.Mythic, new[] { "C04-FIRE", "C04-MIST" }.Concat(Numbered("T", 1, 8)).Concat(new[] { "T10", "T11" }).Concat(Numbered("R", 1, 9)).ToArray()),
+                // Machines aboard: a rule of the game whose dates were not read.
+                (SourceStatus.Undetermined, WorldLayer.GameRule, Numbered("C03-", 1, 6, "0").ToArray()),
+                // Rules of the game.
+                (SourceStatus.GameRule, WorldLayer.GameRule,
+                    Numbered("N", 1, 12).Concat(Numbered("C06-", 1, 3, "0")).Concat(Numbered("C05-", 1, 3, "0")).Concat(Numbered("B", 1, 10))
+                        .Concat(new[] { "TECH-HEAVY-ARMS", "TECH-COMMAND", "TECH-SPEC-A1", "TECH-SPEC-A2", "TECH-SPEC-B1", "TECH-SPEC-B2", "TECH-ARMOR-2", "TECH-ARMOR-3", "TECH-RAM-2", "TECH-RAM-3", "TECH-DRIVE-1", "TECH-DRIVE-2" })
+                        .Concat(workshopAxes).Concat(Numbered("TECH-LEARN-M", 1, 12)).Concat(Numbered("F", 1, 3)).Concat(new[] { "E05" }).Concat(Numbered("FL", 1, 5, "0"))
+                        .Concat(new[] { "K14" }).Concat(Numbered("S", 0, 3)).Concat(Numbered("A", 1, 5)).Concat(new[] { "AI-NAUKA", "AI-STANDARD", "AI-WETERAN" }).ToArray()),
+            };
+            var expected = pinned.SelectMany(group => group.ids.Select(id => (id, group.status, group.layer))).ToList();
+            Assert.That(expected.Select(item => item.id).Distinct().Count(), Is.EqualTo(expected.Count), "The pinned map names no ID twice.");
+            Assert.That(expected.Count, Is.EqualTo(170));
+
+            var actual = GameCatalog.Default.AllSources().Select(item => (item.id, item.note.Status, item.note.Layer)).ToList();
+            Assert.That(actual.Select(item => item.id), Is.EquivalentTo(expected.Select(item => item.id)), "Every definition is in the map, and the map names nothing else.");
+            var byId = expected.ToDictionary(item => item.id, item => (item.status, item.layer));
+            foreach (var (id, status, layer) in actual) Assert.That((status, layer), Is.EqualTo(byId[id]), id);
+
+            // No status is used that the map does not hold: nothing is a reconstruction or blocked today.
+            Assert.That(actual.Select(item => item.Status).Distinct(), Is.EquivalentTo(new[] { SourceStatus.ConfirmedInScope, SourceStatus.MythTradition, SourceStatus.GameRule, SourceStatus.Undetermined }));
+            // Nothing of the material world is stated as a rule of the game's own making, and nothing confirmed lies outside it.
+            Assert.That(actual.Where(item => item.Layer == WorldLayer.Material).Select(item => item.Status).Distinct(), Is.EquivalentTo(new[] { SourceStatus.ConfirmedInScope, SourceStatus.Undetermined }));
+        }
+
+        [Test]
         public void Machines_SevenTypesInSixFamiliesAndNoneClaimedAsAtticFleetFitting()
         {
             var catalog = GameCatalog.Default;
@@ -553,15 +601,36 @@ namespace MorzaBogow.Tests
             foreach (var profile in catalog.HullProfiles)
             {
                 Assert.That((profile.Source.Status, profile.Source.Layer), Is.EqualTo((SourceStatus.ConfirmedInScope, WorldLayer.Material)), profile.Id);
-                Assert.That(profile.Source.Locator, Does.Contain("Gabrielsen").And.Contain("s. 39"), profile.Id);
-                // Each reading is credited to who made it: pages 37-40 to the coordinator's report, page 43 note 32 and
-                // Diodorus to the reviewer's.
+                Assert.That(profile.Source.Locator, Does.Contain("Gabrielsen").And.Contain("s. 39 Fig. 2"), profile.Id);
+                // Each reading is credited to who made it: pages 37-40 to the coordinator's report.
                 Assert.That(profile.Source.Locator, Does.Contain("s. 37–40: odczyt koordynatora, docs/research/sessions/2026-11-12-0504-p02.md"), profile.Id);
+                Assert.That(profile.Source.Locator, Does.Contain("the Athenian navy: recent archaeological and historical advances"), profile.Id + ": the title as the publisher prints it");
+            }
+            // Page 43 note 32 and Diodorus are the reviewer's reading and speak of the first fours and fives: they stand
+            // with those two and with nothing else.
+            foreach (var profile in catalog.HullProfiles.Where(item => item.Id != "HULL-TRIERES"))
+            {
                 Assert.That(profile.Source.Locator, Does.Contain("0642").And.Contain("odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md"), profile.Id);
                 // The whole phrase, so that the note and Diodorus are tied to the reviewer's report and not merely named beside it.
                 Assert.That(profile.Source.Locator, Does.Contain("s. 43 przyp. 32 oraz Diod. 14.41.3/14.42.2: odczyt recenzenta, docs/research/sessions/2026-11-12-0642-p02-recenzent.md"), profile.Id);
-                Assert.That(profile.Source.Locator, Does.Contain("the Athenian navy: recent archaeological and historical advances"), profile.Id + ": the title as the publisher prints it");
             }
+            // The threes lean on Fig. 2 and the coordinator's reading alone (report 0504): present in every inventory
+            // of 378/7-323/2, 283 of them in 357/6 and 360 in 325/4. Nothing about them is credited to a source that
+            // does not speak of them.
+            var threes = catalog.HullProfiles.Single(item => item.Id == "HULL-TRIERES").Source.Locator;
+            Assert.That(threes, Does.Not.Contain("przyp. 32"));
+            Assert.That(threes, Does.Not.Contain("Diod."));
+            Assert.That(threes, Does.Not.Contain("dziennik"), "A note points at what is kept with the project, not at the studio's local journal.");
+            Assert.That(threes, Does.Not.Contain("s. 43").And.Not.Contain("s. 40"), "Only the page of Fig. 2 is named for the threes.");
+            Assert.That(threes, Does.Contain("Triery w każdym roku Fig. 2 (378/7–323/2); 357/6: 283 triery; 325/4: 360 trier."));
+            Assert.That(threes, Does.Not.Contain("we wszystkich inwentarzach"), "The figure shows years, not every inventory there was.");
+            // The figures are not all read off the stone: the report says which are restored and which years are incomplete (Q10).
+            Assert.That(threes, Does.Contain("325/4: 360 trier. Część liczb Fig. 2 to rekonstrukcje (w nawiasach kwadratowych); 326/5 i 323/2 są niepełne (0504)."));
+            // The rows of the figure were read a second time, by the reviewer of P02-D; the note says who and where.
+            Assert.That(threes, Does.EndWith("niepełne (0504). Wiersze Fig. 2 sprawdził też recenzent: docs/research/sessions/2026-11-12-0642-p02-recenzent.md (przegląd P02-D)."));
+            // The reviewer's report is named once, for that second reading and for nothing else.
+            Assert.That(threes.Split(new[] { "0642" }, StringSplitOptions.None).Length - 1, Is.EqualTo(1));
+            Assert.That(catalog.HullProfiles.Select(item => item.Id), Is.EqualTo(new[] { "HULL-TRIERES", "HULL-TETRERES", "HULL-PENTERES" }));
             Assert.That(catalog.ShipVariants.Select(item => item.Availability.Date), Is.All.Null);
             Assert.That((GameEpoch.EarliestYearBc, GameEpoch.LatestYearBc), Is.EqualTo((400, 301)));
         }
@@ -715,7 +784,7 @@ namespace MorzaBogow.Tests
         }
 
         /// <summary>The definitions whose every field must enter the hash: the first and the last of each list, and a wave of reinforcements.</summary>
-        static List<(string name, object item)> Roots(GameCatalog catalog)
+        internal static List<(string name, object item)> Roots(GameCatalog catalog)
         {
             var roots = new List<(string, object)>();
             void Ends<T>(string name, List<T> list)
@@ -748,7 +817,7 @@ namespace MorzaBogow.Tests
             Source = new SourceNote { Status = SourceStatus.GameRule, Layer = WorldLayer.GameRule, Locator = "docs/MAPY_I_SCENARIUSZE.md §4 K03 (fala próbna testu)" },
         };
 
-        static GameCatalog WithAWave()
+        internal static GameCatalog WithAWave()
         {
             var catalog = GameCatalog.Create();
             catalog.Reinforcements.Add(SoundWave());
@@ -756,7 +825,7 @@ namespace MorzaBogow.Tests
         }
 
         /// <summary>Every way to change one public field of a definition, however deep: the path to it and the change.</summary>
-        static IEnumerable<(string path, Action change)> Changes(object target, string path)
+        internal static IEnumerable<(string path, Action change)> Changes(object target, string path)
         {
             foreach (var field in target.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).OrderBy(item => item.Name, StringComparer.Ordinal))
             {
@@ -767,7 +836,8 @@ namespace MorzaBogow.Tests
                 if (type == typeof(string)) yield return (name, () => Set((string)value + "~"));
                 else if (type == typeof(int)) yield return (name, () => Set((int)value + 1));
                 else if (type == typeof(long)) yield return (name, () => Set((long)value + 1));
-                else if (type == typeof(double)) yield return (name, () => Set((double)value + 0.5));
+                // A quarter or three quarters: a value fifteen digits hold exactly, whatever stood there (CanonicalWriter.Number).
+                else if (type == typeof(double)) yield return (name, () => Set((double)value == 0.25 ? 0.75 : 0.25));
                 else if (type == typeof(bool)) yield return (name, () => Set(!(bool)value));
                 else if (type.IsEnum) yield return (name, () => Set(Enum.ToObject(type, Convert.ToInt32(value) ^ 1)));
                 else if (type.IsArray)
