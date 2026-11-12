@@ -79,7 +79,7 @@ namespace MorzaBogow.Simulation
             var ship = new Ship
             {
                 Id = NextId++, Owner = owner, Class = shipClass, X = x, Y = y, Hull = definition.Hull,
-                Heading = owner == 0 ? 0 : Math.PI,
+                Heading = owner == Owners.Human ? 0 : Math.PI,
                 PaidConstructionWood = TemplatePricing.ConstructionWood(definition),
                 PaidConstructionSilver = TemplatePricing.ConstructionSilver(definition),
                 Plan = definition.PlanFor(definition.DefaultPreset),
@@ -179,7 +179,7 @@ namespace MorzaBogow.Simulation
             {
                 var ship = FindShip(id);
                 // A ship not the side's own, gone or never there, gets one answer: nothing about the enemy leaks (J08).
-                Record(command, id, ship == null || ship.Owner != command.Faction ? CommandReason.NoUnit : ApplyToShip(ship, command));
+                Record(command, id, ship == null || !CanControl(command.Faction, ship.Owner) ? CommandReason.NoUnit : ApplyToShip(ship, command));
             }
         }
 
@@ -224,11 +224,13 @@ namespace MorzaBogow.Simulation
                     if (command.Kind == CommandKind.AttackShip && ShootingProblem(ship) != CommandReason.None) return ShootingProblem(ship);
                     // Every warship carries a ram (docs/UZBROJENIE.md); working ships do not.
                     if (command.Kind == CommandKind.Ram && !ship.Definition.CanRam) return CommandReason.NotCapable;
-                    if (command.Kind == CommandKind.Board && ship.Class == ShipClass.Cutter) return CommandReason.NotCapable;
+                    // Only a main side takes prizes (CanCapture): the independent actors board nobody.
+                    if (command.Kind == CommandKind.Board && (ship.Class == ShipClass.Cutter || !IsMainParticipant(ship.Owner))) return CommandReason.NotCapable;
                     if (command.Kind == CommandKind.Board && ship.Soldiers < Rules.BoardMinSoldiers) return CommandReason.NoCrew;
                     var target = FindShip(command.TargetId);
                     if (target == null || !CanSee(ship.Owner, target)) return CommandReason.NoObservedTarget;
-                    if (target.Owner == ship.Owner) return CommandReason.InvalidTarget;
+                    // A ship is attacked only if its owner is an enemy: one's own, and one of a side at peace, is no target.
+                    if (command.Kind == CommandKind.Board ? !CanCapture(ship.Owner, target) : !IsHostile(ship.Owner, target.Owner)) return CommandReason.InvalidTarget;
                     ClearOrder(ship);
                     ship.TargetId = target.Id;
                     ship.Order = command.Kind == CommandKind.AttackShip ? OrderKind.AttackShip
@@ -274,7 +276,7 @@ namespace MorzaBogow.Simulation
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
                     // A port the side does not see is refused alike whether it stands, fell or never was.
                     if (settlement == null || !CanSee(ship.Owner, settlement.X, settlement.Y)) return CommandReason.NoObservedTarget;
-                    if (settlement.Owner == ship.Owner || settlement.Destroyed) return CommandReason.InvalidTarget;
+                    if (!IsHostile(ship.Owner, settlement.Owner) || settlement.Destroyed) return CommandReason.InvalidTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.AttackSettlement;
                     ship.TargetId = settlement.Id;
@@ -845,7 +847,8 @@ namespace MorzaBogow.Simulation
             {
                 var attacker = FindShip(link.AttackerId);
                 var target = FindShip(link.TargetId);
-                if (attacker == null || target == null || attacker.Hull <= 0 || target.Hull <= 0 || attacker.Owner == target.Owner)
+                // The hooks hold only on a ship the attacker may take: not one that became its own side's or a friend's.
+                if (attacker == null || target == null || attacker.Hull <= 0 || target.Hull <= 0 || !CanCapture(attacker.Owner, target))
                 {
                     Boardings.Remove(link);
                     continue;
@@ -988,6 +991,8 @@ namespace MorzaBogow.Simulation
         /// </summary>
         void Capture(Ship attacker, Ship target)
         {
+            // The one place a ship changes hands: only to a side that may take it (CanCapture).
+            if (!CanCapture(attacker.Owner, target)) return;
             var definition = target.Definition;
             var prize = Math.Min(attacker.Soldiers, definition.BaseSailors);
             var swordsmen = Math.Min(attacker.Swordsmen, prize);
@@ -1015,7 +1020,8 @@ namespace MorzaBogow.Simulation
             target.Owner = attacker.Owner;
             target.Morale = 50;
             ClearOrder(target);
-            foreach (var other in Ships.Where(item => item.TargetId == target.Id && item.Owner == attacker.Owner)) other.Order = OrderKind.Idle;
+            // Whoever was after the prize and is no enemy of its new owner lets it be.
+            foreach (var other in Ships.Where(item => item.TargetId == target.Id && !IsHostile(item.Owner, target.Owner))) other.Order = OrderKind.Idle;
             attacker.Order = OrderKind.Idle;
             attacker.TargetId = -1;
             Emit("ship_captured", target.Id, attacker.Id, target.X, target.Y, 0);
@@ -1063,13 +1069,17 @@ namespace MorzaBogow.Simulation
                 || (port.Available(ResourceType.Wood) >= cutter.CostWood * Rules.Centi && port.Available(ResourceType.Silver) >= cutter.CostSilver * Rules.Centi));
         }
 
+        /// <summary>
+        /// The match is decided between the two main sides only (Owners.IsMainParticipant): what the independent actors
+        /// hold or lose neither ends it nor wins it. Winner stays -1 while nobody has won, and in a draw.
+        /// </summary>
         void CheckVictory()
         {
-            var first = FactionDefeated(0);
-            var second = FactionDefeated(1);
+            var first = FactionDefeated(Owners.Human);
+            var second = FactionDefeated(Owners.MainAi);
             if (!first && !second) return;
             Outcome = first && second ? OutcomeKind.Draw : OutcomeKind.Won;
-            Winner = first && second ? -1 : first ? 1 : 0;
+            Winner = first && second ? -1 : Owners.MainOpponentOf(first ? Owners.Human : Owners.MainAi);
             Emit("match_ended", Winner, -1, 0, 0, 0);
         }
 

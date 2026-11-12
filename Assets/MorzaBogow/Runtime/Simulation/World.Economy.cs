@@ -83,11 +83,11 @@ namespace MorzaBogow.Simulation
         CommandReason QueueShip(int faction, ShipClass shipClass, int settlementId = -1, int blueprintId = -1, bool unarmed = false)
         {
             // A blueprint fixes the class; the hull is ordered at the class price, its other weapons from the workshop.
-            var blueprint = blueprintId >= 0 ? Blueprints.FirstOrDefault(item => item.Id == blueprintId && item.Owner == faction) : null;
+            var blueprint = blueprintId >= 0 ? Blueprints.FirstOrDefault(item => item.Id == blueprintId && CanControl(faction, item.Owner)) : null;
             if (blueprintId >= 0 && blueprint == null) return CommandReason.InvalidOrder;
             if (blueprint != null) shipClass = blueprint.Class;
             var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
-            if (settlement == null || settlement.Owner != faction || settlement.Destroyed) return CommandReason.InvalidTarget;
+            if (settlement == null || !CanControl(faction, settlement.Owner) || settlement.Destroyed) return CommandReason.InvalidTarget;
             var queued = PortsOf(faction).Sum(port => port.WarQueue.Count + port.PortQueue.Count);
             if (Ships.Count(ship => ship.Owner == faction) + queued >= Rules.FleetLimit) return CommandReason.NoSpace;
 
@@ -117,7 +117,7 @@ namespace MorzaBogow.Simulation
         CommandReason CancelQueue(int faction, int index, bool portQueue, int settlementId = -1)
         {
             var settlement = settlementId >= 0 ? FindSettlement(settlementId) : SettlementOf(faction);
-            if (settlement == null || settlement.Owner != faction) return CommandReason.InvalidTarget;
+            if (settlement == null || !CanControl(faction, settlement.Owner)) return CommandReason.InvalidTarget;
             var queue = portQueue ? settlement.PortQueue : settlement.WarQueue;
             if (index < 0 || index >= queue.Count) return CommandReason.InvalidOrder;
 

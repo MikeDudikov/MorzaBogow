@@ -204,7 +204,8 @@ namespace MorzaBogow.Simulation
                     if (ship.Order == OrderKind.AttackSettlement)
                     {
                         settlement = Settlements.FirstOrDefault(item => item.Id == ship.TargetId);
-                        if (settlement != null && (settlement.Destroyed || !InReach(ship, weapon, settlement.X, settlement.Y))) settlement = null;
+                        // A port is shot at only while its owner is an enemy, as a ship is (CanShootAt).
+                        if (settlement != null && (settlement.Destroyed || !IsHostile(ship.Owner, settlement.Owner) || !InReach(ship, weapon, settlement.X, settlement.Y))) settlement = null;
                     }
                     else if (ship.Order == OrderKind.AttackShip)
                     {
@@ -221,7 +222,7 @@ namespace MorzaBogow.Simulation
         }
 
         bool CanShootAt(Ship ship, WeaponDefinition weapon, Ship target) =>
-            target.Owner != ship.Owner && CanSee(ship.Owner, target) && InReach(ship, weapon, target.X, target.Y)
+            IsHostile(ship.Owner, target.Owner) && CanSee(ship.Owner, target) && InReach(ship, weapon, target.X, target.Y)
             && (weapon.Lobbed || !HasIslandBetween(ship.X, ship.Y, target.X, target.Y));
 
         Ship NearestTarget(Ship ship, WeaponDefinition weapon)
@@ -230,7 +231,7 @@ namespace MorzaBogow.Simulation
             var bestDistance = double.MaxValue;
             foreach (var other in Ships)
             {
-                if (other.Owner == ship.Owner) continue;
+                if (!IsHostile(ship.Owner, other.Owner)) continue;
                 var distance = Distance(ship.X, ship.Y, other.X, other.Y);
                 if (distance >= bestDistance || !CanShootAt(ship, weapon, other)) continue;
                 bestDistance = distance;
@@ -309,7 +310,9 @@ namespace MorzaBogow.Simulation
                 }
 
                 var struck = false;
-                foreach (var ship in Ships.Where(item => item.Owner != shot.OwnerId && item.Hull > 0).OrderBy(item => item.Id))
+                // A shot harms only the shooter's enemies, under the point and in its splash alike: neither its own side
+                // nor a side at peace with it (IsHostile).
+                foreach (var ship in Ships.Where(item => IsHostile(shot.OwnerId, item.Owner) && item.Hull > 0).OrderBy(item => item.Id))
                 {
                     var gap = FootprintGap(ship, shot.ToX, shot.ToY);
                     if (gap > 0 && gap > weapon.Splash) continue;
@@ -317,7 +320,7 @@ namespace MorzaBogow.Simulation
                     Emit("projectile_hit", ship.Id, shot.ShooterId, shot.ToX, shot.ToY, (int)shot.Weapon);
                     struck = true;
                 }
-                foreach (var settlement in Settlements.Where(item => item.Owner != shot.OwnerId && !item.Destroyed).OrderBy(item => item.Id))
+                foreach (var settlement in Settlements.Where(item => IsHostile(shot.OwnerId, item.Owner) && !item.Destroyed).OrderBy(item => item.Id))
                 {
                     if (Distance(settlement.X, settlement.Y, shot.ToX, shot.ToY) > SettlementHitRadius + weapon.Splash) continue;
                     settlement.Hull -= weapon.Hull * weapon.BuildingMultiplier;

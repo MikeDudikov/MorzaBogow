@@ -29,6 +29,9 @@ namespace MorzaBogow.Simulation
         /// <summary>Without a fixed group size the opponent waits for the attack group its scenario's profile names.</summary>
         public Opponent(int faction, int? minimumAttackGroup = null)
         {
+            // The opponent plays a main side: it has a home, an enemy home and a result to play for. The independent
+            // actors are run by their encounters, never by it (P02).
+            if (!Owners.IsMainParticipant(faction)) throw new System.ArgumentOutOfRangeException(nameof(faction), faction, "The opponent plays one of the two main sides.");
             this.faction = faction;
             fixedAttackGroup = minimumAttackGroup;
         }
@@ -93,7 +96,7 @@ namespace MorzaBogow.Simulation
         {
             var sent = new HashSet<int>();
             var ports = world.PortsOf(faction).ToList();
-            var enemies = world.Ships.Where(ship => ship.Owner != faction && world.CanSee(faction, ship)).ToList();
+            var enemies = world.Ships.Where(ship => world.IsHostile(faction, ship.Owner) && world.CanSee(faction, ship)).ToList();
             foreach (var wreck in world.Wrecks.OrderBy(item => item.Id))
             {
                 if (wreck.Empty || !world.CanSee(faction, wreck.X, wreck.Y)) continue;
@@ -175,7 +178,7 @@ namespace MorzaBogow.Simulation
         {
             var next = NextBuilding(world, home);
             if (next == ProjectKind.None) return (0, 0);
-            if (world.Ships.Any(ship => ship.Owner != faction && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
+            if (world.Ships.Any(ship => world.IsHostile(faction, ship.Owner) && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
             var (wood, silver, _) = World.ProjectCost(next);
             return (wood, silver);
         }
@@ -219,7 +222,7 @@ namespace MorzaBogow.Simulation
         {
             if (!world.Ships.Any(ship => ship.Owner == faction && ship.Class == ShipClass.Merchant && ship.Order == OrderKind.Idle)) return (0, 0);
             if (world.Ships.Count(ship => ship.Owner == faction && !ship.Definition.IsEconomic) < minimumAttackGroup) return (0, 0);
-            if (world.Ships.Any(ship => ship.Owner != faction && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
+            if (world.Ships.Any(ship => world.IsHostile(faction, ship.Owner) && world.CanSee(faction, ship) && World.Distance(ship.X, ship.Y, home.X, home.Y) < 250)) return (0, 0);
 
             var outposts = world.PortsOf(faction).Where(port => port.IsOutpost).OrderBy(port => port.Id).ToList();
             foreach (var outpost in outposts)
@@ -328,11 +331,11 @@ namespace MorzaBogow.Simulation
         void ManageFleet(World world)
         {
             var home = world.SettlementOf(faction);
-            var enemyHome = world.SettlementOf(1 - faction);
+            var enemyHome = world.SettlementOf(Owners.MainOpponentOf(faction));
             if (home == null || enemyHome == null) return;
 
             var warships = world.Ships.Where(ship => ship.Owner == faction && !ship.Definition.IsEconomic).OrderBy(ship => ship.Id).ToList();
-            var visibleEnemies = world.Ships.Where(ship => ship.Owner != faction && world.CanSee(faction, ship)).OrderBy(ship => ship.Id).ToList();
+            var visibleEnemies = world.Ships.Where(ship => world.IsHostile(faction, ship.Owner) && world.CanSee(faction, ship)).OrderBy(ship => ship.Id).ToList();
 
             var active = new List<Ship>();
             foreach (var ship in warships)
@@ -356,6 +359,8 @@ namespace MorzaBogow.Simulation
             }
 
             var threatened = visibleEnemies.Any(enemy => World.Distance(enemy.X, enemy.Y, home.X, home.Y) < 250);
+            // The main opponent is sailed against, and its port attacked, only while the two sides are at war.
+            var atWar = world.IsHostile(faction, enemyHome.Owner);
             if ((Passive || active.Count < minimumAttackGroup) && !threatened) return;
 
             foreach (var ship in active)
@@ -365,7 +370,7 @@ namespace MorzaBogow.Simulation
                 var current = world.FindShip(ship.TargetId);
                 // The other way round as well: a boarder shooting at a ship that was making off boards it once it sees it
                 // lie still or slow down. Left at its javelins it would sink what it could take (A02).
-                if (current != null && ship.Order == OrderKind.AttackShip && current.Owner != faction && world.CanSee(faction, current) && WouldBoard(ship, current))
+                if (current != null && ship.Order == OrderKind.AttackShip && world.IsHostile(faction, current.Owner) && world.CanSee(faction, current) && WouldBoard(ship, current))
                 {
                     world.Issue(new Command { Faction = faction, Kind = CommandKind.Board, ShipIds = new[] { ship.Id }, TargetId = current.Id });
                     continue;
@@ -386,11 +391,11 @@ namespace MorzaBogow.Simulation
                         : CommandKind.AttackShip;
                     if (kind != CommandKind.AttackShip || canShoot) world.Issue(new Command { Faction = faction, Kind = kind, ShipIds = new[] { ship.Id }, TargetId = target.Id });
                 }
-                else if (world.CanSee(faction, enemyHome.X, enemyHome.Y) && !enemyHome.Destroyed)
+                else if (atWar && world.CanSee(faction, enemyHome.X, enemyHome.Y) && !enemyHome.Destroyed)
                 {
                     if (ship.Order != OrderKind.AttackSettlement && canShoot) world.Issue(new Command { Faction = faction, Kind = CommandKind.AttackSettlement, ShipIds = new[] { ship.Id }, TargetId = enemyHome.Id });
                 }
-                else if (ship.Order != OrderKind.Move)
+                else if (atWar && ship.Order != OrderKind.Move)
                 {
                     world.Issue(new Command { Faction = faction, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = enemyHome.X, Y = enemyHome.Y + (ship.Id % 5 - 2) * 25 });
                 }

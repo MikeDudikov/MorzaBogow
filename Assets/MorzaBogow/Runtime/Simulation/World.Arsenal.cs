@@ -79,7 +79,7 @@ namespace MorzaBogow.Simulation
         CommandReason BeginProject(int faction, int settlementId, ProjectKind kind)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (port == null || !CanControl(faction, port.Owner)) return CommandReason.InvalidTarget;
             var check = ProjectCheck(port, kind).reason;
             if (check != CommandReason.None) return check;
             var (wood, silver, seconds) = ProjectCost(kind);
@@ -93,7 +93,7 @@ namespace MorzaBogow.Simulation
         CommandReason CancelProject(int faction, int settlementId)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (port == null || !CanControl(faction, port.Owner)) return CommandReason.InvalidTarget;
             if (port.Project == null) return CommandReason.NothingToDo;
             Settle(port, QuoteOrder(port.Project));
             port.Project = null;
@@ -182,7 +182,7 @@ namespace MorzaBogow.Simulation
         CommandReason QueueWeapon(int faction, int settlementId, WeaponType weapon)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (port == null || !CanControl(faction, port.Owner)) return CommandReason.InvalidTarget;
             var check = WeaponCheck(port, weapon).reason;
             if (check != CommandReason.None) return check;
             var definition = WeaponCatalog.Get(weapon);
@@ -197,7 +197,7 @@ namespace MorzaBogow.Simulation
         CommandReason CancelWeapon(int faction, int settlementId, int index)
         {
             var port = FindSettlement(settlementId);
-            if (port == null || port.Owner != faction) return CommandReason.InvalidTarget;
+            if (port == null || !CanControl(faction, port.Owner)) return CommandReason.InvalidTarget;
             if (index < 0 || index >= port.WorkshopQueue.Count) return CommandReason.InvalidOrder;
             Settle(port, QuoteOrder(port.WorkshopQueue[index]));
             port.WorkshopQueue.RemoveAt(index);
@@ -322,7 +322,7 @@ namespace MorzaBogow.Simulation
         /// <summary>A launched hull built after a blueprint takes its plans; the regroup in port does the rest.</summary>
         void ApplyBlueprint(Ship ship, int blueprintId)
         {
-            var blueprint = Blueprints.FirstOrDefault(item => item.Id == blueprintId && item.Owner == ship.Owner && item.Class == ship.Class);
+            var blueprint = Blueprints.FirstOrDefault(item => item.Id == blueprintId && CanControl(ship.Owner, item.Owner) && item.Class == ship.Class);
             if (blueprint == null) return;
             ship.Plan = ship.Definition.PlanFor(blueprint.Preset);
             if (LoadoutValid(ship.Owner, ship.Class, blueprint.Loadout)) ship.Loadout = (WeaponType[])blueprint.Loadout.Clone();
