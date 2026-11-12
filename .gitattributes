@@ -1,0 +1,3 @@
+# Pliki JSON w qa czytają narzędzia spoza gry i testy porównujące bajty.
+# Zawsze LF, niezależnie od core.autocrlf, żeby skróty SHA-256 nie zależały od checkoutu.
+qa/*.json text eol=lf
