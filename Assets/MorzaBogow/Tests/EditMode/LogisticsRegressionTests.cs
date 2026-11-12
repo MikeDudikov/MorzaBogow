@@ -43,7 +43,9 @@ namespace MorzaBogow.Tests
         /// sails while another of it is still to load. The plan does not state that rule itself; it asks that the working
         /// convoys be kept (docs/NOWY_PLAN_GRY.md §4 and §12). Two checks, each of its own kind of fault:
         /// the world's own answer (ConvoyStillLoading) for every loaded member must be what the members' public state
-        /// says, a member of its group at Transport ≤ Loading; and no member is farther than DepartedMeters from the
+        /// says, a member of its group in a phase before its departure (World.BeforeDeparture, the one public rule the
+        /// convoys themselves use; Convoy_EveryTransportPhaseIsClassedAsBeforeOrAfterDeparture pins that rule phase by
+        /// phase); and no member is farther than DepartedMeters from the
         /// source before the last tick anybody of the group was still to load. The second sees a member sent on ahead only
         /// if it gets that far while the other still loads, so it needs a wait longer than the way out.
         /// </summary>
@@ -57,11 +59,11 @@ namespace MorzaBogow.Tests
             public void After(World world, Ship[] ships, Settlement source)
             {
                 var group = ships.Where(ship => ship.Order == OrderKind.Convoy && ship.ConvoyGroup >= 0).ToList();
-                if (group.Any(ship => ship.Transport <= TransportPhase.Loading)) LastLoading = world.Tick;
+                if (group.Any(ship => World.BeforeDeparture(ship.Transport))) LastLoading = world.Tick;
                 foreach (var ship in group)
                 {
                     if (ship.Transport != TransportPhase.ToDestination) { waiting.Remove(ship.Id); continue; }
-                    var expected = group.Any(other => other != ship && other.ConvoyGroup == ship.ConvoyGroup && other.Transport <= TransportPhase.Loading);
+                    var expected = group.Any(other => other != ship && other.ConvoyGroup == ship.ConvoyGroup && World.BeforeDeparture(other.Transport));
                     Assert.That(world.ConvoyStillLoading(ship), Is.EqualTo(expected), $"Ship {ship.Id}, tick {world.Tick}: whether another of its group is still to load.");
                     if (expected) WaitingTicks++;
                     if (waiting.TryGetValue(ship.Id, out var before) && before && !expected) Releases++;
@@ -79,6 +81,39 @@ namespace MorzaBogow.Tests
                 Assert.That(Departed.Values.All(tick => tick > LastLoading), Is.True,
                     $"Nobody was more than {DepartedMeters} m from the source while another of the group was still to load (left at {string.Join(", ", Departed.Values)}, last loading at {LastLoading}).");
             }
+        }
+
+        /// <summary>
+        /// The rule of "not yet sailed" phase by phase, written out here on its own: a carrier bound for its source,
+        /// waiting for a berth there or loading has still to depart; every other phase has not. A phase added to the
+        /// game must be classed here too: the test fails for a value this table does not name, so a new phase cannot
+        /// fall silently on either side.
+        /// </summary>
+        [Test]
+        public void Convoy_EveryTransportPhaseIsClassedAsBeforeOrAfterDeparture()
+        {
+            var table = new System.Collections.Generic.Dictionary<TransportPhase, bool>
+            {
+                { TransportPhase.ToSource, true },
+                { TransportPhase.WaitSourceBerth, true },
+                { TransportPhase.Loading, true },
+                { TransportPhase.ToDestination, false },
+                { TransportPhase.WaitDestinationBerth, false },
+                { TransportPhase.Unloading, false },
+                { TransportPhase.Building, false },
+                { TransportPhase.Standby, false },
+            };
+            var phases = (TransportPhase[])Enum.GetValues(typeof(TransportPhase));
+            Assert.That(phases, Has.Length.EqualTo(8), "The saved numbers 0-7; a ninth phase must be classed below before this count is raised.");
+            foreach (var phase in phases)
+            {
+                Assert.That(table.ContainsKey(phase), Is.True, $"{phase} is not classed: say whether a carrier in it has still to leave its source.");
+                Assert.That(World.BeforeDeparture(phase), Is.EqualTo(table[phase]), $"{phase}.");
+            }
+            Assert.That(table.Keys, Is.EquivalentTo(phases), "The table names nothing that is no phase.");
+            // A number that is no phase (a damaged save) is no departure to wait for, and no exception in a step.
+            Assert.That(World.BeforeDeparture((TransportPhase)(-1)), Is.False);
+            Assert.That(World.BeforeDeparture((TransportPhase)phases.Length), Is.False);
         }
 
         [TestCase(-330, 1)]
@@ -149,7 +184,7 @@ namespace MorzaBogow.Tests
                 world.Step();
                 if (tick % Rules.TickRate == 0) AssertBookings(world);
                 watch.After(world, ships, source);
-                if (near.Transport == TransportPhase.ToDestination && far.Transport <= TransportPhase.Loading)
+                if (near.Transport == TransportPhase.ToDestination && World.BeforeDeparture(far.Transport))
                 {
                     nearWaiting++;
                     Assert.That(World.Distance(near.X, near.Y, source.X, source.Y), Is.LessThanOrEqualTo(ConvoyWatch.DepartedMeters), $"Tick {world.Tick}: the loaded member stays by the source while the other is still to load.");

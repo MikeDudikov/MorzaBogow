@@ -20,6 +20,31 @@ namespace MorzaBogow.Simulation
         public static bool Carries(Ship ship) => ship.Order == OrderKind.Transfer || ship.Order == OrderKind.Expedition || ship.Order == OrderKind.Convoy;
 
         /// <summary>
+        /// Whether a carrier in this phase has still to leave its source: on its way there, waiting for a berth there or
+        /// loading. The one rule of "not yet sailed" for the convoys, the interface and the tests; it does not lean on the
+        /// order of the saved numbers. Every phase is named, and the test of this table asks the same of a new one; a
+        /// number that is no phase at all (a damaged save) is no departure to wait for.
+        /// </summary>
+        public static bool BeforeDeparture(TransportPhase phase)
+        {
+            switch (phase)
+            {
+                case TransportPhase.ToSource:
+                case TransportPhase.WaitSourceBerth:
+                case TransportPhase.Loading:
+                    return true;
+                case TransportPhase.ToDestination:
+                case TransportPhase.WaitDestinationBerth:
+                case TransportPhase.Unloading:
+                case TransportPhase.Building:
+                case TransportPhase.Standby:
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// The port a side's convoys supply: the one it named, else its home port; null when neither stands. A slot that
         /// is none of the three has no port.
         /// </summary>
@@ -146,11 +171,11 @@ namespace MorzaBogow.Simulation
             var forming = Ships
                 .Where(other => other != ship && CanControl(ship.Owner, other.Owner) && other.Order == OrderKind.Convoy && other.ConvoyGroup >= 0 && other.DestinationId == target.Id)
                 .GroupBy(other => other.ConvoyGroup)
-                .Where(members => members.Count() < Rules.ConvoySize && members.Any(member => member.Transport <= TransportPhase.Loading))
+                .Where(members => members.Count() < Rules.ConvoySize && members.Any(member => BeforeDeparture(member.Transport)))
                 .OrderBy(members => members.Key);
             foreach (var members in forming)
             {
-                var candidate = FindSettlement(members.First(member => member.Transport <= TransportPhase.Loading).SourceId);
+                var candidate = FindSettlement(members.First(member => BeforeDeparture(member.Transport)).SourceId);
                 if (candidate == null || candidate.Destroyed || !CanControl(ship.Owner, candidate.Owner) || ConvoySurplus(candidate, needWood, needSilver) <= 0) continue;
                 source = candidate;
                 group = members.Key;
@@ -220,7 +245,7 @@ namespace MorzaBogow.Simulation
             {
                 if (other == ship || !CanControl(ship.Owner, other.Owner) || other.Order != OrderKind.Convoy
                     || other.ConvoyGroup != ship.ConvoyGroup || other.SourceId != source.Id
-                    || other.Transport > TransportPhase.Loading) continue;
+                    || !BeforeDeparture(other.Transport)) continue;
                 clearance = Math.Min(clearance, LandShape.PointSegmentDistance(x, y, other.X, other.Y, source.X, source.Y)
                     - ship.Definition.Radius - other.Definition.Radius);
             }
@@ -230,6 +255,6 @@ namespace MorzaBogow.Simulation
         /// <summary>A convoy sails together: a loaded member waits by the source while another of its group still loads.</summary>
         public bool ConvoyStillLoading(Ship ship) =>
             ship.ConvoyGroup >= 0 && Ships.Any(other => other != ship && CanControl(ship.Owner, other.Owner) && other.Order == OrderKind.Convoy
-                && other.ConvoyGroup == ship.ConvoyGroup && other.Transport <= TransportPhase.Loading);
+                && other.ConvoyGroup == ship.ConvoyGroup && BeforeDeparture(other.Transport));
     }
 }

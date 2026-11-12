@@ -1991,7 +1991,7 @@ namespace MorzaBogow.Presentation
                 case OrderKind.Transfer:
                 case OrderKind.Expedition:
                 case OrderKind.Convoy:
-                    if (ship.Transport <= TransportPhase.Loading)
+                    if (World.BeforeDeparture(ship.Transport))
                     {
                         var source = World.FindSettlement(ship.SourceId);
                         if (source == null) return false;
