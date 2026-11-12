@@ -623,24 +623,64 @@ namespace MorzaBogow.Tests
             // still pending, and nothing runs before the player resumes.
             yield return null;
             var path = Path.Combine(Application.temporaryCachePath, "battle-pause.mbsave");
-            battle.RunTicks(60);
-            var world = battle.World;
-            var ship = world.Ships.First(item => item.Owner == BattleController.PlayerFaction);
-            var id = world.Issue(new Command { Faction = BattleController.PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X + 60, Y = ship.Y });
-            var tick = world.Tick;
-            battle.QuickSave(path);
-            Assert.That(world.Tick, Is.EqualTo(tick), "Saving in a pause takes no step.");
-            Assert.That(world.Pending.Select(command => command.Id), Does.Contain(id), "The order still waits.");
+            try
+            {
+                battle.RunTicks(60);
+                var world = battle.World;
+                var ship = world.Ships.First(item => item.Owner == BattleController.PlayerFaction);
+                var id = world.Issue(new Command { Faction = BattleController.PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = ship.X + 60, Y = ship.Y });
+                var tick = world.Tick;
+                Assert.That(battle.QuickSave(path), Is.True);
+                Assert.That(world.Tick, Is.EqualTo(tick), "Saving in a pause takes no step.");
+                Assert.That(world.Pending.Select(command => command.Id), Does.Contain(id), "The order still waits.");
 
-            battle.Paused = false;
-            Assert.That(battle.QuickLoad(path), Is.True);
-            Assert.That(battle.Paused, Is.True, "Control comes back in a pause.");
-            for (var frame = 0; frame < 5; frame++) yield return null;
-            Assert.That(battle.World.Tick, Is.EqualTo(tick), "Nothing runs before the player resumes.");
-            Assert.That(battle.World.Pending.Select(command => command.Id), Does.Contain(id), "The order waits for the next step.");
+                battle.Paused = false;
+                Assert.That(battle.QuickLoad(path), Is.True);
+                Assert.That(battle.Paused, Is.True, "Control comes back in a pause.");
+                for (var frame = 0; frame < 5; frame++) yield return null;
+                Assert.That(battle.World.Tick, Is.EqualTo(tick), "Nothing runs before the player resumes.");
+                Assert.That(battle.World.Pending.Select(command => command.Id), Does.Contain(id), "The order waits for the next step.");
+                battle.RunTicks(1);
+                Assert.That(battle.World.FindShip(ship.Id).Order, Is.EqualTo(OrderKind.Move), "Resumed, the order applies at the next step.");
+            }
+            finally
+            {
+                foreach (var file in new[] { path, ShipLookBook.PathBeside(path), DestructionBook.PathBeside(path) })
+                {
+                    if (File.Exists(file)) File.Delete(file);
+                    if (File.Exists(file + ".bak")) File.Delete(file + ".bak");
+                }
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Save_AFailedSaveSaysSoAndTheMatchGoesOn()
+        {
+            // J10: an error while saving is told plainly, nothing pretends success, and the match is the same one.
+            yield return null;
+            var world = battle.World;
+            var path = Path.Combine(Application.temporaryCachePath, "no-such-folder-" + System.Guid.NewGuid().ToString("N"), "battle.mbsave");
+            Assert.That(battle.QuickSave(path), Is.False);
+            Assert.That(battle.LastNotice, Does.StartWith("Nie można zapisać gry"));
+            Assert.That(battle.World, Is.SameAs(world));
+            var tick = world.Tick;
             battle.RunTicks(1);
-            Assert.That(battle.World.FindShip(ship.Id).Order, Is.EqualTo(OrderKind.Move), "Resumed, the order applies at the next step.");
-            File.Delete(path);
+            Assert.That(world.Tick, Is.EqualTo(tick + 1), "The match goes on.");
+        }
+
+        [UnityTest]
+        public IEnumerator Loadout_TwoChangesGivenInOnePauseBothStand()
+        {
+            // J02: planning in a pause; a second change of the weapons builds on the first, still pending, not on the old plan.
+            yield return null;
+            var world = battle.World;
+            var home = world.SettlementOf(BattleController.PlayerFaction);
+            var ram = world.SpawnShip(BattleController.PlayerFaction, ShipClass.Ram, home.X + 60, home.Y);
+            Assert.That(ram.Loadout, Is.EqualTo(new[] { WeaponType.ArcherBank, WeaponType.None }));
+            battle.SetWeapon(ram.Id, 1, WeaponType.Scorpion);
+            battle.SetWeapon(ram.Id, 0, WeaponType.JavelinBank);
+            battle.RunTicks(1);
+            Assert.That(ram.Loadout, Is.EqualTo(new[] { WeaponType.JavelinBank, WeaponType.Scorpion }), "Both changes stand.");
         }
 
         [UnityTest]

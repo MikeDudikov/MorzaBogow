@@ -326,12 +326,17 @@ namespace MorzaBogow.Simulation
     /// <summary>
     /// Convoy puts merchants on convoy duty; SetPriorityPort names the port the side's convoys supply (TargetId, -1 the
     /// home port); SetPortMinimum sets what a port keeps against automatic loads (TargetId, Wood, Silver).
+    /// Saved by number with pending orders (SaveGame 19): new kinds go last, existing ones never move.
     /// </summary>
     public enum CommandKind { Move, Harvest, AttackShip, AttackSettlement, Ram, Board, Stop, QueueShip, CancelQueue, Salvage, Repair, Scrap, Transfer, FoundOutpost, Escort, BuildShipyard, SetCrewPlan, BuildProject, CancelProject, QueueWeapon, CancelWeapon, SetLoadout, SaveBlueprint, Convoy, SetPriorityPort, SetPortMinimum }
 
     public sealed class Command
     {
-        /// <summary>The order's number (CommandId, J02): World.Issue gives each order the next one; saved with Pending.</summary>
+        /// <summary>
+        /// The order's number (CommandId, J02): World.Issue gives each order the next one; saved with Pending. An internal
+        /// key for the order's results only: one count serves both sides, so the interface never shows it and the AI never
+        /// decides by it, or the gaps would tell how many orders the other side gave (J03, J08).
+        /// </summary>
         public int Id;
 
         public int Faction;

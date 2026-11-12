@@ -325,12 +325,15 @@ namespace MorzaBogow.Simulation
             foreach (var ship in warships)
             {
                 // A badly holed hull goes to the dock when the side has one (only a dock mends); a crew with half its
-                // fighters gone (swordsmen, javelin men and archers alike, as aboard so in the plan) goes home to regroup,
-                // only when the home port can pay the muster now: a ship waiting in port for silver is lost to the fleet.
+                // fighters gone (swordsmen, javelin men and archers alike, as aboard so in the plan) goes to regroup,
+                // only when the yard it would sail to can pay the muster now: a ship waiting in port for silver is lost
+                // to the fleet. A ship locked in a boarding fights it out: regrouping would cast off the hooks.
+                var grappled = world.Boardings.Any(link => link.AttackerId == ship.Id || link.TargetId == ship.Id);
                 var holed = ship.Hull < ship.Definition.Hull * 0.3 && world.HasDock(faction);
+                var yard = world.RepairYard(ship);
                 var crewSpent = ship.Plan.Soldiers > 0 && ship.Soldiers * 2 < ship.Plan.Soldiers
-                                && home.Available(ResourceType.Silver) >= World.MusterCost(ship) + Rules.ReserveSilver;
-                if (holed || crewSpent)
+                                && yard != null && yard.Available(ResourceType.Silver) >= World.MusterCost(ship) + Rules.ReserveSilver;
+                if (!grappled && (holed || crewSpent))
                 {
                     if (ship.Order != OrderKind.Repair) world.Issue(new Command { Faction = faction, Kind = CommandKind.Repair, ShipIds = new[] { ship.Id } });
                     continue;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using MorzaBogow.Simulation;
 using NUnit.Framework;
 
@@ -1374,6 +1375,61 @@ namespace MorzaBogow.Tests
             Assert.That(Regroups(belowHalf, 0, 0, silver: 0), Is.False, "Without the silver for the muster it stays with the fleet.");
         }
 
+        [Test]
+        public void Opponent_TheRegroupThresholdIsHalfOfEveryPlansFighters()
+        {
+            foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
+            {
+                if (ShipCatalog.Get(shipClass).IsEconomic) continue;
+                foreach (CrewPreset preset in Enum.GetValues(typeof(CrewPreset)))
+                {
+                    if (preset == CrewPreset.Custom) continue;
+                    var plan = ShipCatalog.Get(shipClass).PlanFor(preset);
+                    if (plan.Soldiers == 0) continue;
+                    bool Regroups(int fighters)
+                    {
+                        var world = Empty();
+                        var ship = world.SpawnShip(0, shipClass, -400, 0);
+                        ship.Plan = plan;
+                        ship.Swordsmen = fighters; ship.Javelins = 0; ship.Archers = 0;
+                        new Opponent(0).Think(world);
+                        return world.Pending.Any(command => command.Kind == CommandKind.Repair && command.ShipIds.Contains(ship.Id));
+                    }
+                    var below = (plan.Soldiers - 1) / 2;
+                    Assert.That(Regroups(below), Is.True, $"{shipClass} {preset}: {below} of {plan.Soldiers} fighters left.");
+                    Assert.That(Regroups(below + 1), Is.False, $"{shipClass} {preset}: {below + 1} of {plan.Soldiers} fighters left.");
+                }
+            }
+        }
+
+        [Test]
+        public void Opponent_RegroupsOnlyWhereTheMusterCanBePaidAndNeverOutOfABoarding()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            // A bridgehead with a shipyard lies nearer the spent ship than home, and has no silver for its muster.
+            var bridgehead = new Settlement { Id = world.NextId++, Owner = 0, X = -300, Y = 0, IsOutpost = true, Hull = Rules.OutpostHull };
+            world.Settlements.Add(bridgehead);
+            var ship = world.SpawnShip(0, ShipClass.Boarder, -320, 0);
+            ship.Swordsmen = 10; ship.Javelins = 0; ship.Archers = 0;
+            Assert.That(world.RepairYard(ship), Is.SameAs(bridgehead));
+            Assert.That(home.Available(ResourceType.Silver), Is.GreaterThan(World.MusterCost(ship) + Rules.ReserveSilver), "Home could pay it.");
+            new Opponent(0).Think(world);
+            Assert.That(world.Pending.Any(command => command.Kind == CommandKind.Repair), Is.False, "The yard it would sail to cannot: it stays with the fleet.");
+            bridgehead.Silver = 1500 * Rules.Centi;
+            new Opponent(0).Think(world);
+            Assert.That(world.Pending.Count(command => command.Kind == CommandKind.Repair && command.ShipIds.Contains(ship.Id)), Is.EqualTo(1), "Now the yard can pay.");
+
+            // Locked in a boarding it fights it out, however many it has lost: regrouping would cast off the hooks.
+            var other = Empty();
+            var boarder = other.SpawnShip(0, ShipClass.Boarder, -400, 0);
+            var enemy = other.SpawnShip(1, ShipClass.Ram, -380, 0);
+            boarder.Swordsmen = 10; boarder.Javelins = 0; boarder.Archers = 0;
+            other.Boardings.Add(new BoardingLink { AttackerId = boarder.Id, TargetId = enemy.Id, Hooked = true });
+            new Opponent(0).Think(other);
+            Assert.That(other.Pending.Any(command => command.Kind == CommandKind.Repair && command.ShipIds.Contains(boarder.Id)), Is.False);
+        }
+
         // ---------- Order results (J02, J08) ----------
 
         static (CommandOutcome, CommandReason) ResultOf(World world, int commandId, int shipId = -1)
@@ -1499,6 +1555,23 @@ namespace MorzaBogow.Tests
             world.Step();
             Assert.That(ResultOf(world, taken), Is.EqualTo((CommandOutcome.Accepted, CommandReason.None)));
             Assert.That(home.PortQueue.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Order_ATransferOfANegativeLoadIsRefusedAndBooksNothing()
+        {
+            var world = Empty();
+            var home = world.SettlementOf(0);
+            var outpost = new Settlement { Id = world.NextId++, Owner = 0, X = -200, Y = 0, IsOutpost = true, HasShipyard = false, Hull = Rules.OutpostHull };
+            world.Settlements.Add(outpost);
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, -420, 0);
+            var available = home.Available(ResourceType.Silver);
+            var id = world.Issue(new Command { Faction = 0, Kind = CommandKind.Transfer, ShipIds = new[] { merchant.Id }, TargetId = outpost.Id, SourceId = home.Id, Wood = 100 * Rules.Centi, Silver = -50 * Rules.Centi });
+            world.Step();
+            Assert.That(ResultOf(world, id, merchant.Id), Is.EqualTo((CommandOutcome.Rejected, CommandReason.InvalidOrder)));
+            Assert.That(home.ReservedWood + home.ReservedSilver, Is.Zero, "No reservation, least of all a negative one.");
+            Assert.That(home.Available(ResourceType.Silver), Is.EqualTo(available));
+            Assert.That(merchant.Order, Is.Not.EqualTo(OrderKind.Transfer));
         }
 
         [Test]
@@ -1853,6 +1926,58 @@ namespace MorzaBogow.Tests
             Assert.That(AfterLoad(CommandKind.Move, CommandKind.Stop, out var a, out var aLast).Order, Is.EqualTo(OrderKind.Idle), "Move then Stop: the ship stops.");
             Assert.That(AfterLoad(CommandKind.Stop, CommandKind.Move, out _, out _).Order, Is.EqualTo(OrderKind.Move), "Stop then Move: the ship sails.");
             Assert.That(a.Issue(new Command { Faction = 0, Kind = CommandKind.Stop }), Is.EqualTo(aLast + 1), "Numbering goes on after loading.");
+        }
+
+        [Test]
+        public void Save_EveryFieldOfAPendingOrderComesBack()
+        {
+            // Every public field of Command, set apart from its default, goes through the save. A field added to Command
+            // and left out of SaveGame on both sides makes this fail.
+            object Sample(Type type)
+            {
+                if (type == typeof(int)) return 17;
+                if (type == typeof(long)) return 123456789L;
+                if (type == typeof(double)) return -42.625;
+                if (type == typeof(bool)) return true;
+                if (type == typeof(string)) return "Wzór próbny";
+                if (type == typeof(int[])) return new[] { 3, 5, 8 };
+                if (type == typeof(WeaponType[])) return new[] { WeaponType.Scorpion, WeaponType.None, WeaponType.ArcherBank };
+                if (type == typeof(CrewPlan)) return new CrewPlan { Sailors = 3, Swordsmen = 4, Javelins = 5, Archers = 6, Preset = CrewPreset.Volley };
+                if (type.IsEnum) { var values = Enum.GetValues(type); return values.GetValue(values.Length - 1); }
+                Assert.Fail($"A Command field of type {type.Name} has no sample here: add one, and its place in SaveGame.");
+                return null;
+            }
+
+            var world = Empty();
+            var command = new Command();
+            var fields = typeof(Command).GetFields(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var field in fields) if (field.Name != nameof(Command.Id)) field.SetValue(command, Sample(field.FieldType));
+            world.Issue(command);
+            var copy = SaveGame.Deserialize(SaveGame.Serialize(world), out _).Pending.Single();
+            foreach (var field in fields) Assert.That(field.GetValue(copy), Is.EqualTo(field.GetValue(command)), field.Name);
+            Assert.That(fields.Length, Is.GreaterThanOrEqualTo(21), "Every field of the order is compared.");
+        }
+
+        [Test]
+        public void Save_ADamagedPendingOrderIsRefusedBeforeTheMatchIsReplaced()
+        {
+            // J10: a damaged order is caught when the file is read, so the running match stays; it never reaches a step.
+            byte[] SavedWith(Action<World> damage)
+            {
+                var world = Empty();
+                world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+                damage(world);
+                return SaveGame.Serialize(world);
+            }
+
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = (ShipClass)99 })), out _), "A class beyond the catalogue.");
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.QueueWeapon, Weapon = (WeaponType)42 })), out _), "A weapon beyond the catalogue.");
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.SetLoadout, Loadout = new[] { WeaponType.ArcherBank, (WeaponType)77 } })), out _), "A planned post beyond the catalogue.");
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.Move, X = double.NaN })), out _), "A position that is no number.");
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.Transfer, Silver = -5000 })), out _), "A negative load.");
+            Assert.Throws<InvalidDataException>(() => SaveGame.Deserialize(SavedWith(w => w.NextCommandId = 0), out _), "A broken order count.");
+            var sound = SaveGame.Deserialize(SavedWith(w => w.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Cutter })), out _);
+            Assert.That(sound.Pending.Count, Is.EqualTo(1), "A sound order of the same kind still loads.");
         }
 
         [Test]

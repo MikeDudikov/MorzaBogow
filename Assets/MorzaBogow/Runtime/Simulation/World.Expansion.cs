@@ -61,6 +61,8 @@ namespace MorzaBogow.Simulation
         CommandReason BeginTransfer(Ship ship, Command command)
         {
             if (ship.Class != ShipClass.Merchant) return CommandReason.NotCapable;
+            // A load is never negative: it would book a negative reservation and raise what the source seems to hold.
+            if (command.Wood < 0 || command.Silver < 0) return CommandReason.InvalidOrder;
             var destination = FindSettlement(command.TargetId);
             if (destination == null || destination.Owner != ship.Owner || destination.Destroyed) { Reject(ship); return CommandReason.InvalidTarget; }
 

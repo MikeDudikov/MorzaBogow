@@ -2651,15 +2651,25 @@ namespace MorzaBogow.Presentation
 
         // ---------- Save ----------
 
-        public void QuickSave(string path)
+        /// <summary>Saves between steps, taking none (J10); a failure is said plainly and the match goes on as it was.</summary>
+        public bool QuickSave(string path)
         {
-            var data = SaveGame.Serialize(World, opponent.BuildIndex);
-            SaveGame.WriteFile(path, data);
-            // The ships' looks go beside the save, tied to it by its hash; the save itself stays the simulation's alone.
-            looks.WriteBeside(path, data, World.Ships.Select(ship => ship.Id));
-            // So does what the buildings' damage looks like: which elements fell, where the shots struck (DestructionBook).
-            destruction.WriteBeside(path, data, World.Settlements.Select(settlement => settlement.Id));
-            Notify("Zapisano grę.");
+            try
+            {
+                var data = SaveGame.Serialize(World, opponent.BuildIndex);
+                SaveGame.WriteFile(path, data);
+                // The ships' looks go beside the save, tied to it by its hash; the save itself stays the simulation's alone.
+                looks.WriteBeside(path, data, World.Ships.Select(ship => ship.Id));
+                // So does what the buildings' damage looks like: which elements fell, where the shots struck (DestructionBook).
+                destruction.WriteBeside(path, data, World.Settlements.Select(settlement => settlement.Id));
+                Notify("Zapisano grę.");
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is NotSupportedException || exception is ArgumentException)
+            {
+                Notify("Nie można zapisać gry: " + exception.Message);
+                return false;
+            }
         }
 
         public bool QuickLoad(string path)
@@ -2850,7 +2860,10 @@ namespace MorzaBogow.Presentation
         {
             var ship = World.FindShip(shipId);
             if (ship == null || slot < 0 || slot >= ship.Loadout.Length) return;
-            var loadout = (WeaponType[])ship.Loadout.Clone();
+            // A change given in this pause and not yet applied is the plan to change further (J02), not the ship's old one.
+            var pending = World.Pending.LastOrDefault(command => command.Kind == CommandKind.SetLoadout && command.Faction == PlayerFaction
+                && command.ShipIds.Length == 1 && command.ShipIds[0] == shipId && command.Loadout != null && command.Loadout.Length == ship.Loadout.Length);
+            var loadout = (WeaponType[])(pending?.Loadout ?? ship.Loadout).Clone();
             loadout[slot] = weapon;
             World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.SetLoadout, ShipIds = new[] { shipId }, Loadout = loadout });
         }

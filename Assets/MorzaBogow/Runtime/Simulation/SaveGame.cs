@@ -128,26 +128,43 @@ namespace MorzaBogow.Simulation
             writer.Write(command.Unarmed);
         }
 
+        /// <summary>
+        /// Reads one pending order and refuses a damaged one here, before the match is replaced: every enum within its
+        /// values, finite positions, no negative amounts or crew (J10: a bad file leaves the game that is running).
+        /// </summary>
         static Command ReadCommand(BinaryReader reader)
         {
+            void Check(bool valid) { if (!valid) throw new InvalidDataException("Damaged pending order."); }
+            bool Defined<T>(T value) => Enum.IsDefined(typeof(T), value);
+
             var command = new Command { Id = reader.ReadInt32(), Faction = reader.ReadInt32(), Kind = (CommandKind)reader.ReadInt32() };
-            if (!Enum.IsDefined(typeof(CommandKind), command.Kind)) throw new InvalidDataException("Damaged pending order.");
+            Check(Defined(command.Kind));
             var ships = reader.ReadInt32();
-            if (ships < 0 || ships > 4096) throw new InvalidDataException("Damaged pending order.");
+            Check(ships >= 0 && ships <= 4096);
             command.ShipIds = new int[ships];
             for (var i = 0; i < ships; i++) command.ShipIds[i] = reader.ReadInt32();
             command.X = reader.ReadDouble(); command.Y = reader.ReadDouble(); command.TargetId = reader.ReadInt32();
+            Check(!double.IsNaN(command.X) && !double.IsInfinity(command.X) && !double.IsNaN(command.Y) && !double.IsInfinity(command.Y));
             command.Class = (ShipClass)reader.ReadInt32(); command.QueueIndex = reader.ReadInt32(); command.PortQueue = reader.ReadBoolean();
+            Check(Defined(command.Class));
             command.SourceId = reader.ReadInt32(); command.Wood = reader.ReadInt64(); command.Silver = reader.ReadInt64();
+            Check(command.Wood >= 0 && command.Silver >= 0);
             command.Preset = (CrewPreset)reader.ReadInt32();
             command.Plan = new CrewPlan { Sailors = reader.ReadInt32(), Swordsmen = reader.ReadInt32(), Javelins = reader.ReadInt32(), Archers = reader.ReadInt32(), Preset = (CrewPreset)reader.ReadInt32() };
+            Check(Defined(command.Preset) && Defined(command.Plan.Preset));
+            Check(command.Plan.Sailors >= 0 && command.Plan.Swordsmen >= 0 && command.Plan.Javelins >= 0 && command.Plan.Archers >= 0);
             command.Project = (ProjectKind)reader.ReadInt32(); command.Weapon = (WeaponType)reader.ReadInt32();
+            Check(Defined(command.Project) && Defined(command.Weapon));
             if (reader.ReadBoolean())
             {
                 var slots = reader.ReadInt32();
-                if (slots < 0 || slots > 16) throw new InvalidDataException("Damaged pending order.");
+                Check(slots >= 0 && slots <= 16);
                 command.Loadout = new WeaponType[slots];
-                for (var i = 0; i < slots; i++) command.Loadout[i] = (WeaponType)reader.ReadInt32();
+                for (var i = 0; i < slots; i++)
+                {
+                    command.Loadout[i] = (WeaponType)reader.ReadInt32();
+                    Check(Defined(command.Loadout[i]));
+                }
             }
             command.BlueprintId = reader.ReadInt32();
             if (reader.ReadBoolean()) command.Name = reader.ReadString();
@@ -507,6 +524,7 @@ namespace MorzaBogow.Simulation
                 if (reader.ReadBoolean()) world.Marine = MarineState.Read(reader, world);
 
                 world.NextCommandId = reader.ReadInt32();
+                if (world.NextCommandId < 1) throw new InvalidDataException("Damaged order numbering.");
                 count = reader.ReadInt32();
                 if (count < 0 || count > 100000) throw new InvalidDataException("Damaged pending orders.");
                 for (var i = 0; i < count; i++)
