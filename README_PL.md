@@ -1,43 +1,22 @@
-# Morza Bogów — dokumentacja dla Claude Code
+# Morza Bogów
 
-Paczka określa wymagania gry oraz sposób przygotowania projektu, implementacji i odbioru zadań.
+Komunikacja głównego agenta i subagentów: [gotowy protokół](PROMPT_KOMUNIKACJA_STUDIA.md) oraz [lokalny dziennik](Komunikacja-Studio.ps1). Koordynator utrwala przydziały, potwierdzenia, decyzje i przekazania w `work/studio-communication/`; zapis pozostaje lokalny i nie uruchamia modeli w tle.
 
-Głównym doświadczeniem jest dowodzenie flotą podczas bitew, eskort, rajdów i wypraw mitologicznych. Gospodarka drewna i srebra, lokalne porty i automatyczne konwoje tworzą cele do walki. Czytelność, dostępna kontrgra i obciążenie uwagi gracza są warunkami odbioru.
+Jednoosobowy naval RTS w mitologicznej Grecji IV w. p.n.e. Plan obejmuje flotę, modułowe uzbrojenie, trzy sposoby walki, porty, badania, moce, postacie i artefakty we wspólnej symulacji. Stan implementacji należy sprawdzać w kodzie i aktualnych raportach.
 
-## Dokumenty
+Czytaj w kolejności:
 
-- GAME_VISION.md — doświadczenie gracza, filary rozgrywki, cele tempa i balansu.
-- GAME_DESIGN.md — mechaniki, floty, walka, magia, SI, środowisko i zakres produkcji.
-- ECONOMY_DESIGN.md — reguły E00–E12 dotyczące drewna i srebra, portów, logistyki morskiej i kampanii.
-- ECONOMY_BALANCE.md — weryfikacja obliczeniowa i wymagane próby; model w docs/economy-model.
-- VISUAL_TECH_SPEC.md — wymagania V00–V13 dotyczące obrazu, wody, światła i wydajności.
-- MYTHIC_SCENARIOS.md — 14 misji kampanii z celami, flotami, zasobami i przebiegiem.
-- CLAUDE.md — zasady pracy, kontroli jakości i zamykania zadań.
-- START_PROMPT_PL.md — prompt uruchamiający pracę.
-- qa/ — parametry oraz macierze kryteriów odbioru.
-- .claude/ — konfiguracja hooków i egzekwowana bramka testów.
+1. [CLAUDE.md](CLAUDE.md) — zasady pracy i źródła w każdej sesji.
+2. [Plan gry](docs/NOWY_PLAN_GRY.md).
+3. [Katalog mechanik](docs/KATALOG_MECHANIK.md).
+4. [Parametry robocze](docs/PARAMETRY_ROBOCZE.md).
+5. [Mapy i scenariusze](docs/MAPY_I_SCENARIUSZE.md).
+6. [Plan integracji](docs/PLAN_WDROZENIA.md).
+7. [Rejestr badań](docs/HISTORIA_I_ZRODLA.md).
+8. [Dowodzenie i odbiór grywalności](docs/GRYWALNOSC_I_ODBIOR.md).
 
-## Przygotowanie
+Uruchomienie pracy w Claude Code: [gotowy prompt wdrożeniowy](PROMPT_WDROZENIOWY.md). Otwórz projekt w tym katalogu i poleć wykonanie całego pliku promptu.
 
-1. Umieść zawartość paczki w katalogu głównym projektu, razem z .claude. Scal istniejące ustawienia oraz tablice hooks.
-2. Zapewnij PowerShell 7, Unity Editor z HDRP, Unity Test Framework i Windows Build Support. Jeśli pwsh.exe nie jest dostępny na PATH, ustaw jego pełną ścieżkę w .claude/settings.json.
-3. W obu profilach .claude/qa/policy.json zastąp CONFIGURE_ABSOLUTE_PATH_TO_UNITY_EXE pełną ścieżką Unity.exe. Nieuzupełniona ścieżka blokuje zamykanie zadań.
-4. Rozpocznij sesję Claude Code, sprawdź /hooks i wklej START_PROMPT_PL.md. SessionStart podaje QUALITY_GATE_SESSION_ID, który należy wpisać w planach testów.
-5. Dla zadania przygotuj .claude/qa/tasks/<taskId>.json według szablonu. Podaj taskId, sessionId, wymagania i pełne nazwy rzeczywistych testów EditMode oraz PlayMode.
-6. Przed uruchomieniem bramki zamknij edytor Unity korzystający z tego samego projektu. Bramka wymaga wyłącznego dostępu.
+Organizacja zespołu: [studio premium](PROMPT_STUDIO_PREMIUM.md) i [podział modeli Opus/Fable/Haiku](PROMPT_STUDIO_FABLE.md). Projektowy model główny to Opus; pięć definicji w `.claude/agents/` określa architekta, programistę, autora testów, reviewera i wyszukiwanie. Pełna kontrola konfiguracji: [Sprawdz-StudioPremium.ps1](Sprawdz-StudioPremium.ps1). Kontrola lokalna nie potwierdza dostępności ani rzeczywistego modelu w kliencie.
 
-## Kontrola danych i testów
-
-Uruchom node qa/scenario-design-check.cjs do kontroli danych kampanii. STRUCTURE_VALID potwierdza strukturę, ID, parametry i graf faz. Działanie scenariuszy, geometrię tras i balans odbiera się przez testy Unity oraz playtesty.
-
-Uruchom pwsh -NoProfile -File qa/tests/test-gate.ps1 do sprawdzenia mechanizmu bramki w izolowanym katalogu work/. Syntetyczny runner służy wyłącznie temu sprawdzeniu. Wyniki testów gry muszą powstawać podczas rzeczywistego uruchomienia Unity.
-
-TaskCompleted i PreToolUse dla TaskUpdate/completed wywołują synchroniczną bramkę. Każde zamknięcie uruchamia wymagane testy, zapisuje nowe XML i logi oraz weryfikuje kody procesu, liczniki, nazwy testów i asercje. Zero testów, skipped, inconclusive, błędny XML, brak artefaktów, timeout lub modyfikacja plików podczas testów blokują wynik. Sam napis PASS ani istnienie raportu nie wystarczają.
-
-Snapshot obejmuje Assets, Packages, ProjectSettings, .claude, qa z wyjątkiem qa/reports, docs oraz wszystkie dokumenty wykonawcze paczki. Po dodaniu plików runtime poza tym zakresem rozszerz konfigurację snapshotu.
-
-## Odbiór
-
-Macierze ECONOMY_ACCEPTANCE.csv, VISUAL_ACCEPTANCE.csv i SCENARIO_ACCEPTANCE.csv określają wymagane dowody. Status NOT_RUN zmienia się wyłącznie po rzeczywistym wykonaniu danego sprawdzenia. Wymagane są testy EditMode i PlayMode, build Windows, ocena obrazu, pomiary wydajności i playtesty.
-
-Lokalny hook jest osobnym procesem, ale pliki konfiguracyjne pozostają edytowalne. Twardy odbiór wydania wymaga zewnętrznego CI z chronioną polityką, czystym checkoutem i obowiązkowym review. onFailure:block nie zapewnia blokady awarii uruchomienia TaskCompleted; ścieżkę ręcznego TaskUpdate chroni dodatkowy PreToolUse. Obie ścieżki należy sprawdzić w działającym Claude Code.
+Punkt bazowy analizy: commit 81ec638, zapis 18, odczytana bramka PASS 364/147. To dowód wskazanego snapshotu, nie całego docelowego katalogu ani aktualnego stanu każdej późniejszej pracy. Etap kontynuacji wybierz po sprawdzeniu bieżącego kodu i najnowszych dowodów. Kod i estetyka nie zostały przebudowane w ramach przygotowania planu.

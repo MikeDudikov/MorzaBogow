@@ -34,17 +34,24 @@ class BriefTests(unittest.TestCase):
         for field in ("id:", "shipClass:", "description:"):
             self.assertIn(field, text)
 
-    def test_texture_prompt_always_ends_with_the_house_weathering(self):
-        weathering = self.config.data["templates"]["weathering"]
-        self.assertIn("photorealistic weathering", weathering)
+    def test_texture_prompt_preserves_the_briefs_surface_condition_by_default(self):
+        self.assertEqual(self.config.data["templates"]["weathering"], "")
+        plain = briefs.texture_prompt(briefs.normalise(self.ship(), self.config), self.config)
+        self.assertIn(self.config.data["templates"]["texture"].rstrip("."), plain)
+        requested = "Freshly finished wood, clean linen, polished bronze fittings"
+        own = briefs.texture_prompt(briefs.normalise(self.ship(texturing={"prompt": requested}), self.config), self.config)
+        self.assertEqual(own, requested)
+
+    def test_an_explicit_optional_finish_is_appended_once_within_the_limit(self):
+        weathering = "A material-specific finish requested for this asset"
+        self.config.data["templates"]["weathering"] = weathering
         plain = briefs.texture_prompt(briefs.normalise(self.ship(), self.config), self.config)
         self.assertTrue(plain.endswith(weathering), plain)
-        self.assertIn(self.config.data["templates"]["texture"].rstrip("."), plain)
-        # A long description gives way; the weathering stays whole within the limit.
+        # A configured finish is preserved if the description needs shortening.
         long = briefs.texture_prompt(briefs.normalise(self.ship(description="A hull of pine planks. " * 60), self.config), self.config)
         self.assertLessEqual(len(long), briefs.PROMPT_LIMIT)
         self.assertTrue(long.endswith(weathering), long[-200:])
-        # A brief's own prompt keeps its words and gets the weathering once.
+        # A brief's own prompt receives an explicitly configured finish only once.
         own = briefs.texture_prompt(briefs.normalise(self.ship(texturing={"prompt": "Silver fir bark, pale cut ends"}), self.config), self.config)
         self.assertTrue(own.startswith("Silver fir bark, pale cut ends"))
         self.assertEqual(own.count(weathering), 1)

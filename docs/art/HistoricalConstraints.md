@@ -1,6 +1,6 @@
 # Ramy historyczne zasobów
 
-Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), oznaczane identyfikatorami `R-…`.
+Rejestr referencji pomocniczych podporządkowany [nadrzędnemu planowi gry](../NOWY_PLAN_GRY.md) i [protokołowi źródłowemu](../HISTORIA_I_ZRODLA.md). Źródła w [ReferenceRegister.json](ReferenceRegister.json), oznaczane identyfikatorami `R-…`. Etykieta profilu, historyczna notatka ani źródło nie ustanawiają alternatywnej epoki produktu.
 
 ## Poziom pewności
 
@@ -12,11 +12,11 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 
 **Poziom dostępu.** Książki z bibliografii startowej (Morrison, Coates i Rankov; Casson; Lawrence; Coulton) **nie zostały odczytane**: w rejestrze mają poziom „tylko metadane”. Żadne ustalenie poniżej nie powołuje się na ich strony. Odczytane źródła to strony internetowe:
 - Institute of Nautical Archaeology (INA);
-- Wikipedia, oznaczona jako źródło ostatniej instancji, do weryfikacji w publikacjach.
+- Wikipedia: odczyt informacyjny, wymagający weryfikacji; nie stanowi zatwierdzenia tezy według protokołu źródłowego.
 
 ## Zakres
 
-- **Kotwica od 2026-11-10: Grecja IV w. p.n.e.** Późna klasyka, ok. 400–323 p.n.e., profil E6. Decyzja użytkownika: najpierw VII w., potem korekta na IV w.
+- **Obowiązująca kotwica:** mitologiczna Grecja IV w. p.n.e., 400–301 p.n.e., z 400 r. włącznie. E6 jest identyfikatorem technicznym, nie ograniczeniem kampanii do dat okresu stylistycznego. Każda istotna teza o technologii, budowli lub materiale wymaga zgodności z kartą misji i źródłem.
   - Region roboczy: Attyka, czyli Pireus i hangary w Zei, Laurion i Thorikos.
   - Ustalenia IV w. są w sekcji niżej.
   - Tabele dalej w pliku („Okręty”, „Załogi”, „Uzbrojenie i ubiór”, „Architektura…”) opisują dawny profil E1, czyli XII w. (LH IIIC). Są nieaktywne i zostają jako zapis historii projektu.
@@ -24,7 +24,7 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 
 ## Kotwica IV w. p.n.e. (profil E6, od 2026-11-10)
 
-Źródła: [ReferenceRegister.json](ReferenceRegister.json). Pozycje oznaczone „read-web” zostały odczytane w tej sesji. Pozycje oznaczone „read-web-last-resort” to praca dyplomowa albo Wikipedia: przyjęte, ale do sprawdzenia w publikacjach.
+Źródła: [ReferenceRegister.json](ReferenceRegister.json). Etykieta read-web opisuje odczyt wskazanej sesji, nie potwierdza ponownej weryfikacji obecnej. Pozycje read-web-last-resort są tropami bibliograficznymi z poziomem NIEUSTALONE; do zatwierdzenia potrzebny właściwy odczyt wiarygodnego źródła. Szczegółowe świadectwo nie ustanawia automatycznie dostępności całej rodziny konstrukcji w każdym roku i regionie.
 
 ### Okręty, machiny i drewno
 
@@ -37,9 +37,9 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 | Zasłony burtowe (pararrymata); w źródle służą ukryciu, osłona przed pociskami to przypis tłumacza | ustalenie (Ksenofont, *Hellenika* 1.6.19, 406 r.) z zastrzeżeniem | R-XENOPHON-HELLENICA | okręty wojenne (do zrobienia) |
 | Duże żagle zostawiano na lądzie przed walką | ustalenie (*Hellenika* 6.2.27, Ifikrates; 2.1.29, 405 r.) | R-XENOPHON-HELLENICA | żagiel zwinięty w walce (obsada już brajluje) |
 | Spiżowy taran z płetwami | interpretacja dla IV w. (rzeźbione i odlewane tarany klasyczne i hellenistyczne; wzór sprawdzić w publikacji) | — | `GreekShips.BuildRam` |
-| Katapulta wynaleziona w Syrakuzach w 399/8 r. | ustalenie (Diodor 14.42.1, jedyne wyraźne źródło literackie) | R-DIODORUS-14 | machiny okrętów gry: od 399 r. to nie anachronizm, ale na okręcie wczesna interpretacja |
+| Diodor przypisuje wynalazek katapulty Syrakuzom w kontekście 399/8 r. | świadectwo literackie, Diodor 14.42.1; nie ustala dostępności wszystkich późniejszych typów | R-DIODORUS-14 | Każdy typ, montaż pokładowy, region i rok misji wymagają osobnej podstawy; konfigurację niepoświadczoną oznaczyć jako rekonstrukcję lub fikcję. |
 | Machiny na okrętach przy oblężeniu Tyru, 332 r. | ustalenie (Arrian 2.21–23) | R-ARRIAN-TYRE | `ShipKiller` (miotacz bełtów), `Bomber` (miotacz kamieni) |
-| Statek handlowy jak z Kyrenii: ok. 14 m, jeden żagiel czworokątny z gejtawami (ponad 150 ołowianych kółek), 384 amfory (ok. 220 dużych rodyjskich), kamienie młyńskie, migdały | ustalenie; zbudowany pod koniec IV w. (najpewniej 346/340–312/308), **zatonął na początku III w.** (najpewniej 287/286–272) | R-KYRENIA | statek handlowy, ładunek, wraki (`prop_amphora_rhodian`) |
+| Statek handlowy i znaleziska z Kyrenii jako materiał porównawczy dla konstrukcji, takielunku i ładunku | Datowanie drewna wyznacza TPQ budowy albo naprawy, a nie dokładny przedział budowy. Manning i in. 2024, sekcja A dating model oraz omówienie wyników; fazy i szczegóły konstrukcji sprawdzać osobno. | R-KYRENIA; [badanie datowania](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0302645) | Analogia wymagająca zgodności z rokiem i regionem misji; wrak nie uzasadnia automatycznie każdej konfiguracji na całe IV w. |
 | Triery i okręty długie z jodły pospolitej (elatē); statki kupieckie z peuke (sosna); kil triery z dębu; elementy gięte z morwy, jesionu mannowego, wiązu, platanu | ustalenie (Teofrast, *Historia roślin* 5.7.1–3) | R-THEOPHRASTUS-HP5 | skład drewna, pochylnia, tekstury drewna okrętu |
 
 ### Ludzie i uzbrojenie
@@ -137,18 +137,18 @@ Data: 2026-11-10. Źródła w [ReferenceRegister.json](ReferenceRegister.json), 
 
 ## Zniszczenia budowli i okrętów (pionowy wycinek, [DESTRUCTION.md](DESTRUCTION.md))
 
-Wszystkie źródła tej sekcji mają poziom „search-summary”: widziane przez streszczenie wyszukiwarki, bez odczytu całej strony. Nie powołujemy się na strony ani cytaty.
+Źródła tej sekcji odnotowano na poziomie search-summary. Wszystkie zależne od nich tezy mają status NIEUSTALONE do właściwego odczytu, nawet gdy ich użycie w prezentacji jest już zaimplementowane. Opis kinematycznej animacji nie stanowi fizycznej walidacji. Nie powoływać nieodczytanych stron ani cytatów.
 
 | Ustalenie lub decyzja | Status | Źródło | Dotyczy |
 |---|---|---|---|
-| Trzon kolumny z bębnów łączonych środkowym kołkiem (polos, empolion) i opaską styku (anatyroza), bez zaprawy | **ustalenie** dla budowli V–IV w. (Partenon, Messene), wg streszczeń | R-DRUM-JOINTS | kolumna Szkoły: 5 bębnów i głowica; pęka na spoinie łożyska |
-| Przewrócona kolumna leży jako rząd bębnów wzdłuż kierunku upadku | **ustalenie** jako obserwowany układ (świątynia Zeusa w Olimpii, „domino”; odbudowa po 373 p.n.e.); położenie każdego bębna to interpretacja | R-OLYMPIA-QUAKE | `StructureDamageView.Rest` (Topple) |
+| Trzon kolumny z bębnów i łączenia polos/empolion/anatyroza | **NIEUSTALONE** dla tego odbioru: search-summary; sprawdzić właściwy obiekt, fazę i konstrukcję | R-DRUM-JOINTS | Przed naukowym odbiorem podziału i pękania kolumny wymagany odczyt źródeł. |
+| Przewrócona kolumna i układ jej bębnów | **NIEUSTALONE**: search-summary; wynik zależy od kontaktów i modelu uszkodzeń | R-OLYMPIA-QUAKE | `StructureDamageView.Rest` jest przybliżeniem prezentacji, nie zatwierdzonym pomiarem upadku. |
 | Bloki architrawu i fryzu spoczywają na dwóch głowicach; tracąc jedną, spadają | **interpretacja** konstrukcyjna (statyka belki na dwóch podporach) | — | graf podparcia Szkoły |
-| Ściany z cegły suszonej na kamiennym cokole osiadają w kopce, cokół zostaje | **ustalenie** (mur z cegły na kamiennym fundamencie; masy zwalonej cegły przy ścianach w Atenach i Sardes); kształt kopca to interpretacja | R-MUDBRICK-DECAY, R-OLYNTHUS | ściany sali: kikut z tynkiem, kopiec cegły |
-| Dachówki na krokwiach: po zawaleniu sterta potłuczonej terakoty i połamane krokwie | **ustalenie** (dachówki są częstym znaleziskiem tam, gdzie cegła przepada); układ sterty to interpretacja | R-MUDBRICK-DECAY | przęsła dachu (CaveIn) |
+| Ruiny ścian z cegły suszonej na kamiennym cokole | **NIEUSTALONE**: search-summary; zweryfikować konstrukcję i mechanizm zniszczenia | R-MUDBRICK-DECAY, R-OLYNTHUS | Kształt ruiny pozostaje interpretacją do odrębnego odbioru. |
+| Dachówki, krokwie i układ ich pozostałości | **NIEUSTALONE**: search-summary; wymagane źródło i model podparcia/upadku | R-MUDBRICK-DECAY | CaveIn pozostaje implementacją prezentacji do odrębnego odbioru. |
 | Bez ognia: ogień tylko przy zdarzeniu gry, a gra go nie ma | decyzja gry (polecenie) | — | brak zwęgleń w nowych ruinach Szkoły |
 | Maszt pęka tuż nad pokładem, gdzie jest trzymany, i zostawia kikut w stępce | **interpretacja**: stępka masztu poświadczona (Kyrenia); o belkach wokół masztu źródła w tej sesji brak | R-KYRENIA-MASTSTEP | `ShipVisual.Mast` |
-| Okręty wojenne zostawiały duże żagle (może i maszty) na lądzie przed bitwą | **ustalenie** dla żagli (Ksenofont, Hellenika 6.2, Ifikrates; Ajgospotamoj); maszt w bitwie sporny | R-SAILS-ASHORE | maszt rysowany w walce to lekki maszt do ucieczki (interpretacja); zwinięty żagiel w walce: decyzja artystyczna do wdrożenia |
+| Zostawianie dużych żagli na lądzie przed określonymi bitwami | **NIEUSTALONE w tej sekcji**: odczytać właściwe ustępy i nie uogólniać na wszystkie okręty; maszt wymaga osobnej oceny | R-SAILS-ASHORE | Właściwy kontekst tekstu i konfiguracja misji poprzedzają odbiór takielunku. |
 
 ## Do weryfikacji w następnym kroku
 

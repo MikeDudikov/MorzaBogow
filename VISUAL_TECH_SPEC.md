@@ -72,7 +72,7 @@ Trzy poziomy jasności sceny: czytelny obszar walki, spokojniejsze tło, krótki
 
 Bazą jest HDRP Water po potwierdzeniu kompatybilności. Zapisz w ADR: reprezentacja akwenu, sposób próbkowania wysokości/normalnej, obsługiwane decals/deformers/foam, głębokość i granice. To wymagania funkcjonalne, nie gwarancja dostępności konkretnych klas. Gdy API brakuje, przygotuj ograniczony adapter; nie uruchamiaj drugiego niezależnego oceanu tylko dla kilwateru bez uzasadnienia.
 
-Trzy skale: długie falowanie ustala kołysanie, średnie fale nadają kształt światła, małe normalne tworzą detal refleksu. Ich amplitudy/częstotliwości i kierunek wynikają z jednego profilu pogody. Kuter nie może kołysać się na innej fazie fali niż widoczna tafla. Zachowaj ograniczenia przechyłu C09 i niezależną logiczną pozycję/kolizje.
+Trzy skale: długie falowanie ustala kołysanie, średnie fale nadają kształt światła, małe normalne tworzą detal refleksu. Ich amplitudy/częstotliwości i kierunek wynikają z jednego profilu pogody. Kuter nie może kołysać się na innej fazie fali niż widoczna tafla. Limity przechyłu i niezależność pozycji/kolizji podlegają [WM02](docs/KONTRAKTY_MORZA_I_WIATRU.md).
 
 Absorpcję opisuj zależnością T(d)=exp(−σa·d), liczoną na kanałach; to model docelowy do strojenia, nie żądanie zastąpienia wbudowanego shaderu. Głębokość optyczna to droga światła, nie sama głębokość mapy nawigacyjnej. Refrakcję ograniczaj przy brzegu i krawędziach obiektów, aby nie ujawniać dna nad linią wody. Fresnel zwiększa udział odbicia pod kątem ślizgowym; nie dodawaj stałego białego refleksu niezależnego od widoku. Kaustykę ogranicz do płytkiej oświetlonej strefy, bez projekcji na dalekie statki i nocne dno bez źródła światła.
 
@@ -92,7 +92,7 @@ Jeżeli błędy sortowania nadal blokują odbiór, porównaj prototyp weighted b
 
 Nie włączaj własnego OIT dla całego oceanu. Najpierw ogranicz go do konkretnej grupy cząsteczek z jasnym złożeniem z głębią, wodą i mgłą HDRP. Odrzuć rozwiązanie, jeśli podwójnie nakłada fog, tonemapping lub refrakcję. Własny pass musi mieć test zmiany rozdzielczości, stereo tylko jeśli wspierane, wielu kamer, pause/resume i odtworzenia zasobów. Nie przechodź na per-pixel linked lists/depth peeling bez dowodu potrzeby i budżetu pamięci.
 
-Mgła środowiskowa jest wizualna i może korzystać z wolumetrii. Ograniczenie widoczności logicznej ma osobny promień i pole z C09. Włączenie/wyłączenie wolumetrii nie daje przewagi informacyjnej. Efekt mgły magicznej posiada czytelną strefę zagrożenia na każdym profilu. Ostrzeżenia taktycznego nie wolno usuwać.
+Mgła środowiskowa jest wizualna i może korzystać z wolumetrii. Logiczna widoczność podlega planowi §8/§12 i [WM02](docs/KONTRAKTY_MORZA_I_WIATRU.md). Włączenie/wyłączenie wolumetrii nie daje przewagi informacyjnej. Efekt mgły magicznej posiada czytelną strefę zagrożenia na każdym profilu. Ostrzeżenia taktycznego nie wolno usuwać.
 
 ## V08. Skóra, włosy i tkaniny
 
@@ -170,6 +170,6 @@ Rozdzielczość jest wyłącznie ustawieniem prezentacji. Nie zmienia symulacji,
 
 HUD skaluje się względem bazowego 1920×1080 i łączy się z ustawieniem interfejsu 80–150% z C10. W skrajnych kombinacjach żaden element nie wychodzi poza ekran, a tekst i ikony pozostają czytelne. Czytelność klas, kierunku kadłuba i stanu uszkodzeń z V00 odbiera się przy obu krańcach zakresu i najmniejszym zoomie. Bufory, pola piany, mgła i własne passy są odtwarzane przy zmianie rozdzielczości bez wycieków; 20 cykli przełączania wchodzi w test z V10.
 
-Wszystkie rozdzielczości z zakresu działają na każdym profilu z V10, natywnie i bez limitu klatki wynikającego ze sprzętu. Skalowanie obrazu jest wyłącznie opcją gracza, a wynik natywny i rekonstruowany raportuje się osobno, z identycznym seedem, kadrem i pogodą zgodnie z V09. Nie ekstrapoluj wyniku z 1080p na 1440p.
+Docelowa dostępność rozdzielczości i profili z V10 wymaga prób na wskazanej konfiguracji. Wynik FPS/czasu klatki obowiązuje dla konkretnego pomiaru; brak pomiaru oznacza NOT_RUN. Zachować uzgodnioną jakość i brak cichego obniżania profilu. Skalowanie obrazu jest opcją gracza; wynik natywny i rekonstruowany raportuje się osobno, z identycznym seedem, kadrem i pogodą zgodnie z V09. Nie ekstrapoluj wyniku z 1080p na 1440p.
 
 Informacyjne pomiary 100/200/400 statków z V10 wykonuje się w 1920×1080 i 2560×1440, z zapisem szczytowego VRAM, GPU, sterownika i faktycznego trybu wyświetlania. Działanie trybu 1440p potwierdza się na rzeczywistym wyjściu obrazu w tej rozdzielczości albo przez jawnie opisane renderowanie ponad rozdzielczość monitora; drugi wariant nie potwierdza wyświetlania na fizycznym panelu 1440p. Brak takiego sprzętu oznacza BLOCKED lub NOT_RUN, nigdy PASS.

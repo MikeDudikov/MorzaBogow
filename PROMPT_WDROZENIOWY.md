@@ -1,35 +1,98 @@
 # Prompt wdrożeniowy dla Claude Code
 
-Pracuj nad grą „Morza Bogów” jako koordynator implementacji Unity. Rozpocznij od sprawdzenia tego katalogu i wykonuj kolejne grywalne etapy. W istniejącym projekcie scalaj ustawienia oraz pliki; zachowuj jego działającą strukturę.
+**Stały rygor:** jedynym nadrzędnym planem produktu jest [docs/NOWY_PLAN_GRY.md](docs/NOWY_PLAN_GRY.md), wraz z §0. Obowiązuje mitologiczna Grecja IV w. p.n.e. (400–301 p.n.e., z 400 r. włącznie). Przed każdą mutacją i po niej stosuj [kartę zgodności](docs/KARTA_ZGODNOSCI_Z_PLANEM.md). Nie wykonuj działania sprzecznego z planem; zależny zakres oznacz BLOCKED_PLAN_CONFLICT. Odczyt dokumentu pomocniczego nie daje zgody na realizację jego niezgodnych założeń.
 
-## Dokumenty i dostępne pliki
+Pracuj w istniejącym projekcie „Morza Bogów” w katalogu `C:\Users\noirp\MorzaBogow`. Odpowiadaj po polsku. Twoim zadaniem jest **wdrażanie zatwierdzonego planu i kontynuowanie działającego projektu**, z możliwie małą ingerencją w gotowe systemy. Przejdź od rozpoznania stanu do konkretnej implementacji, testów i odbioru. Sam opis zamiaru nie kończy zadania.
 
-Przeczytaj GAME_VISION.md, GAME_DESIGN.md, ECONOMY_DESIGN.md, ECONOMY_BALANCE.md, VISUAL_TECH_SPEC.md, MYTHIC_SCENARIOS.md, CLAUDE.md i README_PL.md. Wczytaj ASSET_STATUS.json oraz dane i macierze qa/. Stosuj priorytety rozgrywki morskiej oraz wymagania bramki testów.
+## 1. Cel i dokumenty
 
-ASSET_STATUS.json określa faktyczną dostępność modeli. Coast Rocks 02 jest pobrany: FBX oraz cztery tekstury EXR 2K znajdują się w Assets/Art/External/Coast_Rocks_02. Cztery paczki mają status NOT_PURCHASED; foldery AssetPackages zawierają wyłącznie oznaczenie braku plików. Nie traktuj ich jako zaimportowanych modeli.
+Tworzymy jednoosobowy naval RTS w mitologicznej Grecji IV w. p.n.e., głównie w Attyce i na pobliskich akwenach. Kampania zawiera elementy RPG, własne scenariusze, bohaterów i dosłowne moce. Potyczki rozgrywa jeden człowiek przeciw AI. Funkcje sieciowe nie należą do zakresu.
 
-## Przygotowanie projektu
+Przeczytaj przed zmianami:
 
-1. Wykryj katalog projektu Unity, edytor, HDRP i dostępne narzędzia. Gdy projekt nie istnieje, przygotuj Unity 6.3 LTS z kompatybilnym HDRP. Zapisz dokładne ustawienia środowiska i sprawdź kompilację. Korzystaj z dostępnych uprawnień do rutynowych operacji, zależności i uruchomień.
-2. Scal .claude/settings.json, skonfiguruj ścieżkę Unity.exe w .claude/qa/policy.json i sprawdź hooki zgodnie z CLAUDE.md. Ustaw rzeczywiste testy EditMode oraz PlayMode. Wyniku testów bramki nie przedstawiaj jako odbioru gry.
-3. Zasoby, materiały i prefaby przygotowane dla gry umieszczaj poza External. Geometrię i tekstury pobrane do External zachowaj jako wejście do importu. Jednostka świata to metr; potwierdź skalę, orientację i położenie modelu.
+1. [CLAUDE.md](CLAUDE.md) i [AGENTS.md](AGENTS.md) — zasady pracy, architektura i odbiór.
+2. [docs/NOWY_PLAN_GRY.md](docs/NOWY_PLAN_GRY.md) — nadrzędne reguły produktu, kontrakty Q01–Q12.
+3. [docs/KATALOG_MECHANIK.md](docs/KATALOG_MECHANIK.md) — kompletny zakres i identyfikatory funkcji.
+4. [docs/PARAMETRY_ROBOCZE.md](docs/PARAMETRY_ROBOCZE.md) — liczby, koszty, wymagania i jawne hipotezy do prób.
+5. [docs/MAPY_I_SCENARIUSZE.md](docs/MAPY_I_SCENARIUSZE.md) — sektory, kampania K01–K14 i potyczki.
+6. [docs/PLAN_WDROZENIA.md](docs/PLAN_WDROZENIA.md) — etapy P01–P12, zależności i kryteria odbioru.
+7. [docs/ANALIZA_STANU.md](docs/ANALIZA_STANU.md) — rozpoznany punkt wznowienia i dowody wymagające kontroli względem bieżącego kodu.
+8. [docs/HISTORIA_I_ZRODLA.md](docs/HISTORIA_I_ZRODLA.md) — obowiązkowy protokół badań.
+9. [docs/GRYWALNOSC_I_ODBIOR.md](docs/GRYWALNOSC_I_ODBIOR.md) — obowiązkowe kontrakty J01–J10: ruch, komendy, trudność, cele, automatyka i ciągłość postępu.
 
-## Wdrożenie wybrzeża
+Plan gry określa zachowanie docelowe. Analiza stanu opisuje dowody implementacji. Kod i aktualne uruchomienia rozstrzygają, co rzeczywiście działa. Przy rozbieżności nazwij problem, ustal najmniejszą zgodną poprawkę i zapisz decyzję. Nie zastępuj pełnego katalogu własnym, węższym zakresem.
 
-4. Zaimportuj FBX i jawnie przypisz mapy z ASSET_STATUS.json. Napraw odwołania do tekstur, jeśli FBX wskazuje JPG lub inne lokalizacje. Sprawdź kodowanie koloru EXR; nie włączaj sRGB automatycznie dla danych liniowych. Mapę normalną zaimportuj zgodnie z konwencją używanego shadera. Roughness przelicz na smoothness dokładnie raz. AO przypisz do odpowiedniego kanału materiału HDRP.
-5. Sprawdź rzeczywistą liczbę trójkątów, submeshy i materiałów. Model wybrzeża ma bardzo szczegółową geometrię. Przygotuj uproszczone warianty, LODGroup i proste collidery. Nie stosuj pełnej geometrii jako dynamicznego MeshCollider. Obrys przeszkód nawigacyjnych ma pozostawać niezależny od wizualnego LOD.
-6. Utwórz prefab wybrzeża i scenę Art_Integration_Coast. Sprawdź widoczność skał i płycizn z kamery strategicznej, odbicia, cienie, styk z wodą oraz zachowanie po zmianie jakości. Potwierdź brak różnicy w zasadach nawigacji między profilami.
+**Zachowaj estetykę:** modele, materiały, kolory, światło, wodę, animacje, styl interfejsu i profile jakości. Stan nowej mechaniki przedstawiaj przy użyciu istniejącego języka wizualnego. Zmiana logiki morza nie jest zgodą na przeprojektowanie jego obrazu.
 
-## Flota i brakujące paczki
+## 2. Rozpoznanie i wybór pierwszej pracy
 
-7. Dopóki plików paczek nie ma, buduj czytelne modele zastępcze okrętów z oddzielnym kadłubem, żaglem, wiosłami, taranem i stanowiskami uzbrojenia. Zachowaj odrębne root obiektu symulacji i model wizualny. Przygotuj stałe punkty mocowania, aby wymiana grafiki nie zmieniała kosztów, obrażeń ani sterowania. Dla budynków i stworzenia przygotuj oznaczone modele zastępcze i kontynuuj mechaniki.
-8. Gdy właściwe pliki pojawią się w AssetPackages, sprawdź ich format, komplet tekstur, szkielet, animacje oraz zgodność z HDRP. Paczki .unitypackage importuj przez Unity. Dla zbiorczych paczek budynków zweryfikuj dostępność właściwych modeli, nie uznawaj samego małego pliku pakietu za kompletną bibliotekę geometrii. Triera z Fab jest alternatywą wizualną do podstawowej floty; jej dodanie nie tworzy automatycznie nowej klasy jednostki.
-9. Potwora morskiego dopasuj do konkretnego scenariusza dopiero po udostępnieniu plików. Sterowanie, punkty trafień, telegraph i moment naliczania obrażeń mają wynikać z symulacji, a animacja ma je prezentować.
+Sprawdź gałąź, HEAD, `git status`, bieżący diff, najnowsze raporty prac, rzeczywiste wyniki bramki, wersję zapisu i dostępne narzędzia. Odróżnij zastane zmiany użytkownika od własnych. Nie resetuj repozytorium i nie nadpisuj cudzych plików.
 
-## Grywalny etap i odbiór
+Dokumentacja wskazuje bazę `81ec638`, `SaveGame.Version=18`, gotowe konwoje i raport 364/147. **Potwierdź stan aktualny**; te liczby nie są wynikiem Twoich testów ani poleceniem cofnięcia projektu do tej bazy.
 
-10. Wykonaj małą mapę z wybrzeżem, portem, kutrem i okrętami bojowymi. Zrealizuj zbiór D/S, lokalny rozładunek, ruch, ostrzał, taran, abordaż, przeciwnika, zwycięstwo i porażkę oraz zapis/wczytanie. Gospodarka pracuje równolegle do działań floty. Nie uzależniaj grywalności od zakupienia całej oprawy.
-11. Sprawdź prefaby w buildzie i wykonaj odpowiednie testy zachowania gry. Profiluj sceny ze 100, 200 i 400 statkami. Podawaj realny sprzęt, ustawienia, liczby obiektów i p95 czasu CPU/GPU. Modele zastępcze nie potwierdzają wydajności docelowych modeli.
-12. Raportuj po polsku: co jest rzeczywiście zaimportowane, co działa jako model zastępczy, jakie testy wykonano i które pliki nadal są potrzebne. NOT_RUN oraz BLOCKED nie oznaczają PASS. Opisy mechanik i wizji zachowaj w formie wymagań; dostępność paczek prowadź w ASSET_STATUS.json.
+Wybierz najwcześniejsze nieukończone zadanie z wykonanymi zależnościami. Jeśli nie ma dowodu zakończenia P01, zacznij od P01. Zweryfikuj kolejno:
 
-Rozpocznij od odczytania plików i sprawdzenia środowiska. Następnie zaimportuj pobrany model wybrzeża, przygotuj scenę próbną i rozwijaj pierwszy grywalny etap.
+- względny ruch i geometrię podejścia do abordażu, w tym przeciwne kursy i przecięcie pod kątem 90°;
+- uwzględnienie oszczepników w ocenie strat AI;
+- dystans podejścia wynikający ze sprawnego i obsadzonego uzbrojenia;
+- granicę zapisu oraz zachowanie oczekujących komend;
+- zapis Pending w pauzie bez wykonania ticku oraz podstawowy wynik i powód odmowy komendy, bez ujawniania ukrytej wiedzy;
+- istniejącą odmowę złomowania jednostki z cargo;
+- ciągłość konwojów, rezerwacji i projektów po zapisie.
+
+To lista hipotez do sprawdzenia, nie nakaz ponownej naprawy kodu już poprawionego. Dla istniejącego rozwiązania znajdź aktualny dowód, zachowaj je i przejdź do rzeczywistej luki.
+
+P01 odbiera aktualny bufor i zapis w pauzie. P03 dodaje sekwencyjne zadania jednostki, trwałą automatykę i przejścia grup. Nie przedstawiaj istniejącego przyjmowania komend w pauzie jako gotowej kolejki tras. Nie przepisuj całej nawigacji: najpierw wspólna legalność kadłuba, potem zwężenie grupy, kolejność i zebranie. P02 przygotowuje definicje zgodnie z zależnościami planu.
+
+## 3. Badania w każdej sesji
+
+Za każdym razem po odczytaniu planu samodzielnie otwórz wiarygodne źródła dla bazowych założeń świata i dla twierdzeń zależnych od wybranego zadania. Korzystaj z publikacji naukowych, dokumentacji archeologicznej, komentowanych inskrypcji i oznaczonych wydań tekstów antycznych. Pamięć modelu, dokument repozytorium i raport innego agenta nie zastępują odczytu.
+
+Rozdziel realia materialne, tradycję mitologiczną i reguły gry. Moce działają naprawdę w fikcji; nie przedstawiaj ich jako potwierdzonych naukowo zjawisk. Koszty, obrażenia, czasy, odporności i proporcje map są parametrami projektu. Sprawdzaj rok i region poświadczenia technologii oraz fazę zabudowy miejsca.
+
+Zapisz raport w `docs/research/sessions/YYYY-MM-DD-HHMM-<zadanie>.md`: autor lub instytucja, URL, wydanie, lokalizator, faktycznie odczytany zakres, ograniczenie i decyzja. Dla nowych lub spornych tez szukaj niezależnego potwierdzenia. Nie wymyślaj publikacji, stron ani dostępu. Przy braku materiału oznacz zależny zakres `BLOCKED_RESEARCH` lub `NIEUSTALONE` i kontynuuj niezależną pracę techniczną.
+
+## 4. Sposób implementacji
+
+Pracuj małymi, kompletnymi przyrostami. Przed edycją określ etap P, właściwe ID katalogu, kontrakty Q i J, pliki, oczekiwane zachowanie i sposób sprawdzenia. Dla błędu najpierw zbierz dowód i odtwórz go. Dla funkcji sprawdź zależności i legalną drogę użycia od początku partii.
+
+Rozwijaj istniejący World, komendy, katalog klas, broń, gospodarkę, lokalne magazyny, transport, konwoje, morze i zapis. Nowe warianty oraz scenariusze opisuj danymi i małymi rozszerzeniami. Nie twórz drugiej symulacji ani odrębnej gospodarki dla mitologii. Reguły należą do czystej symulacji; prezentacja wysyła komendy i odczytuje stan.
+
+Szczególnie pilnuj następujących kontraktów:
+
+- Ilości D/S mają właściwą precyzję, bilans i rezerwacje; transfer nie tworzy zasobu. Koszt kadłuba, obsady i modułów nie może mieć ujemnego składnika.
+- Zachowuj zapisane numery enumów. Nowe wartości dopisuj. Niezgodna zmiana zapisu podnosi jego wersję i jawnie określa obsługę niezgodnego pliku.
+- Wymagania budynków włączaj wraz z osiągalnym podgrafem rozwoju. Nie blokuj otwarcia wymogiem obiektu, którego jeszcze nie można uzyskać.
+- Relacje trzech stałych slotów właścicieli wdrażaj zgodnie z P02, z pełną aktualizacją tablic i walidacji; tylko dwie główne strony rozstrzygają zwykły wynik partii.
+- Ogień, osłony, niewidzialność, bohaterowie i artefakty korzystają ze wspólnego kontraktu efektów. Rozdziel odebranie konfiguracji w P06 od jej skutków w P07.
+- Zmiana terenu unieważnia właściwe cache przez TerrainRevision także przy niezmienionej liczbie wysp. Zapis obejmuje aktywne efekty i zmieniony teren.
+- Cele misji i przenoszenie kampanii mają wykonalne warunki, unikalne ID oraz jednokrotne rozliczenia.
+- Zadanie ekonomiczne zachowuje politykę i wznawia pracę po zwolnieniu miejsca, nowej partii lub ustąpieniu blokady. Nie wymaga ponawiania tego samego rozkazu.
+- Profile AI zmieniają decyzje, nie ukryte ceny, statystyki czy wiedzę. Posiłki mają skończony manifest, jawny warunek i zapowiedź; nie zależą potajemnie od oceny wyniku gracza.
+- Sukces rozstrzygają wymagane ObjectiveID i pełne gałęzie alternatywne. Niepowiązany ocalały wróg oraz cele opcjonalne nie blokują końca operacji. Wymagane dane celu nie mogą domyślnie zerować jego warunku.
+- Rozdziel zatwierdzony postęp, rezerwę, manifest wyprawy i wynik. Powtórka odtwarza snapshot wejścia, bez cofania wcześniejszych ukończeń ani powielania nagród. Rezerwa nie omija slotów artefaktów i fizycznej ewakuacji.
+- Zapis ręczny, quicksave i autosave mają oddzielne sloty i kompletne generacje wraz z danymi powiązanymi haszem. Błąd nie niszczy poprzedniej dobrej generacji.
+
+Zachowuj pełny zakres P01–P12. Pierwszy grywalny wycinek K01–K03 jest etapem integracji; nie zastępuje mocy, postaci, stworzeń ani pozostałych operacji. AI rozwijaj przyrostowo wraz z nowymi regułami.
+
+## 5. Testy i niezależny odbiór
+
+Dobierz testy do rzeczywistego ryzyka i zachowania. Nowa reguła symulacji wymaga istotnego testu EditMode i odpowiedniej kontroli integracji. Sprawdź właściwe przypadki brzegowe, księgę, zmianę właściciela, zapis/wczytanie i deterministyczne rozstrzygnięcie zdarzeń. Nie zastępuj testu gry samym sprawdzeniem struktury JSON.
+
+Dla właściwych etapów sprawdź: mieszaną grupę w cieśninie; prawdziwy powód blokady; pauza → komendy → zapis → odczyt → wznowienie; pełny magazyn → wolne miejsce bez dodatkowego rozkazu; identyczne taryfy obu stron; te same decyzje AI przy identycznych obserwacjach i RNG; koniec misji mimo odległego niepowiązanego wroga; ponowienie bez utraty zatwierdzonego postępu; awarię zapisu bez utraty dobrego zestawu. Czytelność i obciążenie uwagi odbieraj również z udziałem człowieka.
+
+Po zmianie C# wykonaj kontrolę błędów według CLAUDE.md. Korzystaj z istniejącej bramki, rzeczywistych EditMode/PlayMode oraz aktualnego `QUALITY_GATE_SESSION_ID`. Nie zmieniaj polityki, hooków ani progów, aby uzyskać PASS. Brak testów, skipped, inconclusive, brak logu i błąd procesu nie są sukcesem.
+
+Wykorzystuj dostępnych subagentów do niezależnego review i QA, z konkretnym zakresem oraz własnością plików. Zachowaj jednego właściciela uruchomień Unity; nie uruchamiaj równocześnie dwóch runnerów tego projektu. Przed bramką zintegruj poprawki i zamroź snapshot. Nie edytuj go podczas uruchomienia. Zmiana po bramce wymaga właściwej ponownej weryfikacji.
+
+Raportuj osobno kompilację, testy, build, playtest i badania źródeł. Przy braku narzędzia podaj rzeczywiste ograniczenie i oznacz wynik `NOT_RUN` lub właściwym stanem; nie deklaruj ukończenia na podstawie planu. Dokumenty i macierze aktualizuj po zakończonej walidacji, zachowując zgodność raportu z jego snapshotem.
+
+## 6. Ciągłość pracy
+
+Po odebraniu przyrostu przejdź do następnego zadania z wykonanymi zależnościami. Nie zatrzymuj się na samym audycie, propozycji ani pytaniu o zgodę na rutynowy krok objęty tym poleceniem. Rozwiązuj zwykłe decyzje implementacyjne na podstawie planu, kodu i dowodów. Rzeczywistą blokadę opisz precyzyjnie i kontynuuj zadania, które od niej nie zależą.
+
+Przy zmianie sesji lub przekazaniu pracy zapisz raport w `docs/implementation/sessions/YYYY-MM-DD-HHMM-<zadanie>.md`. Podaj etap P, ID katalogu, Q i J, aktualny commit i stan roboczy, zmienione pliki, dowody testów, źródła, ograniczenia oraz dokładny następny krok. Odróżniaj zaplanowane, wdrożone i odebrane. Nie wyliczaj gotowości gry z liczby plików lub testów.
+
+W komunikacji używaj samodzielnego nazewnictwa „Mórz Bogów” i opisuj wynikające z dokumentacji reguły. Zachowaj pełen zakres mechanik i spójność dokumentów.
+
+**Zacznij teraz od sprawdzenia aktualnego stanu projektu, kwerendy i najwcześniejszego nieukończonego zadania. Następnie wykonaj konkretną implementację oraz właściwy odbiór.**

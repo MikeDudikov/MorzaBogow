@@ -2,10 +2,10 @@
 
 Profil środowiska to ustawienie prezentacji: wybiera, jak wygląda roślinność, wybrzeże, ruda i stocznie. Nie jest scenariuszem ani regułą gry. W kodzie odpowiada mu `EnvironmentProfile` (`Runtime/Presentation/Environment/EnvironmentProfiles.cs`, przestrzeń nazw `MorzaBogow.Presentation.Landscape`). Źródła twierdzeń są w [SrodowiskoZrodla.md](SrodowiskoZrodla.md), w numerowanych wierszach tabel.
 
-**Aktywny profil od 2026-11-10:** E6 + R-LAD, czyli Grecja IV w. p.n.e. (późna klasyka, 400–323) w Attyce: Pireus, Zea, Laurion. To decyzja użytkownika. W kodzie odpowiada mu `Era.LateClassical`, dopisana jako ostatnia, żeby zapisane wartości innych epok się nie przesunęły.
+**Obowiązujący świat:** mitologiczna Grecja IV w. p.n.e. (400–301 p.n.e., z 400 r. włącznie), zgodnie z [nadrzędnym planem](../NOWY_PLAN_GRY.md). Podstawowy region to Attyka: Pireus, Zea, Laurion. E6 + R-LAD i `Era.LateClassical` pozostają technicznymi identyfikatorami kompatybilności, nie odrębną definicją granic kampanii. Datę i dostępność konkretnego elementu ustala karta misji i źródła; nazwa okresu stylistycznego nie zawęża całego IV wieku.
 - **Skutki:** narzędzia z żelaza (`IronTools`) i oliwki w 90% uprawne.
 - **Pozycje E5** (przodek z regularnym chodnikiem, płuczka, hangar w Zei) obejmują teraz także E6.
-- **Dawny profil** E1 + R-LAD (XII w.) zostaje do wyboru.
+- **Pozostałe kody epok** zachowuje się dla kompatybilności danych i dokumentacji porównawczej. Nie stanowią wyboru innej epoki docelowej gry ani upoważnienia do produkcji sprzecznej z planem. Nie zmieniać numerów enumów, assetów ani zapisów przy porządkowaniu dokumentacji.
 
 Wyspy różnią się w obrębie profilu rodzajem, wielkością i ekspozycją na wiatr, wszystko ze stabilnego id. Ustalenia IV w. są w [HistoricalConstraints.md](HistoricalConstraints.md).
 

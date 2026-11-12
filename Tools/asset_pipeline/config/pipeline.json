@@ -14,7 +14,7 @@
     "concept": "Grounded Ancient Greek maritime realism, mature and serious art direction, authentic Aegean landscape, clear Mediterranean sunlight, deep blue sea, natural coastal turquoise, warm stone, olive vegetation, tactile materials, believable construction, realistic proportions, readable strategic-game silhouette.",
     "model": "Game asset of Classical Greece in the 4th century BC (the late Classical Aegean): believable construction, realistic proportions, convincing thickness and fastening of parts, moving parts separated, real-world scale in metres, clean topology, no base or ground plane.",
     "texture": "Physically based materials under neutral even lighting, no baked shadows or highlights: wood grain and tool marks, pitch, ochre and Egyptian-blue paint, lime plaster, limestone and marble, linen weave, bronze and lead with local patina; rust only on iron.",
-    "weathering": "heavy surface imperfections, scratches, rust, dirt accumulation in crevices, oil stains, rough worn surface, photorealistic weathering",
+    "weathering": "",
     "animation": "Weighted, deliberate motion: anticipation, transfer of weight, clear contact, reaction and recovery; no hops or acrobatics.",
     "effect": "Material-driven effects sized to the event: wood splinters, heavy water splashes, dust and smoke; short contact flash; no colourful explosions or showers of sparks."
   },

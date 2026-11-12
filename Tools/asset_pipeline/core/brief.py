@@ -245,9 +245,8 @@ def prompt(brief: dict, config: Config) -> str:
 
 
 def texture_prompt(brief: dict, config: Config) -> str:
-    """The text for texturing: the brief's own texturing.prompt, or its description with the house texture style, always
-    ending with the house weathering (templates.weathering, CLAUDE.md: surface texture). Within 800 characters the head
-    gives way, never the weathering."""
+    """The brief's texture prompt or description and material style. An optional configured finish is appended once;
+    the default finish is empty, so the brief decides the surface condition. Keep the provider prompt within 800 chars."""
     templates = config.data.get("templates", {})
     style = templates.get("texture", "Physically based materials under neutral lighting, no baked shadows").strip()
     weathering = (templates.get("weathering") or "").strip()

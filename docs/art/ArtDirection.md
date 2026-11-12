@@ -1,19 +1,19 @@
 # Dyrekcja artystyczna: Morza Bogów (profil wspólny)
 
-Data: 2026-11-10. Obowiązuje dla gry i dla potoku assetów (`Tools/asset_pipeline`). Lista zmian po audycie: [ArtDirectionAegean.md](ArtDirectionAegean.md). Ramy epoki: [HistoricalConstraints.md](HistoricalConstraints.md).
+Profil wykonawczy dla gry i potoku assetów (`Tools/asset_pipeline`), podporządkowany wyłącznie [nadrzędnemu planowi gry](../NOWY_PLAN_GRY.md) i jego §0. Rama: mitologiczna Grecja IV w. p.n.e. (400–301 p.n.e., z 400 r. włącznie). Uszczegółowienie: [ArtDirectionAegean.md](ArtDirectionAegean.md). Źródła i zakres pewności: [HistoricalConstraints.md](HistoricalConstraints.md).
 
 ## Wizja
 
 > Dojrzały, historycznie osadzony realizm śródziemnomorski: słoneczne wyspy, głębokie morze, surowe materiały, przekonujące postacie i odczuwalne konsekwencje walki.
 
-- Z punktu odniesienia (Diablo II: Resurrected) bierzemy materialność, szczegółowość i ciężar, bez jego treści i form.
+- Materialność, szczegółowość, przekonująca konstrukcja i ciężar ruchu wynikają z kierunku projektu oraz zweryfikowanych referencji świata gry.
 - **Powaga** pochodzi z proporcji, konstrukcji, materiałów, śladów użycia, ciężaru ruchu i skutków walki. Nie z ciemności ani szarości.
 - **Czytelność** z kamery strategicznej ma pierwszeństwo: strony, kierunek kadłuba, klasa, stan uszkodzeń i zagrożenie są rozpoznawalne w 1920×1080.
 
 ## Epoka
 
-- **Kotwica:** Egeja XII w. p.n.e., z ramą XII–V w. p.n.e. dla elementów, których XII w. nie wyznacza.
-- **Anachronizmy wymagane przez gre** (machiny miotające) są jawnie oznaczone i narysowane w materiałach epoki.
+- **Kotwica:** mitologiczna Grecja IV w. p.n.e., z 400 r. p.n.e. włącznie. Ten profil nie ustanawia innego okresu ani węższego obowiązkowego okna kampanii.
+- **Technologie i konstrukcje:** potwierdzać dostępność dla daty lub zakresu danej misji w IV w.; nie nazywać rozwiązania historycznym na podstawie samej nazwy assetu. Element fikcyjny musi być jawnie tak oznaczony i zgodny z katalogiem planu.
 - **Wykluczone:** gotyk, średniowiecze, proch, corvus.
 - **Mitologia** to osobna kategoria z własnym charakterem i kontrolowaną paletą.
 
@@ -80,7 +80,7 @@ Profil jest w `Tools/asset_pipeline/config/pipeline.json`: klucze `templates` (c
 
 ## Wydajność
 
-Cel: 1920×1080, 60 FPS na i5 z 16 GB RAM i RTX 3050 Ti.
+Profil jakości, scena, obciążenie i warunki pomiaru wynikają z kontraktu zadania, V10/V13 w VISUAL_TECH_SPEC oraz docs/RYGOR_PRODUKCJI_I_ODBIORU.md. Wydajność podawać z artefaktem pomiaru i percentylami; nie obiecywać uniwersalnego FPS ani cicho obniżać uzgodnionej jakości.
 
 Pod kontrolą trzymamy:
 - cienie;

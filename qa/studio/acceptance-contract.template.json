@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "template": true,
+  "taskId": "REPLACE",
+  "sessionId": "REPLACE_WITH_REAL_SESSION",
+  "authors": ["REPLACE_WITH_REAL_AUTHOR_ID"],
+  "domains": ["sea", "wind", "physical_animation"],
+  "behavior": {
+    "playerGoal": "REPLACE_WITH_BOUNDED_PLAYER_OUTCOME",
+    "given": "REPLACE_WITH_INITIAL_STATE",
+    "when": "REPLACE_WITH_TRIGGER",
+    "then": "REPLACE_WITH_OBSERVABLE_RESULT",
+    "edgeCases": ["pause", "save-load", "fog-of-war"],
+    "allowedFiles": ["REPLACE_WITH_EXACT_PROJECT_RELATIVE_PATH"],
+    "preserve": ["World authority", "save semantics", "unauthorized aesthetics"],
+    "requirements": ["REPLACE_WITH_P_Q_J_AND_CATALOG_IDS"]
+  },
+  "art": {
+    "required": true,
+    "references": [],
+    "criteria": ["materials", "silhouette", "motion", "readability"],
+    "minimumScore": 3,
+    "motionRequired": true,
+    "minimumDurationSeconds": 10,
+    "frameTimesSeconds": [0, 5, 10],
+    "captureSettings": {
+      "scene": "REPLACE", "seed": 7,
+      "camera": {"id": "REPLACE", "pose": "REPLACE", "projection": "REPLACE"},
+      "ticks": [0, 150, 300], "weather": "REPLACE", "lighting": "REPLACE",
+      "exposure": "REPLACE", "quality": "REPLACE", "resolution": [1920, 1080]
+    }
+  },
+  "physics": {
+    "required": true,
+    "evidenceLevel": "RECONSTRUCTION",
+    "model": {"name": "REPLACE", "version": "REPLACE", "equations": [], "units": {}, "parameters": {}, "validity": {}, "assumptions": []},
+    "sources": [],
+    "numericalTests": [],
+    "comparisons": {}
+  }
+}

@@ -44,7 +44,7 @@ Strażnik `Tools/visual/water_guard.py` zapisuje odciski SHA-256 w `docs/art/Wat
 
 - Przed każdym etapem i po nim: `python3 Tools/visual/water_guard.py check` (WSL).
   - Kod 1 wymienia zmienione części. Wtedy czytam ich diff.
-  - Zmianę wody cofam albo zgłaszam. Uzasadnioną cudzą zmianę (np. sesji wiatru i fal) zapisuję w nowym baseline z opisem.
+  - Zmianę wody zgłaszam i sprawdzam diff oraz przydział. Cudzej pracy nie cofam samowolnie. Nowy baseline wymaga uzasadnienia, autoryzowanego zakresu i niezależnego przeglądu rzeczywistych ujęć/testów według docs/RYGOR_PRODUKCJI_I_ODBIORU.md; autor nie zatwierdza własnego wyniku jako niezależny reviewer.
 - `M0Bootstrap.Run` nie uruchamiać. Kasuje i tworzy na nowo `Volume_*` z nowymi GUID oraz zmienia listę scen.
 - Bez zmian ekspozycji, gradingu, profili Volume, słońca i jakości tylko dla nastroju.
 - Nowe efekty mają własne materiały. Nie biorą `Placeholder_Spray` ani dekali wody i oszczędzają limit 2048 dekali.

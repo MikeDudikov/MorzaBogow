@@ -1,8 +1,8 @@
 # Dyrekcja artystyczna: realizm egejski (obowiązująca)
 
-Data: 2026-11-10. Zastępuje mroczniejszy wariant z tego samego dnia.
+Profil wykonawczy podporządkowany [nadrzędnemu planowi gry](../NOWY_PLAN_GRY.md) i jego §0. Nie ustanawia osobnego zakresu ani chronologii produktu.
 
-**Kotwica: estetyka Grecji IV w. p.n.e.** Decyzja użytkownika z 2026-11-10: najpierw VII w., potem korekta na IV w. Styl bierzemy wyłącznie ze sztuki i materialnej kultury tej epoki, nie z innych gier. Wcześniejsze odwołanie do cudzej gry zostaje wycofane. Zostaje sam wymóg materialności: konstrukcja, ciężar, ślady użytkowania. Wygląd XII w. (LH IIIC) jest profilem wcześniejszym (E1). Źródła i pewność: [HistoricalConstraints.md](HistoricalConstraints.md).
+**Kotwica: mitologiczna Grecja IV w. p.n.e., 400–301 p.n.e., z 400 r. włącznie.** Konstrukcję i kulturę materialną weryfikować dla właściwej karty misji. Mitologię i interpretację artystyczną oznaczać osobno. Techniczne kody profili zachowują kompatybilność, lecz nie dopuszczają innej epoki docelowej. Źródła i pewność: [HistoricalConstraints.md](HistoricalConstraints.md). Tabele wykonanych prac opisują wskazane realizacje; nie zmieniają założeń nadrzędnego planu.
 
 ## Estetyka Grecji IV w. p.n.e.
 

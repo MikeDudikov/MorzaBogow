@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "template": true,
+  "taskId": "REPLACE",
+  "sessionId": "REPLACE_WITH_REAL_SESSION",
+  "contractSha256": "REPLACE_AFTER_APPROVING_CONTRACT",
+  "snapshotSha256": "REPLACE_FROM_ORIGINAL_GATE_SNAPSHOT_ALGORITHM",
+  "sourceFiles": [],
+  "scopeReview": {"reviewerId": "REPLACE_WITH_INDEPENDENT_ID", "verdict": "NOT_RUN", "actualResultInspected": false, "notes": "", "reviewedSha256": []},
+  "art": {
+    "baseline": {"settings": {}, "frames": [], "recording": {}, "recordingPlayedByReviewer": false},
+    "candidate": {"settings": {}, "frames": [], "recording": {}, "recordingPlayedByReviewer": false},
+    "review": {"reviewerId": "REPLACE", "verdict": "NOT_RUN", "actualResultInspected": false, "notes": "", "reviewedSha256": [], "criticalDefects": [], "criteria": {}}
+  },
+  "physics": {
+    "nunit": {},
+    "comparisons": {},
+    "review": {"reviewerId": "REPLACE", "verdict": "NOT_RUN", "actualResultInspected": false, "notes": "", "reviewedSha256": []}
+  }
+}

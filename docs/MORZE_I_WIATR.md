@@ -1,13 +1,13 @@
 # Morza Bogów — wiatr, fale i siły na okręty
 
-Data: 2026-11-10. Gałąź `balans-skala`. Plan zatwierdzony przez użytkownika: system wiatru zmiennego w przestrzeni, wzrostu i propagacji energii fal oraz sił wody i wiatru na okręty.
+Dokument techniczny modelu wiatru i morza. Reguły rozgrywki określa [NOWY_PLAN_GRY.md](NOWY_PLAN_GRY.md), rozdział 8; integrację ruchu i mocy wiatru określa P07 w [PLAN_WDROZENIA.md](PLAN_WDROZENIA.md). Poniższe modele i pomiary nie są samodzielnym potwierdzeniem historycznych osiągów okrętów ani poleceniem zmiany oprawy.
 
-Decyzje użytkownika:
+Stan funkcjonalny modelu:
 - **Siły.** Wszystkie siły są liczone; nurzanie, przechył i kiwanie działają od razu.
-- **Ruch po mapie.** Wpływ na prędkość, dryf i skręt jest w symulacji z testami, ale za przełącznikiem `WindAffectsMovement`. Przełącznik jest domyślnie wyłączony w meczach (balans i AI w etapie 8).
-- **Klimat.** Parametry odpowiadają klimatowi Morza Egejskiego i są potwierdzone źródłami.
+- **Ruch po mapie.** Wpływ na prędkość, dryf i skręt jest za przełącznikiem `WindAffectsMovement`, domyślnie wyłączonym w meczach. Włączenie i integracja z mocą wiatru wymagają odbioru P07.
+- **Klimat.** Parametry korzystają z opracowań współczesnego Morza Egejskiego; ich zastosowanie do reguł historycznej gry wymaga jawnego określenia analogii i ograniczeń.
 
-Obowiązuje wcześniejsza decyzja: w meczu nie ma sztormu (średni wiatr ≤ 15 m/s, Beaufort 7). Decyzja użytkownika z 2026-11-11 zmienia ją od etapu 5: sztorm w meczu, poprzedzony zapowiedzią, jako źródło wraków po sztormach ([BALANS_I_SKALA.md](BALANS_I_SKALA.md#gospodarka-luki-obowiązujących-reguł-2026-11-11)). Do tego czasu klimat meczu pozostaje bez sztormu.
+Bieżący klimat meczu nie obejmuje sztormu. Wpływ pogody na cele i ruch wymaga odbioru P07. Ewentualny wrak ma określone pochodzenie i skończone cargo; pogoda nie tworzy darmowego zasobu. Ten dokument nie zmienia ustawień wody, profili jakości ani estetyki.
 
 Oznaczenia:
 - **[Ź]** — wartość wprost ze źródła;
@@ -99,7 +99,7 @@ Oznaczenia:
 | Lepkość kinematyczna | woda 0,94·10⁻⁶ m²/s przy 25 °C; powietrze 1,6·10⁻⁵ m²/s | wartości standardowe |
 | Grawitacja | 9,80 m/s² (ok. 38° N) | wzór grawitacji normalnej |
 | Pływy | ok. 10 cm; pomijalne | Pytharouli i Stiros 2012 [Ź-a] |
-| Dryf wiatrowy | 3% U10 (zakres 1–6%); tylko w ruchu za przełącznikiem, prąd ≤ 20% prędkości bazowej (C09) | NOAA [Ź-a] |
+| Dryf wiatrowy | 3% U10 (zakres 1–6%); tylko w ruchu za przełącznikiem, prąd ≤ 20% prędkości bazowej; odbiór WM01 | NOAA [Ź-a] |
 
 **Brak danych:**
 - **Wysokości wysp.** Nie ma ich w symulacji. Dodane są jako dane mapy (`Island.Height`), wzięte z obecnej geometrii prezentacji; to dane gry, nie pomiar.
@@ -119,7 +119,7 @@ Oznaczenia:
   - zapis w środku kroku odtwarzany powtórzeniem części kroku z zapisanych próbek wiatru.
 - `SeaSurface` — powierzchnia fazowa: 144 składowe (λ ≥ 8 m), głębie co 10 m.
 - `HullForm`, `SailForces`, `Seakeeping` — kadłub z katalogu, żagiel rejowy, 3 stopnie swobody.
-- `MarineState` — przełącznik ruchu: prędkość ±25%, dryf, prąd ≤ 20% (C09), opór w falach STAWAVE-1.
+- `MarineState` — przełącznik ruchu: prędkość ±25%, dryf, prąd ≤ 20%; odbiór [WM01](KONTRAKTY_MORZA_I_WIATRU.md), opór w falach STAWAVE-1. Wymienione limity opisują implementację i wymagają aktualnego kontraktu przed włączeniem wpływu na mechanikę.
 
 **Kalibracje** (każda z uzasadnieniem w kodzie):
 
