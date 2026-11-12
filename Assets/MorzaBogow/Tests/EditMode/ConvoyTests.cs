@@ -160,7 +160,7 @@ namespace MorzaBogow.Tests
             {
                 world.Step();
                 var group = merchants.Where(ship => ship.ConvoyGroup >= 0).ToList();
-                if (group.Any(ship => ship.Transport <= TransportPhase.Loading)) lastLoading = world.Tick;
+                if (group.Any(ship => World.BeforeDeparture(ship.Transport))) lastLoading = world.Tick;
                 foreach (var ship in group)
                 {
                     if (!departed.ContainsKey(ship.Id) && ship.Transport == TransportPhase.ToDestination && World.Distance(ship.X, ship.Y, source.X, source.Y) > 60) departed[ship.Id] = world.Tick;
