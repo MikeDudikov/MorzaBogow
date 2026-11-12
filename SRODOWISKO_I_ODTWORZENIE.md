@@ -1,4 +1,6 @@
-# Środowisko Morza Bogów — składniki i odtworzenie na innym komputerze
+# Środowisko pracy nad grą — składniki i odtworzenie na innym komputerze
+
+Dokument opisuje wyłącznie środowisko pracy: narzędzia, Unity, WSL oraz konfigurację Claude Code i studia. Nie opisuje stanu gry.
 
 Stan na 12.11.2026, komputer źródłowy: Windows 11 Home 10.0.26200. Dokument jest dla Claude Code. Wykonuj go po kolei i nie czytaj innych dokumentów, dopóki krok 5 (weryfikacja) nie przejdzie. `<REPO>` oznacza katalog klonu.
 
@@ -22,8 +24,8 @@ Potem przeczytaj CLAUDE.md i działaj według niego.
 | Unity Hub | 3.22+ | `winget install --id Unity.UnityHub -e` | instalacja edytora |
 | Unity Editor | **6000.3.28f1** (HDRP 17.3.0) | Unity Hub → Installs → 6000.3.28f1, domyślnie `C:\Program Files\Unity\Hub\Editor\6000.3.28f1` | kompilacja, testy, bramka |
 | WSL 2 + Ubuntu | Ubuntu 26.04.1 LTS | `wsl --install -d Ubuntu` (wymaga restartu) | Python dla narzędzi |
-| Python w WSL | 3.14.4 (wymagane ≥ 3.10) | w Ubuntu: `sudo apt install -y python3` | `check_unity_errors.py`, studio, model ekonomii, MCP assetów |
-| Node.js | 26.13.0 | `winget install --id OpenJS.NodeJS.LTS -e` | MCP Meshy (npx), `qa/scenario-design-check.cjs` |
+| Python w WSL | 3.14.4 (wymagane ≥ 3.10) | w Ubuntu: `sudo apt install -y python3` | `check_unity_errors.py`, narzędzia studia, MCP assetów |
+| Node.js | 26.13.0 | `winget install --id OpenJS.NodeJS.LTS -e` | MCP Meshy (npx) |
 | .NET SDK | 10.0.403 | `winget install --id Microsoft.DotNet.SDK.10 -e`; ID sprawdź `winget search` | opcjonalny harness .NET programistów |
 | Codex (OpenAI) | 26.11 | Microsoft Store | opcjonalnie; skrzynka Claude–Codex |
 | Blender, ComfyUI | brak na źródłowym | — | opcjonalnie; potok assetów (`BLENDER_PATH`, `COMFYUI_URL`) |
@@ -36,8 +38,6 @@ Pythona dla Windows nie instalujemy, bo na komputerze źródłowym jest tylko al
 gh repo clone MikeDudikov/MorzaBogow <REPO>   # gałąź domyślna: balans-skala
 git -C <REPO> config core.autocrlf true      # jak na źródłowym; .gitattributes wymusza LF dla qa/*.json
 ```
-
-Gałęzie robocze sesji P03 i MORZE (np. `p03-auto`, `p03-eko`) są lokalne. Trafią na GitHub dopiero po ich zakończeniu i osobnym push.
 
 ## 3. Dopasowanie do komputera
 
@@ -95,27 +95,17 @@ Oczekiwane wartości:
 
 | Element | Gdzie na źródłowym | Po co |
 |---|---|---|
-| Dziennik i skrzynka studia | `<REPO>\work\studio-communication\`, `<REPO>\work\studio-bridge\` | historia przydziałów, ACK i decyzji (rev ~500) |
-| Raporty bramek | `<REPO>\qa\reports\` | dowody PASS bramek P01, P02-INT1, P02 |
-| Logi walidacji | `<REPO>\artifacts-log\` | XML i logi przebiegów Unity |
-| Baza potoku assetów | `<REPO>\ArtWorkspace\pipeline.db` | stan zadań generowania |
-| Buildy | `<REPO>\Builds\` | build M1 |
-| Harnessy programistów | `%USERPROFILE%\MorzaBogow_zabezpieczenia\` | kopie .NET, mutanty, reprodukcje |
+| Dziennik i skrzynka studia | `<REPO>\work\studio-communication\`, `<REPO>\work\studio-bridge\` | historia przydziałów, ACK i decyzji |
+| Harnessy programistów | `%USERPROFILE%\MorzaBogow_zabezpieczenia\` | narzędzia .NET poza repozytorium |
 | Pamięć Claude dla projektu | `%USERPROFILE%\.claude\projects\<ścieżka projektu>\memory\` | trwała pamięć sesji |
 
-**Lokalne zmiany innych autorów**, nie zatwierdzone na źródłowym:
-- `ProjectSettings/GraphicsSettings.asset`, `ProjectSettings/QualitySettings.asset`;
-- `Assets/InitTestScene…unity`, czyli pozostałość po przebiegu testów;
-- część `docs/art/*`.
-
-Nie są częścią odtworzenia, chyba że użytkownik zdecyduje inaczej.
+Bez nich środowisko działa: dziennik zaczyna się od nowa po `-Action Init`.
 
 ## 7. Znane ograniczenia i ustalenia
 
 - **MCP studia** `morza-bogow-studio` (`Wdroz-MCPStudia.ps1`) jest celowo nieskonfigurowany (decyzja użytkownika z 12.11.2026). Skrzynka działa przez CLI w WSL: `wsl -e python3 -B <wsl:REPO>/Tools/studio_bridge/studio_mcp.py --root <wsl:REPO> --endpoint claude call --tool studio_receive`.
 - **Instalator MCP studia** przy `-Python wsl.exe` tworzy wadliwy wpis. Nie stosować `-Apply` z WSL.
 - **`SHA256SUMS.txt`** utrzymuje studio. Nie uruchamiać skryptów z `work/`, bo nadpisują manifest.
-- **Zapis gry ma wersję 20.** Zapisy v19 są odrzucane.
 - **Role modeli:** koordynacja i recenzje na Opus, kod na Fable, wyszukiwanie na Haiku (`.claude/agents/`). Model ról potwierdzaj w metadanych JSONL sesji, nie w samej konfiguracji.
 
 ## 8. Ściąga poleceń (bez czytania innych plików)
@@ -123,5 +113,3 @@ Nie są częścią odtworzenia, chyba że użytkownik zdecyduje inaczej.
 - **Testy Unity** (bez `-nographics`): `& '<Unity.exe>' -batchmode -projectPath <REPO> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
 - **Bramka** (plan w `.claude/qa/tasks/<TASK>.json` z bieżącym sessionId): `'{"hook_event_name":"TaskCompleted","task_id":"<TASK>","session_id":"<SESSION>"}' | pwsh -NoProfile -File <REPO>\.claude\hooks\quality-gate.ps1`
 - **Regresja wzorca:** `pwsh -NoProfile -File <REPO>\Sprawdz-OdbiorStudia.ps1 -Action Regression -Python <ścieżka wsl-python3.ps1> -Report qa/reports/<TASK>-<runId>/report.json`
-- **Eksport katalogu:** `& '<Unity.exe>' -batchmode -nographics -projectPath <REPO> -executeMethod MorzaBogow.Editor.CatalogExporter.Run -quit -logFile <log>`
-- **Model ekonomii:** `wsl -e python3 -I <wsl:REPO>/docs/economy-model/economy-model.py`
