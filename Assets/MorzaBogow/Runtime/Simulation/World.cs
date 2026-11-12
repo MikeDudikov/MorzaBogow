@@ -210,7 +210,8 @@ namespace MorzaBogow.Simulation
                 case CommandKind.Harvest:
                     if (!ship.Definition.CanHarvest) return CommandReason.NotCapable;
                     var node = FindNode(command.TargetId);
-                    if (node == null) return CommandReason.NoObservedTarget;
+                    // A deposit the side has never seen is refused as one that is not there (J08): the order tells nothing of the map.
+                    if (node == null || (node.KnownMask & (1 << ship.Owner)) == 0) return CommandReason.NoObservedTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Harvest;
                     ship.NodeId = node.Id;
@@ -239,7 +240,9 @@ namespace MorzaBogow.Simulation
                     return CommandReason.None;
                 case CommandKind.Salvage:
                     if (!ship.Definition.CanHarvest) return CommandReason.NotCapable;
-                    if (Wrecks.All(wreck => wreck.Id != command.TargetId)) return CommandReason.NoObservedTarget;
+                    // A wreck the side does not see now is refused as one that is gone (J08), whatever lies there.
+                    var wreck = Wrecks.FirstOrDefault(item => item.Id == command.TargetId);
+                    if (wreck == null || !CanSee(ship.Owner, wreck.X, wreck.Y)) return CommandReason.NoObservedTarget;
                     ClearOrder(ship);
                     ship.Order = OrderKind.Salvage;
                     ship.WreckId = command.TargetId;
