@@ -274,8 +274,7 @@ namespace MorzaBogow.Tests
             world.HeavyArmsResearched |= 1;
             var source = AddOutpost(world, -350, 3000, 1500);
             world.Issue(new Command { Faction = 0, Kind = CommandKind.SetPriorityPort, TargetId = front.Id });
-            // They sail in from the home side, as in the other convoy tests (merchants starting beside the source can jam
-            // there; a P03 finding, docs/implementation/sessions/2026-11-12-0047-p01.md).
+            // This covers the far approach. LogisticsRegressionTests also covers a group starting beside its source.
             var merchants = new[] { world.SpawnShip(0, ShipClass.Merchant, -470, 40), world.SpawnShip(0, ShipClass.Merchant, -470, 80), world.SpawnShip(0, ShipClass.Merchant, -470, 120) };
             Convoy(world, merchants);
             Run(world, 12);

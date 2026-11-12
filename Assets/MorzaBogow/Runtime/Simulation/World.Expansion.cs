@@ -191,19 +191,25 @@ namespace MorzaBogow.Simulation
         void StepTransport(Ship ship)
         {
             var definition = ship.Definition;
+            // Permission may be lost after the order was accepted, including while loading or waiting for the group.
+            if (ship.Order != OrderKind.Expedition)
+            {
+                var destination = FindSettlement(ship.DestinationId);
+                if (destination == null || destination.Destroyed || destination.Owner != ship.Owner) { ClearOrder(ship); return; }
+            }
             switch (ship.Transport)
             {
                 case TransportPhase.ToSource:
                 case TransportPhase.WaitSourceBerth:
                 case TransportPhase.Loading:
                     var source = FindSettlement(ship.SourceId);
-                    if (source == null || source.Destroyed) { ClearOrder(ship); return; }
+                    if (source == null || source.Destroyed || source.Owner != ship.Owner) { ClearOrder(ship); return; }
                     StepAtSource(ship, source);
                     return;
 
                 case TransportPhase.ToDestination:
                     if (ship.Order == OrderKind.Expedition) { StepToSite(ship); return; }
-                    if (ship.Order == OrderKind.Convoy && ConvoyStillLoading(ship)) { StopShip(ship); return; }
+                    if (ship.Order == OrderKind.Convoy && ConvoyStillLoading(ship)) { MakeRoomForConvoy(ship); return; }
                     var target = FindSettlement(ship.DestinationId);
                     if (target == null || target.Destroyed) { ClearOrder(ship); return; }
                     if (Distance(ship.X, ship.Y, target.X, target.Y) <= PortReach(ship))

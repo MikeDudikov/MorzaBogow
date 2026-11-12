@@ -148,7 +148,7 @@ namespace MorzaBogow.Simulation
             foreach (var members in forming)
             {
                 var candidate = FindSettlement(members.First(member => member.Transport <= TransportPhase.Loading).SourceId);
-                if (candidate == null || candidate.Destroyed || ConvoySurplus(candidate, needWood, needSilver) <= 0) continue;
+                if (candidate == null || candidate.Destroyed || candidate.Owner != ship.Owner || ConvoySurplus(candidate, needWood, needSilver) <= 0) continue;
                 source = candidate;
                 group = members.Key;
                 break;
@@ -173,6 +173,55 @@ namespace MorzaBogow.Simulation
             ship.ConvoyGroup = group;
             ship.DestinationId = target.Id;
             Reserve(ship, source, wood, silver);
+        }
+
+        /// <summary>
+        /// A loaded member stays by its source, but clears the approaches of the members still loading. Stopping in
+        /// their way can otherwise deadlock an empty berth. The small muster ring is derived from existing state;
+        /// it adds no saved field and does not start the voyage before the group finishes loading.
+        /// </summary>
+        void MakeRoomForConvoy(Ship ship)
+        {
+            var source = FindSettlement(ship.SourceId);
+            if (source == null || source.Destroyed) { StopShip(ship); return; }
+            if (ConvoyApproachClearance(ship, source, ship.X, ship.Y) >= HullSpacing) { StopShip(ship); return; }
+
+            var radius = PortReach(ship) + ship.Definition.Radius;
+            var best = double.NegativeInfinity;
+            var nearest = double.MaxValue;
+            var targetX = ship.X;
+            var targetY = ship.Y;
+            for (var point = 0; point < 8; point++)
+            {
+                var angle = point * Math.PI / 4;
+                var x = source.X + radius * Math.Cos(angle);
+                var y = source.Y + radius * Math.Sin(angle);
+                if (ClearanceAt(x, y) < LandClearance(ship) + 1) continue;
+                var clearance = ConvoyApproachClearance(ship, source, x, y);
+                var distance = Distance2(ship.X, ship.Y, x, y);
+                if (clearance < best - 1e-9 || (Math.Abs(clearance - best) <= 1e-9 && distance >= nearest)) continue;
+                best = clearance;
+                nearest = distance;
+                targetX = x;
+                targetY = y;
+            }
+            if (double.IsNegativeInfinity(best)) { StopShip(ship); return; }
+            if (Distance(ship.X, ship.Y, targetX, targetY) <= ship.Definition.Beam / 2) StopShip(ship);
+            else Steer(ship, targetX, targetY, ship.Definition.Speed, ship.Definition.Beam / 2);
+        }
+
+        double ConvoyApproachClearance(Ship ship, Settlement source, double x, double y)
+        {
+            var clearance = double.MaxValue;
+            foreach (var other in Ships)
+            {
+                if (other == ship || other.Owner != ship.Owner || other.Order != OrderKind.Convoy
+                    || other.ConvoyGroup != ship.ConvoyGroup || other.SourceId != source.Id
+                    || other.Transport > TransportPhase.Loading) continue;
+                clearance = Math.Min(clearance, LandShape.PointSegmentDistance(x, y, other.X, other.Y, source.X, source.Y)
+                    - ship.Definition.Radius - other.Definition.Radius);
+            }
+            return clearance;
         }
 
         /// <summary>A convoy sails together: a loaded member waits by the source while another of its group still loads.</summary>
