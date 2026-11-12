@@ -250,5 +250,54 @@ namespace MorzaBogow.Tests
             Assert.That(SaveGame.Hash(SaveGame.Serialize(loaded)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(world))));
             Assert.That(loaded.LedgerTotal(ResourceType.Silver), Is.EqualTo(world.LedgerTotal(ResourceType.Silver)));
         }
+
+        /// <summary>Every port's reservation is exactly what the merchants loading from it still want (no queues here).</summary>
+        static void AssertReservationsMatchTheBookings(World world, string when)
+        {
+            foreach (var port in world.Settlements)
+            {
+                var booked = world.Ships.Where(ship => ship.SourceId == port.Id && ship.Owner == port.Owner);
+                Assert.That(port.ReservedWood, Is.EqualTo(booked.Sum(ship => ship.WantWood)), $"{when}: wood reserved at port {port.Id}.");
+                Assert.That(port.ReservedSilver, Is.EqualTo(booked.Sum(ship => ship.WantSilver)), $"{when}: silver reserved at port {port.Id}.");
+            }
+        }
+
+        [Test]
+        public void Save_ANamedPriorityPortAndAConvoyGroupContinueIdentically()
+        {
+            // Q02 after a save: a priority port named by the player (not the home port), a group of merchants loading
+            // together for it and a third on standby, with the goods booked at the source.
+            var world = Empty();
+            var front = AddOutpost(world, -150, 0, 0);
+            front.HasShipyard = true;
+            front.HasWorkshop = true;
+            world.HeavyArmsResearched |= 1;
+            var source = AddOutpost(world, -350, 3000, 1500);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.SetPriorityPort, TargetId = front.Id });
+            // They sail in from the home side, as in the other convoy tests (merchants starting beside the source can jam
+            // there; a P03 finding, docs/implementation/sessions/2026-11-12-0047-p01.md).
+            var merchants = new[] { world.SpawnShip(0, ShipClass.Merchant, -470, 40), world.SpawnShip(0, ShipClass.Merchant, -470, 80), world.SpawnShip(0, ShipClass.Merchant, -470, 120) };
+            Convoy(world, merchants);
+            Run(world, 12);
+            Assert.That(world.PriorityPort(0), Is.SameAs(front));
+            Assert.That(merchants.Count(ship => ship.ConvoyGroup >= 0), Is.GreaterThanOrEqualTo(2), "Saved with a group formed.");
+            Assert.That(merchants.Sum(ship => ship.WantWood + ship.WantSilver + ship.HoldWood + ship.HoldSilver), Is.GreaterThan(0), "And goods booked or aboard.");
+            AssertReservationsMatchTheBookings(world, "Before the save");
+
+            var data = SaveGame.Serialize(world);
+            var loaded = SaveGame.Deserialize(data, out _);
+            Assert.That(loaded.PriorityPort(0).Id, Is.EqualTo(front.Id), "The named port stays the priority.");
+            foreach (var ship in merchants) Assert.That(loaded.FindShip(ship.Id).ConvoyGroup, Is.EqualTo(ship.ConvoyGroup));
+            AssertReservationsMatchTheBookings(loaded, "After loading");
+
+            Run(world, 120);
+            Run(loaded, 120);
+            Assert.That(SaveGame.Hash(SaveGame.Serialize(loaded)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(world))));
+            Assert.That(loaded.FindSettlement(front.Id).Wood, Is.EqualTo(front.Wood));
+            Assert.That(front.Wood + front.Silver, Is.GreaterThan(0), "The convoy delivered to the named port.");
+            Assert.That(loaded.LedgerTotal(ResourceType.Wood), Is.EqualTo(world.LedgerTotal(ResourceType.Wood)));
+            Assert.That(loaded.LedgerTotal(ResourceType.Silver), Is.EqualTo(world.LedgerTotal(ResourceType.Silver)));
+            AssertReservationsMatchTheBookings(loaded, "Two minutes on");
+        }
     }
 }

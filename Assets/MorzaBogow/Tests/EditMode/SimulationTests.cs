@@ -1797,6 +1797,44 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Save_CancellingAShipOrderAndAProjectAfterLoadingSettlesAsWithoutTheSave()
+        {
+            // Q02: a ship order and a project under way go through a save; cancelled afterwards, they give back exactly
+            // what the continued game gives back, and nothing is made or lost on the way.
+            var world = Empty();
+            world.SpawnShip(0, ShipClass.Cutter, -420, 0);
+            world.SpawnShip(1, ShipClass.Cutter, 420, 0);
+            var home = world.SettlementOf(0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.QueueShip, Class = ShipClass.Ram, TargetId = home.Id });
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.BuildProject, Project = ProjectKind.Workshop, TargetId = home.Id });
+            Run(world, 6);
+            Assert.That(home.WarQueue.Count, Is.EqualTo(1));
+            Assert.That(home.Project, Is.Not.Null);
+            Assert.That(home.WarQueue[0].Started && home.Project.Started, Is.True, "Both under way: a cancel now keeps back a share.");
+            var wood = world.LedgerTotal(ResourceType.Wood);
+            var silver = world.LedgerTotal(ResourceType.Silver);
+
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            foreach (var game in new[] { world, loaded })
+            {
+                var port = game.SettlementOf(0);
+                var cancelShip = game.Issue(new Command { Faction = 0, Kind = CommandKind.CancelQueue, QueueIndex = 0, PortQueue = false, TargetId = port.Id });
+                var cancelProject = game.Issue(new Command { Faction = 0, Kind = CommandKind.CancelProject, TargetId = port.Id });
+                game.Step();
+                Assert.That(game.CommandResults.Where(item => item.CommandId == cancelShip || item.CommandId == cancelProject).All(item => item.Outcome == CommandOutcome.Accepted), Is.True);
+                Assert.That(port.WarQueue, Is.Empty);
+                Assert.That(port.Project, Is.Null);
+                Assert.That(port.ReservedWood + port.ReservedSilver, Is.Zero, "Every reservation of the cancelled work is settled.");
+            }
+            var after = loaded.SettlementOf(0);
+            Assert.That((after.Wood, after.Silver, loaded.LostWood, loaded.LostSilver), Is.EqualTo((home.Wood, home.Silver, world.LostWood, world.LostSilver)), "The same refund and the same loss as without the save.");
+            Assert.That(world.LedgerTotal(ResourceType.Wood), Is.EqualTo(wood), "The ledger holds through the cancel.");
+            Assert.That(world.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
+            Assert.That(loaded.LedgerTotal(ResourceType.Wood), Is.EqualTo(wood));
+            Assert.That(loaded.LedgerTotal(ResourceType.Silver), Is.EqualTo(silver));
+        }
+
+        [Test]
         public void Save_KeepsTheOrderOfConflictingPendingOrdersAndTheirNumbers()
         {
             Ship AfterLoad(CommandKind firstKind, CommandKind secondKind, out World loaded, out int lastId)
