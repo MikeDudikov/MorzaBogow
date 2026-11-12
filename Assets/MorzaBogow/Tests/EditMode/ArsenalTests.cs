@@ -151,7 +151,8 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 200);
-            var ram = world.SpawnShip(1, ShipClass.Ram, boarder.Definition.Radius + ShipCatalog.Get(ShipClass.Ram).Radius + 2, 200);
+            // Side by side: a boarding is from the side (C11).
+            var ram = world.SpawnShip(1, ShipClass.Ram, 0, 200 + (boarder.Definition.Beam + ShipCatalog.Get(ShipClass.Ram).Beam) / 2 + World.HullSpacing);
             boarder.Heading = ram.Heading = 0;
             ram.Mounts[1] = WeaponType.StoneCatapult;
             ram.ModuleHp[1] = 60;

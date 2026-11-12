@@ -965,10 +965,14 @@ namespace MorzaBogow.Tests
 
         // ---------- Boarding ----------
 
+        /// <summary>Keel to keel when two hulls lie side by side at the spacing hulls keep: where a boarding begins (C11).</summary>
+        static double Alongside(ShipClass a, ShipClass b) => (ShipCatalog.Get(a).Beam + ShipCatalog.Get(b).Beam) / 2 + World.HullSpacing;
+
         static (Ship boarder, Ship target) BoardSetup(World world, int defenders)
         {
+            // Side by side, on opposite courses: boarding is from the side, never bow or stern on.
             var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
-            var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 26, 0);
+            var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 0, Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer));
             target.Swordsmen = defenders;
             target.Archers = 0;
             return (boarder, target);
@@ -1012,8 +1016,8 @@ namespace MorzaBogow.Tests
         {
             var world = Empty();
             var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 0, 0);
-            var first = world.SpawnShip(0, ShipClass.Boarder, -26, 0);
-            var second = world.SpawnShip(0, ShipClass.Boarder, 26, 0);
+            var first = world.SpawnShip(0, ShipClass.Boarder, 0, -Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer));
+            var second = world.SpawnShip(0, ShipClass.Boarder, 0, Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer));
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { first.Id, second.Id }, TargetId = target.Id });
             Run(world, 1);
             Assert.That(world.Boardings.Count, Is.EqualTo(1));
@@ -1045,6 +1049,360 @@ namespace MorzaBogow.Tests
             world.Step();
             Assert.That(world.Boardings, Is.Empty);
             Assert.That(target.Owner, Is.EqualTo(1));
+        }
+
+        // ---------- Boarding geometry (A02, C11, Q04): from the side, at real relative speed ----------
+
+        static bool HooksWithin(World world, double seconds)
+        {
+            for (var i = 0; i < seconds * Rules.TickRate; i++)
+            {
+                world.Step();
+                var thrown = world.Events.Any(item => item.Type == "hooks_thrown");
+                world.Events.Clear();
+                if (thrown) return true;
+            }
+            return false;
+        }
+
+        static Ship UnderWay(World world, int owner, ShipClass shipClass, double x, double y, double heading, double speed)
+        {
+            var ship = world.SpawnShip(owner, shipClass, x, y);
+            ship.Heading = heading;
+            ship.Speed = speed;
+            ship.Order = OrderKind.Move;
+            ship.TargetX = x + Math.Cos(heading) * 5000;
+            ship.TargetY = y + Math.Sin(heading) * 5000;
+            return ship;
+        }
+
+        [Test]
+        public void Board_HullsPassingOnOppositeCoursesOrCrossingThrowNoHooks()
+        {
+            // Side by side at 5.2 m/s each on opposite courses the hulls pass at 10.4 m/s; crossing at right angles at
+            // 7.35 m/s. A scalar difference of speeds made both 0 and threw the hooks (A02).
+            var world = Empty();
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            boarder.Heading = 0;
+            boarder.Speed = 5.2;
+            var passing = UnderWay(world, 1, ShipClass.CrewDestroyer, 10, Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer) + 1.5, Math.PI, 5.2);
+            Assert.That(World.HullGap(boarder, passing), Is.LessThanOrEqualTo(Rules.BoardGap), "Within the hooks' reach as they pass.");
+            Assert.That(world.RelativeSpeed(boarder, passing), Is.EqualTo(10.4).Within(1e-6));
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = passing.Id });
+            Assert.That(HooksWithin(world, 6), Is.False, "No hooks between hulls passing each other.");
+
+            var crossing = Empty();
+            var crosser = crossing.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            crosser.Heading = 0;
+            crosser.Speed = 5.2;
+            var crossed = UnderWay(crossing, 1, ShipClass.CrewDestroyer, 20, -15, Math.PI / 2, 5.2);
+            Assert.That(crossing.RelativeSpeed(crosser, crossed), Is.EqualTo(Math.Sqrt(2) * 5.2).Within(1e-6));
+            crossing.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { crosser.Id }, TargetId = crossed.Id });
+            Assert.That(HooksWithin(crossing, 6), Is.False, "Nor across a bow at right angles.");
+        }
+
+        [Test]
+        public void Board_TheHooksReachOnlyAcrossTheWaterBetweenTheHulls()
+        {
+            // Measured between the hulls' outlines, as contacts are (World.HullGap), not between circles round them.
+            bool HooksAt(double water)
+            {
+                var world = Empty();
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+                var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 0, Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer) - World.HullSpacing + water);
+                boarder.Heading = target.Heading = 0;
+                Assert.That(World.HullGap(boarder, target), Is.EqualTo(water).Within(1e-6));
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                return HooksWithin(world, 0.1);
+            }
+            Assert.That(HooksAt(3), Is.True, "Three metres of water: the hooks reach.");
+            Assert.That(HooksAt(11), Is.False, "Eleven metres: they do not, though circles round the hulls would overlap.");
+        }
+
+        [Test]
+        public void Board_ComesAlongsideAStillTargetFromAnyApproachAndHooksFromTheSide()
+        {
+            (bool thrown, double seconds, double gap, bool alongside, double relative) Approach(double x, double y, double heading, double targetX = 0, double targetHeading = 0)
+            {
+                var world = Empty();
+                var target = world.SpawnShip(1, ShipClass.CrewDestroyer, targetX, 0);
+                target.Heading = targetHeading;
+                target.Swordsmen = target.Javelins = target.Archers = 0;
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, x, y);
+                boarder.Heading = heading;
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                for (var i = 0; i < 60 * Rules.TickRate; i++)
+                {
+                    world.Step();
+                    var thrown = world.Events.Any(item => item.Type == "hooks_thrown");
+                    world.Events.Clear();
+                    if (thrown) return (true, i / (double)Rules.TickRate, World.HullGap(boarder, target), World.BoardAlongside(boarder, target), world.RelativeSpeed(boarder, target));
+                }
+                return (false, 60, 0, false, 0);
+            }
+
+            var approaches = new[]
+            {
+                ("ahead, on its bow line", Approach(80, 0, Math.PI)),
+                ("astern", Approach(-80, 0, 0)),
+                ("abeam, bow on", Approach(0, 70, -Math.PI / 2)),
+                ("from 45 degrees", Approach(60, 60, -3 * Math.PI / 4)),
+                ("bow to bow, 2 m apart", Approach(0, 0, 0, 26, Math.PI)),
+            };
+            foreach (var (name, result) in approaches)
+            {
+                Assert.That(result.thrown, Is.True, $"{name}: alongside and hooked within a minute.");
+                // Measured after the step that threw them, so within a tick's motion of the rule.
+                Assert.That(result.gap, Is.LessThanOrEqualTo(Rules.BoardGap + 0.5), $"{name}: across little water.");
+                Assert.That(result.alongside, Is.True, $"{name}: side to side, not bow or stern on.");
+                Assert.That(result.relative, Is.LessThanOrEqualTo(Rules.BoardRelativeSpeed), $"{name}: at the target's pace.");
+            }
+        }
+
+        [Test]
+        public void Board_ASlowerShipUnderWayIsCaughtAndAFasterOneIsNot()
+        {
+            var world = Empty();
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 60);
+            boarder.Heading = 0;
+            var bomber = UnderWay(world, 1, ShipClass.Bomber, 0, 0, 0, 4.3);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = bomber.Id });
+            Assert.That(HooksWithin(world, 120), Is.True, "A bomber at 4.3 m/s is overtaken by a boarder at 5.2 and grappled alongside.");
+            Assert.That(World.BoardAlongside(boarder, bomber), Is.True);
+
+            var chase = Empty();
+            var chaser = chase.SpawnShip(0, ShipClass.Boarder, -40, 15);
+            chaser.Heading = 0;
+            chaser.Speed = 5;
+            var ram = UnderWay(chase, 1, ShipClass.Ram, 0, 0, 0, 8.2);
+            chase.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { chaser.Id }, TargetId = ram.Id });
+            Assert.That(HooksWithin(chase, 60), Is.False, "A ram rowing away at 8.2 m/s is never grappled.");
+        }
+
+        [Test]
+        public void Board_ATargetPullingAwayWhileTheHooksBiteCutsThem()
+        {
+            var world = Empty();
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            var target = world.SpawnShip(1, ShipClass.CrewDestroyer, 0, Alongside(ShipClass.Boarder, ShipClass.CrewDestroyer));
+            boarder.Heading = target.Heading = 0;
+            target.Swordsmen = 0;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+            Assert.That(HooksWithin(world, 0.1), Is.True);
+            // The target makes off at once, faster than the boarder can follow.
+            target.Order = OrderKind.Move;
+            target.TargetX = 5000;
+            target.Speed = 4;
+            var cut = false;
+            for (var i = 0; i < Rules.BoardHookSeconds * Rules.TickRate && !cut; i++)
+            {
+                world.Step();
+                cut = world.Events.Any(item => item.Type == "hooks_cut" && item.Amount == 0);
+                world.Events.Clear();
+            }
+            Assert.That(cut, Is.True, "Pulling away parts the lines before they hold, with no swordsman to cut them.");
+            Assert.That(world.Boardings, Is.Empty);
+        }
+
+        [Test]
+        public void Board_LashedHullsComeToRestWhicheverComesFirstInTheList()
+        {
+            // The target first in the list, under way on its own orders: lashed, it rows nowhere, and the pair stops.
+            var world = Empty();
+            var target = UnderWay(world, 1, ShipClass.Bomber, 0, Alongside(ShipClass.Boarder, ShipClass.Bomber), 0, 3);
+            // The bomber keeps its whole crew: the pair loses its way in 4 to 5 s, and with three fighters aboard it was
+            // taken in 4 s, before it could be seen to lie still.
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            boarder.Heading = 0;
+            boarder.Speed = 3;
+            Assert.That(target.Id, Is.LessThan(boarder.Id));
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+            var hooked = false;
+            for (var i = 0; i < 20 * Rules.TickRate && !hooked; i++) { world.Step(); hooked = world.Boardings.Any(link => link.Hooked); }
+            Assert.That(hooked, Is.True, "Grappled alongside under way, and the hooks held.");
+            // The target must come to rest while it is still the enemy's: once taken it would lie still as any ship without
+            // orders does, and the test would pass whatever the lashed hull did.
+            Assert.That(target.Speed, Is.GreaterThan(1.0), "The target is still under way when the hooks hold.");
+            var restedAsEnemy = false;
+            for (var i = 0; i < 8 * Rules.TickRate && target.Owner == 1 && !restedAsEnemy; i++)
+            {
+                world.Step();
+                restedAsEnemy = target.Owner == 1 && target.Speed == 0;
+            }
+            Assert.That(restedAsEnemy, Is.True, "The lashed target lies still before the fight on deck is decided.");
+            Assert.That(boarder.Speed, Is.EqualTo(0).Within(1e-9), "And the boarder with it.");
+        }
+
+        [Test]
+        public void Board_WithItsSideOfTheTargetTakenTheBoarderGoesRoundToTheOtherSide()
+        {
+            // J01: another hull lies where the boarder would lie beside its target. It used to shove that hull aside for
+            // minutes before it could throw its hooks; it goes round and boards from the free side.
+            var world = Empty();
+            var target = world.SpawnShip(1, ShipClass.Merchant, 0, 0);
+            var neighbour = world.SpawnShip(1, ShipClass.Merchant, 0, 12.1);
+            target.Heading = neighbour.Heading = 0;
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 120);
+            boarder.Heading = -Math.PI / 2;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+            Assert.That(HooksWithin(world, 60), Is.True, "Hooks within a minute, not after minutes of shoving.");
+            Assert.That(world.Boardings.Single().TargetId, Is.EqualTo(target.Id));
+            Assert.That(boarder.Y, Is.LessThan(target.Y), "From the side the neighbour does not lie on.");
+            Assert.That(World.BoardAlongside(boarder, target), Is.True, "And from the side, as ever.");
+            Assert.That(World.Distance(neighbour.X, neighbour.Y, 0, 12.1), Is.LessThan(1.0), "The neighbour was not pushed out of its place.");
+        }
+
+        [Test]
+        public void Board_WithBothSidesOfTheTargetTakenTheBoarderWaitsCloseByAndBoardsWhenOneIsFree()
+        {
+            // J01: with a hull on either side there is no place alongside. The boarder waits near the target, lying still
+            // with its order standing, instead of manoeuvring without end; when a side comes free it boards.
+            var world = Empty();
+            var target = world.SpawnShip(1, ShipClass.Merchant, 0, 0);
+            var near = world.SpawnShip(1, ShipClass.Merchant, 0, 12.1);
+            var far = world.SpawnShip(1, ShipClass.Merchant, 0, -12.1);
+            target.Heading = near.Heading = far.Heading = 0;
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 120);
+            boarder.Heading = -Math.PI / 2;
+            // No javelins: the wait is not cut short by the target sinking under them.
+            boarder.Swordsmen += boarder.Javelins;
+            boarder.Javelins = 0;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+            Assert.That(HooksWithin(world, 60), Is.False, "No place alongside: no hooks.");
+            var (x, y, heading) = (boarder.X, boarder.Y, boarder.Heading);
+            Assert.That(HooksWithin(world, 60), Is.False);
+            Assert.That((boarder.Order, boarder.TargetId), Is.EqualTo((OrderKind.Board, target.Id)), "The order stands.");
+            Assert.That(World.Distance(boarder.X, boarder.Y, x, y), Is.LessThan(0.5), "It lies still while it waits.");
+            Assert.That(Math.Abs(boarder.Heading - heading), Is.LessThan(0.01), "And does not turn to and fro.");
+            Assert.That(World.Distance(boarder.X, boarder.Y, target.X, target.Y), Is.LessThan(60.0), "Close by the target.");
+            Assert.That((World.Distance(near.X, near.Y, 0, 12.1), World.Distance(far.X, far.Y, 0, -12.1)), Is.EqualTo((0.0, 0.0)), "Nobody was pushed.");
+
+            near.Y = 300;
+            Assert.That(HooksWithin(world, 90), Is.True, "A side comes free: the boarder goes alongside and throws its hooks.");
+            Assert.That(world.Boardings.Single().TargetId, Is.EqualTo(target.Id));
+        }
+
+        [Test]
+        public void Board_SaveDuringTheApproachContinuesIdentically()
+        {
+            // The approach alongside keeps nothing of its own between ticks (the side, the lane and the course are read
+            // from where the hulls lie), so a match saved while a boarder is still coming up goes on the same after
+            // loading: off the lane, turning onto it, and with the side taken and the boarder on its way round. Each phase
+            // is checked at the moment of saving, so a change of the approach's timing fails here instead of quietly
+            // saving in another phase.
+            // The lane runs along the target's course through the station off its side; World.BoardLaneWidth either way.
+            const double laneWidth = 2.5, linedUp = 0.35;
+            var station = Alongside(ShipClass.Boarder, ShipClass.Merchant);
+            void SavedAfter(double seconds, bool sideTaken, string phase, Action<Ship, Ship> atSave, Action<Ship, Ship> atEnd = null)
+            {
+                var world = Empty();
+                var target = world.SpawnShip(1, ShipClass.Merchant, 0, 0);
+                target.Heading = 0;
+                if (sideTaken) world.SpawnShip(1, ShipClass.Merchant, 0, 12.1).Heading = 0;
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 120);
+                boarder.Heading = -Math.PI / 2;
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                Run(world, seconds);
+                Assert.That(world.Boardings, Is.Empty, $"{phase}: saved before any hooks.");
+                Assert.That(boarder.Order, Is.EqualTo(OrderKind.Board));
+                atSave(boarder, target);
+                var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+                var hooks = 0;
+                for (var i = 0; i < 30 * Rules.TickRate; i++)
+                {
+                    world.Step();
+                    loaded.Step();
+                    hooks += world.Events.Count(item => item.Type == "hooks_thrown");
+                    world.Events.Clear();
+                    loaded.Events.Clear();
+                }
+                Assert.That(SaveGame.Hash(SaveGame.Serialize(loaded)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(world))), phase);
+                Assert.That(hooks, Is.EqualTo(1), $"{phase}: the approach ended in hooks within those 30 s, so the whole of it was compared.");
+                atEnd?.Invoke(boarder, target);
+            }
+            SavedAfter(14, false, "Off the lane, under way to its start", (boarder, target) =>
+            {
+                Assert.That(Math.Abs(boarder.Y - station), Is.GreaterThan(laneWidth), "Still off the lane.");
+                Assert.That(boarder.Speed, Is.GreaterThan(1.0), "And under way to its start.");
+            });
+            SavedAfter(31, false, "On the lane, turning to its course", (boarder, target) =>
+            {
+                Assert.That(Math.Abs(boarder.Y - station), Is.LessThanOrEqualTo(laneWidth), "On the lane.");
+                Assert.That(Math.Abs(Math.Sin(boarder.Heading - target.Heading)), Is.GreaterThan(Math.Sin(linedUp)), "Not yet lined up with it.");
+                Assert.That(boarder.Speed, Is.LessThan(0.1), "Turning where it lies.");
+            });
+            SavedAfter(20, true, "Its side taken, on the way round the target", (boarder, target) =>
+            {
+                Assert.That(boarder.Y, Is.GreaterThan(target.Y + station), "Still on the side the neighbour lies on.");
+            }, (boarder, target) =>
+            {
+                Assert.That(boarder.Y, Is.LessThan(target.Y), "It went round: the hooks came from the other side.");
+            });
+        }
+
+        [Test]
+        public void Board_AHullTheSideDoesNotSeeDoesNotSteerItsBoarder()
+        {
+            // Q06, J08: the side of the target a boarder makes for was chosen by every hull beside it, seen or not, so its
+            // course told of a ship its side did not see (the opponent's boarders of the player's hidden ships too). Two
+            // matches that differ only in a hull nobody of the side sees must steer the boarder alike, until it is seen.
+            (World world, Ship boarder, Ship target, Ship neighbour) Story(bool withNeighbour)
+            {
+                var world = Empty();
+                var target = world.SpawnShip(1, ShipClass.Merchant, 0, 0);
+                target.Heading = 0;
+                // A cutter sees 250 m: the target at 245 m, not a hull 12.1 m beyond it.
+                world.SpawnShip(0, ShipClass.Cutter, 0, -245);
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, 600);
+                boarder.Heading = -Math.PI / 2;
+                Ship neighbour = null;
+                if (withNeighbour)
+                {
+                    neighbour = world.SpawnShip(1, ShipClass.Merchant, 0, 12.1);
+                    neighbour.Heading = 0;
+                }
+                world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
+                return (world, boarder, target, neighbour);
+            }
+            var (with, boarder, target, neighbour) = Story(true);
+            var (without, twin, twinTarget, _) = Story(false);
+            Assert.That(boarder.Id, Is.EqualTo(twin.Id));
+            Assert.That(with.CanSee(0, target), Is.True, "The side sees the target.");
+            Assert.That(with.CanSee(0, neighbour), Is.False, "And not the hull beside it.");
+
+            var seenAt = -1;
+            for (var tick = 0; tick < 120 * Rules.TickRate && seenAt < 0; tick++)
+            {
+                if (with.CanSee(0, neighbour)) { seenAt = tick; break; }
+                with.Step();
+                without.Step();
+                Assert.That((boarder.X, boarder.Y, boarder.Heading, boarder.Speed, boarder.Order), Is.EqualTo((twin.X, twin.Y, twin.Heading, twin.Speed, twin.Order)),
+                    $"Tick {tick}: the unseen hull already steers the boarder.");
+            }
+            Assert.That(seenAt, Is.GreaterThan(0), "The boarder comes near enough to see the hull.");
+            Assert.That(boarder.Order, Is.EqualTo(OrderKind.Board));
+
+            // Seen, the hull counts: the boarder goes round to the free side, as the rule says; without it, it does not.
+            for (var i = 0; i < 90 * Rules.TickRate && (with.Boardings.Count == 0 || without.Boardings.Count == 0); i++)
+            {
+                if (with.Boardings.Count == 0) with.Step();
+                if (without.Boardings.Count == 0) without.Step();
+            }
+            Assert.That((with.Boardings.Count, without.Boardings.Count), Is.EqualTo((1, 1)), "Both come alongside and throw their hooks.");
+            Assert.That(boarder.Y, Is.LessThan(target.Y), "Round the hull it now sees, from the far side.");
+            Assert.That(twin.Y, Is.GreaterThan(twinTarget.Y), "With no hull there, from the side it came.");
+        }
+
+        [Test]
+        public void Board_SaveWhileTheHooksBiteContinuesIdentically()
+        {
+            var (world, attacker, target) = Grappled(ShipClass.Boarder, ShipClass.CrewDestroyer);
+            Run(world, 1);
+            Assert.That(world.Boardings.Any(link => !link.Hooked), Is.True, "Saved while the hooks bite.");
+            var loaded = SaveGame.Deserialize(SaveGame.Serialize(world), out _);
+            for (var i = 0; i < 10 * Rules.TickRate; i++) { world.Step(); loaded.Step(); }
+            Assert.That(SaveGame.Hash(SaveGame.Serialize(loaded)), Is.EqualTo(SaveGame.Hash(SaveGame.Serialize(world))));
+            Assert.That(loaded.FindShip(target.Id).Owner, Is.EqualTo(target.Owner));
         }
 
         // ---------- Crew by trade (docs/ZALOGA_I_ABORDAZ.md) ----------
@@ -1143,7 +1501,7 @@ namespace MorzaBogow.Tests
         {
             var world = Empty(seed);
             var attacker = world.SpawnShip(0, attackerClass, 0, 100);
-            var target = world.SpawnShip(1, targetClass, attacker.Definition.Radius + ShipCatalog.Get(targetClass).Radius + 2, 100);
+            var target = world.SpawnShip(1, targetClass, 0, 100 + Alongside(attackerClass, targetClass));
             attacker.Heading = target.Heading = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { attacker.Id }, TargetId = target.Id });
             return (world, attacker, target);
@@ -1373,6 +1731,115 @@ namespace MorzaBogow.Tests
             Assert.That(Regroups(0, 20, 0, javelinMen), Is.False);
 
             Assert.That(Regroups(belowHalf, 0, 0, silver: 0), Is.False, "Without the silver for the muster it stays with the fleet.");
+        }
+
+        [Test]
+        public void Opponent_BoardsOnlyWhatItsBoarderCanCatch()
+        {
+            // Hooks hold only between hulls keeping pace (A02): the opponent boards a ship lying still, and shoots at one
+            // making off faster than its boarder can row, from what it sees of that ship.
+            CommandKind OrderAgainst(double speed)
+            {
+                var world = Empty();
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, -300, 0);
+                var target = world.SpawnShip(1, ShipClass.Merchant, -240, 0);
+                target.Speed = speed;
+                new Opponent(0, 1).Think(world);
+                return world.Pending.Last(command => command.ShipIds.Contains(boarder.Id)).Kind;
+            }
+            Assert.That(OrderAgainst(0), Is.EqualTo(CommandKind.Board), "A ship lying still is boarded.");
+            Assert.That(OrderAgainst(6.5), Is.EqualTo(CommandKind.AttackShip), "One faster than the boarder can row is shot at instead.");
+        }
+
+        [Test]
+        public void Opponent_ABoarderShootingAtAShipMakingOffBoardsItOnceItLiesStill()
+        {
+            // The choice between hooks and javelins follows what the opponent sees, both ways (A02): left at its javelins,
+            // a boarder sank every ship that was under way when first seen and lay still afterwards, and took none.
+            var world = Empty();
+            var boarder = world.SpawnShip(0, ShipClass.Boarder, -300, 0);
+            var target = UnderWay(world, 1, ShipClass.Merchant, -240, 30, 0, 6.5);
+            var ai = new Opponent(0, 1);
+            void Play(double seconds)
+            {
+                for (var i = 0; i < seconds * Rules.TickRate; i++) { ai.Think(world); world.Step(); world.Events.Clear(); }
+            }
+
+            Play(2);
+            Assert.That(boarder.Order, Is.EqualTo(OrderKind.AttackShip), "Under way, faster than the boarder rows: shot at.");
+            Assert.That(boarder.TargetId, Is.EqualTo(target.Id));
+
+            world.Issue(new Command { Faction = 1, Kind = CommandKind.Stop, ShipIds = new[] { target.Id } });
+            Play(6);
+            Assert.That(target.Speed, Is.EqualTo(0).Within(1e-9), "The target lies still.");
+            Assert.That(boarder.Order, Is.EqualTo(OrderKind.Board), "Seen lying still, it is boarded.");
+            Assert.That(boarder.TargetId, Is.EqualTo(target.Id));
+
+            var hooks = false;
+            for (var i = 0; i < 60 * Rules.TickRate && !hooks; i++)
+            {
+                ai.Think(world);
+                world.Step();
+                world.Events.Clear();
+                hooks =world.Boardings.Any(link => link.AttackerId == boarder.Id && link.TargetId == target.Id);
+            }
+            Assert.That(hooks, Is.True, "And the boarder comes alongside and throws its hooks.");
+            Assert.That(world.FindShip(target.Id), Is.Not.Null, "The ship it could take is not sunk first.");
+        }
+
+        [Test]
+        public void Opponent_TheSpeedOfATargetItDoesNotSeeChangesNothing()
+        {
+            // Q06: whether a boarding goes on was decided by the target's speed even when the side no longer saw it. Two
+            // matches that differ only in what a hidden ship does must get the same orders.
+            string Orders(double hiddenSpeed)
+            {
+                var world = Empty();
+                var boarder = world.SpawnShip(0, ShipClass.Boarder, -300, 0);
+                var target = world.SpawnShip(1, ShipClass.Merchant, 0, 300);
+                target.Speed = hiddenSpeed;
+                boarder.Order = OrderKind.Board;
+                boarder.TargetId = target.Id;
+                Assert.That(world.CanSee(0, target), Is.False, "The target is out of sight.");
+                new Opponent(0, 1).Think(world);
+                return string.Join(";", world.Pending.Select(command => $"{command.Kind} {string.Join(",", command.ShipIds)} > {command.TargetId} ({command.X:F1},{command.Y:F1})"));
+            }
+            Assert.That(Orders(6.5), Is.EqualTo(Orders(0)), "Lying still or making off unseen, the same orders.");
+        }
+
+        [Test]
+        public void Opponent_GivesNoOrderToShootToAShipWithNoPostThatCanFire()
+        {
+            // J02: the rule refuses an order to shoot to a ship with no post that can fire; the opponent does not give
+            // one, so it gets no refusal to repeat every second. A manned ship beside it is sent as before.
+            // No silver at home: the ship is not called back to muster a crew, it stays with the fleet as it is.
+            var world = Empty();
+            world.SettlementOf(0).Silver = 0;
+            var unmanned = world.SpawnShip(0, ShipClass.CrewDestroyer, -300, 0);
+            unmanned.Archers = 0;
+            var manned = world.SpawnShip(0, ShipClass.CrewDestroyer, -300, 40);
+            var enemy = world.SpawnShip(1, ShipClass.Merchant, -180, 0);
+            enemy.Hull = 1e6;
+            var ai = new Opponent(0, 1);
+            var refusals = 0;
+            for (var i = 0; i < 5 * Rules.TickRate; i++)
+            {
+                ai.Think(world);
+                Assert.That(world.Pending.Any(command => command.Kind == CommandKind.AttackShip && command.ShipIds.Contains(unmanned.Id)), Is.False, "No order to shoot for the ship that cannot.");
+                world.Step();
+                refusals += world.CommandResults.Count(item => item.Faction == 0 && item.Outcome == CommandOutcome.Rejected);
+                world.Events.Clear();
+            }
+            Assert.That(refusals, Is.Zero, "And so no refused order.");
+            Assert.That((manned.Order, manned.TargetId), Is.EqualTo((OrderKind.AttackShip, enemy.Id)), "The manned ship attacks.");
+            Assert.That(unmanned.Order, Is.Not.EqualTo(OrderKind.AttackShip));
+
+            var port = Empty();
+            port.SettlementOf(0).Silver = 0;
+            var atPort = port.SpawnShip(0, ShipClass.CrewDestroyer, 420, 0);
+            atPort.Archers = 0;
+            new Opponent(0, 1).Think(port);
+            Assert.That(port.Pending.Any(command => command.Kind == CommandKind.AttackSettlement), Is.False, "Nor an order to shoot at the port it sees.");
         }
 
         [Test]
@@ -1933,28 +2400,42 @@ namespace MorzaBogow.Tests
         {
             // Every public field of Command, set apart from its default, goes through the save. A field added to Command
             // and left out of SaveGame on both sides makes this fail.
-            object Sample(Type type)
-            {
-                if (type == typeof(int)) return 17;
-                if (type == typeof(long)) return 123456789L;
-                if (type == typeof(double)) return -42.625;
-                if (type == typeof(bool)) return true;
-                if (type == typeof(string)) return "Wzór próbny";
-                if (type == typeof(int[])) return new[] { 3, 5, 8 };
-                if (type == typeof(WeaponType[])) return new[] { WeaponType.Scorpion, WeaponType.None, WeaponType.ArcherBank };
-                if (type == typeof(CrewPlan)) return new CrewPlan { Sailors = 3, Swordsmen = 4, Javelins = 5, Archers = 6, Preset = CrewPreset.Volley };
-                if (type.IsEnum) { var values = Enum.GetValues(type); return values.GetValue(values.Length - 1); }
-                Assert.Fail($"A Command field of type {type.Name} has no sample here: add one, and its place in SaveGame.");
-                return null;
-            }
-
-            var world = Empty();
-            var command = new Command();
+            // Fields of one type each get a value of their own, so two of them written or read in each other's place fail
+            // too. A bool has only two values: the fields alternate, and a second pass turns them all over, so each is
+            // once apart from its default.
             var fields = typeof(Command).GetFields(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var field in fields) if (field.Name != nameof(Command.Id)) field.SetValue(command, Sample(field.FieldType));
-            world.Issue(command);
-            var copy = SaveGame.Deserialize(SaveGame.Serialize(world), out _).Pending.Single();
-            foreach (var field in fields) Assert.That(field.GetValue(copy), Is.EqualTo(field.GetValue(command)), field.Name);
+            foreach (var flip in new[] { false, true })
+            {
+                var given = new Dictionary<Type, int>();
+                object Sample(Type type)
+                {
+                    given.TryGetValue(type, out var nth);
+                    given[type] = nth + 1;
+                    if (type == typeof(int)) return 17 + nth * 7;
+                    if (type == typeof(long)) return 123456789L + nth * 1000;
+                    if (type == typeof(double)) return -42.625 - nth * 3;
+                    if (type == typeof(bool)) return (nth % 2 == 0) != flip;
+                    if (type == typeof(string)) return "Wzór próbny";
+                    if (type == typeof(int[])) return new[] { 3, 5, 8 };
+                    if (type == typeof(WeaponType[])) return new[] { WeaponType.Scorpion, WeaponType.None, WeaponType.ArcherBank };
+                    if (type == typeof(CrewPlan)) return new CrewPlan { Sailors = 3, Swordsmen = 4, Javelins = 5, Archers = 6, Preset = CrewPreset.Volley };
+                    if (type.IsEnum) { var values = Enum.GetValues(type); return values.GetValue(values.Length - 1); }
+                    Assert.Fail($"A Command field of type {type.Name} has no sample here: add one, and its place in SaveGame.");
+                    return null;
+                }
+
+                var world = Empty();
+                var command = new Command();
+                foreach (var field in fields) if (field.Name != nameof(Command.Id)) field.SetValue(command, Sample(field.FieldType));
+                foreach (var type in given.Where(item => item.Value > 1 && item.Key != typeof(bool)).Select(item => item.Key))
+                {
+                    var values = fields.Where(field => field.FieldType == type && field.Name != nameof(Command.Id)).Select(field => field.GetValue(command)).ToList();
+                    Assert.That(values.Distinct().Count(), Is.EqualTo(values.Count), $"Every {type.Name} field has a value of its own.");
+                }
+                world.Issue(command);
+                var copy = SaveGame.Deserialize(SaveGame.Serialize(world), out _).Pending.Single();
+                foreach (var field in fields) Assert.That(field.GetValue(copy), Is.EqualTo(field.GetValue(command)), field.Name);
+            }
             Assert.That(fields.Length, Is.GreaterThanOrEqualTo(21), "Every field of the order is compared.");
         }
 

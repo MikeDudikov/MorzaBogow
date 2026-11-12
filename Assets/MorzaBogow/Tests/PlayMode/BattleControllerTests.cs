@@ -257,8 +257,11 @@ namespace MorzaBogow.Tests
             yield return null;
             var world = battle.World;
             var boarder = world.SpawnShip(0, ShipClass.Boarder, 0, -950);
-            var target = world.SpawnShip(1, ShipClass.Merchant, boarder.Definition.Radius + ShipCatalog.Get(ShipClass.Merchant).Radius + 2, -950);
+            // Side by side: a boarding is from the side (C11). Without rowers the merchant cannot pull away while the hooks
+            // bite, whatever task its side gives it (a target keeping pace is what the hooks need, A02).
+            var target = world.SpawnShip(1, ShipClass.Merchant, 0, -950 + (boarder.Definition.Beam + ShipCatalog.Get(ShipClass.Merchant).Beam) / 2 + World.HullSpacing);
             boarder.Heading = target.Heading = 0;
+            target.Sailors = 0;
             world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
             battle.RunTicks(30);
             Assert.That(world.Boardings.Any(link => !link.Hooked), Is.True, "Grapples thrown.");
@@ -314,7 +317,8 @@ namespace MorzaBogow.Tests
                 battle.Paused = true;
                 var spot = OpenWater(world);
                 var boarder = world.SpawnShip(0, ShipClass.Boarder, spot.x, spot.z);
-                var target = world.SpawnShip(1, ShipClass.Merchant, spot.x + boarder.Definition.Radius + ShipCatalog.Get(ShipClass.Merchant).Radius + 2, spot.z);
+                // Side by side: a boarding is from the side (C11).
+                var target = world.SpawnShip(1, ShipClass.Merchant, spot.x, spot.z + (boarder.Definition.Beam + ShipCatalog.Get(ShipClass.Merchant).Beam) / 2 + World.HullSpacing);
                 boarder.Heading = target.Heading = 0;
                 world.Issue(new Command { Faction = 0, Kind = CommandKind.Board, ShipIds = new[] { boarder.Id }, TargetId = target.Id });
                 battle.RunTicks(30);
@@ -708,6 +712,61 @@ namespace MorzaBogow.Tests
                 Assert.That(empty.Order, Is.EqualTo(OrderKind.Scrap), "The empty one goes to be scrapped.");
             }
             finally { battle.Herald -= heard.Add; }
+        }
+
+        [UnityTest]
+        public IEnumerator Herald_AnAttackRefusedByTheWholeSelectionIsOneLine()
+        {
+            // J08: an attack goes out as one order for each ship of the selection; their refusals for the same reason
+            // are one herald line with the count, not a line a ship that pushes other news out of the herald.
+            yield return null;
+            var world = battle.World;
+            var home = world.SettlementOf(BattleController.PlayerFaction);
+            var boarders = Enumerable.Range(0, 3).Select(i => world.SpawnShip(BattleController.PlayerFaction, ShipClass.Boarder, home.X + 80, home.Y - 40 + i * 40)).ToList();
+            foreach (var boarder in boarders) { boarder.Swordsmen = 0; boarder.Javelins = 0; boarder.Archers = 0; }
+            Assert.That(boarders.All(boarder => boarder.Soldiers < Rules.BoardMinSoldiers), Is.True);
+            var enemy = world.SpawnShip(1, ShipClass.Merchant, home.X + 160, home.Y);
+            battle.RunTicks(1);
+            Assert.That(world.CanSee(BattleController.PlayerFaction, enemy), Is.True);
+            battle.SelectOnly(boarders[0].Id);
+            battle.SelectForTest(boarders[1].Id);
+            battle.SelectForTest(boarders[2].Id);
+            var heard = new List<HeraldMessage>();
+            battle.Herald += heard.Add;
+            try
+            {
+                battle.OrderAt(new Vector3((float)enemy.X, 0f, (float)enemy.Y));
+                battle.RunTicks(1);
+                var refusals = heard.Where(message => message.Text.StartsWith("Rozkazu")).ToList();
+                Assert.That(refusals.Count, Is.EqualTo(1), "One line for the three refusals of one click.");
+                Assert.That(refusals[0].Text, Does.Contain("żaden z 3"), "With the count of the ships that did not take it.");
+                Assert.That(refusals[0].Text, Does.Contain("wojowników"), "And the reason.");
+                Assert.That(boarders.Select(boarder => boarder.Id), Does.Contain(refusals[0].EntityId), "It points at one of the player's own ships.");
+            }
+            finally { battle.Herald -= heard.Add; }
+        }
+
+        [Test]
+        public void Herald_RefusalTextCountsTheShipsAndNamesTheReason()
+        {
+            // J08: the count agrees in number as Polish does (1 przyjął, 2-4 przyjęły, 5 and more and 12-14 przyjęło), and a
+            // port's refusal names what really stands in the way.
+            IReadOnlyList<CommandResult> Refused(int count) => Enumerable.Range(0, count).Select(i => new CommandResult
+                { CommandId = 1, Faction = 0, ShipId = 10 + i, Kind = CommandKind.Scrap, Outcome = CommandOutcome.Rejected, Reason = CommandReason.CarriesCargo }).ToList();
+            Assert.That(BattleController.RefusalText(3, Refused(1)), Does.StartWith("Rozkazu nie przyjął 1 z 3 okrętów:"));
+            Assert.That(BattleController.RefusalText(3, Refused(2)), Does.StartWith("Rozkazu nie przyjęły 2 z 3 okrętów:"));
+            Assert.That(BattleController.RefusalText(7, Refused(5)), Does.StartWith("Rozkazu nie przyjęło 5 z 7 okrętów:"));
+            Assert.That(BattleController.RefusalText(20, Refused(12)), Does.StartWith("Rozkazu nie przyjęło 12 z 20 okrętów:"));
+            Assert.That(BattleController.RefusalText(30, Refused(22)), Does.StartWith("Rozkazu nie przyjęły 22 z 30 okrętów:"));
+            Assert.That(BattleController.RefusalText(3, Refused(3)), Does.StartWith("Rozkazu nie przyjął żaden z 3 okrętów:"));
+            Assert.That(BattleController.RefusalText(1, Refused(1)), Does.StartWith("Rozkazu nie można wykonać:"));
+
+            Assert.That(BattleController.ReasonText(CommandReason.NothingToDo, CommandKind.BuildShipyard), Does.Contain("w budowie"), "A yard being built is not 'ready'.");
+            Assert.That(BattleController.ReasonText(CommandReason.NoSpace, CommandKind.QueueShip), Does.Contain("limit floty"));
+            Assert.That(BattleController.ReasonText(CommandReason.NoSpace, CommandKind.BuildProject), Does.Contain("już coś buduje"));
+            Assert.That(BattleController.ReasonText(CommandReason.NoCrew, CommandKind.AttackShip), Does.Contain("obsady broni"));
+            Assert.That(BattleController.ReasonText(CommandReason.NoCrew, CommandKind.Board), Does.Contain("wojowników"));
+            Assert.That(BattleController.ReasonText(CommandReason.WeaponsBroken, CommandKind.AttackShip), Does.Contain("zniszczona"));
         }
 
         Ship HiddenEnemy() => battle.World.Ships.First(ship => ship.Owner == 1);

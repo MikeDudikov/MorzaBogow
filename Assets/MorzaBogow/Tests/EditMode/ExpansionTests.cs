@@ -448,6 +448,49 @@ namespace MorzaBogow.Tests
         }
 
         [Test]
+        public void Escort_WithNoPostThatCanFireKeepsItsStation()
+        {
+            // A13: an escort engages a threat from where its posts shoot; one with nobody at its weapons has no such
+            // distance and stays by the transport instead of sailing at the enemy.
+            var world = Empty();
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, 0, 0);
+            var escort = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 25);
+            escort.Archers = 0;
+            Assert.That(World.EngageRange(escort), Is.Null);
+            var enemy = world.SpawnShip(1, ShipClass.Merchant, 80, 0);
+            enemy.Hull = 100000;
+            Order(world, CommandKind.Escort, escort, merchant.Id);
+            var startGap = World.Distance(escort.X, escort.Y, enemy.X, enemy.Y);
+            Run(world, 30);
+            Assert.That(escort.Order, Is.EqualTo(OrderKind.Escort), "The escort order is taken and kept.");
+            Assert.That(World.Distance(escort.X, escort.Y, merchant.X, merchant.Y), Is.LessThanOrEqualTo(Rules.EscortStation + 1), "It stays on its station.");
+            Assert.That(World.Distance(escort.X, escort.Y, enemy.X, enemy.Y), Is.EqualTo(startGap).Within(5.0), "And does not close with the threat.");
+        }
+
+        [Test]
+        public void Escort_TurnsItsBowToAThreatOutsideItsArcs()
+        {
+            // A13: an escort engages a threat as a ship ordered to shoot does. A bomber's catapults bear 60 degrees either
+            // side of the bow; with the threat astern and in reach it lay still and never shot.
+            var world = Empty();
+            var merchant = world.SpawnShip(0, ShipClass.Merchant, 0, 0);
+            var escort = world.SpawnShip(0, ShipClass.Bomber, 0, 30);
+            var enemy = world.SpawnShip(1, ShipClass.Merchant, -70, 30);
+            enemy.Hull = 100000;
+            Assert.That(escort.Heading, Is.EqualTo(0).Within(1e-9), "The threat lies astern.");
+            Order(world, CommandKind.Escort, escort, merchant.Id);
+            var shots = 0;
+            for (var i = 0; i < 60 * Rules.TickRate; i++)
+            {
+                world.Step();
+                shots += world.Events.Count(item => item.Type == "weapon_fired" && item.SubjectId == escort.Id);
+                world.Events.Clear();
+            }
+            Assert.That(escort.Order, Is.EqualTo(OrderKind.Escort));
+            Assert.That(shots, Is.GreaterThan(0), "It turns and shoots at the threat.");
+        }
+
+        [Test]
         public void Escort_IsRefusedForEconomicShipsAndEnemyTargets()
         {
             var world = Empty();
@@ -632,8 +675,9 @@ namespace MorzaBogow.Tests
             var woodTotal = world.LedgerTotal(ResourceType.Wood);
             var silverTotal = world.LedgerTotal(ResourceType.Silver);
             var merchants = 0;
-            // The Standard scenario: the first bridgehead gets its shipyard after about 28 minutes (seed 9); replacing
-            // fallen crews in port costs silver the expansion would otherwise have had.
+            // The Standard scenario: the first bridgehead gets its shipyard after about 17 minutes (seed 9, tick 30630).
+            // The limit stays at 30 minutes: replacing fallen crews in port costs silver the expansion would otherwise
+            // have had, and a fight over the cutters can hold it back.
             for (var tick = 0; tick < 54000 && world.Outcome == OutcomeKind.InProgress && !world.Settlements.Any(item => item.IsOutpost && item.HasShipyard); tick++)
             {
                 first.Think(world);

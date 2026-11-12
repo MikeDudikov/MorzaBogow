@@ -375,9 +375,9 @@ namespace MorzaBogow.Simulation
     /// <summary>
     /// Why an order was refused (J02, J08). A reason never tells more than the issuing side may know: an enemy target it
     /// does not see is NoObservedTarget whether hidden or gone, and a unit not its own is NoUnit whether or not it exists.
-    /// Values are only appended.
+    /// Values are only appended. WeaponsBroken: an order to shoot, and every weapon aboard is out of action.
     /// </summary>
-    public enum CommandReason { None, NoUnit, NotCapable, NoCrew, NoDock, NoFunds, NoSpace, NoObservedTarget, CarriesCargo, NothingToDo, InvalidTarget, InvalidOrder }
+    public enum CommandReason { None, NoUnit, NotCapable, NoCrew, NoDock, NoFunds, NoSpace, NoObservedTarget, CarriesCargo, NothingToDo, InvalidTarget, InvalidOrder, WeaponsBroken }
 
     /// <summary>One result of one order: per ship for a ship order, once (ShipId -1) for an order to a port or the side.</summary>
     public struct CommandResult

@@ -128,13 +128,14 @@ namespace MorzaBogow.Presentation
                 Order(bomber, CommandKind.AttackShip, mark);
             });
 
-            // A boarding: grapples, the hull hauled alongside, the fronts at the rails.
+            // A boarding: grapples, the hull hauled alongside, the fronts at the rails. The hulls start side by side on one
+            // course, keels 12 m apart (3.75 m of water between them, within Rules.BoardGap), so the hooks are thrown at once.
             Ship boarder = null;
             Add("abordaz", 7, () => boarder, () =>
             {
                 var spot = Begin(30f, -30f);
                 boarder = Spawn(PlayerFaction, ShipClass.Boarder, spot + new Vector3(-20f, 0f, 0f));
-                var prey = Spawn(enemy, ShipClass.Ram, spot + new Vector3(-20f, 0f, 13f));
+                var prey = Spawn(enemy, ShipClass.Ram, spot + new Vector3(-20f, 0f, 12f));
                 Order(boarder, CommandKind.Board, prey);
             });
 

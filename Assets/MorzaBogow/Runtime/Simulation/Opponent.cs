@@ -312,6 +312,19 @@ namespace MorzaBogow.Simulation
             }
         }
 
+        /// <summary>
+        /// A boarder can come alongside a ship lying still or one clearly slower than itself (A02); the speed is what the
+        /// opponent sees of a visible ship, as the player does (Q06). A choice of this opponent, not a rule of the game.
+        /// </summary>
+        static bool Catchable(Ship boarder, Ship target) =>
+            target.Speed <= boarder.Definition.Speed * World.CrewSpeedFactor(boarder) * BoardChaseShare;
+
+        const double BoardChaseShare = 0.8;
+
+        /// <summary>Whether this opponent sends the ship to board the target it sees: a boarder with the men and the odds for it, and a target it can catch.</summary>
+        static bool WouldBoard(Ship ship, Ship target) =>
+            ship.Class == ShipClass.Boarder && ship.Soldiers >= Rules.BoardMinSoldiers && World.BoardingOdds(ship, target) > 1.2 && Catchable(ship, target);
+
         void ManageFleet(World world)
         {
             var home = world.SettlementOf(faction);
@@ -347,19 +360,35 @@ namespace MorzaBogow.Simulation
 
             foreach (var ship in active)
             {
-                if ((ship.Order == OrderKind.Ram || ship.Order == OrderKind.Board || ship.Order == OrderKind.AttackShip) && world.FindShip(ship.TargetId) != null) continue;
+                // A boarder keeps after a target it can still catch, or one it holds grappled; one making off faster than
+                // it can row is left to its javelins, since hooks hold only between hulls keeping pace (A02).
+                var current = world.FindShip(ship.TargetId);
+                // The other way round as well: a boarder shooting at a ship that was making off boards it once it sees it
+                // lie still or slow down. Left at its javelins it would sink what it could take (A02).
+                if (current != null && ship.Order == OrderKind.AttackShip && current.Owner != faction && world.CanSee(faction, current) && WouldBoard(ship, current))
+                {
+                    world.Issue(new Command { Faction = faction, Kind = CommandKind.Board, ShipIds = new[] { ship.Id }, TargetId = current.Id });
+                    continue;
+                }
+                // The pace of a target is read only while the side sees it (Q06); out of sight the boarding is over.
+                var engaged = current != null && (ship.Order == OrderKind.Ram || ship.Order == OrderKind.AttackShip
+                    || ship.Order == OrderKind.Board && (world.Boardings.Any(link => link.AttackerId == ship.Id) || world.CanSee(faction, current) && Catchable(ship, current)));
+                if (engaged) continue;
 
+                // An order to shoot goes only to a ship with a post that can fire (J02): the rule refuses the others,
+                // and asking again every second would change nothing.
+                var canShoot = World.EngageRange(ship) != null;
                 var target = visibleEnemies.OrderBy(enemy => World.Distance(ship.X, ship.Y, enemy.X, enemy.Y)).ThenBy(enemy => enemy.Id).FirstOrDefault();
                 if (target != null)
                 {
                     var kind = ship.Class == ShipClass.Ram ? CommandKind.Ram
-                        : ship.Class == ShipClass.Boarder && ship.Soldiers >= Rules.BoardMinSoldiers && World.BoardingOdds(ship, target) > 1.2 ? CommandKind.Board
+                        : WouldBoard(ship, target) ? CommandKind.Board
                         : CommandKind.AttackShip;
-                    world.Issue(new Command { Faction = faction, Kind = kind, ShipIds = new[] { ship.Id }, TargetId = target.Id });
+                    if (kind != CommandKind.AttackShip || canShoot) world.Issue(new Command { Faction = faction, Kind = kind, ShipIds = new[] { ship.Id }, TargetId = target.Id });
                 }
                 else if (world.CanSee(faction, enemyHome.X, enemyHome.Y) && !enemyHome.Destroyed)
                 {
-                    if (ship.Order != OrderKind.AttackSettlement) world.Issue(new Command { Faction = faction, Kind = CommandKind.AttackSettlement, ShipIds = new[] { ship.Id }, TargetId = enemyHome.Id });
+                    if (ship.Order != OrderKind.AttackSettlement && canShoot) world.Issue(new Command { Faction = faction, Kind = CommandKind.AttackSettlement, ShipIds = new[] { ship.Id }, TargetId = enemyHome.Id });
                 }
                 else if (ship.Order != OrderKind.Move)
                 {

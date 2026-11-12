@@ -342,8 +342,10 @@ namespace MorzaBogow.Tests
             var ballistae = Attack(world => world.SpawnShip(0, ShipClass.ShipKiller, 0, 0));
             Assert.That(ballistae.distance, Is.InRange(120.0, 180.0), "Ballistae keep beyond the archers' reach.");
             Assert.That(ballistae.shots, Is.GreaterThan(0));
+            // From 190 m the onagers already reach; the ship still closes to the distance it holds, 0.8 of its own sight
+            // (HoldRange), so the assertion needs it to move and to stay outside the dead zone.
             var onagers = Attack(world => Armed(world, ShipClass.Bomber, WeaponType.Onager, WeaponType.Onager));
-            Assert.That(onagers.distance, Is.InRange(100.0, 320.0), "Held outside the onagers' dead zone.");
+            Assert.That(onagers.distance, Is.InRange(100.0, 160.0), "Closes to the distance it holds, outside the onagers' dead zone.");
             Assert.That(onagers.shots, Is.GreaterThan(0));
 
             var unmanned = Attack(world => { var ship = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0); ship.Archers = 0; return ship; });
@@ -353,6 +355,201 @@ namespace MorzaBogow.Tests
             var portBows = Attack(world => world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0), port: true);
             Assert.That(portBows.distance, Is.InRange(70.0, 100.0), "A port is attacked from the same distance.");
             Assert.That(portBows.shots, Is.GreaterThan(0));
+        }
+
+        static Ship Prey(World world, double x, double y)
+        {
+            var target = world.SpawnShip(1, ShipClass.Merchant, x, y);
+            target.Hull = 1e6;
+            return target;
+        }
+
+        static void OrderAttack(World world, Ship ship, Ship target) =>
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.AttackShip, ShipIds = new[] { ship.Id }, TargetId = target.Id });
+
+        static int ShotsWithin(World world, Ship ship, double seconds)
+        {
+            var shots = 0;
+            for (var i = 0; i < (int)(seconds * Rules.TickRate); i++)
+            {
+                world.Step();
+                shots += world.Events.Count(item => item.Type == "weapon_fired" && item.SubjectId == ship.Id);
+                world.Events.Clear();
+            }
+            return shots;
+        }
+
+        [Test]
+        public void Attack_ATargetInReachButOutsideEveryArcTurnsTheBowToIt()
+        {
+            // A13, Q04: within the distance it holds a ship used only to stop; with the target astern, outside the arcs of
+            // its posts (catapults 120 degrees, ballistae 270, about the bow), it lay there and never shot.
+            int Shots(ShipClass shipClass, double astern)
+            {
+                var world = Empty();
+                var ship = world.SpawnShip(0, shipClass, 0, 0);
+                var target = Prey(world, -astern, 0);
+                Assert.That(ship.Heading, Is.EqualTo(0).Within(1e-9), "The bow points away from the target.");
+                OrderAttack(world, ship, target);
+                var shots = ShotsWithin(world, ship, 60);
+                Assert.That(World.Distance(ship.X, ship.Y, target.X, target.Y), Is.EqualTo(astern).Within(3.0), $"{shipClass}: it turns where it lies.");
+                return shots;
+            }
+            Assert.That(Shots(ShipClass.Bomber, 150), Is.GreaterThan(0), "Catapults: the bomber turns its bow to a target 150 m astern.");
+            Assert.That(Shots(ShipClass.ShipKiller, 120), Is.GreaterThan(0), "Ballistae: so does the ship killer, 120 m astern.");
+        }
+
+        [Test]
+        public void Attack_LandInTheLineOfStraightShotsMakesTheShipCloseInForALineOfFire()
+        {
+            // A13: ballistae shoot straight, so land between hides the target; within the distance it holds the ship used
+            // to stop behind the land. It closes in round it until a post has a line of fire, no nearer than its least range.
+            var world = Empty();
+            world.Islands.Add(new Island { X = 60, Y = 0, Radius = 25, Kind = IslandKind.Coast });
+            var ship = world.SpawnShip(0, ShipClass.ShipKiller, 0, 0);
+            var target = Prey(world, 120, 0);
+            Assert.That(world.HasIslandBetween(ship.X, ship.Y, target.X, target.Y), Is.True, "The land hides the target.");
+            Assert.That(World.Distance(ship.X, ship.Y, target.X, target.Y), Is.LessThan(World.HoldRange(ship).Value), "Already within the distance it holds.");
+            OrderAttack(world, ship, target);
+            Assert.That(ShotsWithin(world, ship, 90), Is.GreaterThan(0), "It finds a line of fire and shoots.");
+            Assert.That(world.HasIslandBetween(ship.X, ship.Y, target.X, target.Y), Is.False);
+            Assert.That(World.Distance(ship.X, ship.Y, target.X, target.Y), Is.GreaterThanOrEqualTo(WeaponCatalog.Get(WeaponType.DeckBallista).MinRange), "No nearer than its least range.");
+        }
+
+        [Test]
+        public void Attack_ATargetInsideEveryPostsLeastRangeMakesTheShipMakeOffAndShoot()
+        {
+            // A13, the way out of the dead zone: nearer than the least range of every post the ship used to lie still and
+            // never shoot. It makes off until a post reaches, then turns its bow to the target. (A faster enemy can stay
+            // inside: that is the counter to artillery.)
+            (double distance, int shots) After(double ahead, double least, params WeaponType[] loadout)
+            {
+                var world = Empty();
+                var ship = Armed(world, ShipClass.Bomber, loadout);
+                var target = Prey(world, ahead, 0);
+                Assert.That(ahead, Is.LessThan(least), "The target starts inside the dead zone.");
+                OrderAttack(world, ship, target);
+                var shots = ShotsWithin(world, ship, 120);
+                return (World.Distance(ship.X, ship.Y, target.X, target.Y), shots);
+            }
+            var catapults = After(40, WeaponCatalog.Get(WeaponType.HeavyCatapult).MinRange);
+            Assert.That(catapults.distance, Is.GreaterThanOrEqualTo(60.0), "The bomber leaves its catapults' 60 m dead zone.");
+            Assert.That(catapults.shots, Is.GreaterThan(0), "And shoots from outside it.");
+            var onagers = After(80, WeaponCatalog.Get(WeaponType.Onager).MinRange, WeaponType.Onager, WeaponType.Onager);
+            Assert.That(onagers.distance, Is.GreaterThanOrEqualTo(100.0), "Onagers: out of their 100 m dead zone.");
+            Assert.That(onagers.shots, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Attack_ALoneShipKeepsATargetMakingOffInSight()
+        {
+            // A13: catapults reach beyond what the bomber sees (200 m). Holding at 0.8 of their range, 208 m, a bomber
+            // alone lay still while its target sailed out of sight, and the order ended. It holds no farther than 0.8 of
+            // its own sight, so it follows.
+            var world = Empty();
+            var ship = world.SpawnShip(0, ShipClass.Bomber, 0, 0);
+            Assert.That(World.EngageRange(ship), Is.EqualTo(208).Within(1e-9));
+            Assert.That(World.HoldRange(ship), Is.EqualTo(160).Within(1e-9), "0.8 of the 200 m it sees.");
+            Assert.That(World.HoldRange(world.SpawnShip(0, ShipClass.Boarder, 0, 60)), Is.EqualTo(36).Within(1e-9), "Shorter reaches hold as before.");
+
+            // One rower and a deck full of men: slower than the bomber, and not stopped by the losses of the test.
+            var target = Prey(world, 170, 0);
+            target.Heading = 0;
+            target.Sailors = 1;
+            target.Swordsmen = 100000;
+            world.Issue(new Command { Faction = 1, Kind = CommandKind.Move, ShipIds = new[] { target.Id }, X = 3000, Y = 0 });
+            OrderAttack(world, ship, target);
+            var farthest = 0.0;
+            for (var i = 0; i < 180 * Rules.TickRate; i++)
+            {
+                world.Step();
+                world.Events.Clear();
+                farthest = Math.Max(farthest, World.Distance(ship.X, ship.Y, target.X, target.Y));
+            }
+            Assert.That(target.X, Is.GreaterThan(400), "The target has sailed far beyond where the bomber lay.");
+            Assert.That(farthest, Is.LessThan(ship.Definition.Vision), "It never left the bomber's sight.");
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.AttackShip), "The order stands.");
+            Assert.That(ShotsWithin(world, ship, 60), Is.GreaterThan(0), "And the bomber still shoots at it.");
+        }
+
+        [Test]
+        public void Attack_AShipWithNoPostThatCanFireRefusesTheOrderWithItsReason()
+        {
+            // J02/J08: the order was taken by any ship with a weapon fitted and carried out only by one with a post that
+            // can fire, so an unmanned ship answered Accepted and lay still. It refuses, says why, and changes nothing.
+            var world = Empty();
+            var target = world.SpawnShip(1, ShipClass.Merchant, 150, 0);
+            var ship = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
+            ship.Archers = 3;
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.Move, ShipIds = new[] { ship.Id }, X = 0, Y = 400 });
+            world.Step();
+            var wood = world.LedgerTotal(ResourceType.Wood);
+            var silver = world.LedgerTotal(ResourceType.Silver);
+            Assert.That(world.CanSee(0, target), Is.True);
+
+            OrderAttack(world, ship, target);
+            world.Step();
+            var answer = world.CommandResults.Single(item => item.ShipId == ship.Id);
+            Assert.That((answer.Outcome, answer.Reason), Is.EqualTo((CommandOutcome.Rejected, CommandReason.NoCrew)), "Three archers man no bank of four.");
+            Assert.That((ship.Order, ship.TargetX, ship.TargetY), Is.EqualTo((OrderKind.Move, 0.0, 400.0)), "The order it had stands.");
+            Assert.That((world.LedgerTotal(ResourceType.Wood), world.LedgerTotal(ResourceType.Silver)), Is.EqualTo((wood, silver)));
+
+            CommandReason Answer(CommandKind kind, Action<Ship> prepare)
+            {
+                var other = world.SpawnShip(0, ShipClass.CrewDestroyer, 420, 0);
+                prepare(other);
+                world.Issue(new Command { Faction = 0, Kind = kind, ShipIds = new[] { other.Id }, TargetId = kind == CommandKind.AttackShip ? target.Id : world.SettlementOf(1).Id });
+                world.Step();
+                return world.CommandResults.Single(item => item.ShipId == other.Id).Reason;
+            }
+            Assert.That(Answer(CommandKind.AttackShip, other => { for (var i = 0; i < other.ModuleHp.Length; i++) other.ModuleHp[i] = 0; }), Is.EqualTo(CommandReason.WeaponsBroken), "Every weapon out of action.");
+            Assert.That(Answer(CommandKind.AttackShip, other => { other.ModuleHp[0] = 0; other.Archers = 0; }), Is.EqualTo(CommandReason.NoCrew), "Weapons still whole, nobody to man them.");
+            Assert.That(Answer(CommandKind.AttackSettlement, other => other.Archers = 0), Is.EqualTo(CommandReason.NoCrew), "A port is no different.");
+            Assert.That(Answer(CommandKind.AttackSettlement, other => { }), Is.EqualTo(CommandReason.None), "A manned ship takes it.");
+            Assert.That(Answer(CommandKind.AttackShip, other => World.Fit(other, new WeaponType[0], other.Definition.ItemValues())), Is.EqualTo(CommandReason.NotCapable), "Nothing fitted at all.");
+        }
+
+        [Test]
+        public void Attack_TheOrderEndsWithTheLastPostThatCanFire()
+        {
+            // J02: a ship that loses every post that could fire while under the order does not keep an order it cannot
+            // carry out.
+            var world = Empty();
+            var ship = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
+            var target = Prey(world, 150, 0);
+            OrderAttack(world, ship, target);
+            Run(world, 2);
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.AttackShip));
+            ship.Archers = 0;
+            Run(world, 1);
+            Assert.That(ship.Order, Is.EqualTo(OrderKind.Idle), "No archers at the banks: the order is over.");
+
+            var atPort = world.SpawnShip(0, ShipClass.CrewDestroyer, 300, 0);
+            world.Issue(new Command { Faction = 0, Kind = CommandKind.AttackSettlement, ShipIds = new[] { atPort.Id }, TargetId = world.SettlementOf(1).Id });
+            Run(world, 2);
+            Assert.That(atPort.Order, Is.EqualTo(OrderKind.AttackSettlement));
+            for (var i = 0; i < atPort.ModuleHp.Length; i++) atPort.ModuleHp[i] = 0;
+            Run(world, 1);
+            Assert.That(atPort.Order, Is.EqualTo(OrderKind.Idle), "Every module out of action: the same before a port.");
+        }
+
+        [Test]
+        public void Catalogue_EveryWeaponReachesFromTheDistanceItIsHeldAt()
+        {
+            // The distance held is 0.8 of a weapon's greatest range, and no more than 0.8 of the ship's sight: a weapon
+            // whose least range lay beyond either could never fire from where its ship holds.
+            foreach (WeaponType type in Enum.GetValues(typeof(WeaponType)))
+            {
+                if (type == WeaponType.None) continue;
+                var weapon = WeaponCatalog.Get(type);
+                Assert.That(weapon.MaxRange * Rules.EngageRangeShare, Is.GreaterThanOrEqualTo(weapon.MinRange), $"{type}: 0.8 of its range lies inside its dead zone.");
+                foreach (ShipClass shipClass in Enum.GetValues(typeof(ShipClass)))
+                {
+                    var definition = ShipCatalog.Get(shipClass);
+                    if (definition.Slots.Length == 0) continue;
+                    Assert.That(definition.Vision * Rules.EngageRangeShare, Is.GreaterThanOrEqualTo(weapon.MinRange), $"{type} aboard {shipClass}: 0.8 of its sight lies inside the dead zone.");
+                }
+            }
         }
 
         [Test]

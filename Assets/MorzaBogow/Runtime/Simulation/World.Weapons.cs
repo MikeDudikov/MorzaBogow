@@ -103,6 +103,72 @@ namespace MorzaBogow.Simulation
             return best;
         }
 
+        /// <summary>
+        /// The distance actually held: EngageRange, but never beyond Rules.EngageRangeShare of the ship's own sight, so a
+        /// ship alone does not lose a target that makes off while it lies still at the edge of what it sees (A13).
+        /// </summary>
+        public static double? HoldRange(Ship ship)
+        {
+            var range = EngageRange(ship);
+            return range == null ? (double?)null : Math.Min(range.Value, ship.Definition.Vision * Rules.EngageRangeShare);
+        }
+
+        /// <summary>
+        /// Why a ship ordered to shoot cannot (J02): nothing fitted; weapons whole but too few men for any post; or every
+        /// fitted weapon out of action. None when at least one post can fire.
+        /// </summary>
+        public static CommandReason ShootingProblem(Ship ship)
+        {
+            if (!HasWeapons(ship)) return CommandReason.NotCapable;
+            if (EngageRange(ship) != null) return CommandReason.None;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (ship.Mounts[i] != WeaponType.None && ship.ModuleHp[i] > 0) return CommandReason.NoCrew;
+            }
+            return CommandReason.WeaponsBroken;
+        }
+
+        /// <summary>What keeps every post that can fire from shooting at a point from where the ship lies and heads.</summary>
+        public enum FireBlock { None, Range, Arc, Land }
+
+        /// <summary>
+        /// Whether a post that can fire reaches the point now (None), and if none does, why: the bow points the wrong way
+        /// for those in range (Arc); land stands in the line of the straight shots in range (Land, only where a line of
+        /// fire is needed); or the point is nearer than their least range (Range). The load is not asked: a post
+        /// reloading counts.
+        /// </summary>
+        public FireBlock FireBlockAt(Ship ship, double x, double y, bool lineOfFire)
+        {
+            var manned = Manned(ship);
+            var distance = Distance(ship.X, ship.Y, x, y);
+            var hidden = lineOfFire && HasIslandBetween(ship.X, ship.Y, x, y);
+            var arc = false;
+            var land = false;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (ship.Mounts[i] == WeaponType.None || ship.ModuleHp[i] <= 0 || !manned[i]) continue;
+                var weapon = WeaponCatalog.Get(ship.Mounts[i]);
+                if (distance < weapon.MinRange || distance > weapon.MaxRange) continue;
+                if (hidden && !weapon.Lobbed) { land = true; continue; }
+                if (InReach(ship, weapon, x, y)) return FireBlock.None;
+                arc = true;
+            }
+            return arc ? FireBlock.Arc : land ? FireBlock.Land : FireBlock.Range;
+        }
+
+        /// <summary>The least range among the posts that can fire; a ship closing in for a line of fire comes no nearer.</summary>
+        static double LeastRange(Ship ship)
+        {
+            var manned = Manned(ship);
+            var least = double.MaxValue;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (ship.Mounts[i] == WeaponType.None || ship.ModuleHp[i] <= 0 || !manned[i]) continue;
+                least = Math.Min(least, WeaponCatalog.Get(ship.Mounts[i]).MinRange);
+            }
+            return least == double.MaxValue ? 0 : least;
+        }
+
         /// <summary>A point lies within a weapon's reach and arc from this ship.</summary>
         public static bool InReach(Ship ship, WeaponDefinition weapon, double x, double y)
         {

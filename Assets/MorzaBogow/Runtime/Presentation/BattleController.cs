@@ -613,11 +613,13 @@ namespace MorzaBogow.Presentation
                     World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Move, ShipIds = new[] { passing.Id }, X = 80, Y = 38 });
                     pivot = new Vector3(0f, 0f, 12f); height = 70f; yaw = ObliqueCamera.DefaultYaw; tilt = ObliqueCamera.DefaultTilt;
                 } },
-                // A boarder lies alongside an enemy ram, side by side; the hooks hold after 3 s and the decks fight.
+                // A boarder lies alongside an enemy ram, side by side on one course, keels 12 m apart: 3.75 m of water
+                // between the hulls, within the hooks' reach (Rules.BoardGap), so they are thrown at once, hold after
+                // Rules.BoardHookSeconds and the decks fight for the rest of the step.
                 new ShowcaseStep { Shot = "abordaz", Ticks = 6 * Rules.TickRate, Follow = () => showcaseBoarder, Setup = () =>
                 {
                     showcaseBoarder = World.SpawnShip(PlayerFaction, ShipClass.Boarder, area.x - 20, area.z);
-                    var prey = World.SpawnShip(1 - PlayerFaction, ShipClass.Ram, area.x - 20, area.z + 13);
+                    var prey = World.SpawnShip(1 - PlayerFaction, ShipClass.Ram, area.x - 20, area.z + 12);
                     showcaseBoarder.Heading = prey.Heading = 0;
                     World.Issue(new Command { Faction = PlayerFaction, Kind = CommandKind.Board, ShipIds = new[] { showcaseBoarder.Id }, TargetId = prey.Id });
                     pivot = area + new Vector3(-20f, 0f, 6f); height = 40f; yaw = -30f; tilt = ObliqueCamera.DefaultTilt;
@@ -3084,21 +3086,32 @@ namespace MorzaBogow.Presentation
 
         /// <summary>
         /// One herald line for each refused order of the player (J02/J08): how many of the ships did not take it and why,
-        /// never per ship. Transfers and outposts keep the message they already give (order_rejected).
+        /// never per ship. An order to a group may go out ship by ship (an attack does), so the ships' answers of one
+        /// step are counted together by the kind of order, each ship once by its latest answer; an order to a port has
+        /// its own line. Transfers and outposts keep the message the rules already give for them (order_rejected), and
+        /// those answers are counted neither as refused nor as taken here. The place shown is one of the player's own
+        /// ships, never a ship the answer was refused for as not the player's.
         /// </summary>
         void AnnounceRefusals()
         {
-            foreach (var order in World.CommandResults.Where(item => item.Faction == PlayerFaction).GroupBy(item => item.CommandId))
+            var own = World.CommandResults.Where(item => item.Faction == PlayerFaction).ToList();
+            foreach (var kind in own.Where(item => item.ShipId >= 0 && !SaidByEvent(item)).GroupBy(item => item.Kind))
             {
-                var results = order.ToList();
-                var refused = results.Where(item => item.Outcome == CommandOutcome.Rejected
-                    && !((item.Kind == CommandKind.Transfer || item.Kind == CommandKind.FoundOutpost) && item.Reason != CommandReason.NotCapable)).ToList();
+                var results = kind.GroupBy(item => item.ShipId).Select(answers => answers.Last()).ToList();
+                var refused = results.Where(item => item.Outcome == CommandOutcome.Rejected).ToList();
                 if (refused.Count == 0) continue;
-                var ship = refused.Select(item => World.FindShip(item.ShipId)).FirstOrDefault(item => item != null);
+                var ship = refused.Select(item => World.FindShip(item.ShipId)).FirstOrDefault(item => item != null && item.Owner == PlayerFaction);
                 Vector3? at = ship != null ? new Vector3((float)ship.X, 0f, (float)ship.Y) : (Vector3?)null;
-                Announce(RefusalText(results.Count, refused), HeraldLevel.Important, at, HeraldTopic.General, ship?.Id ?? -1, $"order:{order.Key}");
+                Announce(RefusalText(results.Count, refused), HeraldLevel.Important, at, HeraldTopic.General, ship?.Id ?? -1, $"order:{World.Tick}:{kind.Key}");
             }
+            foreach (var result in own.Where(item => item.ShipId < 0 && item.Outcome == CommandOutcome.Rejected))
+                Announce(RefusalText(1, new[] { result }), HeraldLevel.Important, null, HeraldTopic.General, -1, $"order:{result.CommandId}");
         }
+
+        /// <summary>A refusal the rules already announce with an event of their own (World.Expansion, Reject).</summary>
+        static bool SaidByEvent(CommandResult item) =>
+            item.Outcome == CommandOutcome.Rejected && (item.Kind == CommandKind.Transfer || item.Kind == CommandKind.FoundOutpost)
+            && (item.Reason == CommandReason.InvalidTarget || item.Reason == CommandReason.NoObservedTarget || item.Reason == CommandReason.NoSpace || item.Reason == CommandReason.NoFunds);
 
         /// <summary>The herald's line for a refused order: the reason, and for a group how many ships did not take it.</summary>
         public static string RefusalText(int results, IReadOnlyList<CommandResult> refused)
@@ -3106,7 +3119,11 @@ namespace MorzaBogow.Presentation
             var reasons = string.Join("; ", refused.GroupBy(item => item.Reason).Select(group =>
                 group.Count() > 1 && results > 1 ? $"{ReasonText(group.Key, group.First().Kind)} ({group.Count()})" : ReasonText(group.Key, group.First().Kind)));
             if (results <= 1 || refused[0].ShipId < 0) return $"Rozkazu nie można wykonać: {reasons}.";
-            return refused.Count == results ? $"Rozkazu nie przyjął żaden z {results} okrętów: {reasons}." : $"Rozkazu nie przyjęło {refused.Count} z {results} okrętów: {reasons}.";
+            if (refused.Count == results) return $"Rozkazu nie przyjął żaden z {results} okrętów: {reasons}.";
+            // Polish number agreement: 1 przyjął; 2-4 przyjęły (but 12-14 przyjęło); otherwise przyjęło.
+            var few = refused.Count % 10 >= 2 && refused.Count % 10 <= 4 && (refused.Count % 100 < 12 || refused.Count % 100 > 14);
+            var verb = refused.Count == 1 ? "przyjął" : few ? "przyjęły" : "przyjęło";
+            return $"Rozkazu nie {verb} {refused.Count} z {results} okrętów: {reasons}.";
         }
 
         /// <summary>Why, in words, without telling of anything the player does not see (J08).</summary>
@@ -3116,15 +3133,22 @@ namespace MorzaBogow.Presentation
             {
                 case CommandReason.NoUnit: return "tej jednostki już nie ma albo nie jest nasza";
                 case CommandReason.NotCapable: return "ta jednostka tego nie potrafi";
-                case CommandReason.NoCrew: return "za mało wojowników na pokładzie";
+                case CommandReason.NoCrew:
+                    return kind == CommandKind.AttackShip || kind == CommandKind.AttackSettlement ? "za mało ludzi do obsady broni" : "za mało wojowników na pokładzie";
+                case CommandReason.WeaponsBroken: return "broń na pokładzie jest zniszczona i wymaga naprawy w doku";
                 case CommandReason.NoDock: return "kadłub naprawi tylko dok, a nie mamy go";
                 case CommandReason.NoFunds: return "brak środków lub ładunku w porcie";
-                case CommandReason.NoSpace: return "brak miejsca";
+                case CommandReason.NoSpace:
+                    return kind == CommandKind.QueueShip ? "osiągnięto limit floty"
+                        : kind == CommandKind.BuildProject ? "port już coś buduje"
+                        : kind == CommandKind.SaveBlueprint ? "nie ma miejsca na kolejny wzór"
+                        : "brak miejsca";
                 case CommandReason.NoObservedTarget: return "nie widać takiego celu";
                 case CommandReason.CarriesCargo: return "statek ma ładunek – najpierw go rozładuj";
                 case CommandReason.NothingToDo:
                     return kind == CommandKind.Repair ? "nie wymaga naprawy ani uzupełnienia"
                         : kind == CommandKind.CancelProject ? "nie ma czego anulować"
+                        : kind == CommandKind.BuildShipyard ? "stocznia już stoi albo jest w budowie"
                         : "to już jest gotowe";
                 case CommandReason.InvalidTarget: return "niewłaściwy cel";
                 default: return "rozkaz niewykonalny w tej postaci";

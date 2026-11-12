@@ -370,6 +370,12 @@ namespace MorzaBogow.Simulation
         public const int BoardMinSoldiers = 10;
         public const double BoardGap = 4, BoardRelativeSpeed = 1.5, BoardHookSeconds = 3, BoardControlSeconds = 3;
 
+        /// <summary>
+        /// Boarding is from the side (C11): courses parallel or opposed within this angle, and the boarder off the
+        /// target's side within it too. BoardGap is the water between the hulls' outlines (World.HullGap); a game parameter.
+        /// </summary>
+        public const double BoardAlignDegrees = 30;
+
         // ---------- Crew by trade and the fight on deck (docs/ZALOGA_I_ABORDAZ.md) ----------
 
         // ---------- Weapons in posts (docs/UZBROJENIE.md) ----------

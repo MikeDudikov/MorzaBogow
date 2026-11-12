@@ -219,7 +219,9 @@ namespace MorzaBogow.Simulation
                 case CommandKind.AttackShip:
                 case CommandKind.Ram:
                 case CommandKind.Board:
-                    if (command.Kind == CommandKind.AttackShip && !HasWeapons(ship)) return CommandReason.NotCapable;
+                    // An order to shoot is taken only by a ship with a post that can fire now (J02): accepted, it would
+                    // lie still and do nothing.
+                    if (command.Kind == CommandKind.AttackShip && ShootingProblem(ship) != CommandReason.None) return ShootingProblem(ship);
                     // Every warship carries a ram (docs/UZBROJENIE.md); working ships do not.
                     if (command.Kind == CommandKind.Ram && !ship.Definition.CanRam) return CommandReason.NotCapable;
                     if (command.Kind == CommandKind.Board && ship.Class == ShipClass.Cutter) return CommandReason.NotCapable;
@@ -268,7 +270,7 @@ namespace MorzaBogow.Simulation
                 case CommandKind.FoundOutpost: return BeginExpedition(ship, command);
                 case CommandKind.Escort: return BeginEscort(ship, command);
                 case CommandKind.AttackSettlement:
-                    if (!HasWeapons(ship)) return CommandReason.NotCapable;
+                    if (ShootingProblem(ship) != CommandReason.None) return ShootingProblem(ship);
                     var settlement = Settlements.FirstOrDefault(item => item.Id == command.TargetId);
                     // A port the side does not see is refused alike whether it stands, fell or never was.
                     if (settlement == null || !CanSee(ship.Owner, settlement.X, settlement.Y)) return CommandReason.NoObservedTarget;
@@ -300,6 +302,12 @@ namespace MorzaBogow.Simulation
         {
             foreach (var ship in Ships.OrderBy(item => item.Id))
             {
+                // A hull lashed to a boarder rows nowhere while the decks fight, whichever ship comes first in the list.
+                if (Boardings.Any(link => link.Hooked && link.TargetId == ship.Id))
+                {
+                    Integrate(ship);
+                    continue;
+                }
                 switch (ship.Order)
                 {
                     case OrderKind.Idle:
@@ -321,13 +329,14 @@ namespace MorzaBogow.Simulation
                     case OrderKind.Escort: StepEscort(ship); break;
                     case OrderKind.AttackShip:
                         var target = FindShip(ship.TargetId);
-                        if (target == null || !CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; break; }
-                        HoldAtRange(ship, target.X, target.Y);
+                        // The order ends with the target, and with the last post that could fire at it (J02).
+                        if (target == null || !CanSee(ship.Owner, target) || EngageRange(ship) == null) { ship.Order = OrderKind.Idle; StopShip(ship); break; }
+                        HoldAtRange(ship, target.X, target.Y, true);
                         break;
                     case OrderKind.AttackSettlement:
                         var settlement = Settlements.FirstOrDefault(item => item.Id == ship.TargetId);
-                        if (settlement == null || settlement.Destroyed) { ship.Order = OrderKind.Idle; break; }
-                        HoldAtRange(ship, settlement.X, settlement.Y);
+                        if (settlement == null || settlement.Destroyed || EngageRange(ship) == null) { ship.Order = OrderKind.Idle; StopShip(ship); break; }
+                        HoldAtRange(ship, settlement.X, settlement.Y, false);
                         break;
                     case OrderKind.Ram: StepRamMovement(ship); break;
                     case OrderKind.Board: StepBoardMovement(ship); break;
@@ -355,18 +364,43 @@ namespace MorzaBogow.Simulation
             }
         }
 
-        /// <summary>Closes to the distance its working, manned posts shoot from (EngageRange); with none it does not close in.</summary>
-        void HoldAtRange(Ship ship, double x, double y)
+        /// <summary>
+        /// Brings a ship ordered to shoot to where its working, manned posts can (A13, Q04). Farther than the distance it
+        /// holds (HoldRange) it closes in. Within it, it lies still only while a post reaches the target; otherwise it does
+        /// what the obstacle asks (FireBlockAt): turns its bow to a target outside its posts' arcs; closes in past land
+        /// that hides the target from straight shots, no nearer than its posts' least range; and makes off from a target
+        /// inside every post's least range until one reaches. A slower hull may not get away from a faster enemy: that
+        /// is the counter to artillery. With no post that can fire it does not close in.
+        /// </summary>
+        void HoldAtRange(Ship ship, double x, double y, bool lineOfFire)
         {
-            var range = EngageRange(ship);
-            if (range == null) StopShip(ship);
-            else Pursue(ship, x, y, range.Value);
-        }
-
-        void Pursue(Ship ship, double x, double y, double hold)
-        {
-            if (Distance(ship.X, ship.Y, x, y) <= hold) StopShip(ship);
-            else Steer(ship, x, y, ship.Definition.Speed, hold);
+            var hold = HoldRange(ship);
+            if (hold == null) { StopShip(ship); return; }
+            var distance = Distance(ship.X, ship.Y, x, y);
+            if (distance > hold.Value) { Steer(ship, x, y, ship.Definition.Speed, hold.Value); return; }
+            switch (FireBlockAt(ship, x, y, lineOfFire))
+            {
+                case FireBlock.Arc:
+                    var difference = NormalizeAngle(Math.Atan2(y - ship.Y, x - ship.X) - ship.Heading);
+                    var turn = ship.Definition.TurnRadiansPerSecond * Rules.Dt;
+                    ship.Heading = NormalizeAngle(ship.Heading + Math.Max(-turn, Math.Min(turn, difference)));
+                    StopShip(ship);
+                    break;
+                case FireBlock.Land:
+                    var least = LeastRange(ship);
+                    if (distance > least + 2) Steer(ship, x, y, ship.Definition.Speed, least);
+                    else StopShip(ship);
+                    break;
+                case FireBlock.Range:
+                    // Straight away from the target, to the distance it holds; dead ahead when it lies on top of it.
+                    var awayX = distance > 1e-6 ? (ship.X - x) / distance : Math.Cos(ship.Heading);
+                    var awayY = distance > 1e-6 ? (ship.Y - y) / distance : Math.Sin(ship.Heading);
+                    Steer(ship, x + awayX * hold.Value, y + awayY * hold.Value, ship.Definition.Speed, 0);
+                    break;
+                default:
+                    StopShip(ship);
+                    break;
+            }
         }
 
         void StopShip(Ship ship) => ship.Speed = Math.Max(0, ship.Speed - ship.Definition.Speed / 4 * Rules.Dt);
@@ -618,26 +652,188 @@ namespace MorzaBogow.Simulation
             ship.Morale = Math.Max(0, ship.Morale - 0.5);
         }
 
-        // ---------- Boarding (C05): no instant ownership change ----------
+        // ---------- Boarding (C05, C11): from the side, no instant ownership change ----------
+
+        /// <summary>
+        /// |v_a − v_b|: how fast two hulls move against each other, course included (Q04), with leeway and drift when the
+        /// wind moves ships. Two hulls at 5.2 m/s on opposite courses pass at 10.4 m/s, not at 0.
+        /// </summary>
+        public double RelativeSpeed(Ship a, Ship b)
+        {
+            VelocityOf(a, out var ax, out var ay);
+            VelocityOf(b, out var bx, out var by);
+            return Math.Sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by));
+        }
+
+        /// <summary>
+        /// The hulls lie side by side, as a boarding needs (C11: from the side, never bow or stern on): their courses run
+        /// parallel or opposed within Rules.BoardAlignDegrees, and the line between the nearest points of their keels stands
+        /// across the target's keel within the same angle, so the attacker lies off the target's side, not off an end.
+        /// </summary>
+        public static bool BoardAlongside(Ship attacker, Ship target)
+        {
+            var limit = Math.Sin(Rules.BoardAlignDegrees * Math.PI / 180.0);
+            if (Math.Abs(Math.Sin(attacker.Heading - target.Heading)) > limit) return false;
+            HullSegment(attacker, out var a1x, out var a1y, out var a2x, out var a2y);
+            HullSegment(target, out var b1x, out var b1y, out var b2x, out var b2y);
+            var distance = LandShape.SegmentSegmentDistance(a1x, a1y, a2x, a2y, b1x, b1y, b2x, b2y, out var ax, out var ay, out var bx, out var by);
+            if (distance < 1e-6) return false;
+            var along = ((ax - bx) * Math.Cos(target.Heading) + (ay - by) * Math.Sin(target.Heading)) / distance;
+            return Math.Abs(along) <= limit;
+        }
+
+        /// <summary>
+        /// The course a boarder lies on beside its target: the target's own while it is under way; beside a hull lying
+        /// still, the parallel or the opposed course, whichever is nearer the boarder's heading.
+        /// </summary>
+        static double BoardingCourse(Ship ship, Ship target)
+        {
+            if (target.Speed >= BoardUnderWay) return target.Heading;
+            return Math.Cos(NormalizeAngle(ship.Heading - target.Heading)) >= 0 ? target.Heading : NormalizeAngle(target.Heading + Math.PI);
+        }
+
+        /// <summary>A target slower than this lies still for a boarder, which may then come up on either course.</summary>
+        const double BoardUnderWay = 0.5;
+
+        /// <summary>
+        /// Beside the target the boarder turns to the boarding course, as fast as its hull turns, and takes the target's
+        /// pace along it; it does not row astern to keep up with a target sailing the other way.
+        /// </summary>
+        void MatchBoardingCourse(Ship ship, Ship target)
+        {
+            var course = BoardingCourse(ship, target);
+            var difference = NormalizeAngle(course - ship.Heading);
+            var turn = ship.Definition.TurnRadiansPerSecond * Rules.Dt;
+            ship.Heading = NormalizeAngle(ship.Heading + Math.Max(-turn, Math.Min(turn, difference)));
+            var pace = Math.Max(0, target.Speed * Math.Cos(NormalizeAngle(course - target.Heading)));
+            var acceleration = ship.Definition.Speed / 4 * Rules.Dt;
+            ship.Speed = ship.Speed < pace ? Math.Min(pace, ship.Speed + acceleration) : Math.Max(pace, ship.Speed - acceleration);
+        }
+
+        /// <summary>How far off the lane alongside a boarder may lie and still run in along it, in metres.</summary>
+        const double BoardLaneWidth = 2.5;
+
+        /// <summary>
+        /// Brings a boarder alongside (C11). The station lies off the target's midships, on the side the boarder is on, at
+        /// the spacing passing hulls keep; the lane leads to it along the boarding course from a hull's length or so behind.
+        /// Off the lane the boarder makes for the lane's start, led by the target's motion as a ram leads its charge; on the
+        /// lane it first lines up with the course (turning where it lies) and then runs in, easing to the target's pace as
+        /// it closes, so it comes up parallel and never bow first. A hull cannot slip sideways, hence the lane.
+        /// Where another hull lies in the station on its side, the boarder goes round to the target's other side instead
+        /// of shoving that hull away; with both sides taken it waits close by until one is free (J01). The side is read
+        /// from where the hulls lie each tick, so nothing of the approach is kept or saved.
+        /// </summary>
+        void SteerAlongside(Ship ship, Ship target)
+        {
+            var tx = Math.Cos(target.Heading);
+            var ty = Math.Sin(target.Heading);
+            var side = -(ship.X - target.X) * ty + (ship.Y - target.Y) * tx >= 0 ? 1 : -1;
+            var offset = (ship.Definition.Beam + target.Definition.Beam) / 2 + HullSpacing;
+            var run = ship.Definition.Radius + target.Definition.Radius;
+            if (StationTaken(ship, target, target.X - ty * side * offset, target.Y + tx * side * offset))
+            {
+                if (StationTaken(ship, target, target.X + ty * side * offset, target.Y - tx * side * offset))
+                {
+                    var wait = run + 2 * offset;
+                    if (Distance(ship.X, ship.Y, target.X, target.Y) > wait) Steer(ship, target.X, target.Y, ship.Definition.Speed, wait);
+                    else StopShip(ship);
+                    return;
+                }
+                side = -side;
+            }
+            var stationX = target.X - ty * side * offset;
+            var stationY = target.Y + tx * side * offset;
+            // Under way, the lane runs with the target. Beside a hull lying still, the lane whose start is nearer, so the
+            // choice holds as the boarder makes for it (a choice by heading would flip from tick to tick when it comes
+            // abeam bow on); on a tie, the course nearer its heading.
+            var course = BoardingCourse(ship, target);
+            if (target.Speed < BoardUnderWay)
+            {
+                var forward = Distance2(ship.X, ship.Y, stationX - tx * run, stationY - ty * run);
+                var backward = Distance2(ship.X, ship.Y, stationX + tx * run, stationY + ty * run);
+                if (forward < backward - 1e-6) course = target.Heading;
+                else if (backward < forward - 1e-6) course = NormalizeAngle(target.Heading + Math.PI);
+            }
+            var ux = Math.Cos(course);
+            var uy = Math.Sin(course);
+            var along = (ship.X - stationX) * ux + (ship.Y - stationY) * uy;
+            var across = -(ship.X - stationX) * uy + (ship.Y - stationY) * ux;
+
+            if (Math.Abs(across) <= BoardLaneWidth && along >= -run - BoardLaneWidth && along <= BoardLaneWidth)
+            {
+                var desired = NormalizeAngle(course - Math.Atan2(across, 10));
+                var difference = NormalizeAngle(desired - ship.Heading);
+                var turn = ship.Definition.TurnRadiansPerSecond * Rules.Dt;
+                ship.Heading = NormalizeAngle(ship.Heading + Math.Max(-turn, Math.Min(turn, difference)));
+                var pace = Math.Max(0, target.Speed * Math.Cos(NormalizeAngle(course - target.Heading)));
+                var lined = Math.Abs(NormalizeAngle(course - ship.Heading)) <= 0.35;
+                var wanted = lined ? Math.Min(ship.Definition.Speed * CrewSpeedFactor(ship), pace + Math.Max(0, -along) * 0.3) : 0;
+                var acceleration = ship.Definition.Speed / 4 * Rules.Dt;
+                ship.Speed = ship.Speed < wanted ? Math.Min(wanted, ship.Speed + acceleration) : Math.Max(wanted, ship.Speed - acceleration);
+                return;
+            }
+
+            var startX = stationX - ux * run;
+            var startY = stationY - uy * run;
+            var lead = Math.Min(Distance(ship.X, ship.Y, startX, startY) / Math.Max(1, ship.Definition.Speed), 8);
+            VelocityOf(target, out var vx, out var vy);
+            // The lane's start moves with a target under way: easing off on arrival would only keep pace behind it, so the
+            // boarder makes full speed until it is on the lane (as a ram charges); for a hull lying still it eases off and
+            // can turn onto the lane where it stops.
+            Steer(ship, startX + vx * lead, startY + vy * lead, ship.Definition.Speed, target.Speed >= BoardUnderWay ? -100 : 0);
+        }
+
+        /// <summary>
+        /// Another hull, neither the boarder nor its target, lies where the boarder would lie at a station beside the
+        /// target: nearer its place there than hulls keep from one another. Only hulls the boarder's side sees count (Q06,
+        /// J08): its course must not tell of a ship it does not see. Once seen, the hull counts from that tick on.
+        /// </summary>
+        bool StationTaken(Ship ship, Ship target, double x, double y)
+        {
+            var half = Math.Max(0, ship.Definition.Radius - ship.Definition.Beam / 2);
+            var cos = Math.Cos(target.Heading) * half;
+            var sin = Math.Sin(target.Heading) * half;
+            foreach (var other in Ships)
+            {
+                if (other == ship || other == target) continue;
+                if (Distance(x, y, other.X, other.Y) > ship.Definition.Radius + other.Definition.Radius + HullSpacing) continue;
+                if (!CanSee(ship.Owner, other)) continue;
+                HullSegment(other, out var b1x, out var b1y, out var b2x, out var b2y);
+                var gap = LandShape.SegmentSegmentDistance(x + cos, y + sin, x - cos, y - sin, b1x, b1y, b2x, b2y, out _, out _, out _, out _)
+                          - (ship.Definition.Beam + other.Definition.Beam) / 2;
+                if (gap < HullSpacing) return true;
+            }
+            return false;
+        }
 
         void StepBoardMovement(Ship ship)
         {
             var target = FindShip(ship.TargetId);
             if (target == null) { ship.Order = OrderKind.Idle; return; }
             var link = Boardings.FirstOrDefault(item => item.AttackerId == ship.Id);
-            if (link != null) { ship.Speed = target.Speed; ship.Heading = target.Heading; return; }
-
-            if (!CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; return; }
-            var gap = Distance(ship.X, ship.Y, target.X, target.Y) - ship.Definition.Radius - target.Definition.Radius;
-            if (gap > Rules.BoardGap)
+            if (link != null)
             {
-                Steer(ship, target.X, target.Y, ship.Definition.Speed, ship.Definition.Radius + target.Definition.Radius);
+                if (link.Hooked)
+                {
+                    // Lashed, the two hulls move as one.
+                    ship.Heading = BoardingCourse(ship, target);
+                    ship.Speed = Math.Max(0, target.Speed * Math.Cos(NormalizeAngle(ship.Heading - target.Heading)));
+                }
+                // While the hooks bite the boarder keeps beside the target as a ship can; one pulling away parts the lines.
+                else MatchBoardingCourse(ship, target);
                 return;
             }
-            var relative = Math.Abs(ship.Speed - target.Speed);
-            ship.Speed = target.Speed > ship.Speed ? Math.Min(target.Speed, ship.Speed + ship.Definition.Speed / 4 * Rules.Dt)
-                : Math.Max(target.Speed, ship.Speed - ship.Definition.Speed / 4 * Rules.Dt);
-            if (relative > Rules.BoardRelativeSpeed) return;
+
+            if (!CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; return; }
+            // The hooks reach across the water between the hulls as they are (the capsule outline contacts use), from the
+            // side only, and hold only between hulls keeping pace with each other, course included (Q04).
+            if (HullGap(ship, target) > Rules.BoardGap || !BoardAlongside(ship, target))
+            {
+                SteerAlongside(ship, target);
+                return;
+            }
+            MatchBoardingCourse(ship, target);
+            if (RelativeSpeed(ship, target) > Rules.BoardRelativeSpeed) return;
             if (Boardings.Any(item => item.TargetId == target.Id)) return;
             Boardings.Add(new BoardingLink { AttackerId = ship.Id, TargetId = target.Id, HookTicks = (int)(Rules.BoardHookSeconds * Rules.TickRate), AttackerWoundedAtStart = ship.Wounded });
             Emit("hooks_thrown", ship.Id, target.Id, target.X, target.Y, 0);
@@ -657,11 +853,12 @@ namespace MorzaBogow.Simulation
 
                 if (!link.Hooked)
                 {
-                    var gap = Distance(attacker.X, attacker.Y, target.X, target.Y) - attacker.Definition.Radius - target.Definition.Radius;
+                    // The lines part when the hulls drift apart or one pulls away, course included (Q04).
+                    var gap = HullGap(attacker, target);
                     // The defender's swordsmen hack at the lines; the attacker's own swordsmen keep half as many off them.
                     var cutters = target.Swordsmen - attacker.Swordsmen * 0.5;
                     if (cutters > 0) link.CutProgress += cutters * Rules.HookCutPerSwordsman * Rules.Dt;
-                    if (gap > Rules.BoardGap * 2 || target.Speed - attacker.Speed > Rules.BoardRelativeSpeed || link.CutProgress >= 1)
+                    if (gap > Rules.BoardGap * 2 || RelativeSpeed(attacker, target) > Rules.BoardRelativeSpeed || link.CutProgress >= 1)
                     {
                         Boardings.Remove(link);
                         attacker.Order = OrderKind.Idle;
