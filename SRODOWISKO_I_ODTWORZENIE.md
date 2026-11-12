@@ -2,6 +2,13 @@
 
 Dokument opisuje wyłącznie środowisko pracy: narzędzia, Unity, WSL oraz konfigurację Claude Code i studia. Nie opisuje stanu gry.
 
+**Szybka ścieżka:**
+1. lista: [SRODOWISKO_NIEZBEDNE.md](SRODOWISKO_NIEZBEDNE.md);
+2. instalacja i logowania: [PROMPT_INSTALACJA_SRODOWISKA.md](PROMPT_INSTALACJA_SRODOWISKA.md);
+3. wdrożenie: [PROMPT_WDROZENIE_SRODOWISKA.md](PROMPT_WDROZENIE_SRODOWISKA.md).
+
+Ten plik jest szczegółowym uzupełnieniem.
+
 Stan na 12.11.2026, komputer źródłowy: Windows 11 Home 10.0.26200. Dokument jest dla Claude Code. Wykonuj go po kolei i nie czytaj innych dokumentów, dopóki krok 5 (weryfikacja) nie przejdzie. `<REPO>` oznacza katalog klonu.
 
 ## 0. Prompt startowy (wklej w Claude Code otwartym w `<REPO>`)
@@ -44,8 +51,10 @@ git -C <REPO> config core.autocrlf true      # jak na źródłowym; .gitattribut
 Zmień tylko to, co różni się od źródłowego:
 
 1. **Ścieżka repozytorium.** Na źródłowym jest to `C:\Users\<użytkownik źródłowy>\MorzaBogow`. Inna ścieżka wymaga zmian:
-   - **`.mcp.json`:** serwer `morza-bogow-assets` ma w `args` ścieżkę WSL do `Tools/asset_pipeline/ap.py` z komputera źródłowego. Zamień ją na wynik `wsl wslpath -a '<REPO>\Tools\asset_pipeline\ap.py'`.
-   - **`CLAUDE.md`:** zawiera ścieżki źródłowe. Zgłoś różnicę użytkownikowi i zmieniaj dopiero po jego zgodzie, bo to plik instrukcji projektu.
+   - **`.mcp.json`:** serwer `morza-bogow-assets` ma w `args` ścieżkę WSL do `Tools/asset_pipeline/ap.py` z komputera źródłowego. Zamień ją na wynik `wsl -e wslpath -a '<REPO>\Tools\asset_pipeline\ap.py'`. Opcja `-e` jest konieczna, bo bez niej powłoka WSL usuwa ukośniki `\`.
+   - **`CLAUDE.md`, `PROMPT_KOMUNIKACJA_STUDIA.md`, `PROMPT_STUDIO_PREMIUM.md`, `PROMPT_STUDIO_FABLE.md` i `.claude/skills/komunikacja-studia/SKILL.md`:** zawierają ścieżki źródłowe. Zgłoś różnicę użytkownikowi i zmieniaj dopiero po jego zgodzie, bo to instrukcje projektu.
+   - Hooki (`${CLAUDE_PROJECT_DIR}`) i polityka bramki (`{project}`) nie zależą od położenia klonu.
+   - Zmian lokalnych nie commituj. Przed `git pull` wykonaj `git stash`, a po nim `git stash pop`.
 2. **Ścieżka Unity.** `.claude/qa/policy.json` oraz `Tools/asset_pipeline/config/pipeline.json` (`unity.defaultPath`) wskazują `C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Unity.exe`. Inna ścieżka: ustaw zmienną `UNITY_PATH` i zgłoś różnicę. Polityki bramki nie zmieniaj bez zgody użytkownika.
 3. **Zmienne środowiskowe** (zakres User; wartości podaje użytkownik i nigdy nie trafiają do repozytorium):
    - `MESHY_API_KEY` — MCP Meshy i potok assetów (płatne);
@@ -65,7 +74,10 @@ exit $LASTEXITCODE
 ## 4. Pierwsze uruchomienie
 
 1. **Import i kompilacja** (pierwszy raz tworzy `Library/`, długo):
-   `& '<Unity.exe>' -batchmode -nographics -projectPath <REPO> -quit -logFile <REPO>\artifacts-log\compile.log`
+   - utwórz katalog `artifacts-log` (jest poza git);
+   - uruchom `Start-Process '<Unity.exe>' -Wait -PassThru -NoNewWindow` z argumentami `-batchmode -nographics -projectPath "<REPO>" -quit -logFile "<REPO>\artifacts-log\compile.log"`.
+
+   Samo `&` nie czeka na zakończenie, bo `Unity.exe` jest aplikacją okienkową.
 2. **Kontrola błędów:** `wsl python3 /mnt/<dysk>/<ścieżka>/check_unity_errors.py <log w ścieżce WSL>`. Kod 0 = brak błędów, 1 = błędy, 2 = brak logu (to nie sukces).
 3. **Dziennik studia:** `pwsh -NoProfile -File <REPO>\Komunikacja-Studio.ps1 -ProjectRoot <REPO> -Action Init`. Historia dziennika z komputera źródłowego (`work/`) nie jest w git; zob. sekcję 6.
 4. **Kontrola konfiguracji studia:** `pwsh -NoProfile -File <REPO>\Sprawdz-StudioPremium.ps1 -Json`. Oczekiwany wynik: `CONFIGURED_RUNTIME_UNVERIFIED` — routing modeli potwierdza się dopiero w metadanych sesji.
@@ -110,6 +122,6 @@ Bez nich środowisko działa: dziennik zaczyna się od nowa po `-Action Init`.
 
 ## 8. Ściąga poleceń (bez czytania innych plików)
 
-- **Testy Unity** (bez `-nographics`): `& '<Unity.exe>' -batchmode -projectPath <REPO> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
+- **Testy Unity** (bez `-nographics`; uruchamiane przez `Start-Process … -Wait -PassThru`, nie przez `&`): argumenty `-batchmode -projectPath <REPO> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
 - **Bramka** (plan w `.claude/qa/tasks/<TASK>.json` z bieżącym sessionId): `'{"hook_event_name":"TaskCompleted","task_id":"<TASK>","session_id":"<SESSION>"}' | pwsh -NoProfile -File <REPO>\.claude\hooks\quality-gate.ps1`
 - **Regresja wzorca:** `pwsh -NoProfile -File <REPO>\Sprawdz-OdbiorStudia.ps1 -Action Regression -Python <ścieżka wsl-python3.ps1> -Report qa/reports/<TASK>-<runId>/report.json`
