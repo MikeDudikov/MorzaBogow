@@ -1,5 +1,7 @@
 {
   "scope": "Proponowane parametry do modelu ekonomicznego i testów gry",
+  "status": "LEGACY",
+  "legacyNote": "Od P02-D5 model czyta reguły z qa/runtime-catalog.json. Z tego pliku bierze wyłącznie: harbor.sourceApproachSeconds i harbor.turnaroundSeconds (uproszczenia modelu). Pozostałe wartości nie są regułami gry i nie są używane.",
   "resources": {"D": "Drewno okrętowe", "S": "Srebro"},
   "pricing": {"completeTemplates": true, "seamanS": 0.5, "soldierS": 1, "specialistS": 3, "warshipSeamanFraction": 0.25, "constructionDFraction": 0.8, "constructionRemainingSFraction": 0.4},
   "crewMax": {"collector": 8, "merchant": 16, "ram": 36, "anti_crew": 52, "anti_ship": 36, "boarding": 90, "bomber": 45, "royal": 80, "fire": 40, "smoke": 36, "immortals": 45, "strait_serpent": 30},

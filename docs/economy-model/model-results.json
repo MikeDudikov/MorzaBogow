@@ -1,5 +1,190 @@
 {
   "scope": "MODEL EKONOMICZNY; WALKA, NAWIGACJA I PLAYTESTY: NOT_RUN",
+  "parameters": {
+    "catalog": {
+      "file": "qa/runtime-catalog.json",
+      "schema": "morza-bogow/runtime-catalog@1",
+      "catalogId": "morza-bogow/catalog@1",
+      "catalogHash": "3DAE32998197EBAA"
+    },
+    "matchLength": "Standard",
+    "yield": {
+      "D": 0.53,
+      "S": 0.53
+    },
+    "sources": {
+      "buildings.outpost.cost": "qa/runtime-catalog.json",
+      "buildings.outpost.seconds": "qa/runtime-catalog.json",
+      "buildings.shipyard.cost": "qa/runtime-catalog.json",
+      "buildings.shipyard.seconds": "qa/runtime-catalog.json",
+      "collector.buildSeconds": "qa/runtime-catalog.json",
+      "collector.cargo": "qa/runtime-catalog.json",
+      "collector.cost": "qa/runtime-catalog.json",
+      "collector.rates": "qa/runtime-catalog.json",
+      "collector.speed": "qa/runtime-catalog.json",
+      "harbor.berths": "qa/runtime-catalog.json",
+      "harbor.sourceApproachSeconds": "LEGACY docs/economy-model/economy-parameters.json",
+      "harbor.turnaroundSeconds": "LEGACY docs/economy-model/economy-parameters.json",
+      "harbor.unloadRate": "qa/runtime-catalog.json",
+      "merchant.cargo": "qa/runtime-catalog.json",
+      "merchant.cost": "qa/runtime-catalog.json",
+      "merchant.speed": "qa/runtime-catalog.json",
+      "node.sharedRates": "qa/runtime-catalog.json",
+      "node.workBerths": "qa/runtime-catalog.json",
+      "reserve": "qa/runtime-catalog.json",
+      "ships.ram.cost": "qa/runtime-catalog.json",
+      "ships.ram.seconds": "qa/runtime-catalog.json",
+      "ships.ram.speed": "qa/runtime-catalog.json",
+      "start.deposits": "qa/runtime-catalog.json",
+      "start.stock": "qa/runtime-catalog.json",
+      "warehouse": "qa/runtime-catalog.json",
+      "yield": "qa/runtime-catalog.json"
+    },
+    "legacy": {
+      "harbor.sourceApproachSeconds": {
+        "value": 2,
+        "why": "model abstraction of coming alongside a deposit. The game has no such number; what it does have at a deposit, the crew going ashore and coming back aboard, is in the export and left out (see UNUSED_EXPORT)"
+      },
+      "harbor.turnaroundSeconds": {
+        "value": 2,
+        "why": "model abstraction of leaving a berth of the port; the game has no such number"
+      }
+    },
+    "notInExport": {
+      "start.collectors": {
+        "value": [
+          3,
+          1
+        ],
+        "source": "Assets/MorzaBogow/Runtime/Simulation/MapFactory.cs:214-220",
+        "note": "A value of the game (E04: three boats on wood and one on silver from the first moment), not exported."
+      },
+      "homePointsPerResource": {
+        "value": 1,
+        "source": "Assets/MorzaBogow/Runtime/Simulation/MapFactory.cs:211-212",
+        "note": "The export gives the deposit of one point; the number of points on a map is only in MapFactory."
+      }
+    },
+    "unusedExport": {
+      "rules.node.landCrewSeconds": {
+        "value": 3,
+        "why": "A boat at a deposit first puts its crew ashore, with no work meanwhile (Definitions.cs:308-313). Left out: the model has its own two seconds of approach instead (harbor.sourceApproachSeconds, LEGACY)."
+      },
+      "rules.node.embarkSeconds": {
+        "value": 4,
+        "why": "After the last load the boat waits for its crew and keeps the berth (Definitions.cs:308-313). Left out. With landCrewSeconds this is about 7 s more a visit to a deposit than the model counts, so the model reads incomes somewhat high, most of all on short runs and at a crowded deposit."
+      }
+    },
+    "modelAssumptions": {
+      "raid.wreckShareOfCargo": {
+        "value": 0.5,
+        "where": "run(): a boat sunk in the raid leaves half its cargo as a wreck, half is destroyed"
+      },
+      "repair.scrapFraction": {
+        "value": 0.15,
+        "where": "main(): the algebra check that repair then scrap never pays"
+      },
+      "repair.costFullFraction": {
+        "value": 0.25,
+        "where": "main(): the same check"
+      },
+      "expansion.merchantFixedSeconds": {
+        "value": 4,
+        "where": "main(): merchantCombinedCapacityPerMinute, the seconds a round trip costs besides sailing and handling"
+      },
+      "expansion.pathMeters": {
+        "value": 280,
+        "where": "main(): the length of the way to the new port"
+      }
+    },
+    "values": {
+      "collector": {
+        "cost": {
+          "D": 60,
+          "S": 20
+        },
+        "buildSeconds": 18,
+        "speed": 10,
+        "cargo": 60,
+        "rates": {
+          "D": 3.18,
+          "S": 1.59
+        }
+      },
+      "merchant": {
+        "cost": {
+          "D": 140,
+          "S": 60
+        },
+        "speed": 7,
+        "cargo": 480
+      },
+      "ships": {
+        "ram": {
+          "cost": {
+            "D": 240,
+            "S": 100
+          },
+          "seconds": 35,
+          "speed": 8.2
+        }
+      },
+      "start": {
+        "stock": {
+          "D": 360,
+          "S": 160
+        },
+        "collectors": [
+          3,
+          1
+        ],
+        "deposits": {
+          "D": 3300,
+          "S": 1650
+        }
+      },
+      "reserve": {
+        "D": 60,
+        "S": 20
+      },
+      "warehouse": {
+        "D": 6000,
+        "S": 3000
+      },
+      "node": {
+        "sharedRates": {
+          "D": 6.36,
+          "S": 2.12
+        },
+        "workBerths": {
+          "D": 2,
+          "S": 2
+        }
+      },
+      "harbor": {
+        "berths": 3,
+        "unloadRate": 60,
+        "sourceApproachSeconds": 2,
+        "turnaroundSeconds": 2
+      },
+      "buildings": {
+        "shipyard": {
+          "cost": {
+            "D": 200,
+            "S": 100
+          },
+          "seconds": 40
+        },
+        "outpost": {
+          "cost": {
+            "D": 300,
+            "S": 100
+          },
+          "seconds": 35
+        }
+      }
+    }
+  },
   "checks": {
     "resourceConservation": "VERIFIED_IN_MODEL",
     "nonNegativeInventories": "VERIFIED_IN_MODEL",
@@ -12,102 +197,101 @@
   "cycleChecks": [
     {
       "resource": "D",
-      "formula": 124.13793103448276,
-      "measuredFirst10Minutes": 120.0
+      "formula": 95.06726457399104,
+      "measuredFirst10Minutes": 90.0
     },
     {
       "resource": "S",
-      "formula": 92.3076923076923,
-      "measuredFirst10Minutes": 90.0
+      "formula": 63.45194546059196,
+      "measuredFirst10Minutes": 60.0
     }
   ],
   "incomes": [
     {
       "distance": 70,
       "resource": "D",
-      "cycleSeconds": 29.0,
-      "perMinute": 124.13793103448276
+      "cycleSeconds": 37.867924528301884,
+      "perMinute": 95.06726457399104
     },
     {
       "distance": 70,
       "resource": "S",
-      "cycleSeconds": 39.0,
-      "perMinute": 92.3076923076923
+      "cycleSeconds": 56.73584905660377,
+      "perMinute": 63.45194546059196
     },
     {
       "distance": 140,
       "resource": "D",
-      "cycleSeconds": 43.0,
-      "perMinute": 83.72093023255815
+      "cycleSeconds": 51.867924528301884,
+      "perMinute": 69.40705711167698
     },
     {
       "distance": 140,
       "resource": "S",
-      "cycleSeconds": 53.0,
-      "perMinute": 67.9245283018868
+      "cycleSeconds": 70.73584905660377,
+      "perMinute": 50.89357161909843
     },
     {
       "distance": 280,
       "resource": "D",
-      "cycleSeconds": 71.0,
-      "perMinute": 50.70422535211268
+      "cycleSeconds": 79.86792452830188,
+      "perMinute": 45.07441530829199
     },
     {
       "distance": 280,
       "resource": "S",
-      "cycleSeconds": 81.0,
-      "perMinute": 44.44444444444444
+      "cycleSeconds": 98.73584905660377,
+      "perMinute": 36.46092107777566
     },
     {
       "distance": 450,
       "resource": "D",
-      "cycleSeconds": 105.0,
-      "perMinute": 34.285714285714285
+      "cycleSeconds": 113.86792452830188,
+      "perMinute": 31.615575807787906
     },
     {
       "distance": 450,
       "resource": "S",
-      "cycleSeconds": 115.0,
-      "perMinute": 31.304347826086957
+      "cycleSeconds": 132.73584905660377,
+      "perMinute": 27.121535181236673
     }
   ],
   "openings": {
     "rajd": {
       "firstShip": 35.0,
-      "secondShip": 71.93333333,
-      "fourthShip": 188.13333333,
-      "readyShips": 11,
+      "secondShip": 89.73333333,
+      "fourthShip": 259.1,
+      "readyShips": 10,
       "readyTimes": [
         35.0,
-        71.93333333,
-        153.13333333,
-        188.13333333,
-        223.13333333,
-        258.13333333,
-        293.13333333,
-        328.13333333,
-        363.13333333,
-        398.13333333,
-        433.13333333
+        89.73333333,
+        224.1,
+        259.1,
+        308.03333333,
+        375.23333333,
+        427.36666667,
+        494.56666667,
+        561.76666667,
+        596.76666667
       ],
       "collectors": 6,
       "workersBuilt": 2,
       "shipyards": 1,
       "delivered": {
-        "D": 3000.0,
-        "S": 999.9999999998166
+        "D": 3299.9999999975166,
+        "S": 960.0
       },
       "stock": {
-        "D": 599.9999999999999,
-        "S": 19.999999999816566
+        "D": 1139.9999999975164,
+        "S": 80.0
       },
       "remainingDeposits": {
         "D": 0.0,
-        "S": 0.0
+        "S": 634.7916666665861
       },
       "committed": {
-        "D": 2760.0,
-        "S": 1140.0
+        "D": 2520.0,
+        "S": 1040.0
       },
       "wreck": {
         "D": 0.0,
@@ -131,127 +315,126 @@
         {
           "second": 60.0,
           "readyShips": 1,
-          "collectors": 5,
-          "D": 120.0,
+          "collectors": 4,
+          "D": 0.0,
           "S": 0.0,
-          "deliveredD": 300.0,
+          "deliveredD": 180.0,
           "deliveredS": 60.0
         },
         {
           "second": 120.0,
           "readyShips": 2,
-          "collectors": 6,
-          "D": 180.0,
-          "S": 60.0,
-          "deliveredD": 660.0,
-          "deliveredS": 240.0
+          "collectors": 5,
+          "D": 300.0,
+          "S": 0.0,
+          "deliveredD": 480.0,
+          "deliveredS": 60.0
         },
         {
           "second": 180.0,
-          "readyShips": 3,
-          "collectors": 6,
-          "D": 420.0,
-          "S": 140.0,
-          "deliveredD": 1140.0,
-          "deliveredS": 420.0
-        },
-        {
-          "second": 240.0,
-          "readyShips": 5,
-          "collectors": 6,
-          "D": 540.0,
-          "S": 60.0,
-          "deliveredD": 1740.0,
-          "deliveredS": 540.0
-        },
-        {
-          "second": 300.0,
-          "readyShips": 7,
+          "readyShips": 2,
           "collectors": 6,
           "D": 540.0,
           "S": 100.0,
-          "deliveredD": 2220.0,
-          "deliveredS": 780.0
+          "deliveredD": 780.0,
+          "deliveredS": 180.0
+        },
+        {
+          "second": 240.0,
+          "readyShips": 3,
+          "collectors": 6,
+          "D": 420.0,
+          "S": 20.0,
+          "deliveredD": 1140.0,
+          "deliveredS": 300.0
+        },
+        {
+          "second": 300.0,
+          "readyShips": 4,
+          "collectors": 6,
+          "D": 562.0,
+          "S": 40.0,
+          "deliveredD": 1522.0,
+          "deliveredS": 420.0
         },
         {
           "second": 360.0,
-          "readyShips": 8,
+          "readyShips": 5,
           "collectors": 6,
-          "D": 780.0,
-          "S": 120.0,
-          "deliveredD": 2700.0,
-          "deliveredS": 900.0
+          "D": 720.0,
+          "S": 60.0,
+          "deliveredD": 1920.0,
+          "deliveredS": 540.0
         },
         {
           "second": 420.0,
-          "readyShips": 10,
+          "readyShips": 6,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 840.0,
+          "S": 80.0,
+          "deliveredD": 2280.0,
+          "deliveredS": 660.0
         },
         {
           "second": 480.0,
-          "readyShips": 11,
+          "readyShips": 7,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 1020.0,
+          "S": 100.0,
+          "deliveredD": 2700.0,
+          "deliveredS": 780.0
         },
         {
           "second": 540.0,
-          "readyShips": 11,
+          "readyShips": 8,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 1140.0,
+          "S": 60.0,
+          "deliveredD": 3060.0,
+          "deliveredS": 840.0
         },
         {
           "second": 600.0,
-          "readyShips": 11,
+          "readyShips": 10,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 1140.0,
+          "S": 80.0,
+          "deliveredD": 3300.0,
+          "deliveredS": 960.0
         }
       ]
     },
     "flota_i_gospodarka": {
       "firstShip": 35.0,
-      "secondShip": 90.86666667,
-      "fourthShip": 165.23333333,
-      "readyShips": 11,
+      "secondShip": 117.23333333,
+      "fourthShip": 232.6,
+      "readyShips": 10,
       "readyTimes": [
         35.0,
-        90.86666667,
-        130.23333333,
-        165.23333333,
-        200.23333333,
-        235.23333333,
-        270.23333333,
-        305.23333333,
-        340.23333333,
-        375.23333333,
-        410.23333333
+        117.23333333,
+        183.43333333,
+        232.6,
+        298.8,
+        365.0,
+        400.0,
+        449.9,
+        516.1,
+        565.26666667
       ],
       "collectors": 6,
       "workersBuilt": 2,
       "shipyards": 1,
       "delivered": {
-        "D": 3000.0,
-        "S": 999.9999999998328
+        "D": 3299.9999999975166,
+        "S": 1020.0
       },
       "stock": {
-        "D": 599.9999999999999,
-        "S": 19.999999999832724
+        "D": 899.9999999975171,
+        "S": 40.0
       },
       "remainingDeposits": {
         "D": 0.0,
-        "S": 0.0
+        "S": 580.8513333331194
       },
       "committed": {
         "D": 2760.0,
@@ -280,128 +463,130 @@
           "second": 60.0,
           "readyShips": 1,
           "collectors": 6,
-          "D": 60.0,
-          "S": 40.0,
-          "deliveredD": 300.0,
-          "deliveredS": 120.0
+          "D": 180.0,
+          "S": 20,
+          "deliveredD": 180.0,
+          "deliveredS": 0.0
         },
         {
           "second": 120.0,
           "readyShips": 2,
           "collectors": 6,
           "D": 300.0,
-          "S": 120.0,
-          "deliveredD": 780.0,
-          "deliveredS": 300.0
+          "S": 40.0,
+          "deliveredD": 540.0,
+          "deliveredS": 120.0
         },
         {
           "second": 180.0,
-          "readyShips": 4,
+          "readyShips": 2,
           "collectors": 6,
-          "D": 300.0,
-          "S": 100.0,
-          "deliveredD": 1260.0,
-          "deliveredS": 480.0
+          "D": 420.0,
+          "S": 60.0,
+          "deliveredD": 900.0,
+          "deliveredS": 240.0
         },
         {
           "second": 240.0,
-          "readyShips": 6,
+          "readyShips": 4,
           "collectors": 6,
-          "D": 420.0,
+          "D": 540.0,
           "S": 80.0,
-          "deliveredD": 1860.0,
-          "deliveredS": 660.0
+          "deliveredD": 1260.0,
+          "deliveredS": 360.0
         },
         {
           "second": 300.0,
-          "readyShips": 7,
+          "readyShips": 5,
           "collectors": 6,
-          "D": 660.0,
-          "S": 160.0,
-          "deliveredD": 2340.0,
-          "deliveredS": 840.0
+          "D": 742.0,
+          "S": 100.0,
+          "deliveredD": 1702.0,
+          "deliveredS": 480.0
         },
         {
           "second": 360.0,
-          "readyShips": 9,
+          "readyShips": 5,
           "collectors": 6,
-          "D": 660.0,
+          "D": 900.0,
           "S": 120.0,
-          "deliveredD": 2820.0,
-          "deliveredS": 1000.0
+          "deliveredD": 2100.0,
+          "deliveredS": 600.0
         },
         {
           "second": 420.0,
-          "readyShips": 11,
+          "readyShips": 7,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 780.0,
+          "S": 40.0,
+          "deliveredD": 2460.0,
+          "deliveredS": 720.0
         },
         {
           "second": 480.0,
-          "readyShips": 11,
+          "readyShips": 8,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 1140.0,
+          "S": 100.0,
+          "deliveredD": 2820.0,
+          "deliveredS": 780.0
         },
         {
           "second": 540.0,
-          "readyShips": 11,
+          "readyShips": 9,
           "collectors": 6,
-          "D": 600.0,
+          "D": 1020.0,
           "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "deliveredD": 3180.0,
+          "deliveredS": 900.0
         },
         {
           "second": 600.0,
-          "readyShips": 11,
+          "readyShips": 10,
           "collectors": 6,
-          "D": 600.0,
-          "S": 20.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 900.0,
+          "S": 40.0,
+          "deliveredD": 3300.0,
+          "deliveredS": 1020.0
         }
       ]
     },
     "rozwoj_najpierw": {
       "firstShip": 107.0,
-      "secondShip": 142.0,
-      "fourthShip": 212.0,
-      "readyShips": 9,
+      "secondShip": 161.9,
+      "fourthShip": 237.8,
+      "readyShips": 11,
       "readyTimes": [
         107.0,
-        142.0,
-        177.0,
-        212.0,
-        247.0,
-        252.0,
-        282.0,
-        291.63333333,
-        323.2
+        161.9,
+        196.9,
+        237.8,
+        294.1,
+        331.7,
+        388.0,
+        444.3,
+        479.3,
+        520.96666667,
+        577.26666667
       ],
       "collectors": 8,
       "workersBuilt": 4,
-      "shipyards": 2,
+      "shipyards": 1,
       "delivered": {
-        "D": 3000.0000000005502,
-        "S": 999.9999999997433
+        "D": 3299.999999997517,
+        "S": 1200.0
       },
       "stock": {
-        "D": 760.0000000005506,
-        "S": 79.9999999997433
+        "D": 539.9999999975169,
+        "S": 80.0
       },
       "remainingDeposits": {
         "D": 0.0,
-        "S": 0.0
+        "S": 411.2393333340831
       },
       "committed": {
-        "D": 2600.0,
-        "S": 1080.0
+        "D": 3120.0,
+        "S": 1280.0
       },
       "wreck": {
         "D": 0.0,
@@ -426,126 +611,125 @@
           "second": 60.0,
           "readyShips": 0,
           "collectors": 7,
-          "D": 420.0,
-          "S": 200.0,
-          "deliveredD": 300.0,
-          "deliveredS": 120.0
+          "D": 300.0,
+          "S": 80,
+          "deliveredD": 180.0,
+          "deliveredS": 0.0
         },
         {
           "second": 120.0,
           "readyShips": 1,
           "collectors": 8,
-          "D": 480.0,
-          "S": 180.0,
-          "deliveredD": 840.0,
-          "deliveredS": 300.0
+          "D": 420.0,
+          "S": 100.0,
+          "deliveredD": 540.0,
+          "deliveredS": 120.0
         },
         {
           "second": 180.0,
-          "readyShips": 3,
+          "readyShips": 2,
           "collectors": 8,
-          "D": 400.0,
-          "S": 120.0,
-          "deliveredD": 1440.0,
-          "deliveredS": 540.0
+          "D": 300.0,
+          "S": 20.0,
+          "deliveredD": 900.0,
+          "deliveredS": 240.0
         },
         {
           "second": 240.0,
           "readyShips": 4,
           "collectors": 8,
-          "D": 610.0,
-          "S": 100.0,
-          "deliveredD": 2130.0,
-          "deliveredS": 720.0
+          "D": 420.0,
+          "S": 98.0,
+          "deliveredD": 1260.0,
+          "deliveredS": 418.0
         },
         {
           "second": 300.0,
-          "readyShips": 8,
+          "readyShips": 5,
           "collectors": 8,
-          "D": 520.0,
-          "S": 80.0,
-          "deliveredD": 2760.0,
-          "deliveredS": 1000.0
+          "D": 394.0,
+          "S": 20.0,
+          "deliveredD": 1714.0,
+          "deliveredS": 540.0
         },
         {
           "second": 360.0,
-          "readyShips": 9,
+          "readyShips": 6,
           "collectors": 8,
-          "D": 760.0,
-          "S": 80.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 540.0,
+          "S": 40.0,
+          "deliveredD": 2100.0,
+          "deliveredS": 660.0
         },
         {
           "second": 420.0,
-          "readyShips": 9,
+          "readyShips": 7,
           "collectors": 8,
-          "D": 760.0,
-          "S": 80.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 660.0,
+          "S": 60.0,
+          "deliveredD": 2460.0,
+          "deliveredS": 780.0
         },
         {
           "second": 480.0,
           "readyShips": 9,
           "collectors": 8,
-          "D": 760.0,
+          "D": 780.0,
           "S": 80.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "deliveredD": 2820.0,
+          "deliveredS": 900.0
         },
         {
           "second": 540.0,
-          "readyShips": 9,
+          "readyShips": 10,
           "collectors": 8,
-          "D": 760.0,
-          "S": 80.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "D": 900.0,
+          "S": 100.0,
+          "deliveredD": 3180.0,
+          "deliveredS": 1020.0
         },
         {
           "second": 600.0,
-          "readyShips": 9,
+          "readyShips": 11,
           "collectors": 8,
-          "D": 760.0,
+          "D": 540.0,
           "S": 80.0,
-          "deliveredD": 3000.0,
-          "deliveredS": 1000.0
+          "deliveredD": 3300.0,
+          "deliveredS": 1200.0
         }
       ]
     }
   },
   "raid": {
     "firstShip": 35.0,
-    "secondShip": 90.86666667,
-    "fourthShip": 165.23333333,
-    "readyShips": 10,
+    "secondShip": 117.23333333,
+    "fourthShip": 298.0,
+    "readyShips": 9,
     "readyTimes": [
       35.0,
-      90.86666667,
-      130.23333333,
-      165.23333333,
-      200.23333333,
-      249.7,
-      288.96666667,
-      328.23333333,
-      363.23333333,
-      398.23333333
+      117.23333333,
+      183.43333333,
+      298.0,
+      365.0,
+      400.0,
+      449.1,
+      516.1,
+      567.66666667
     ],
     "collectors": 6,
     "workersBuilt": 4,
     "shipyards": 1,
     "delivered": {
-      "D": 2940.0,
-      "S": 966.0999999998277
+      "D": 3239.999999997516,
+      "S": 960.0
     },
     "stock": {
-      "D": 660.0,
-      "S": 46.09999999982767
+      "D": 959.9999999975166,
+      "S": 40.0
     },
     "remainingDeposits": {
       "D": 0.0,
-      "S": 0.0
+      "S": 593.5929999997737
     },
     "committed": {
       "D": 2640.0,
@@ -553,11 +737,11 @@
     },
     "wreck": {
       "D": 30.0,
-      "S": 16.950000000000106
+      "S": 24.901166666666988
     },
     "destroyed": {
       "D": 30.0,
-      "S": 16.950000000000106
+      "S": 24.901166666666988
     },
     "recoverySeconds": 36.0,
     "snapshots": [
@@ -574,130 +758,128 @@
         "second": 60.0,
         "readyShips": 1,
         "collectors": 6,
-        "D": 60.0,
-        "S": 40.0,
-        "deliveredD": 300.0,
-        "deliveredS": 120.0
+        "D": 180.0,
+        "S": 20,
+        "deliveredD": 180.0,
+        "deliveredS": 0.0
       },
       {
         "second": 120.0,
         "readyShips": 2,
         "collectors": 6,
         "D": 300.0,
-        "S": 120.0,
-        "deliveredD": 780.0,
-        "deliveredS": 300.0
+        "S": 40.0,
+        "deliveredD": 540.0,
+        "deliveredS": 120.0
       },
       {
         "second": 180.0,
-        "readyShips": 4,
+        "readyShips": 2,
         "collectors": 4,
-        "D": 240.0,
-        "S": 80.0,
-        "deliveredD": 1260.0,
-        "deliveredS": 480.0
+        "D": 360.0,
+        "S": 40.0,
+        "deliveredD": 900.0,
+        "deliveredS": 240.0
       },
       {
         "second": 240.0,
-        "readyShips": 5,
+        "readyShips": 3,
         "collectors": 6,
-        "D": 360.0,
+        "D": 540.0,
         "S": 80.0,
-        "deliveredD": 1680.0,
-        "deliveredS": 600.0
+        "deliveredD": 1140.0,
+        "deliveredS": 300.0
       },
       {
         "second": 300.0,
-        "readyShips": 7,
+        "readyShips": 4,
         "collectors": 6,
-        "D": 374.0,
-        "S": 60.0,
-        "deliveredD": 2174.0,
-        "deliveredS": 780.0
+        "D": 744.0,
+        "S": 100.0,
+        "deliveredD": 1584.0,
+        "deliveredS": 420.0
       },
       {
         "second": 360.0,
-        "readyShips": 8,
+        "readyShips": 4,
         "collectors": 6,
-        "D": 660.0,
-        "S": 146.1,
-        "deliveredD": 2700.0,
-        "deliveredS": 966.1
+        "D": 900.0,
+        "S": 120.0,
+        "deliveredD": 1980.0,
+        "deliveredS": 540.0
       },
       {
         "second": 420.0,
-        "readyShips": 10,
+        "readyShips": 6,
         "collectors": 6,
-        "D": 660.0,
-        "S": 46.1,
-        "deliveredD": 2940.0,
-        "deliveredS": 966.1
+        "D": 780.0,
+        "S": 40.0,
+        "deliveredD": 2340.0,
+        "deliveredS": 660.0
       },
       {
         "second": 480.0,
-        "readyShips": 10,
+        "readyShips": 7,
         "collectors": 6,
-        "D": 660.0,
-        "S": 46.1,
-        "deliveredD": 2940.0,
-        "deliveredS": 966.1
+        "D": 1140.0,
+        "S": 100.0,
+        "deliveredD": 2700.0,
+        "deliveredS": 720.0
       },
       {
         "second": 540.0,
-        "readyShips": 10,
+        "readyShips": 8,
         "collectors": 6,
-        "D": 660.0,
-        "S": 46.1,
-        "deliveredD": 2940.0,
-        "deliveredS": 966.1
+        "D": 1020.0,
+        "S": 20.0,
+        "deliveredD": 3060.0,
+        "deliveredS": 840.0
       },
       {
         "second": 600.0,
-        "readyShips": 10,
+        "readyShips": 9,
         "collectors": 6,
-        "D": 660.0,
-        "S": 46.1,
-        "deliveredD": 2940.0,
-        "deliveredS": 966.1
+        "D": 960.0,
+        "S": 40.0,
+        "deliveredD": 3240.0,
+        "deliveredS": 960.0
       }
     ]
   },
   "blockade": {
     "firstShip": 35.0,
-    "secondShip": 90.86666667,
-    "fourthShip": 165.23333333,
-    "readyShips": 11,
+    "secondShip": 117.23333333,
+    "fourthShip": 272.6,
+    "readyShips": 9,
     "readyTimes": [
       35.0,
-      90.86666667,
-      130.23333333,
-      165.23333333,
-      200.23333333,
-      272.0,
-      307.0,
-      342.0,
-      377.0,
-      412.0,
-      447.0
+      117.23333333,
+      183.43333333,
+      272.6,
+      338.8,
+      405.0,
+      440.0,
+      489.9,
+      556.1
     ],
     "collectors": 6,
     "workersBuilt": 2,
     "shipyards": 1,
     "delivered": {
-      "D": 3000.0,
-      "S": 999.9999999998328
+      "D": 3299.9999999975166,
+      "S": 960.0
     },
     "stock": {
-      "D": 599.9999999999999,
-      "S": 19.999999999832724
+      "D": 1139.999999997517,
+      "S": 80.0
     },
     "remainingDeposits": {
       "D": 0.0,
-      "S": 0.0
+      "S": 659.7016666665133
     },
     "committed": {
-      "D": 2760.0,
-      "S": 1140.0
+      "D": 2520.0,
+      "S": 1040.0
     },
     "wreck": {
       "D": 0.0,
@@ -722,91 +904,91 @@
         "second": 60.0,
         "readyShips": 1,
         "collectors": 6,
-        "D": 60.0,
-        "S": 40.0,
-        "deliveredD": 300.0,
-        "deliveredS": 120.0
+        "D": 180.0,
+        "S": 20,
+        "deliveredD": 180.0,
+        "deliveredS": 0.0
       },
       {
         "second": 120.0,
         "readyShips": 2,
         "collectors": 6,
         "D": 300.0,
-        "S": 120.0,
-        "deliveredD": 780.0,
-        "deliveredS": 300.0
+        "S": 40.0,
+        "deliveredD": 540.0,
+        "deliveredS": 120.0
       },
       {
         "second": 180.0,
-        "readyShips": 4,
+        "readyShips": 2,
         "collectors": 6,
-        "D": 300.0,
-        "S": 100.0,
-        "deliveredD": 1260.0,
-        "deliveredS": 480.0
+        "D": 420.0,
+        "S": 60.0,
+        "deliveredD": 900.0,
+        "deliveredS": 240.0
       },
       {
         "second": 240.0,
-        "readyShips": 5,
+        "readyShips": 3,
         "collectors": 6,
-        "D": 240.0,
-        "S": 60.0,
-        "deliveredD": 1440.0,
-        "deliveredS": 540.0
+        "D": 300.0,
+        "S": 20.0,
+        "deliveredD": 1020.0,
+        "deliveredS": 300.0
       },
       {
         "second": 300.0,
-        "readyShips": 6,
+        "readyShips": 4,
         "collectors": 6,
-        "D": 540.0,
-        "S": 140.0,
-        "deliveredD": 1980.0,
-        "deliveredS": 720.0
+        "D": 660.0,
+        "S": 80.0,
+        "deliveredD": 1380.0,
+        "deliveredS": 360.0
       },
       {
         "second": 360.0,
-        "readyShips": 8,
+        "readyShips": 5,
         "collectors": 6,
-        "D": 540.0,
-        "S": 120.0,
-        "deliveredD": 2460.0,
-        "deliveredS": 900.0
+        "D": 900.0,
+        "S": 100.0,
+        "deliveredD": 1860.0,
+        "deliveredS": 480.0
       },
       {
         "second": 420.0,
-        "readyShips": 10,
+        "readyShips": 6,
         "collectors": 6,
-        "D": 600.0,
+        "D": 780.0,
         "S": 20.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "deliveredD": 2220.0,
+        "deliveredS": 600.0
       },
       {
         "second": 480.0,
-        "readyShips": 11,
+        "readyShips": 7,
         "collectors": 6,
-        "D": 600.0,
-        "S": 20.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 900.0,
+        "S": 40.0,
+        "deliveredD": 2580.0,
+        "deliveredS": 720.0
       },
       {
         "second": 540.0,
-        "readyShips": 11,
+        "readyShips": 8,
         "collectors": 6,
-        "D": 600.0,
-        "S": 20.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 1020.0,
+        "S": 60.0,
+        "deliveredD": 2940.0,
+        "deliveredS": 840.0
       },
       {
         "second": 600.0,
-        "readyShips": 11,
+        "readyShips": 9,
         "collectors": 6,
-        "D": 600.0,
-        "S": 20.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 1140.0,
+        "S": 80.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 960.0
       }
     ]
   },
@@ -820,12 +1002,12 @@
     "workersBuilt": 0,
     "shipyards": 1,
     "delivered": {
-      "D": 3000.0,
-      "S": 999.999999999657
+      "D": 3299.999999997516,
+      "S": 1650.000000001007
     },
     "stock": {
-      "D": 3360.0,
-      "S": 1159.999999999657
+      "D": 3659.999999997516,
+      "S": 1810.000000001007
     },
     "remainingDeposits": {
       "D": 0.0,
@@ -858,271 +1040,271 @@
         "second": 60.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 840.0,
-        "S": 280.0,
-        "deliveredD": 480.0,
-        "deliveredS": 120.0
+        "D": 600.0,
+        "S": 160,
+        "deliveredD": 240.0,
+        "deliveredS": 0.0
       },
       {
         "second": 120.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 1560.0,
-        "S": 520.0,
-        "deliveredD": 1200.0,
-        "deliveredS": 360.0
+        "D": 960.0,
+        "S": 280.0,
+        "deliveredD": 600.0,
+        "deliveredS": 120.0
       },
       {
         "second": 180.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 2280.0,
-        "S": 760.0,
-        "deliveredD": 1920.0,
-        "deliveredS": 600.0
+        "D": 1320.0,
+        "S": 400.0,
+        "deliveredD": 960.0,
+        "deliveredS": 240.0
       },
       {
         "second": 240.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3000.0,
-        "S": 1000.0,
-        "deliveredD": 2640.0,
-        "deliveredS": 840.0
+        "D": 1680.0,
+        "S": 520.0,
+        "deliveredD": 1320.0,
+        "deliveredS": 360.0
       },
       {
         "second": 300.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 2076.0,
+        "S": 752.0,
+        "deliveredD": 1716.0,
+        "deliveredS": 592.0
       },
       {
         "second": 360.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 2520.0,
+        "S": 880.0,
+        "deliveredD": 2160.0,
+        "deliveredS": 720.0
       },
       {
         "second": 420.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 2880.0,
+        "S": 1000.0,
+        "deliveredD": 2520.0,
+        "deliveredS": 840.0
       },
       {
         "second": 480.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3240.0,
+        "S": 1120.0,
+        "deliveredD": 2880.0,
+        "deliveredS": 960.0
       },
       {
         "second": 540.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1240.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1080.0
       },
       {
         "second": 600.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1360.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1200.0
       },
       {
         "second": 660.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1480.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1320.0
       },
       {
         "second": 720.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1600.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1440.0
       },
       {
         "second": 780.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1720.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1560.0
       },
       {
         "second": 840.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 900.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 960.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1020.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1080.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1140.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1200.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1260.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1320.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1380.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1440.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1500.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1560.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1620.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1680.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1740.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       },
       {
         "second": 1800.0,
         "readyShips": 0,
         "collectors": 12,
-        "D": 3360.0,
-        "S": 1160.0,
-        "deliveredD": 3000.0,
-        "deliveredS": 1000.0
+        "D": 3660.0,
+        "S": 1810.0,
+        "deliveredD": 3300.0,
+        "deliveredS": 1650.0
       }
     ]
   },
@@ -1137,15 +1319,15 @@
     "shipyards": 1,
     "delivered": {
       "D": 40.0,
-      "S": 0.0
+      "S": 20.0
     },
     "stock": {
       "D": 400.0,
-      "S": 160
+      "S": 180.0
     },
     "remainingDeposits": {
-      "D": 2820.0000000001637,
-      "S": 939.9999999999869
+      "D": 3119.999999999625,
+      "S": 1589.9999999998734
     },
     "committed": {
       "D": 0.0,
@@ -1175,27 +1357,27 @@
         "readyShips": 0,
         "collectors": 4,
         "D": 400.0,
-        "S": 160,
+        "S": 180.0,
         "deliveredD": 40.0,
-        "deliveredS": 0.0
+        "deliveredS": 20.0
       },
       {
         "second": 120.0,
         "readyShips": 0,
         "collectors": 4,
         "D": 400.0,
-        "S": 160,
+        "S": 180.0,
         "deliveredD": 40.0,
-        "deliveredS": 0.0
+        "deliveredS": 20.0
       },
       {
         "second": 180.0,
         "readyShips": 0,
         "collectors": 4,
         "D": 400.0,
-        "S": 160,
+        "S": 180.0,
         "deliveredD": 40.0,
-        "deliveredS": 0.0
+        "deliveredS": 20.0
       }
     ]
   },
@@ -1203,22 +1385,22 @@
     "constantNodeCounterfactual": true,
     "measuredRatesAfter5MinuteWarmup": {
       "70": {
-        "D": 492.0,
-        "S": 144.0
+        "D": 381.8,
+        "S": 86.8
       },
       "280": {
         "D": 192.0,
-        "S": 72.0
+        "S": 60.0
       }
     },
     "gainPerMinute": {
-      "D": 300.0,
-      "S": 72.0
+      "D": 189.8,
+      "S": 26.799999999999997
     },
     "optimisticRecoveryMinutes": {
-      "port_and_new_merchant": 2.2222222222222223,
-      "port_merchant_and_local_shipyard": 3.611111111111111,
-      "port_merchant_shipyard_and_four_new_collectors": 4.722222222222222
+      "port_and_new_merchant": 5.970149253731344,
+      "port_merchant_and_local_shipyard": 9.701492537313435,
+      "port_merchant_shipyard_and_four_new_collectors": 12.686567164179106
     },
     "constructionTripSeconds": 75.0,
     "merchantCombinedCapacityPerMinute": 288.0,
@@ -1228,35 +1410,35 @@
     "seed": 7319,
     "raidArrivalMin": 114.57768047056499,
     "raidArrivalMax": 138.63039392735539,
-    "secondShipMin": 91.0,
-    "secondShipMax": 106.86666667
+    "secondShipMin": 117.3,
+    "secondShipMax": 125.23333333
   },
   "timestepSensitivity": {
     "0.016666666666666666": {
       "firstShip": 35.0,
-      "secondShip": 90.93333333,
-      "readyShips": 7,
+      "secondShip": 117.25,
+      "readyShips": 5,
       "delivered": {
-        "D": 2340.0,
-        "S": 840.0
+        "D": 1693.0,
+        "S": 480.0
       }
     },
     "0.03333333333333333": {
       "firstShip": 35.0,
-      "secondShip": 90.86666667,
-      "readyShips": 7,
+      "secondShip": 117.23333333,
+      "readyShips": 5,
       "delivered": {
-        "D": 2340.0,
-        "S": 840.0
+        "D": 1702.0,
+        "S": 480.0
       }
     },
     "0.06666666666666667": {
       "firstShip": 35.0,
-      "secondShip": 90.73333333,
-      "readyShips": 7,
+      "secondShip": 117.2,
+      "readyShips": 5,
       "delivered": {
-        "D": 2339.999999999994,
-        "S": 840.0
+        "D": 1692.0,
+        "S": 480.0
       }
     }
   }

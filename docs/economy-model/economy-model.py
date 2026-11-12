@@ -2,10 +2,118 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-import csv, json, math, random
+import csv, json, math, os, random
 
 ROOT = Path(__file__).resolve().parent
-PARAMS = json.loads((ROOT/'economy-parameters.json').read_text(encoding='utf-8'))
+# The rules come from the game's own catalogue, written out by the game (qa/runtime-catalog.json; P02-D). The older
+# file beside this script is LEGACY: it is read only for the few keys the export does not carry, listed below.
+CATALOG_PATH = Path(os.environ.get('MORZA_RUNTIME_CATALOG') or ROOT.parent.parent/'qa'/'runtime-catalog.json')
+LEGACY_PATH = ROOT/'economy-parameters.json'
+# The match profile whose start stock, deposits and yields the model uses.
+MATCH_LENGTH = 'Standard'
+# LEGACY: not in the export, and no rule of the game either. Assumptions of this model alone.
+LEGACY_KEYS = {
+    'harbor.sourceApproachSeconds': 'model abstraction of coming alongside a deposit. The game has no such number; what it does have at a '
+                                    'deposit, the crew going ashore and coming back aboard, is in the export and left out (see UNUSED_EXPORT)',
+    'harbor.turnaroundSeconds': 'model abstraction of leaving a berth of the port; the game has no such number',
+}
+# NOT IN THE EXPORT: the export gives the deposit of one point. How many points a map has is only in MapFactory.
+# This model works one point of each resource: the home pair, which MapFactory.cs:211-212 makes of one wood and one
+# silver point a side. The four pairs (MapFactory.cs:28-31) and two centres (MapFactory.cs:34-35) are not modelled.
+HOME_POINTS_PER_RESOURCE = 1
+# NOT IN THE EXPORT, a value of the game: a side starts with four boats, three sent to wood and one to silver
+# (MapFactory.cs:214-220, E04).
+START_COLLECTORS = [3, 1]
+# IN THE EXPORT AND NOT USED: what the model leaves out, and what that is worth.
+UNUSED_EXPORT = {
+    'rules.node.landCrewSeconds': 'A boat at a deposit first puts its crew ashore, with no work meanwhile (Definitions.cs:308-313). Left out: '
+                                  'the model has its own two seconds of approach instead (harbor.sourceApproachSeconds, LEGACY).',
+    'rules.node.embarkSeconds': 'After the last load the boat waits for its crew and keeps the berth (Definitions.cs:308-313). Left out. '
+                                'With landCrewSeconds this is about 7 s more a visit to a deposit than the model counts, so the model '
+                                'reads incomes somewhat high, most of all on short runs and at a crowded deposit.',
+}
+# ASSUMPTIONS WRITTEN INTO THE CODE BELOW: numbers of this model that neither file carries.
+MODEL_ASSUMPTIONS = {
+    'raid.wreckShareOfCargo': {'value': 0.5, 'where': 'run(): a boat sunk in the raid leaves half its cargo as a wreck, half is destroyed'},
+    'repair.scrapFraction': {'value': 0.15, 'where': 'main(): the algebra check that repair then scrap never pays'},
+    'repair.costFullFraction': {'value': 0.25, 'where': 'main(): the same check'},
+    'expansion.merchantFixedSeconds': {'value': 4, 'where': 'main(): merchantCombinedCapacityPerMinute, the seconds a round trip costs besides sailing and handling'},
+    'expansion.pathMeters': {'value': 280, 'where': 'main(): the length of the way to the new port'},
+}
+
+def load_parameters():
+    catalog = json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
+    legacy = json.loads(LEGACY_PATH.read_text(encoding='utf-8'))
+    if catalog.get('schema') != 'morza-bogow/runtime-catalog@1':
+        raise SystemExit(f"Unknown catalogue export: {catalog.get('schema')!r}")
+    rules = catalog['rules']
+    centi = rules['centi']
+    ships = {ship['id']: ship['runtime'] for ship in catalog['ships'] if ship.get('runtime')}
+    profile = next(item for item in rules['matchProfiles'] if item['length'] == MATCH_LENGTH)
+    used = {}
+
+    def whole(number):
+        return int(number) if number == int(number) else number
+
+    def pair(path, value):
+        used[path] = 'qa/runtime-catalog.json'
+        return {'D': whole(value['wood'] / centi), 'S': whole(value['silver'] / centi)}
+
+    def one(path, value):
+        used[path] = 'qa/runtime-catalog.json'
+        return value
+
+    def old(path):
+        assert path in LEGACY_KEYS, path
+        value = legacy
+        for part in path.split('.'):
+            value = value[part]
+        used[path] = 'LEGACY docs/economy-model/economy-parameters.json'
+        return value
+
+    cutter, merchant, ram = ships['N01'], ships['N02'], ships['N03']
+    yields = {'D': profile['woodYield'], 'S': profile['silverYield']}
+    # units.rate: a ship's work rate and a point's shared rate are multiplied by the profile's yield before use.
+    rates = pair('collector.rates', cutter['workRate'])
+    shared = pair('node.sharedRates', rules['node']['sharedRate'])
+    deposits = pair('start.deposits', profile['deposits']['home'])
+    params = {
+        'collector': {'cost': pair('collector.cost', cutter['cost']), 'buildSeconds': one('collector.buildSeconds', cutter['buildSeconds']),
+                      'speed': one('collector.speed', cutter['speed']), 'cargo': one('collector.cargo', whole(cutter['capacity'] / centi)),
+                      'rates': {r: rates[r] * yields[r] for r in rates}},
+        'merchant': {'cost': pair('merchant.cost', merchant['cost']), 'speed': one('merchant.speed', merchant['speed']),
+                     'cargo': one('merchant.cargo', whole(merchant['capacity'] / centi))},
+        'ships': {'ram': {'cost': pair('ships.ram.cost', ram['cost']), 'seconds': one('ships.ram.seconds', ram['buildSeconds']),
+                          'speed': one('ships.ram.speed', ram['speed'])}},
+        'start': {'stock': pair('start.stock', profile['start']), 'collectors': list(START_COLLECTORS),
+                  'deposits': {r: deposits[r] * HOME_POINTS_PER_RESOURCE for r in deposits}},
+        'reserve': pair('reserve', rules['reserve']),
+        'warehouse': pair('warehouse', rules['warehouse']),
+        'node': {'sharedRates': {r: shared[r] * yields[r] for r in shared},
+                 'workBerths': {r: one('node.workBerths', rules['node']['workBerths']) for r in ('D', 'S')}},
+        'harbor': {'berths': one('harbor.berths', rules['harbour']['berths']), 'unloadRate': one('harbor.unloadRate', whole(rules['harbour']['handlingRate'] / centi)),
+                   'sourceApproachSeconds': old('harbor.sourceApproachSeconds'), 'turnaroundSeconds': old('harbor.turnaroundSeconds')},
+        'buildings': {'shipyard': {'cost': pair('buildings.shipyard.cost', rules['shipyard']['cost']), 'seconds': one('buildings.shipyard.seconds', rules['shipyard']['seconds'])},
+                      'outpost': {'cost': pair('buildings.outpost.cost', rules['outpost']['cost']), 'seconds': one('buildings.outpost.seconds', rules['outpost']['seconds'])}},
+    }
+    used['yield'] = 'qa/runtime-catalog.json'
+    provenance = {
+        'catalog': {'file': 'qa/runtime-catalog.json', 'schema': catalog['schema'], 'catalogId': catalog['catalogId'], 'catalogHash': catalog['catalogHash']},
+        'matchLength': MATCH_LENGTH,
+        'yield': yields,
+        'sources': dict(sorted(used.items())),
+        'legacy': {path: {'value': old(path), 'why': why} for path, why in LEGACY_KEYS.items()},
+        'notInExport': {'start.collectors': {'value': list(START_COLLECTORS), 'source': 'Assets/MorzaBogow/Runtime/Simulation/MapFactory.cs:214-220',
+                                             'note': 'A value of the game (E04: three boats on wood and one on silver from the first moment), not exported.'},
+                        'homePointsPerResource': {'value': HOME_POINTS_PER_RESOURCE, 'source': 'Assets/MorzaBogow/Runtime/Simulation/MapFactory.cs:211-212',
+                                                  'note': 'The export gives the deposit of one point; the number of points on a map is only in MapFactory.'}},
+        'unusedExport': {path: {'value': rules['node'][path.rsplit('.', 1)[1]], 'why': why} for path, why in UNUSED_EXPORT.items()},
+        'modelAssumptions': MODEL_ASSUMPTIONS,
+        'values': params,
+    }
+    return params, provenance
+
+PARAMS, PARAMETERS_USED = load_parameters()
 
 @dataclass
 class Boat:
@@ -156,19 +264,21 @@ def main():
         at300=next(x for x in o['snapshots'] if x['second']==300)
         expansion_flows[str(d)]={r:(o['delivered'][r]-at300['delivered'+r])/10 for r in ('D','S')}
     gains={r:expansion_flows['70'][r]-expansion_flows['280'][r] for r in ('D','S')}
+    outpost=PARAMS['buildings']['outpost']['cost'];merchant=PARAMS['merchant'];yard=PARAMS['buildings']['shipyard']['cost'];boat=PARAMS['collector']['cost']
     costs={
-        'port_and_new_merchant':{'D':440,'S':160},
-        'port_merchant_and_local_shipyard':{'D':640,'S':260},
-        'port_merchant_shipyard_and_four_new_collectors':{'D':880,'S':340}}
+        'port_and_new_merchant':{r:outpost[r]+merchant['cost'][r] for r in ('D','S')},
+        'port_merchant_and_local_shipyard':{r:outpost[r]+merchant['cost'][r]+yard[r] for r in ('D','S')},
+        'port_merchant_shipyard_and_four_new_collectors':{r:outpost[r]+merchant['cost'][r]+yard[r]+4*boat[r] for r in ('D','S')}}
     expansion={'constantNodeCounterfactual':True,'measuredRatesAfter5MinuteWarmup':expansion_flows,'gainPerMinute':gains,
                'optimisticRecoveryMinutes':{name:max(c[r]/gains[r] for r in ('D','S')) for name,c in costs.items()},
                'constructionTripSeconds':280/PARAMS['merchant']['speed']+PARAMS['buildings']['outpost']['seconds'],
-               'merchantCombinedCapacityPerMinute':60*480/(2*280/7+2*480/60+4),
+               'merchantCombinedCapacityPerMinute':60*merchant['cargo']/(2*280/merchant['speed']+2*merchant['cargo']/PARAMS['harbor']['unloadRate']+4),
                'scope':'Same 4D/2S collectors and local spending. No new workforce income, combat, acceleration, relocation downtime, depletion or building-sequence simulation.'}
     # Refund/remont: rebuilding HP to scrap must never create a profit, component-wise.
     for h in (0,.25,.5,.75,1):
         assert .15-.25*(1-h)<=.15*h+1e-10
     report={'scope':'MODEL EKONOMICZNY; WALKA, NAWIGACJA I PLAYTESTY: NOT_RUN',
+            'parameters':PARAMETERS_USED,
             'checks':{'resourceConservation':'VERIFIED_IN_MODEL','nonNegativeInventories':'VERIFIED_IN_MODEL','portCapacity':'VERIFIED_IN_MODEL','finiteNodes':'VERIFIED_IN_MODEL','fullWarehouse':'VERIFIED_IN_MODEL','cycleFormula':'CHECKED_AGAINST_MODEL','repairScrapLoop':'ALGEBRA_CHECKED'},
             'cycleChecks':cycle_checks,'incomes':incomes,'openings':openings,'raid':raid,'blockade':blockade,'depletion':lowstock,'fullWarehouse':full,'expansion':expansion,
             'samples200':{'seed':7319,'raidArrivalMin':min(x['earliestDirectRaidArrival'] for x in samples),'raidArrivalMax':max(x['earliestDirectRaidArrival'] for x in samples),'secondShipMin':min(x['secondShip'] for x in samples),'secondShipMax':max(x['secondShip'] for x in samples)},
