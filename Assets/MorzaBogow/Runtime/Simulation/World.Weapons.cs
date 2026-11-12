@@ -75,6 +75,34 @@ namespace MorzaBogow.Simulation
         /// <summary>A ship that has any weapon fitted can be ordered to shoot.</summary>
         public static bool HasWeapons(Ship ship) => ship.Mounts.Any(mount => mount != WeaponType.None);
 
+        /// <summary>
+        /// The distance a ship ordered to shoot holds from its target (A13, Q04), from the posts that can fire now: a
+        /// weapon fitted, its module whole and its crew aboard. Of the distances at Rules.EngageRangeShare of each such
+        /// post's greatest range, the one from which the most of them reach (outside their least range too), the
+        /// farther on a tie. Null when no post can fire: the ship then does not close in.
+        /// </summary>
+        public static double? EngageRange(Ship ship)
+        {
+            var manned = Manned(ship);
+            bool Ready(int i) => ship.Mounts[i] != WeaponType.None && ship.ModuleHp[i] > 0 && manned[i];
+            double? best = null;
+            var bestCount = 0;
+            for (var i = 0; i < ship.Mounts.Length; i++)
+            {
+                if (!Ready(i)) continue;
+                var candidate = WeaponCatalog.Get(ship.Mounts[i]).MaxRange * Rules.EngageRangeShare;
+                var count = 0;
+                for (var j = 0; j < ship.Mounts.Length; j++)
+                {
+                    if (!Ready(j)) continue;
+                    var weapon = WeaponCatalog.Get(ship.Mounts[j]);
+                    if (candidate >= weapon.MinRange && candidate <= weapon.MaxRange) count++;
+                }
+                if (count > bestCount || (count > 0 && count == bestCount && candidate > best.Value)) { best = candidate; bestCount = count; }
+            }
+            return best;
+        }
+
         /// <summary>A point lies within a weapon's reach and arc from this ship.</summary>
         public static bool InReach(Ship ship, WeaponDefinition weapon, double x, double y)
         {

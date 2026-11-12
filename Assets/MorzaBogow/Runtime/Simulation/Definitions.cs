@@ -358,6 +358,12 @@ namespace MorzaBogow.Simulation
         public const double SettlementHull = 1800, SettlementVision = 300;
 
         public const double ArcherRange = 100, ArcherMinRange = 15, ArcherReloadSeconds = 2, ArcherAccuracy = 0.75;
+
+        /// <summary>
+        /// A ship ordered to shoot holds this share of a post's greatest range from its target, so a target moving a
+        /// little stays in reach (A13; a game parameter, World.EngageRange).
+        /// </summary>
+        public const double EngageRangeShare = 0.8;
         public const double SoldierHitPoints = 10;
 
         public const double RamBase = 120, RamReferenceSpeed = 8, RamMaxDamage = 400, RamMinClosing = 3, RamRecoilFraction = 0.2, RamCooldownSeconds = 8, RamBackoffSeconds = 3;

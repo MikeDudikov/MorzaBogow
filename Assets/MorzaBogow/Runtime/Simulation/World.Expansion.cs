@@ -355,9 +355,11 @@ namespace MorzaBogow.Simulation
             var threat = Ships
                 .Where(item => item.Owner != ship.Owner && CanSee(ship.Owner, item) && Distance(item.X, item.Y, escorted.X, escorted.Y) <= Rules.EscortZone)
                 .OrderBy(item => Distance2(item.X, item.Y, escorted.X, escorted.Y)).ThenBy(item => item.Id).FirstOrDefault();
-            if (threat != null && HasWeapons(ship))
+            // A threat is engaged from the distance the escort's working, manned posts shoot from (A13); with none it keeps its station.
+            var range = threat != null ? EngageRange(ship) : null;
+            if (range != null)
             {
-                Pursue(ship, threat.X, threat.Y, Rules.ArcherRange * 0.8);
+                Pursue(ship, threat.X, threat.Y, range.Value);
                 return;
             }
 

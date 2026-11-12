@@ -322,12 +322,12 @@ namespace MorzaBogow.Simulation
                     case OrderKind.AttackShip:
                         var target = FindShip(ship.TargetId);
                         if (target == null || !CanSee(ship.Owner, target)) { ship.Order = OrderKind.Idle; break; }
-                        Pursue(ship, target.X, target.Y, Rules.ArcherRange * 0.8);
+                        HoldAtRange(ship, target.X, target.Y);
                         break;
                     case OrderKind.AttackSettlement:
                         var settlement = Settlements.FirstOrDefault(item => item.Id == ship.TargetId);
                         if (settlement == null || settlement.Destroyed) { ship.Order = OrderKind.Idle; break; }
-                        Pursue(ship, settlement.X, settlement.Y, Rules.ArcherRange * 0.8);
+                        HoldAtRange(ship, settlement.X, settlement.Y);
                         break;
                     case OrderKind.Ram: StepRamMovement(ship); break;
                     case OrderKind.Board: StepBoardMovement(ship); break;
@@ -353,6 +353,14 @@ namespace MorzaBogow.Simulation
                 ship.TargetX += nx * (minimum - distance);
                 ship.TargetY += ny * (minimum - distance);
             }
+        }
+
+        /// <summary>Closes to the distance its working, manned posts shoot from (EngageRange); with none it does not close in.</summary>
+        void HoldAtRange(Ship ship, double x, double y)
+        {
+            var range = EngageRange(ship);
+            if (range == null) StopShip(ship);
+            else Pursue(ship, x, y, range.Value);
         }
 
         void Pursue(Ship ship, double x, double y, double hold)

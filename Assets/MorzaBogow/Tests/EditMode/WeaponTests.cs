@@ -279,6 +279,82 @@ namespace MorzaBogow.Tests
             Assert.That((deck.swordsmen, deck.javelins), Is.EqualTo((2, Math.Min(ship.Javelins, 8))), "Swordsmen first, then javelin men.");
         }
 
+        // ---------- The distance an attack holds (A13, Q04) ----------
+
+        static Ship Armed(World world, ShipClass shipClass, params WeaponType[] loadout)
+        {
+            var ship = world.SpawnShip(0, shipClass, 0, 0);
+            if (loadout.Length > 0) World.Fit(ship, loadout, ship.Definition.ItemValues());
+            return ship;
+        }
+
+        [Test]
+        public void Attack_TheDistanceComesFromThePostsThatCanFire()
+        {
+            var world = Empty();
+            Assert.That(World.EngageRange(world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0)), Is.EqualTo(80).Within(1e-9), "Bows: 0.8 of 100 m.");
+            Assert.That(World.EngageRange(world.SpawnShip(0, ShipClass.Boarder, 0, 0)), Is.EqualTo(36).Within(1e-9), "Javelins alone: inside their 45 m.");
+            Assert.That(World.EngageRange(world.SpawnShip(0, ShipClass.ShipKiller, 0, 0)), Is.EqualTo(144).Within(1e-9), "Deck ballistae: beyond the archers' 100 m.");
+            Assert.That(World.EngageRange(Armed(world, ShipClass.Bomber, WeaponType.Onager, WeaponType.Onager)), Is.EqualTo(256).Within(1e-9), "Onagers: outside their 100 m dead zone.");
+            var mixed = Armed(world, ShipClass.Boarder, WeaponType.ArcherBank, WeaponType.JavelinBank, WeaponType.None);
+            mixed.Archers = 8;
+            Assert.That(World.EngageRange(mixed), Is.EqualTo(36).Within(1e-9), "Bows and javelins: where both reach.");
+
+            var unmanned = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
+            unmanned.Archers = 0;
+            Assert.That(World.EngageRange(unmanned), Is.Null, "No archers at the banks: nothing can fire.");
+            var broken = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0);
+            for (var i = 0; i < broken.ModuleHp.Length; i++) broken.ModuleHp[i] = 0;
+            Assert.That(World.EngageRange(broken), Is.Null, "Every module out of action.");
+            var half = world.SpawnShip(0, ShipClass.Boarder, 0, 0);
+            half.ModuleHp[0] = 0;
+            Assert.That(World.EngageRange(half), Is.EqualTo(36).Within(1e-9), "One bank broken, the other still decides.");
+        }
+
+        [Test]
+        public void Attack_HoldsWhereItsPostsReachAndDoesNotCloseInWithNone()
+        {
+            (double distance, int shots) Attack(Func<World, Ship> make, bool port = false)
+            {
+                var world = Empty();
+                var ship = make(world);
+                var target = world.SpawnShip(1, ShipClass.Merchant, 190, 0);
+                target.Hull = 1e6;
+                var enemyPort = world.SettlementOf(1);
+                if (port) { ship.X = enemyPort.X - 190; target.X = 0; }
+                world.Issue(new Command { Faction = 0, Kind = port ? CommandKind.AttackSettlement : CommandKind.AttackShip, ShipIds = new[] { ship.Id }, TargetId = port ? enemyPort.Id : target.Id });
+                var shots = 0;
+                for (var i = 0; i < 60 * Rules.TickRate; i++)
+                {
+                    world.Step();
+                    shots += world.Events.Count(item => item.Type == "weapon_fired" && item.SubjectId == ship.Id);
+                    world.Events.Clear();
+                }
+                return port ? (World.Distance(ship.X, ship.Y, enemyPort.X, enemyPort.Y), shots) : (World.Distance(ship.X, ship.Y, target.X, target.Y), shots);
+            }
+
+            var javelins = Attack(world => world.SpawnShip(0, ShipClass.Boarder, 0, 0));
+            Assert.That(javelins.distance, Is.InRange(5.0, 45.0), "Javelin men close to their own reach.");
+            Assert.That(javelins.shots, Is.GreaterThan(0), "And throw: at 80 m they never could.");
+            var bows = Attack(world => world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0));
+            Assert.That(bows.distance, Is.InRange(70.0, 100.0));
+            Assert.That(bows.shots, Is.GreaterThan(0));
+            var ballistae = Attack(world => world.SpawnShip(0, ShipClass.ShipKiller, 0, 0));
+            Assert.That(ballistae.distance, Is.InRange(120.0, 180.0), "Ballistae keep beyond the archers' reach.");
+            Assert.That(ballistae.shots, Is.GreaterThan(0));
+            var onagers = Attack(world => Armed(world, ShipClass.Bomber, WeaponType.Onager, WeaponType.Onager));
+            Assert.That(onagers.distance, Is.InRange(100.0, 320.0), "Held outside the onagers' dead zone.");
+            Assert.That(onagers.shots, Is.GreaterThan(0));
+
+            var unmanned = Attack(world => { var ship = world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0); ship.Archers = 0; return ship; });
+            Assert.That(unmanned.distance, Is.GreaterThan(180.0), "With no post that can fire it does not close in.");
+            Assert.That(unmanned.shots, Is.Zero);
+
+            var portBows = Attack(world => world.SpawnShip(0, ShipClass.CrewDestroyer, 0, 0), port: true);
+            Assert.That(portBows.distance, Is.InRange(70.0, 100.0), "A port is attacked from the same distance.");
+            Assert.That(portBows.shots, Is.GreaterThan(0));
+        }
+
         [Test]
         public void Weapons_SaveWithShotsInTheAirContinuesIdentically()
         {
